@@ -14,6 +14,10 @@ public final class ChunkyProvider {
         return instance;
     }
 
+    public static boolean isLoaded() {
+        return instance != null;
+    }
+
     static void register(final Chunky instance) {
         ChunkyProvider.instance = instance;
     }

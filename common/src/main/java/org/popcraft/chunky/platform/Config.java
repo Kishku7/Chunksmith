@@ -23,9 +23,19 @@ public interface Config {
 
     boolean isIoThrottleEnabled();
 
-    double getSlowMultiplier();
+    /**
+     * Target server tick time (ms/tick) the throttle steers toward. The throttle reduces
+     * concurrency when the smoothed tick time rises above this and increases it when the
+     * server is comfortably keeping up.
+     */
+    double getThrottleTargetMspt();
 
-    int getFastSampleSize();
+    /**
+     * Absolute per-chunk latency backstop (ms). A single chunk load taking longer than
+     * this triggers an immediate back-off regardless of tick health — catches a pure I/O
+     * stall, and is the only signal on platforms that cannot report tick time.
+     */
+    long getThrottleMaxChunkMillis();
 
     void reload();
 }

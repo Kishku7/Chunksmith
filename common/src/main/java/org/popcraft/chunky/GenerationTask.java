@@ -27,11 +27,13 @@ public class GenerationTask implements Runnable {
     private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunky.sampleInterval")).orElse(30), 30);
     private static final double SAMPLE_SUB_INTERVAL = SAMPLE_INTERVAL / 30;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
-    private static final long RAMP_INTERVAL_MS = 1_000L;    // max one +1 step per second
-    private static final long BACKOFF_INTERVAL_MS = 3_000L; // max one -1 step per 3 seconds
-    // No throttle during warmup (before fastSampleSize samples collected) — HDD cold-start
-    // latency easily exceeds any fixed constant, so wait for a real baseline first.
-    private static final long FALLBACK_THRESHOLD_MS = Long.MAX_VALUE / 2;
+    // Adaptive concurrency uses asymmetric AIMD-style timing: back off quickly under load,
+    // ramp back up slowly. Tick health is sampled on a fixed cadence so the limit can fall
+    // even when chunk completions have stalled entirely (disk blocked, no callbacks firing).
+    private static final long RAMP_INTERVAL_MS = 1_000L;     // at most +1 per second
+    private static final long BACKOFF_INTERVAL_MS = 250L;    // at most -1 per 250 ms
+    private static final long MSPT_CHECK_INTERVAL_MS = 250L; // how often tick health is evaluated
+    private static final double MSPT_BAND = 3.0D;            // dead-band around target to prevent flapping
     private final Chunky chunky;
     private final Selection selection;
     private final Shape shape;
@@ -43,13 +45,13 @@ public class GenerationTask implements Runnable {
     private final RegionCache.WorldState worldState;
     private final AtomicInteger inFlight = new AtomicInteger(0);
     private final AtomicInteger dispatchLimit = new AtomicInteger(MAX_WORKING_COUNT);
-    private final ConcurrentLinkedDeque<Long> fastSamples = new ConcurrentLinkedDeque<>();
     private final AtomicLong lastThrottleNoticeTime = new AtomicLong(0);
     private final AtomicLong lastRampTime = new AtomicLong(0);
     private final AtomicLong lastBackoffTime = new AtomicLong(0);
+    private final AtomicLong lastMsptCheckTime = new AtomicLong(0);
     private final boolean ioThrottleEnabled;
-    private final double slowMultiplier;
-    private final int fastSampleSize;
+    private final double targetMspt;
+    private final long maxChunkMillis;
     private volatile Thread dispatchThread;
     private ChunkIterator chunkIterator;
     private boolean stopped, cancelled;
@@ -71,8 +73,8 @@ public class GenerationTask implements Runnable {
         this.progress = new Progress(selection.world().getName());
         this.worldState = chunky.getRegionCache().getWorld(selection.world().getName());
         this.ioThrottleEnabled = chunky.getConfig().isIoThrottleEnabled();
-        this.slowMultiplier = chunky.getConfig().getSlowMultiplier();
-        this.fastSampleSize = chunky.getConfig().getFastSampleSize();
+        this.targetMspt = chunky.getConfig().getThrottleTargetMspt();
+        this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
     }
 
     private synchronized void update(final int chunkX, final int chunkZ, final boolean loaded) {
@@ -136,63 +138,72 @@ public class GenerationTask implements Runnable {
         }
     }
 
-    private void adjustThrottle(final long elapsed) {
-        final long threshold = computeThreshold();
-        if (elapsed > threshold) {
-            // Back off by 1, rate-limited to BACKOFF_INTERVAL_MS. This prevents
-            // individual HDD seek outliers from thrashing the limit while still
-            // allowing sustained saturation to drive concurrency down steadily.
-            final long now = System.currentTimeMillis();
-            final long last = lastBackoffTime.get();
-            if (now - last >= BACKOFF_INTERVAL_MS && lastBackoffTime.compareAndSet(last, now)) {
-                int current;
-                do {
-                    current = dispatchLimit.get();
-                    if (current <= 1) return;
-                } while (!dispatchLimit.compareAndSet(current, current - 1));
-                maybeNotify(current - 1);
-            }
-        } else {
-            updateFastBaseline(elapsed);
-            // Ramp up at most +1 per RAMP_INTERVAL_MS. Many whenComplete callbacks can
-            // fire in the same millisecond at high concurrency; the CAS on lastRampTime
-            // ensures only one thread wins the increment per interval.
-            final long now = System.currentTimeMillis();
-            final long last = lastRampTime.get();
-            if (now - last >= RAMP_INTERVAL_MS && lastRampTime.compareAndSet(last, now)) {
-                int current;
-                do {
-                    current = dispatchLimit.get();
-                    if (current >= MAX_WORKING_COUNT) {
-                        return;
-                    }
-                } while (!dispatchLimit.compareAndSet(current, current + 1));
-                maybeNotify(current + 1);
-            }
+    /**
+     * Primary throttle signal. Evaluated on a fixed cadence (even while completions are
+     * stalled) so concurrency can fall under sustained load. When the server main thread
+     * falls behind its tick budget we back off; when it is comfortably keeping up we ramp
+     * back up. On platforms that cannot report tick time this is a no-op and the per-chunk
+     * latency backstop carries the throttle instead.
+     */
+    private void adjustFromTickHealth() {
+        final long now = System.currentTimeMillis();
+        final long last = lastMsptCheckTime.get();
+        if (now - last < MSPT_CHECK_INTERVAL_MS || !lastMsptCheckTime.compareAndSet(last, now)) {
+            return;
+        }
+        final double mspt = chunky.getServer().getMillisPerTick();
+        if (mspt < 0.0D) {
+            return;
+        }
+        if (mspt > targetMspt + MSPT_BAND) {
+            backoff();
+        } else if (mspt < targetMspt - MSPT_BAND) {
+            rampUp();
         }
     }
 
-    private long computeThreshold() {
-        final Object[] samples = fastSamples.toArray();
-        if (samples.length < fastSampleSize) {
-            return FALLBACK_THRESHOLD_MS;
+    /**
+     * Backstop signal. A single chunk load exceeding the absolute latency cap means the
+     * disk is stalling regardless of what the tick average has done; back off immediately.
+     */
+    private void adjustFromChunkLatency(final long elapsed) {
+        if (elapsed > maxChunkMillis) {
+            backoff();
         }
-        long sum = 0;
-        for (final Object s : samples) {
-            sum += (Long) s;
-        }
-        return (long) ((sum / (double) samples.length) * slowMultiplier);
     }
 
-    private void updateFastBaseline(final long elapsed) {
-        // Collect samples at any concurrency level so the threshold adapts to the
-        // current operating point rather than being anchored to max-concurrency
-        // performance. This prevents false throttling when individual chunk times
-        // at low concurrency are naturally higher than the max-concurrency baseline.
-        fastSamples.addLast(elapsed);
-        while (fastSamples.size() > fastSampleSize) {
-            fastSamples.pollFirst();
+    private void backoff() {
+        final long now = System.currentTimeMillis();
+        final long last = lastBackoffTime.get();
+        if (now - last < BACKOFF_INTERVAL_MS || !lastBackoffTime.compareAndSet(last, now)) {
+            return;
         }
+        int current;
+        do {
+            current = dispatchLimit.get();
+            if (current <= 1) {
+                return;
+            }
+        } while (!dispatchLimit.compareAndSet(current, current - 1));
+        // Hold off ramping briefly so a single back-off isn't immediately undone.
+        lastRampTime.set(now);
+        maybeNotify(current - 1);
+    }
+
+    private void rampUp() {
+        final long now = System.currentTimeMillis();
+        final long last = lastRampTime.get();
+        if (now - last < RAMP_INTERVAL_MS || !lastRampTime.compareAndSet(last, now)) {
+            return;
+        }
+        int current;
+        do {
+            current = dispatchLimit.get();
+            if (current >= MAX_WORKING_COUNT) {
+                return;
+            }
+        } while (!dispatchLimit.compareAndSet(current, current + 1));
+        maybeNotify(current + 1);
     }
 
     private void maybeNotify(final int newLimit) {
@@ -226,9 +237,16 @@ public class GenerationTask implements Runnable {
                 continue;
             }
             // Wait for a dispatch slot — park 1ms at a time so stop() is responsive.
+            // Re-evaluate tick health each pass so the limit can drop even while saturated
+            // (no slot free) and chunk-completion callbacks have stopped firing.
             // Math.max(1, ...) guards against dispatchLimit ever hitting 0.
             while (!stopped) {
-                if (inFlight.get() < Math.max(1, dispatchLimit.get())) break;
+                if (ioThrottleEnabled) {
+                    adjustFromTickHealth();
+                }
+                if (inFlight.get() < Math.max(1, dispatchLimit.get())) {
+                    break;
+                }
                 LockSupport.parkNanos(1_000_000L);
             }
             if (stopped) {
@@ -250,7 +268,7 @@ public class GenerationTask implements Runnable {
                         final long elapsed = System.currentTimeMillis() - dispatchTime;
                         inFlight.decrementAndGet();
                         if (ioThrottleEnabled) {
-                            adjustThrottle(elapsed);
+                            adjustFromChunkLatency(elapsed);
                         }
                         LockSupport.unpark(dispatchThread);
                         update(chunk.x(), chunk.z(), true);

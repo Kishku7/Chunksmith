@@ -73,6 +73,20 @@ public class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isIoThrottleEnabled() {
+        return plugin.getConfig().getBoolean("io-throttle", true);
+    }
+
+    @Override
+    public double getThrottleTargetMspt() {
+        return plugin.getConfig().getDouble("throttle-target-mspt", 150.0D);
+    }
+
+    @Override
+    public long getThrottleMaxChunkMillis() {
+        return plugin.getConfig().getLong("throttle-max-chunk-millis", 750L);
+    }
+    @Override
     public void reload() {
         plugin.reloadConfig();
     }

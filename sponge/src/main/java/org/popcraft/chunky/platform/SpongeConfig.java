@@ -119,6 +119,20 @@ public class SpongeConfig implements Config {
     }
 
     @Override
+    public boolean isIoThrottleEnabled() {
+        return this.rootNode == null || this.rootNode.node(ROOT_CONFIG_NODE, "io-throttle").getBoolean(true);
+    }
+
+    @Override
+    public double getThrottleTargetMspt() {
+        return this.rootNode == null ? 55.0D : this.rootNode.node(ROOT_CONFIG_NODE, "throttle-target-mspt").getDouble(55.0D);
+    }
+
+    @Override
+    public long getThrottleMaxChunkMillis() {
+        return this.rootNode == null ? 750L : this.rootNode.node(ROOT_CONFIG_NODE, "throttle-max-chunk-millis").getLong(750L);
+    }
+    @Override
     public void reload() {
         try {
             this.rootNode = configLoader.load();

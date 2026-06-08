@@ -18,12 +18,15 @@ import java.util.logging.Logger;
 public class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Logger LOGGER = Logger.getLogger("Chunky");
-    private static final double SLOW_MULTIPLIER_MIN = 1.5;
-    private static final double SLOW_MULTIPLIER_MAX = 10.0;
-    private static final double SLOW_MULTIPLIER_DEFAULT = 5.0;
-    private static final int FAST_SAMPLE_SIZE_MIN = 5;
-    private static final int FAST_SAMPLE_SIZE_MAX = 100;
-    private static final int FAST_SAMPLE_SIZE_DEFAULT = 20;
+    // Target ms/tick the throttle steers toward. A healthy 20 TPS server measures ~50 ms,
+    // so the floor of this range is 50; the default leaves a small margin above it.
+    private static final double TARGET_MSPT_MIN = 54.0;
+    private static final double TARGET_MSPT_MAX = 1000.0;
+    private static final double TARGET_MSPT_DEFAULT = 150.0;
+    // Absolute per-chunk latency backstop (ms).
+    private static final long MAX_CHUNK_MILLIS_MIN = 100L;
+    private static final long MAX_CHUNK_MILLIS_MAX = 60_000L;
+    private static final long MAX_CHUNK_MILLIS_DEFAULT = 750L;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
@@ -88,19 +91,25 @@ public class GsonConfig implements Config {
     }
 
     @Override
-    public double getSlowMultiplier() {
-        final double raw = Optional.ofNullable(configModel.slowMultiplier).orElse(SLOW_MULTIPLIER_DEFAULT);
-        if (raw < SLOW_MULTIPLIER_MIN || raw > SLOW_MULTIPLIER_MAX) {
-            LOGGER.warning(String.format("Chunky: slowMultiplier %.1f is out of range [%.1f, %.1f], using %.1f",
-                    raw, SLOW_MULTIPLIER_MIN, SLOW_MULTIPLIER_MAX, Math.max(SLOW_MULTIPLIER_MIN, Math.min(SLOW_MULTIPLIER_MAX, raw))));
-            return Math.max(SLOW_MULTIPLIER_MIN, Math.min(SLOW_MULTIPLIER_MAX, raw));
+    public double getThrottleTargetMspt() {
+        final double raw = Optional.ofNullable(configModel.throttleTargetMspt).orElse(TARGET_MSPT_DEFAULT);
+        final double clamped = Math.max(TARGET_MSPT_MIN, Math.min(TARGET_MSPT_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunky: throttleTargetMspt %.1f is out of range [%.1f, %.1f], using %.1f",
+                    raw, TARGET_MSPT_MIN, TARGET_MSPT_MAX, clamped));
         }
-        return raw;
+        return clamped;
     }
 
     @Override
-    public int getFastSampleSize() {
-        return Optional.ofNullable(configModel.fastSampleSize).orElse(FAST_SAMPLE_SIZE_DEFAULT);
+    public long getThrottleMaxChunkMillis() {
+        final long raw = Optional.ofNullable(configModel.throttleMaxChunkMillis).orElse(MAX_CHUNK_MILLIS_DEFAULT);
+        final long clamped = Math.max(MAX_CHUNK_MILLIS_MIN, Math.min(MAX_CHUNK_MILLIS_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunky: throttleMaxChunkMillis %d is out of range [%d, %d], using %d",
+                    raw, MAX_CHUNK_MILLIS_MIN, MAX_CHUNK_MILLIS_MAX, clamped));
+        }
+        return clamped;
     }
 
     @Override
@@ -134,8 +143,8 @@ public class GsonConfig implements Config {
         private Boolean silent = false;
         private Integer updateInterval = 1;
         private Boolean ioThrottle = true;
-        private Double slowMultiplier = SLOW_MULTIPLIER_DEFAULT;
-        private Integer fastSampleSize = FAST_SAMPLE_SIZE_DEFAULT;
+        private Double throttleTargetMspt = TARGET_MSPT_DEFAULT;
+        private Long throttleMaxChunkMillis = MAX_CHUNK_MILLIS_DEFAULT;
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }
@@ -154,10 +163,10 @@ public class GsonConfig implements Config {
         public void setUpdateInterval(final int updateInterval) { this.updateInterval = updateInterval; }
         public Boolean getIoThrottle() { return ioThrottle; }
         public void setIoThrottle(final Boolean ioThrottle) { this.ioThrottle = ioThrottle; }
-        public Double getSlowMultiplier() { return slowMultiplier; }
-        public void setSlowMultiplier(final Double slowMultiplier) { this.slowMultiplier = slowMultiplier; }
-        public Integer getFastSampleSize() { return fastSampleSize; }
-        public void setFastSampleSize(final Integer fastSampleSize) { this.fastSampleSize = fastSampleSize; }
+        public Double getThrottleTargetMspt() { return throttleTargetMspt; }
+        public void setThrottleTargetMspt(final Double throttleTargetMspt) { this.throttleTargetMspt = throttleTargetMspt; }
+        public Long getThrottleMaxChunkMillis() { return throttleMaxChunkMillis; }
+        public void setThrottleMaxChunkMillis(final Long throttleMaxChunkMillis) { this.throttleMaxChunkMillis = throttleMaxChunkMillis; }
     }
 
     @SuppressWarnings("unused")
