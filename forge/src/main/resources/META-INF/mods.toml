@@ -8,7 +8,7 @@ version="${version}"
 displayName="${name}"
 displayURL="${github}"
 logoFile="icon.png"
-authors="${author}"
+authors="${author}, pop4959"
 description="${description}"
 [[dependencies.chunky]]
    modId="forge"

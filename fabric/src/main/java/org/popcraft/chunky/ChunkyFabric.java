@@ -46,6 +46,9 @@ public class ChunkyFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        if (FabricLoader.getInstance().isModLoaded("chunky")) {
+            org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
+        }
         ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
             final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("chunky/config.json");
             this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(configPath));

@@ -12,7 +12,7 @@ subprojects {
     plugins.apply("com.gradleup.shadow")
 
     group = "${project.property("group")}"
-    version = "${project.property("version")}.${commitsSinceLastTag()}"
+    version = "${project.property("version")}"
 
     repositories {
         mavenCentral()

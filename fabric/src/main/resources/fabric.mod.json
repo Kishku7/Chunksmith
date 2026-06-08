@@ -7,9 +7,12 @@
   "authors": [
     "${author}"
   ],
+  "contributors": [
+    "pop4959 (original Chunky author)"
+  ],
   "contact": {
-    "website": "https://www.curseforge.com/minecraft/mc-mods/chunky-pregenerator",
-    "homepage": "https://www.curseforge.com/minecraft/mc-mods/chunky-pregenerator",
+    "website": "${github}",
+    "homepage": "${github}",
     "repo": "${github}",
     "sources": "${github}",
     "issues": "${github}/issues"
@@ -30,12 +33,5 @@
     "fabric-api": "*",
     "minecraft": ">=26.1",
     "java": ">=25"
-  },
-  "custom": {
-    "modmenu": {
-      "links": {
-        "modmenu.discord": "https://discord.gg/ZwVJukcNQG"
-      }
-    }
   }
 }

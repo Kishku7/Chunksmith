@@ -32,7 +32,7 @@ tasks {
         filesMatching("META-INF/neoforge.mods.toml") {
             expand(
                 "github" to project.property("github")!!,
-                "id" to rootProject.name,
+                "id" to project.property("modId")!!,
                 "version" to project.version,
                 "name" to project.property("artifactName")!!,
                 "author" to project.property("author")!!,

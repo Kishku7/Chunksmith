@@ -23,7 +23,7 @@ tasks {
     processResources {
         filesMatching("fabric.mod.json") {
             expand(
-                "id" to rootProject.name,
+                "id" to project.property("modId")!!,
                 "version" to project.version,
                 "name" to project.property("artifactName")!!,
                 "description" to project.property("description")!!,

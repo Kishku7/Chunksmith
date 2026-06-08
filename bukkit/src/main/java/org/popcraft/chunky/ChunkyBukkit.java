@@ -49,6 +49,11 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        final Plugin existingChunky = getServer().getPluginManager().getPlugin("Chunky");
+        if (existingChunky != null && existingChunky != this) {
+            getLogger().warning("Chunksmith supersedes Chunky. Disabling the Chunky plugin - please remove its jar from the plugins folder.");
+            getServer().getPluginManager().disablePlugin(existingChunky);
+        }
         this.chunky = new Chunky(new BukkitServer(this), new BukkitConfig(this));
         final Version currentVersion = new Version(Bukkit.getBukkitVersion(), true);
         if (currentVersion.isValid() && Version.MINECRAFT_1_13_2.isHigherThan(currentVersion)) {

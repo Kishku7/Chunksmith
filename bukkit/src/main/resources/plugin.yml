@@ -3,11 +3,11 @@ version: ${version}
 main: ${group}.chunky.ChunkyBukkit
 api-version: 1.13
 folia-supported: true
-softdepend: [dynmap, BlueMap, squaremap, WorldBorder]
+softdepend: [dynmap, BlueMap, squaremap, WorldBorder, Chunky]
 load: POSTWORLD
-authors: [${author}]
+authors: [${author}, pop4959]
 description: ${description}
-website: https://www.spigotmc.org/resources/chunky.81534/
+website: https://github.com/Kishku7/Chunky
 commands:
   chunky:
     description: Generates chunks
