@@ -8,7 +8,9 @@
     "MinecraftServerAccess",
     "MinecraftServerMixin",
     "ServerChunkCacheMixin",
-    "ServerLevelMixin"
+    "ServerLevelMixin",
+    "SimpleRegionStorageAccessor",
+    "IOWorkerAccessor"
   ],
   "client": [
     "client.IntegratedServerMixin"

@@ -49,4 +49,14 @@ public interface World {
     default Optional<Path> getRegionDirectory() {
         return getDirectory("region");
     }
+
+    /**
+     * Number of chunk writes currently queued to disk but not yet flushed (the deferred
+     * region-write backlog). Used by the generation throttle for write-queue backpressure.
+     * Returns -1 when the platform cannot report it (throttle then relies on tick-health
+     * and the per-chunk latency backstop only).
+     */
+    default long getQueuedChunkWrites() {
+        return -1;
+    }
 }

@@ -63,7 +63,7 @@ public class HelpCommand implements ChunkyCommand {
             help.append('\n').append(translate("help_" + visibleCommands.get(i)));
         }
         if (sender.isPlayer() && pageIndex != pageIndexLast) {
-            help.append('\n').append(translate(TranslationKey.HELP_MORE, "/chunky help " + (pageIndex + 2)));
+            help.append('\n').append(translate(TranslationKey.HELP_MORE, "/cs help " + (pageIndex + 2)));
         }
         sender.sendMessage(TranslationKey.HELP_MENU, help.toString());
     }

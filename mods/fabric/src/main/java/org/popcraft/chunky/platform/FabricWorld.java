@@ -17,6 +17,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.LevelResource;
@@ -25,12 +26,15 @@ import org.popcraft.chunky.ducks.MinecraftServerExtension;
 import org.popcraft.chunky.mixin.ChunkMapMixin;
 import org.popcraft.chunky.mixin.MinecraftServerAccess;
 import org.popcraft.chunky.mixin.ServerChunkCacheMixin;
+import org.popcraft.chunky.mixin.SimpleRegionStorageAccessor;
+import org.popcraft.chunky.mixin.IOWorkerAccessor;
 import org.popcraft.chunky.platform.util.Location;
 import org.popcraft.chunky.util.Input;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -192,6 +196,21 @@ public class FabricWorld implements World {
         }
         final Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
+    }
+
+    @Override
+    public long getQueuedChunkWrites() {
+        try {
+            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunky$getWorker();
+            if (worker == null) {
+                return -1;
+            }
+            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunky$getPendingWrites();
+            return pendingWrites == null ? -1 : pendingWrites.size();
+        } catch (final Throwable t) {
+            return -1;
+        }
     }
 
     public ServerLevel getWorld() {

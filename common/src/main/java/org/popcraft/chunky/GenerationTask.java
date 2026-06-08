@@ -34,6 +34,7 @@ public class GenerationTask implements Runnable {
     private static final long BACKOFF_INTERVAL_MS = 250L;    // at most -1 per 250 ms
     private static final long MSPT_CHECK_INTERVAL_MS = 250L; // how often tick health is evaluated
     private static final double MSPT_BAND = 3.0D;            // dead-band around target to prevent flapping
+    private static final long WRITE_CHECK_INTERVAL_MS = 100L; // how often the disk write-queue depth is sampled
     private final Chunky chunky;
     private final Selection selection;
     private final Shape shape;
@@ -52,6 +53,11 @@ public class GenerationTask implements Runnable {
     private final boolean ioThrottleEnabled;
     private final double targetMspt;
     private final long maxChunkMillis;
+    private final long maxQueuedWrites;
+    private final long resumeQueuedWrites;
+    private final AtomicLong lastWriteCheckTime = new AtomicLong(0);
+    private final AtomicLong lastWriteNoticeTime = new AtomicLong(0);
+    private volatile boolean writeQueueStalled;
     private volatile Thread dispatchThread;
     private ChunkIterator chunkIterator;
     private boolean stopped, cancelled;
@@ -75,6 +81,8 @@ public class GenerationTask implements Runnable {
         this.ioThrottleEnabled = chunky.getConfig().isIoThrottleEnabled();
         this.targetMspt = chunky.getConfig().getThrottleTargetMspt();
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
+        this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
+        this.resumeQueuedWrites = this.maxQueuedWrites > 0 ? Math.max(1L, this.maxQueuedWrites / 2L) : 0L;
     }
 
     private synchronized void update(final int chunkX, final int chunkZ, final boolean loaded) {
@@ -214,6 +222,44 @@ public class GenerationTask implements Runnable {
         }
     }
 
+    /**
+     * Write-queue backpressure. Tick-health and per-chunk latency react to the server thread
+     * and to load completion, but the deferred region-write backlog can still grow unbounded
+     * when chunks finish generating faster than the disk can flush them (async I/O does not
+     * raise tick time). This samples that backlog on a fixed cadence and, once it exceeds the
+     * configured cap, holds off all new dispatches until it drains back below half the cap
+     * (hysteresis) — directly bounding the unflushed-write window so a slow disk paces
+     * generation instead of being buried. No-op when the platform cannot report the depth.
+     */
+    private void evaluateWriteBackpressure() {
+        final long now = System.currentTimeMillis();
+        final long last = lastWriteCheckTime.get();
+        if (now - last < WRITE_CHECK_INTERVAL_MS || !lastWriteCheckTime.compareAndSet(last, now)) {
+            return;
+        }
+        final long queued = selection.world().getQueuedChunkWrites();
+        if (queued < 0) {
+            writeQueueStalled = false;
+            return;
+        }
+        if (writeQueueStalled) {
+            if (queued <= resumeQueuedWrites) {
+                writeQueueStalled = false;
+            }
+        } else if (queued >= maxQueuedWrites) {
+            writeQueueStalled = true;
+            maybeNotifyWrite(queued);
+        }
+    }
+
+    private void maybeNotifyWrite(final long queued) {
+        final long now = System.currentTimeMillis();
+        final long last = lastWriteNoticeTime.get();
+        if (now - last >= NOTICE_INTERVAL_MS && lastWriteNoticeTime.compareAndSet(last, now)) {
+            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_WRITE_BACKPRESSURE_NOTICE, queued, maxQueuedWrites);
+        }
+    }
+
     @Override
     public void run() {
         final String poolThreadName = Thread.currentThread().getName();
@@ -243,8 +289,11 @@ public class GenerationTask implements Runnable {
             while (!stopped) {
                 if (ioThrottleEnabled) {
                     adjustFromTickHealth();
+                    if (maxQueuedWrites > 0) {
+                        evaluateWriteBackpressure();
+                    }
                 }
-                if (inFlight.get() < Math.max(1, dispatchLimit.get())) {
+                if (!writeQueueStalled && inFlight.get() < Math.max(1, dispatchLimit.get())) {
                     break;
                 }
                 LockSupport.parkNanos(1_000_000L);

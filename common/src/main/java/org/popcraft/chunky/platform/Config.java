@@ -37,5 +37,12 @@ public interface Config {
      */
     long getThrottleMaxChunkMillis();
 
+    /**
+     * Maximum chunk writes allowed to queue to disk before the throttle stops dispatching
+     * new chunks until the backlog drains (hysteresis: resumes at half this value). Bounds
+     * the deferred-write backlog so generation cannot outrun disk throughput. 0 disables.
+     */
+    long getThrottleMaxQueuedWrites();
+
     void reload();
 }

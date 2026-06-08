@@ -11,8 +11,11 @@ import org.popcraft.chunky.ChunkyBukkit;
 import org.popcraft.chunky.platform.util.Location;
 import org.popcraft.chunky.util.Input;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -220,6 +223,90 @@ public class BukkitWorld implements World {
         final Location location = player.getLocation();
         final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         world.playSound(bukkitLocation, soundType, 2f, 1f);
+    }
+
+    // --- write-queue backpressure (reflective; reaches the vanilla IOWorker pending-write
+    // map via CraftWorld#getHandle -> getChunkSource -> chunkMap -> worker -> pendingWrites).
+    // Fail-safe: any failure (Moonrise/Folia/remapped internals) disables the probe and
+    // returns -1, so the throttle falls back to its tick-health backstop. Never throws. ---
+    private static volatile boolean writeQueueProbeDisabled = false;
+    private static volatile Method getHandleMethod;
+    private static volatile Method getChunkSourceMethod;
+    private static volatile Field chunkMapField;
+    private static volatile Field workerField;
+    private static volatile Field pendingWritesField;
+
+    @Override
+    public long getQueuedChunkWrites() {
+        if (writeQueueProbeDisabled) {
+            return -1;
+        }
+        try {
+            Method gh = getHandleMethod;
+            if (gh == null) {
+                gh = world.getClass().getMethod("getHandle");
+                getHandleMethod = gh;
+            }
+            final Object serverLevel = gh.invoke(world);
+            Method gcs = getChunkSourceMethod;
+            if (gcs == null) {
+                gcs = findMethod(serverLevel.getClass(), "getChunkSource");
+                getChunkSourceMethod = gcs;
+            }
+            final Object chunkSource = gcs.invoke(serverLevel);
+            Field cmf = chunkMapField;
+            if (cmf == null) {
+                cmf = findField(chunkSource.getClass(), "chunkMap");
+                chunkMapField = cmf;
+            }
+            final Object chunkMap = cmf.get(chunkSource);
+            Field wf = workerField;
+            if (wf == null) {
+                wf = findField(chunkMap.getClass(), "worker");
+                workerField = wf;
+            }
+            final Object worker = wf.get(chunkMap);
+            if (worker == null) {
+                return -1;
+            }
+            Field pwf = pendingWritesField;
+            if (pwf == null) {
+                pwf = findField(worker.getClass(), "pendingWrites");
+                pendingWritesField = pwf;
+            }
+            final Object pending = pwf.get(worker);
+            if (pending instanceof Map<?, ?> map) {
+                return map.size();
+            }
+            return -1;
+        } catch (final Throwable t) {
+            writeQueueProbeDisabled = true;
+            return -1;
+        }
+    }
+
+    private static Method findMethod(final Class<?> from, final String name) throws NoSuchMethodException {
+        for (Class<?> k = from; k != null; k = k.getSuperclass()) {
+            try {
+                final Method m = k.getDeclaredMethod(name);
+                m.setAccessible(true);
+                return m;
+            } catch (final NoSuchMethodException ignored) {
+            }
+        }
+        throw new NoSuchMethodException(name);
+    }
+
+    private static Field findField(final Class<?> from, final String name) throws NoSuchFieldException {
+        for (Class<?> k = from; k != null; k = k.getSuperclass()) {
+            try {
+                final Field f = k.getDeclaredField(name);
+                f.setAccessible(true);
+                return f;
+            } catch (final NoSuchFieldException ignored) {
+            }
+        }
+        throw new NoSuchFieldException(name);
     }
 
     @Override

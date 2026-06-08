@@ -86,6 +86,12 @@ public class BukkitConfig implements Config {
     public long getThrottleMaxChunkMillis() {
         return plugin.getConfig().getLong("throttle-max-chunk-millis", 750L);
     }
+
+    @Override
+    public long getThrottleMaxQueuedWrites() {
+        return plugin.getConfig().getLong("throttle-max-queued-writes", 800L);
+    }
+
     @Override
     public void reload() {
         plugin.reloadConfig();

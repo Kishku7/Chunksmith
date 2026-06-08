@@ -27,6 +27,11 @@ public class GsonConfig implements Config {
     private static final long MAX_CHUNK_MILLIS_MIN = 100L;
     private static final long MAX_CHUNK_MILLIS_MAX = 60_000L;
     private static final long MAX_CHUNK_MILLIS_DEFAULT = 750L;
+    // Maximum queued (unflushed) chunk writes before generation dispatch is held off.
+    // 0 disables. Hysteresis resumes dispatch once the backlog drains to half this value.
+    private static final long MAX_QUEUED_WRITES_MIN = 50L;
+    private static final long MAX_QUEUED_WRITES_MAX = 1_000_000L;
+    private static final long MAX_QUEUED_WRITES_DEFAULT = 800L;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
@@ -113,6 +118,20 @@ public class GsonConfig implements Config {
     }
 
     @Override
+    public long getThrottleMaxQueuedWrites() {
+        final long raw = Optional.ofNullable(configModel.throttleMaxQueuedWrites).orElse(MAX_QUEUED_WRITES_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        final long clamped = Math.max(MAX_QUEUED_WRITES_MIN, Math.min(MAX_QUEUED_WRITES_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunky: throttleMaxQueuedWrites %d is out of range [%d, %d], using %d",
+                    raw, MAX_QUEUED_WRITES_MIN, MAX_QUEUED_WRITES_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
     public void reload() {
         try (final Reader reader = Files.newBufferedReader(savePath)) {
             configModel = GSON.fromJson(reader, ConfigModel.class);
@@ -145,6 +164,7 @@ public class GsonConfig implements Config {
         private Boolean ioThrottle = true;
         private Double throttleTargetMspt = TARGET_MSPT_DEFAULT;
         private Long throttleMaxChunkMillis = MAX_CHUNK_MILLIS_DEFAULT;
+        private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }
@@ -167,6 +187,8 @@ public class GsonConfig implements Config {
         public void setThrottleTargetMspt(final Double throttleTargetMspt) { this.throttleTargetMspt = throttleTargetMspt; }
         public Long getThrottleMaxChunkMillis() { return throttleMaxChunkMillis; }
         public void setThrottleMaxChunkMillis(final Long throttleMaxChunkMillis) { this.throttleMaxChunkMillis = throttleMaxChunkMillis; }
+        public Long getThrottleMaxQueuedWrites() { return throttleMaxQueuedWrites; }
+        public void setThrottleMaxQueuedWrites(final Long throttleMaxQueuedWrites) { this.throttleMaxQueuedWrites = throttleMaxQueuedWrites; }
     }
 
     @SuppressWarnings("unused")
