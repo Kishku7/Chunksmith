@@ -90,6 +90,8 @@ public final class TranslationKey {
     public static final String SHAPE_SQUARE = "shape_square";
     public static final String SHAPE_STAR = "shape_star";
     public static final String SHAPE_TRIANGLE = "shape_triangle";
+    public static final String TASK_THROTTLE_NOTICE = "task_throttle_notice";
+    public static final String TASK_THROTTLE_STATUS = "task_throttle_status";
     public static final String TASK_TRIM = "task_trim";
     public static final String TASK_TRIM_UPDATE = "task_trim_update";
     public static final String TASK_DONE = "task_done";

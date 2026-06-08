@@ -298,3 +298,5 @@ gradle-app.setting
 # End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,java,gradle,intellij+all,eclipse,visualstudiocode,netbeans
 
 run/
+
+build_output.txt

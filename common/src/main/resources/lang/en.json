@@ -89,6 +89,8 @@
   "shape_square": "square",
   "shape_star": "star",
   "shape_triangle": "triangle",
+  "task_throttle_notice": "I/O throttle rate set to %s/%s",
+  "task_throttle_status": "I/O throttle active - concurrency: %s/%s",
   "task_trim": "Deleted %s chunks from %s in %s seconds.",
   "task_trim_update": "Task running for %s. Processed: %s regions (%s%%)",
   "task_done": "Task finished for %s. Processed: %s chunks (%s%%), Total time: %s:%s:%s",

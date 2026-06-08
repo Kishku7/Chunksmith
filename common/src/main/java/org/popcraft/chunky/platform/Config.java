@@ -21,5 +21,11 @@ public interface Config {
 
     void setUpdateInterval(int updateInterval);
 
+    boolean isIoThrottleEnabled();
+
+    double getSlowMultiplier();
+
+    int getFastSampleSize();
+
     void reload();
 }
