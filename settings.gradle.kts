@@ -18,8 +18,7 @@ sequenceOf(
     "bukkit",
     "fabric",
     "forge",
-    "neoforge",
-    "sponge"
+    "neoforge"
 ).forEach {
     include("${rootProject.name}-$it")
     project(":${rootProject.name}-$it").projectDir = file(it)
