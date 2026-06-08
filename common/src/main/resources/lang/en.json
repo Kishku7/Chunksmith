@@ -3,6 +3,7 @@
   "border_load_failed": "No saved borders found.",
   "border_save_failed": "Unable to save borders.",
   "command_no_permission": "&cYou do not have permission for this command.",
+  "command_deprecated_alias": "&eThis command alias is deprecated. Please use &a/cs&e instead.",
   "disabled": "disabled",
   "enabled": "enabled",
   "error_pause_when_empty_seconds": "This plugin will not function correctly when pause-when-empty-seconds is enabled. Automatically disabling this in server.properties. Please restart your server.",

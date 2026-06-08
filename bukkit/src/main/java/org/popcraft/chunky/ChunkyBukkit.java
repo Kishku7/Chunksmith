@@ -54,6 +54,14 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
             getLogger().warning("Chunksmith supersedes Chunky. Disabling the Chunky plugin - please remove its jar from the plugins folder.");
             getServer().getPluginManager().disablePlugin(existingChunky);
         }
+        final File legacyData = new File(getDataFolder().getParentFile(), "Chunky");
+        if (!getDataFolder().exists() && legacyData.isDirectory()) {
+            if (legacyData.renameTo(getDataFolder())) {
+                getLogger().info("Migrated existing Chunky data folder to Chunksmith.");
+            } else {
+                getLogger().warning("Could not migrate the Chunky data folder to Chunksmith.");
+            }
+        }
         this.chunky = new Chunky(new BukkitServer(this), new BukkitConfig(this));
         final Version currentVersion = new Version(Bukkit.getBukkitVersion(), true);
         if (currentVersion.isValid() && Version.MINECRAFT_1_13_2.isHigherThan(currentVersion)) {
@@ -96,6 +104,9 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
         final Sender bukkitSender = sender instanceof final Player player ? new BukkitPlayer(player) : new BukkitSender(sender);
+        if (CommandLiteral.CHUNKY.equalsIgnoreCase(label) || CommandLiteral.CY.equalsIgnoreCase(label)) {
+            bukkitSender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
+        }
         final Map<String, ChunkyCommand> commands = chunky.getCommands();
         final CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
         if (args.length > 0 && commands.containsKey(args[0].toLowerCase())) {

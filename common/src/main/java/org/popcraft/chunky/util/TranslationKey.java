@@ -5,6 +5,7 @@ public final class TranslationKey {
     public static final String BORDER_LOAD_FAILED = "border_load_failed";
     public static final String BORDER_SAVE_FAILED = "border_save_failed";
     public static final String COMMAND_NO_PERMISSION = "command_no_permission";
+    public static final String COMMAND_DEPRECATED_ALIAS = "command_deprecated_alias";
     public static final String DISABLED = "disabled";
     public static final String ENABLED = "enabled";
     public static final String ERROR_PAUSE_WHEN_EMPTY_SECONDS = "error_pause_when_empty_seconds";

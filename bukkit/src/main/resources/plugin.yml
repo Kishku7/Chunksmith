@@ -9,11 +9,11 @@ authors: [${author}, pop4959]
 description: ${description}
 website: https://github.com/Kishku7/Chunky
 commands:
-  chunky:
+  cs:
     description: Generates chunks
-    aliases: [cy]
+    aliases: [chunksmith, chunky, cy]
     permission: chunky.command
-    usage: /chunky
+    usage: /cs
 permissions:
   chunky.command:
     default: op

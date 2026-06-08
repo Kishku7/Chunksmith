@@ -7,6 +7,9 @@ public final class CommandLiteral {
     public static final String CENTER_X = "centerX";
     public static final String CENTER_Z = "centerZ";
     public static final String CHUNKY = "chunky";
+    public static final String CS = "cs";
+    public static final String CHUNKSMITH = "chunksmith";
+    public static final String CY = "cy";
     public static final String CONFIRM = "confirm";
     public static final String CONTINUE = "continue";
     public static final String CORNERS = "corners";
