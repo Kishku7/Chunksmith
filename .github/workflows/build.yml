@@ -1,4 +1,4 @@
-name: Build Chunky
+name: Build Chunksmith
 on: [ push, pull_request ]
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '25'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
       - name: Build
@@ -23,24 +23,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Bukkit
-          path: "bukkit/build/libs/Chunky-*.jar"
+          path: "plugin/spigot/build/libs/Chunksmith-*.jar"
       - name: Upload Fabric
         uses: actions/upload-artifact@v4
         with:
           name: Fabric
-          path: "fabric/build/libs/Chunky-*.jar"
-      - name: Upload Forge
-        uses: actions/upload-artifact@v4
-        with:
-          name: Forge
-          path: "forge/build/libs/Chunky-*.jar"
+          path: "mods/fabric/build/libs/Chunksmith-*.jar"
       - name: Upload NeoForge
         uses: actions/upload-artifact@v4
         with:
           name: NeoForge
-          path: "neoforge/build/libs/Chunky-*.jar"
-      - name: Upload Sponge
-        uses: actions/upload-artifact@v4
-        with:
-          name: Sponge
-          path: "sponge/build/libs/Chunky-*.jar"
+          path: "mods/neoforge/build/libs/Chunksmith-*.jar"
