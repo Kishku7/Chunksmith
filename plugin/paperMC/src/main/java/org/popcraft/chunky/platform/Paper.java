@@ -3,6 +3,7 @@ package org.popcraft.chunky.platform;
 import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -17,6 +18,10 @@ public final class Paper {
 
     public static boolean isPaper() {
         return CONFIG_EXISTS;
+    }
+
+    public static double getAverageTickTime(final Server server) {
+        return server.getAverageTickTime();
     }
 
     public static CompletableFuture<Chunk> getChunkAtAsync(final World world, final int x, final int z) {
