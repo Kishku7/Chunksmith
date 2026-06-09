@@ -25,7 +25,7 @@ Primary targets are **Fabric** and **PaperMC** (Minecraft 26.1.x, Java 25). Bukk
 Compiled jars are on the [**Releases**](https://github.com/Kishku7/Chunksmith/releases/latest) page — no building required:
 
 - **Plugin** (Paper / Spigot / Bukkit / Folia) — download `Chunksmith-Plugin-<version>.jar` and drop it in your server's `plugins/` folder.
-- **Mod** (Fabric) — download `Chunksmith-Mod-Fabric-<version>.jar` and drop it in `mods/` (requires Fabric API). *A NeoForge build is in testing and will be added to Releases once verified.*
+- **Mod** (Fabric / NeoForge) — download `Chunksmith-Mod-Fabric-NeoForge-<version>.jar` and drop it in `mods/` — one universal jar for both loaders (Fabric also requires Fabric API).
 
 Also published on [Modrinth](https://modrinth.com/mod/chunksmith).
 
