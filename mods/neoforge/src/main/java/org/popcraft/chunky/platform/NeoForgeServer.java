@@ -7,6 +7,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerInterface;
 import net.minecraft.server.level.ServerLevel;
 import org.popcraft.chunky.ChunkyNeoForge;
+import org.popcraft.chunky.ducks.MinecraftServerExtension;
 import org.popcraft.chunky.integration.Integration;
 
 import java.util.ArrayList;
@@ -79,5 +80,10 @@ public class NeoForgeServer implements Server {
     @Override
     public Config getConfig() {
         return plugin.getChunky().getConfig();
+    }
+
+    @Override
+    public double getMillisPerTick() {
+        return ((MinecraftServerExtension) server).chunky$getMillisPerTick();
     }
 }

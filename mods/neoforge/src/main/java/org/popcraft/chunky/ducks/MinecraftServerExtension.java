@@ -6,4 +6,6 @@ public interface MinecraftServerExtension {
     void chunky$runChunkSystemHousekeeping(BooleanSupplier haveTime);
 
     void chunky$markChunkSystemHousekeeping();
+
+    double chunky$getMillisPerTick();
 }

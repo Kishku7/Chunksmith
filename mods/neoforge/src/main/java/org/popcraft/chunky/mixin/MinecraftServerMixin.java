@@ -4,6 +4,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.profiling.InactiveProfiler;
 import org.popcraft.chunky.ChunkyNeoForge;
+import org.popcraft.chunky.ChunkyProvider;
 import org.popcraft.chunky.ducks.MinecraftServerExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,19 +24,54 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Unique
     private final AtomicBoolean chunky$needChunkSystemHousekeeping = new AtomicBoolean(false);
 
+    // Tick-health telemetry, sampled only while a generation task runs (EWMA of the
+    // wall-clock interval between server ticks). ~50 ms = healthy 20 TPS. Mirrors Fabric.
+    @Unique
+    private volatile double chunky$mspt = 50.0D;
+    @Unique
+    private long chunky$lastTickNanos = 0L;
+
+    @Inject(method = "tickServer", at = @At("HEAD"))
+    private void chunky$onTickHead(BooleanSupplier booleanSupplier, CallbackInfo ci) {
+        this.chunky$keepAwakeWhileGenerating();
+    }
+
     @Inject(method = "tickServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;tickConnection()V"))
-    private void tickPaused(BooleanSupplier booleanSupplier, CallbackInfo ci) {
+    private void chunky$onTickConnection(BooleanSupplier booleanSupplier, CallbackInfo ci) {
         this.chunky$runChunkSystemHousekeeping(booleanSupplier);
+    }
+
+    @Unique
+    private void chunky$keepAwakeWhileGenerating() {
+        if (ChunkyProvider.isLoaded() && !ChunkyProvider.get().getGenerationTasks().isEmpty()) {
+            ((MinecraftServerAccess) (Object) this).setEmptyTicks(0);
+            final long now = System.nanoTime();
+            final long prev = this.chunky$lastTickNanos;
+            this.chunky$lastTickNanos = now;
+            if (prev != 0L) {
+                final double dtMs = (now - prev) / 1.0e6D;
+                if (dtMs > 0.0D && dtMs < 10_000.0D) {
+                    this.chunky$mspt = (this.chunky$mspt * 0.8D) + (dtMs * 0.2D);
+                }
+            }
+        } else {
+            this.chunky$lastTickNanos = 0L;
+            this.chunky$mspt = 50.0D;
+        }
+    }
+
+    @Override
+    public double chunky$getMillisPerTick() {
+        return this.chunky$mspt;
     }
 
     @Override
     public void chunky$runChunkSystemHousekeeping(BooleanSupplier haveTime) {
         if (this.chunky$needChunkSystemHousekeeping.compareAndSet(true, false)) {
             for (ServerLevel level : this.getAllLevels()) {
-                ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(() -> true); // push the vanilla chunk system to unload unneeded chunks ASAP
+                ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(() -> true);
                 ((ServerChunkCacheMixin) level.getChunkSource()).invokeBroadcastChangedChunks(InactiveProfiler.INSTANCE);
                 if (!ChunkyNeoForge.ENABLE_MOONRISE_WORKAROUNDS) {
-                    // note: Moonrise destroys the vanilla entity system, so skip it here if it's present
                     ((ServerLevelMixin) level).getEntityManager().tick();
                 }
             }

@@ -21,6 +21,7 @@ import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.command.CommandArguments;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
+import org.popcraft.chunky.util.TranslationKey;
 import org.popcraft.chunky.event.task.GenerationTaskFinishEvent;
 import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
 import org.popcraft.chunky.listeners.bossbar.BossBarTaskFinishListener;
@@ -31,6 +32,8 @@ import org.popcraft.chunky.platform.NeoForgeServer;
 import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.impl.GsonConfig;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
@@ -46,19 +49,37 @@ import static net.minecraft.commands.arguments.EntityArgument.player;
 
 @Mod(ChunkyNeoForge.MOD_ID)
 public class ChunkyNeoForge {
-    public static final String MOD_ID = "chunky";
+    public static final String MOD_ID = "chunksmith";
     public static final boolean ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise");
     private Chunky chunky;
     private final Map<Identifier, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
 
     public ChunkyNeoForge() {
+        if (ModList.get().isLoaded("chunky")) {
+            org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
+        }
         NeoForge.EVENT_BUS.register(this);
     }
 
     @SubscribeEvent
     public void onServerStarting(final ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
-        final Path configPath = FMLPaths.CONFIGDIR.get().resolve("chunky/config.json");
+        final Path configDir = FMLPaths.CONFIGDIR.get();
+        Path baseDir = configDir.resolve("chunksmith");
+        final Path legacyDir = configDir.resolve("chunky");
+        // Auto-migrate the legacy Chunky config on first run: if our directory does not yet
+        // exist but a chunky directory does, take it over in place. If chunksmith already
+        // exists, the legacy directory is left untouched. (Mirrors ChunkyFabric.)
+        if (!Files.exists(baseDir) && Files.exists(legacyDir)) {
+            try {
+                Files.move(legacyDir, baseDir);
+                org.slf4j.LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
+            } catch (final IOException e) {
+                org.slf4j.LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
+                baseDir = legacyDir;
+            }
+        }
+        final Path configPath = baseDir.resolve("config.json");
         this.chunky = new Chunky(new NeoForgeServer(this, server), new GsonConfig(configPath));
         if (chunky.getConfig().getContinueOnRestart()) {
             chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
@@ -69,7 +90,15 @@ public class ChunkyNeoForge {
 
     @SubscribeEvent
     public void onRegisterCommands(final RegisterCommandsEvent event) {
-        final LiteralArgumentBuilder<CommandSourceStack> command = literal(CommandLiteral.CHUNKY)
+        // Primary commands plus deprecated aliases (which emit a notice pointing to /cs).
+        event.getDispatcher().register(buildCommand(CommandLiteral.CS));
+        event.getDispatcher().register(buildCommand(CommandLiteral.CHUNKSMITH));
+        event.getDispatcher().register(buildCommand(CommandLiteral.CHUNKY));
+        event.getDispatcher().register(buildCommand(CommandLiteral.CY));
+    }
+
+    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(final String root) {
+        final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
                     final MinecraftServer server = serverCommandSource.getServer();
                     //noinspection ConstantValue
@@ -88,6 +117,9 @@ public class ChunkyNeoForge {
                     final Map<String, ChunkyCommand> commands = chunky.getCommands();
                     final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
                     final String[] tokens = input.split(" ");
+                    if (CommandLiteral.CHUNKY.equals(tokens[0]) || CommandLiteral.CY.equals(tokens[0])) {
+                        sender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
+                    }
                     final String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
                     final CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
                     commands.get(subCommand).execute(sender, arguments);
@@ -166,7 +198,7 @@ public class ChunkyNeoForge {
         registerArguments(borderCommand, literal(CommandLiteral.WRAP),
                 argument(CommandLiteral.WRAP, word()));
         registerArguments(command, borderCommand);
-        event.getDispatcher().register(command);
+        return command;
     }
 
     @SafeVarargs
