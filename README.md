@@ -8,7 +8,8 @@ It is a fork of [Chunky](https://github.com/pop4959/Chunky) by **pop4959**, lice
 
 Chunky pre-generates chunks well, but on slower hardware a heavy pre-gen can saturate disk I/O — leaving the server unresponsive to `pause`/`stop`, and on an empty server even sending it to sleep mid-run. Chunksmith focuses on generating **safely under real-world conditions**:
 
-- **Adaptive I/O throttle** — on Fabric, generation concurrency is steered by live server tick-health: it backs off when the server starts to fall behind and ramps back up as it recovers. A per-chunk latency backstop guards against disk stalls on every platform.
+- **Adaptive I/O throttle** — generation concurrency is steered by live server tick-health (Fabric, NeoForge, and Paper): it backs off when the server starts to fall behind and ramps back up as it recovers, with a per-chunk latency backstop guarding against disk stalls on every platform.
+- **Run it 24/7 — even with players online.** Because generation is paced by real-time server tick-health, Chunksmith automatically yields capacity to players the moment the server gets busy and reclaims it as load eases. There's no need to schedule pre-generation for off-hours or empty the server first — leave it running continuously and it stays out of players' way until the job is finished.
 - **Write-queue backpressure** — Chunksmith watches the deferred region-write backlog (chunk writes queued to disk but not yet flushed) and holds off *dispatch* the moment it exceeds a cap, resuming once it drains. Generation can no longer outrun your disk: the unflushed-write window stays bounded, so `pause`/`stop` stay instant and a crash can never strand a giant write queue. On Fabric/NeoForge this reads the live `IOWorker` queue directly; on Paper/Spigot it is detected reflectively.
 - **Stays awake during pre-gen** — while a generation task is running, the server won't `pause-when-empty` out from under an unattended pre-gen.
 - **Conflict-safe** — if the original Chunky is also installed, Chunksmith disables it (Paper/Bukkit) or tells you to remove it (Fabric).
@@ -46,7 +47,7 @@ Throttle behaviour is tunable:
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `io-throttle` | `true` | Enable adaptive throttling |
-| `throttle-target-mspt` | `150` | Target ms/tick the throttle steers toward (Fabric tick-health signal) |
+| `throttle-target-mspt` | `150` | Target ms/tick the throttle steers toward (Fabric/NeoForge/Paper tick-health signal) |
 | `throttle-max-chunk-millis` | `750` | Per-chunk latency backstop — back off if a single chunk load exceeds this |
 | `throttle-max-queued-writes` | `800` | Cap on queued (unflushed) chunk writes before generation is held off until the backlog drains (Fabric/NeoForge; `0` disables) |
 
