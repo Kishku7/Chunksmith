@@ -20,10 +20,14 @@ Chunky pre-generates chunks well, but on slower hardware a heavy pre-gen can sat
 
 Primary targets are **Fabric** and **PaperMC** (Minecraft 26.1.x, Java 25). Bukkit/Spigot/Folia and Forge/NeoForge/Sponge build from the same codebase. Paper-specific enhancements are used when Paper is detected; Spigot and Velocity-backend setups remain supported.
 
-## Install
+## Download & install
 
-- **Fabric:** place the jar in `mods/` (requires Fabric API).
-- **Paper / Spigot / Bukkit / Folia:** place the jar in `plugins/`.
+Compiled jars are on the [**Releases**](https://github.com/Kishku7/Chunksmith/releases/latest) page — no building required:
+
+- **Plugin** (Paper / Spigot / Bukkit / Folia) — download `Chunksmith-Bukkit-<version>.jar` and drop it in your server's `plugins/` folder.
+- **Mod** (Fabric / NeoForge) — download `Chunksmith-<version>+<mc>.jar` and drop it in `mods/` (Fabric also requires Fabric API).
+
+Also published on [Modrinth](https://modrinth.com/mod/chunksmith).
 
 Remove any existing **Chunky** jar — Chunksmith supersedes it. (On Paper/Bukkit, Chunksmith will disable Chunky automatically and ask you to delete it.)
 
