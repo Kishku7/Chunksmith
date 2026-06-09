@@ -35,6 +35,13 @@ public class GenerationTask implements Runnable {
     private static final long MSPT_CHECK_INTERVAL_MS = 250L; // how often tick health is evaluated
     private static final double MSPT_BAND = 3.0D;            // dead-band around target to prevent flapping
     private static final long WRITE_CHECK_INTERVAL_MS = 100L; // how often the disk write-queue depth is sampled
+    // Drain-stall backpressure. The region writer is a single consecutive-executor thread, so
+    // if the queue stops shrinking while still holding work the writer is blocked in fsync
+    // (region-file eviction on a saturated disk). Absolute depth misses this — the queue can
+    // stay shallow while each individual flush blocks for seconds. Trip when the queue has held
+    // >= MIN_DEPTH with no drain progress for STALL_MILLIS. JVM-tunable; STALL_MILLIS=0 disables.
+    private static final long WRITE_STALL_MILLIS = Math.max(0L, Input.tryInteger(System.getProperty("chunky.writeStallMillis")).orElse(2000));
+    private static final long WRITE_STALL_MIN_DEPTH = Math.max(1L, Input.tryInteger(System.getProperty("chunky.writeStallMinDepth")).orElse(16));
     private final Chunky chunky;
     private final Selection selection;
     private final Shape shape;
@@ -58,6 +65,8 @@ public class GenerationTask implements Runnable {
     private final AtomicLong lastWriteCheckTime = new AtomicLong(0);
     private final AtomicLong lastWriteNoticeTime = new AtomicLong(0);
     private volatile boolean writeQueueStalled;
+    private final AtomicLong lastWriteDrainTime = new AtomicLong(0);
+    private long lastQueuedObserved = -1L;
     private volatile Thread dispatchThread;
     private ChunkIterator chunkIterator;
     private boolean stopped, cancelled;
@@ -229,7 +238,14 @@ public class GenerationTask implements Runnable {
      * raise tick time). This samples that backlog on a fixed cadence and, once it exceeds the
      * configured cap, holds off all new dispatches until it drains back below half the cap
      * (hysteresis) — directly bounding the unflushed-write window so a slow disk paces
-     * generation instead of being buried. No-op when the platform cannot report the depth.
+     * generation instead of being buried.
+     * <p>
+     * Absolute depth alone, though, misses the worst case: a single-threaded region writer
+     * blocked in fsync during region-file eviction keeps the queue <em>shallow</em> while each
+     * flush blocks for seconds, so depth never reaches the cap even as the disk pegs and an
+     * autosave {@code synchronize()} on the main thread eventually overruns the watchdog. So it
+     * also trips on <em>drain-stall</em>: queued work that shows no progress for
+     * {@code WRITE_STALL_MILLIS}. No-op when the platform cannot report the depth.
      */
     private void evaluateWriteBackpressure() {
         final long now = System.currentTimeMillis();
@@ -240,15 +256,38 @@ public class GenerationTask implements Runnable {
         final long queued = selection.world().getQueuedChunkWrites();
         if (queued < 0) {
             writeQueueStalled = false;
+            lastQueuedObserved = -1L;
             return;
         }
+        // Track drain progress. The region writer pops one chunk at a time, so any decrease in
+        // depth means the disk is flushing; an empty queue is fully drained. When the queue
+        // holds work but stops shrinking, the writer is blocked in fsync.
+        final long prev = lastQueuedObserved;
+        lastQueuedObserved = queued;
+        if (queued <= 0L || prev < 0L || queued < prev) {
+            lastWriteDrainTime.set(now);
+        }
+        final long sinceDrain = now - lastWriteDrainTime.get();
         if (writeQueueStalled) {
-            if (queued <= resumeQueuedWrites) {
+            final boolean resume;
+            if (WRITE_STALL_MILLIS <= 0L) {
+                resume = queued <= resumeQueuedWrites;
+            } else {
+                resume = queued <= 0L
+                        || (queued <= resumeQueuedWrites && sinceDrain < WRITE_STALL_MILLIS);
+            }
+            if (resume) {
                 writeQueueStalled = false;
             }
-        } else if (queued >= maxQueuedWrites) {
-            writeQueueStalled = true;
-            maybeNotifyWrite(queued);
+        } else {
+            final boolean depthExceeded = maxQueuedWrites > 0L && queued >= maxQueuedWrites;
+            final boolean drainStalled = WRITE_STALL_MILLIS > 0L
+                    && queued >= WRITE_STALL_MIN_DEPTH
+                    && sinceDrain >= WRITE_STALL_MILLIS;
+            if (depthExceeded || drainStalled) {
+                writeQueueStalled = true;
+                maybeNotifyWrite(queued);
+            }
         }
     }
 
