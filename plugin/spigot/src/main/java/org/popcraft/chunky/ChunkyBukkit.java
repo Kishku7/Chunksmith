@@ -17,6 +17,7 @@ import org.popcraft.chunky.api.ChunkyAPI;
 import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.command.CommandArguments;
 import org.popcraft.chunky.command.CommandLiteral;
+import org.popcraft.chunky.diagnostic.WorldgenOverreachLogFilter;
 import org.popcraft.chunky.integration.WorldBorderIntegration;
 import org.popcraft.chunky.platform.BukkitConfig;
 import org.popcraft.chunky.platform.BukkitPlayer;
@@ -28,6 +29,7 @@ import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.util.Input;
 import org.popcraft.chunky.util.TranslationKey;
 import org.popcraft.chunky.util.Version;
+import org.popcraft.chunky.util.WorldgenOverreachReporter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,6 +48,7 @@ import static org.popcraft.chunky.util.Translator.translate;
 public final class ChunkyBukkit extends JavaPlugin implements Listener {
     private static final String COMMAND_PERMISSION_KEY = "chunky.command.";
     private Chunky chunky;
+    private WorldgenOverreachLogFilter overreachFilter;
 
     @Override
     public void onEnable() {
@@ -90,13 +93,41 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
         if (!Paper.isPaper()) {
             disablePauseWhenEmptySeconds();
         }
+        installOverreachDiagnostic();
     }
 
     @Override
     public void onDisable() {
         HandlerList.unregisterAll((Plugin) this);
+        if (overreachFilter != null) {
+            overreachFilter.uninstall();
+            overreachFilter = null;
+        }
         if (chunky != null) {
             chunky.disable();
+        }
+    }
+
+    /**
+     * Install the best-effort worldgen-overreach diagnostic. There is no Mixin on a Bukkit server, so
+     * a Log4j2 filter captures + suppresses vanilla's "Detected setBlock in a far chunk" spam and routes
+     * it to {@link WorldgenOverreachReporter}, which collapses each burst into a single aggregated line.
+     * A once-per-second scheduler tick drives the reporter's debounce/rollup/end-of-run summary. Both the
+     * filter and the tick fail soft - the diagnostic never interferes with generation or normal logging.
+     */
+    private void installOverreachDiagnostic() {
+        this.overreachFilter = WorldgenOverreachLogFilter.install();
+        if (this.overreachFilter == null) {
+            getLogger().info("Worldgen overreach diagnostic unavailable here (non-Log4j2 logging); continuing without it.");
+        }
+        final Runnable tick = () -> {
+            final boolean wgRunning = chunky != null && !chunky.getGenerationTasks().isEmpty();
+            WorldgenOverreachReporter.get().tick(wgRunning);
+        };
+        if (Folia.isFolia()) {
+            Folia.scheduleFixedGlobal(this, tick, 20L, 20L);
+        } else {
+            getServer().getScheduler().runTaskTimer(this, tick, 20L, 20L);
         }
     }
 

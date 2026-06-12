@@ -10,7 +10,8 @@
     "ServerChunkCacheMixin",
     "ServerLevelMixin",
     "SimpleRegionStorageAccessor",
-    "IOWorkerAccessor"
+    "IOWorkerAccessor",
+    "WorldGenRegionMixin"
   ],
   "client": [
     "client.IntegratedServerMixin"

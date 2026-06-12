@@ -1,4 +1,4 @@
-modLoader="javafml"
+﻿modLoader="javafml"
 loaderVersion="[3,)"
 license="GNU GPLv3"
 issueTrackerURL="${github}/issues"
@@ -21,6 +21,6 @@ config="chunky.mixins.json"
 [[dependencies.chunky]]
    modId="minecraft"
    type="required"
-   versionRange="[26.1,26.2)"
+   versionRange="[26.1,)"
    ordering="NONE"
    side="BOTH"

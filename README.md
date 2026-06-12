@@ -16,19 +16,20 @@ Chunky pre-generates chunks well, but on slower hardware a heavy pre-gen can sat
 - **Stays awake during pre-gen** â€” while a generation task is running, the server won't `pause-when-empty` out from under an unattended pre-gen.
 - **Conflict-safe** â€” if the original Chunky is also installed, Chunksmith disables it (Paper/Bukkit) or tells you to remove it (Fabric).
 - **Drop-in migration** â€” on first run Chunksmith adopts your existing Chunky configuration automatically (see below), so upgrading is seamless.
+- **Worldgen overreach diagnostic** - when a worldgen feature or structure tries to ``setBlock`` outside its chunk (which vanilla refuses, normally spamming 100-200 near-identical log lines per occurrence), Chunksmith collapses the whole burst into a single, readable report naming the offending feature, the affected chunks, the Y range, and the block count - so you can identify and report the culprit mod instead of drowning in log noise. Full structured detail on Fabric/NeoForge (via a version-portable mixin that builds as one binary across 26.1 through 26.2); best-effort on Paper/Spigot/Folia (a Log4j filter that parses and suppresses the vanilla spam).
 - Ongoing focus on generation bug-fixes, with standalone *generate-and-store* on the roadmap.
 
 ## Supported platforms
 
-Primary targets are **Fabric** and **PaperMC** (Minecraft 26.1.x, Java 25). Bukkit/Spigot/Folia and Forge/NeoForge/Sponge build from the same codebase. Paper-specific enhancements are used when Paper is detected; Spigot and Velocity-backend setups remain supported.
+Primary targets are **Fabric** and **PaperMC** (Minecraft 26.1 through 26.2, Java 25). Bukkit/Spigot/Folia and NeoForge build from the same codebase, and the Fabric/NeoForge mods ship as a single binary covering the whole 26.1-26.2 range. Paper-specific enhancements are used when Paper is detected; Spigot and Velocity-backend setups remain supported.
 
 ## Download & install
 
 Compiled jars are on the [**Releases**](https://github.com/Kishku7/Chunksmith/releases/latest) page â€” no building required:
 
 - **Plugin** (Paper / Spigot / Bukkit / Folia) â€” download `Chunksmith-Plugin-<version>.jar` and drop it in your server's `plugins/` folder.
-- **Mod â€” Fabric** â€” download `Chunksmith-Mod-Fabric-<version>.jar` and drop it in `mods/` (requires Fabric API).
-- **Mod â€” NeoForge** â€” download `Chunksmith-Mod-NeoForge-<version>.jar` and drop it in `mods/`.
+- **Mod â€” Fabric** â€” download `Chunksmith-Fabric-<version>.jar` and drop it in `mods/` (requires Fabric API).
+- **Mod â€” NeoForge** â€” download `Chunksmith-NeoForge-<version>.jar` and drop it in `mods/`.
 
 Also published on [Modrinth](https://modrinth.com/mod/chunksmith).
 

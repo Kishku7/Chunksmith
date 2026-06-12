@@ -1,0 +1,108 @@
+package org.popcraft.chunky.diagnostic;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.filter.AbstractFilter;
+import org.apache.logging.log4j.message.Message;
+import org.popcraft.chunky.util.WorldgenOverreachReporter;
+
+/**
+ * Best-effort plugin (Spigot/Paper/Folia) counterpart to the Fabric/NeoForge {@code WorldGenRegionMixin}.
+ * <p>
+ * There is no Mixin on a Bukkit server, so the worldgen overreach is captured the only way available:
+ * a Log4j2 filter on the root logger that watches for vanilla's "Detected setBlock in a far chunk"
+ * error line, parses it into {@link WorldgenOverreachReporter} (which collapses the 100-200 line burst
+ * into a single aggregated report), and then {@code DENY}s the event to suppress the raw spam - mirroring
+ * what the mixin does by intercepting the log call directly.
+ * <p>
+ * The far-chunk line is logged via {@code Util.logAndPauseIfInIde} at {@code ERROR}, so the filter
+ * short-circuits on anything below {@code WARN} and never touches the formatted text of ordinary logs.
+ * Any failure is swallowed: a diagnostic must never interfere with normal logging.
+ */
+public final class WorldgenOverreachLogFilter extends AbstractFilter {
+    private final WorldgenOverreachReporter reporter = WorldgenOverreachReporter.get();
+
+    private WorldgenOverreachLogFilter() {
+        super(Result.NEUTRAL, Result.NEUTRAL);
+    }
+
+    /**
+     * Install the filter on the root logger of the running Log4j2 context and return it (or {@code null}
+     * if the environment is not Log4j2-core, e.g. an unusual server). Caller should keep the reference
+     * to {@link #uninstall} on disable.
+     */
+    public static WorldgenOverreachLogFilter install() {
+        try {
+            final org.apache.logging.log4j.spi.LoggerContext spi = org.apache.logging.log4j.LogManager.getContext(false);
+            if (!(spi instanceof final LoggerContext ctx)) {
+                return null;
+            }
+            final WorldgenOverreachLogFilter filter = new WorldgenOverreachLogFilter();
+            filter.start();
+            final Configuration config = ctx.getConfiguration();
+            config.getRootLogger().addFilter(filter);
+            ctx.updateLoggers();
+            return filter;
+        } catch (final Throwable t) {
+            return null;
+        }
+    }
+
+    public void uninstall() {
+        try {
+            final org.apache.logging.log4j.spi.LoggerContext spi = org.apache.logging.log4j.LogManager.getContext(false);
+            if (spi instanceof final LoggerContext ctx) {
+                ctx.getConfiguration().getRootLogger().removeFilter(this);
+                ctx.updateLoggers();
+            }
+            this.stop();
+        } catch (final Throwable ignored) {
+            // best-effort
+        }
+    }
+
+    private Result evaluate(final Level level, final String message) {
+        if (level == null || message == null || !level.isMoreSpecificThan(Level.WARN)) {
+            return Result.NEUTRAL;
+        }
+        if (!message.contains(WorldgenOverreachReporter.FAR_CHUNK_MARKER)) {
+            return Result.NEUTRAL;
+        }
+        try {
+            reporter.recordFromMessage(message);
+        } catch (final Throwable ignored) {
+            // never break logging on account of the diagnostic
+        }
+        return Result.DENY;
+    }
+
+    @Override
+    public Result filter(final LogEvent event) {
+        if (event == null) {
+            return Result.NEUTRAL;
+        }
+        final Message m = event.getMessage();
+        return evaluate(event.getLevel(), m == null ? null : m.getFormattedMessage());
+    }
+
+    @Override
+    public Result filter(final Logger logger, final Level level, final org.apache.logging.log4j.Marker marker,
+                         final Message msg, final Throwable t) {
+        return evaluate(level, msg == null ? null : msg.getFormattedMessage());
+    }
+
+    @Override
+    public Result filter(final Logger logger, final Level level, final org.apache.logging.log4j.Marker marker,
+                         final Object msg, final Throwable t) {
+        return evaluate(level, msg == null ? null : String.valueOf(msg));
+    }
+
+    @Override
+    public Result filter(final Logger logger, final Level level, final org.apache.logging.log4j.Marker marker,
+                         final String msg, final Object... params) {
+        return evaluate(level, msg);
+    }
+}

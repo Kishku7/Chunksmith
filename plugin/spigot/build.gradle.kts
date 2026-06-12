@@ -6,6 +6,7 @@ repositories {
 
 dependencies {
     compileOnly(group = "org.spigotmc", name = "spigot-api", version = "1.21.2-R0.1-SNAPSHOT")
+    compileOnly(group = "org.apache.logging.log4j", name = "log4j-core", version = "2.25.2")
     compileOnly(group = "com.github.Puremin0rez", name = "WorldBorder", version = "1.19") {
         isTransitive = false
     }
