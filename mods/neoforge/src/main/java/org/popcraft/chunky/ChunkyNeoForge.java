@@ -21,6 +21,7 @@ import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.command.CommandArguments;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
+import org.popcraft.chunky.util.StructureFaultReporter;
 import org.popcraft.chunky.util.TranslationKey;
 import org.popcraft.chunky.event.task.GenerationTaskFinishEvent;
 import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
@@ -80,6 +81,7 @@ public class ChunkyNeoForge {
             }
         }
         final Path configPath = baseDir.resolve("config.json");
+            StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
         this.chunky = new Chunky(new NeoForgeServer(this, server), new GsonConfig(configPath));
         if (chunky.getConfig().getContinueOnRestart()) {
             chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());

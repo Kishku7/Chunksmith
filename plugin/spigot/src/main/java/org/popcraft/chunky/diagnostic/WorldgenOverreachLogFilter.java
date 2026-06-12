@@ -7,20 +7,26 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.apache.logging.log4j.message.Message;
+import org.popcraft.chunky.util.StructureFaultReporter;
 import org.popcraft.chunky.util.WorldgenOverreachReporter;
 
 /**
- * Best-effort plugin (Spigot/Paper/Folia) counterpart to the Fabric/NeoForge {@code WorldGenRegionMixin}.
+ * Best-effort plugin (Spigot/Paper/Folia) counterpart to the Fabric/NeoForge mixins. There is no
+ * Mixin on a Bukkit server, so vanilla worldgen spam is captured the only way available: a Log4j2
+ * filter on the root logger that watches for the relevant vanilla ERROR lines, routes each into the
+ * matching Chunksmith reporter, and {@code DENY}s the event to suppress the raw spam.
  * <p>
- * There is no Mixin on a Bukkit server, so the worldgen overreach is captured the only way available:
- * a Log4j2 filter on the root logger that watches for vanilla's "Detected setBlock in a far chunk"
- * error line, parses it into {@link WorldgenOverreachReporter} (which collapses the 100-200 line burst
- * into a single aggregated report), and then {@code DENY}s the event to suppress the raw spam - mirroring
- * what the mixin does by intercepting the log call directly.
- * <p>
- * The far-chunk line is logged via {@code Util.logAndPauseIfInIde} at {@code ERROR}, so the filter
- * short-circuits on anything below {@code WARN} and never touches the formatted text of ordinary logs.
- * Any failure is swallowed: a diagnostic must never interfere with normal logging.
+ * Two vanilla faults are handled:
+ * <ul>
+ *   <li>{@code Detected setBlock in a far chunk} -> {@link WorldgenOverreachReporter} (collapsed
+ *       single-line overreach reports in the server log).</li>
+ *   <li>{@code Block-attached entity at invalid position} -> {@link StructureFaultReporter} (counted
+ *       into the periodic worldgen-fault sub-report file). Best-effort only: the plugin path has no
+ *       structure context, so the culprit/chunk cannot be attributed here.</li>
+ * </ul>
+ * Both lines are logged at {@code ERROR}, so the filter short-circuits anything below {@code WARN}
+ * and never touches the text of ordinary logs. Any failure is swallowed: a diagnostic must never
+ * interfere with normal logging.
  */
 public final class WorldgenOverreachLogFilter extends AbstractFilter {
     private final WorldgenOverreachReporter reporter = WorldgenOverreachReporter.get();
@@ -68,15 +74,23 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
         if (level == null || message == null || !level.isMoreSpecificThan(Level.WARN)) {
             return Result.NEUTRAL;
         }
-        if (!message.contains(WorldgenOverreachReporter.FAR_CHUNK_MARKER)) {
-            return Result.NEUTRAL;
+        if (message.contains(WorldgenOverreachReporter.FAR_CHUNK_MARKER)) {
+            try {
+                reporter.recordFromMessage(message);
+            } catch (final Throwable ignored) {
+                // never break logging on account of the diagnostic
+            }
+            return Result.DENY;
         }
-        try {
-            reporter.recordFromMessage(message);
-        } catch (final Throwable ignored) {
-            // never break logging on account of the diagnostic
+        if (message.contains(StructureFaultReporter.BLOCK_ATTACHED_MARKER)) {
+            try {
+                StructureFaultReporter.get().recordBlockAttachedBestEffort(message);
+            } catch (final Throwable ignored) {
+                // never break logging on account of the diagnostic
+            }
+            return Result.DENY;
         }
-        return Result.DENY;
+        return Result.NEUTRAL;
     }
 
     @Override

@@ -11,7 +11,9 @@
     "ServerLevelMixin",
     "SimpleRegionStorageAccessor",
     "IOWorkerAccessor",
-    "WorldGenRegionMixin"
+    "WorldGenRegionMixin",
+    "BlockAttachedEntityMixin",
+    "StructureStartMixin"
   ],
   "client": [
     "client.IntegratedServerMixin"

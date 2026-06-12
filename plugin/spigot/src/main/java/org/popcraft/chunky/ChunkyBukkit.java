@@ -29,6 +29,7 @@ import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.util.Input;
 import org.popcraft.chunky.util.TranslationKey;
 import org.popcraft.chunky.util.Version;
+import org.popcraft.chunky.util.StructureFaultReporter;
 import org.popcraft.chunky.util.WorldgenOverreachReporter;
 
 import java.io.File;
@@ -117,6 +118,7 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
      * filter and the tick fail soft - the diagnostic never interferes with generation or normal logging.
      */
     private void installOverreachDiagnostic() {
+        StructureFaultReporter.get().setReportFile(getDataFolder().toPath().resolve("worldgen-faults.txt"));
         this.overreachFilter = WorldgenOverreachLogFilter.install();
         if (this.overreachFilter == null) {
             getLogger().info("Worldgen overreach diagnostic unavailable here (non-Log4j2 logging); continuing without it.");
@@ -124,6 +126,7 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
         final Runnable tick = () -> {
             final boolean wgRunning = chunky != null && !chunky.getGenerationTasks().isEmpty();
             WorldgenOverreachReporter.get().tick(wgRunning);
+            StructureFaultReporter.get().tick(wgRunning);
         };
         if (Folia.isFolia()) {
             Folia.scheduleFixedGlobal(this, tick, 20L, 20L);

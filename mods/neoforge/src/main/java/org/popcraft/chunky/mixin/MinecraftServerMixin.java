@@ -5,6 +5,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.profiling.InactiveProfiler;
 import org.popcraft.chunky.ChunkyNeoForge;
 import org.popcraft.chunky.ChunkyProvider;
+import org.popcraft.chunky.util.StructureFaultReporter;
 import org.popcraft.chunky.util.WorldgenOverreachReporter;
 import org.popcraft.chunky.ducks.MinecraftServerExtension;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,6 +38,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         this.chunky$keepAwakeWhileGenerating();
         final boolean wgRunning = ChunkyProvider.isLoaded() && !ChunkyProvider.get().getGenerationTasks().isEmpty();
         WorldgenOverreachReporter.get().tick(wgRunning);
+        StructureFaultReporter.get().tick(wgRunning);
     }
 
     @Inject(method = "tickServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;tickConnection()V"))

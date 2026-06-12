@@ -25,6 +25,7 @@ import org.popcraft.chunky.platform.FabricSender;
 import org.popcraft.chunky.platform.FabricServer;
 import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.impl.GsonConfig;
+import org.popcraft.chunky.util.StructureFaultReporter;
 import org.popcraft.chunky.util.TranslationKey;
 
 import java.io.IOException;
@@ -69,6 +70,7 @@ public class ChunkyFabric implements ModInitializer {
                 }
             }
             final Path configPath = baseDir.resolve("config.json");
+            StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
             this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(configPath));
             if (chunky.getConfig().getContinueOnRestart()) {
                 chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
