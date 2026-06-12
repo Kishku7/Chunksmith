@@ -1,4 +1,4 @@
-pluginManagement {
+﻿pluginManagement {
     repositories {
         gradlePluginPortal()
         maven("https://maven.fabricmc.net/")
@@ -8,25 +8,25 @@ pluginManagement {
     }
 }
 
-rootProject.name = "chunky"
+rootProject.name = "chunksmith"
 
-include("chunky-nbt")
-project(":chunky-nbt").projectDir = file("nbt")
+include("chunksmith-nbt")
+project(":chunksmith-nbt").projectDir = file("nbt")
 
-include("chunky-common")
-project(":chunky-common").projectDir = file("common")
+include("chunksmith-common")
+project(":chunksmith-common").projectDir = file("common")
 
-include("chunky-spigot")
-project(":chunky-spigot").projectDir = file("plugin/spigot")
+include("chunksmith-spigot")
+project(":chunksmith-spigot").projectDir = file("plugin/spigot")
 
-include("chunky-paper")
-project(":chunky-paper").projectDir = file("plugin/paperMC")
+include("chunksmith-paper")
+project(":chunksmith-paper").projectDir = file("plugin/paperMC")
 
-include("chunky-folia")
-project(":chunky-folia").projectDir = file("plugin/folia")
+include("chunksmith-folia")
+project(":chunksmith-folia").projectDir = file("plugin/folia")
 
-include("chunky-fabric")
-project(":chunky-fabric").projectDir = file("mods/fabric")
+include("chunksmith-fabric")
+project(":chunksmith-fabric").projectDir = file("mods/fabric")
 
-include("chunky-neoforge")
-project(":chunky-neoforge").projectDir = file("mods/neoforge")
+include("chunksmith-neoforge")
+project(":chunksmith-neoforge").projectDir = file("mods/neoforge")

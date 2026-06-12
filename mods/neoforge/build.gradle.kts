@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("org.relativitymc.neo-loom") version "1.16.0-alpha.4"
 }
 
@@ -11,8 +11,8 @@ repositories {
 dependencies {
     minecraft(group = "com.mojang", name = "minecraft", version = "26.1")
     forgeUserdev(group = "net.neoforged", name = "neoforge", version = "26.1.0.15-beta", classifier = "userdev")
-    implementation(project(":chunky-common"))
-    shade(project(":chunky-common"))
+    implementation(project(":chunksmith-common"))
+    shade(project(":chunksmith-common"))
 }
 
 loom {
@@ -22,7 +22,7 @@ loom {
     mods {
         create("main") {
             sourceSet(project.sourceSets.main.get())
-            dependency(project.dependencyFactory.create(project(":chunky-common")))
+            dependency(project.dependencyFactory.create(project(":chunksmith-common")))
         }
     }
 }

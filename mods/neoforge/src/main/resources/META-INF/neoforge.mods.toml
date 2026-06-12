@@ -11,7 +11,7 @@ logoFile="icon.png"
 authors="${author}, pop4959"
 description="${description}"
 [[mixins]]
-config="chunky.mixins.json"
+config="chunksmith.mixins.json"
 [[dependencies.chunky]]
    modId="neoforge"
    type="required"

@@ -1,4 +1,4 @@
-name: ${name}
+﻿name: ${name}
 version: ${version}
 main: ${group}.chunky.ChunkyBukkit
 api-version: 1.13
@@ -7,7 +7,7 @@ softdepend: [dynmap, BlueMap, squaremap, WorldBorder, Chunky]
 load: POSTWORLD
 authors: [${author}, pop4959]
 description: ${description}
-website: https://github.com/Kishku7/Chunky
+website: https://github.com/Kishku7/Chunksmith
 commands:
   cs:
     description: Generates chunks

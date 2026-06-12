@@ -1,4 +1,4 @@
-{
+﻿{
   "schemaVersion": 1,
   "id": "${id}",
   "version": "${version}",
@@ -18,7 +18,7 @@
     "issues": "${github}/issues"
   },
   "license": "GPLv3",
-  "icon": "assets/chunky/icon.png",
+  "icon": "assets/chunksmith/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -26,7 +26,7 @@
     ]
   },
   "mixins": [
-    "chunky.mixins.json"
+    "chunksmith.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.18.1",

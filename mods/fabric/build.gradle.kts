@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("org.relativitymc.neo-loom") version "1.16.0-alpha.4"
 }
 
@@ -9,8 +9,8 @@ dependencies {
     implementation(group = "net.fabricmc", name = "fabric-loader", version = "0.19.3")
     implementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.152.0+26.2")
     compileOnly(group = "me.lucko", name = "fabric-permissions-api", version = "0.7.0")
-    implementation(project(":chunky-common"))
-    shade(project(":chunky-common"))
+    implementation(project(":chunksmith-common"))
+    shade(project(":chunksmith-common"))
 }
 
 loom {

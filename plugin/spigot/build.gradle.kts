@@ -1,4 +1,4 @@
-repositories {
+﻿repositories {
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://jitpack.io")
@@ -11,9 +11,9 @@ dependencies {
         isTransitive = false
     }
     implementation(group = "org.bstats", name = "bstats-bukkit", version = "3.0.2")
-    implementation(project(":chunky-common"))
-    implementation(project(":chunky-paper"))
-    implementation(project(":chunky-folia"))
+    implementation(project(":chunksmith-common"))
+    implementation(project(":chunksmith-paper"))
+    implementation(project(":chunksmith-folia"))
 }
 
 tasks {
@@ -30,9 +30,9 @@ tasks {
     }
     shadowJar {
         minimize {
-            exclude(project(":chunky-common"))
-            exclude(project(":chunky-paper"))
-            exclude(project(":chunky-folia"))
+            exclude(project(":chunksmith-common"))
+            exclude(project(":chunksmith-paper"))
+            exclude(project(":chunksmith-folia"))
         }
         relocate("org.bstats", "${project.group}.${rootProject.name}.lib.bstats")
         manifest {
