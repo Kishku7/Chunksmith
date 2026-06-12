@@ -3,7 +3,8 @@ package org.popcraft.chunky.util;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +52,7 @@ public final class WorldgenOverreachReporter {
     private static final Pattern STATUS = Pattern.compile("status: *(.*?)(?:, currently generating:|$)");
     private static final Pattern FEATURE = Pattern.compile("currently generating: *(.+?)\\s*$");
 
-    private final Logger log = Logger.getLogger("Chunksmith");
+    private final Logger log = LoggerFactory.getLogger("Chunksmith");
     private final Map<String, Bucket> active = new ConcurrentHashMap<>();
     private final Map<String, FeatureStats> features = new ConcurrentHashMap<>();
 
@@ -151,6 +152,9 @@ public final class WorldgenOverreachReporter {
         if (!enabled) {
             return;
         }
+        if (taskRunning && !wasRunning) {
+            log.info("[Chunksmith] worldgen overreach diagnostic active - watching this run for worldgen features writing outside their chunk.");
+        }
         final long now = System.currentTimeMillis();
         flushIdle(now, false);
         emitRollups(now);
@@ -180,7 +184,7 @@ public final class WorldgenOverreachReporter {
                 fs.firstEmitted = true;
                 fs.lastRollupBlocks = fs.totalBlocks;
                 fs.lastRollupAt = now;
-                log.warning(detailedLine(snap));
+                log.warn(detailedLine(snap));
             }
         }
     }
@@ -190,7 +194,7 @@ public final class WorldgenOverreachReporter {
             final FeatureStats fs = e.getValue();
             if (fs.firstEmitted && now - fs.lastRollupAt >= rollupMillis && fs.totalBlocks > fs.lastRollupBlocks) {
                 final long delta = fs.totalBlocks - fs.lastRollupBlocks;
-                log.warning(String.format(
+                log.warn(String.format(
                         "[Chunksmith] overreach (cont.): %s - +%d more blocks refused; now %d chunks / %d blocks this run.",
                         e.getKey(), delta, fs.totalChunks, fs.totalBlocks));
                 fs.lastRollupBlocks = fs.totalBlocks;
@@ -202,7 +206,7 @@ public final class WorldgenOverreachReporter {
     private void summarizeAndReset() {
         for (final Map.Entry<String, FeatureStats> e : features.entrySet()) {
             final FeatureStats fs = e.getValue();
-            log.warning(String.format(
+            log.warn(String.format(
                     "[Chunksmith] overreach summary: %s - clipped in %d chunks (%d blocks refused) this run. "
                             + "Likely a multi-chunk structure placed as a feature; report to the owning mod.",
                     e.getKey(), fs.totalChunks, fs.totalBlocks));
