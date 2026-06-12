@@ -46,7 +46,8 @@ import java.util.Properties;
 import static org.popcraft.chunky.util.Translator.translate;
 
 public final class ChunkyBukkit extends JavaPlugin implements Listener {
-    private static final String COMMAND_PERMISSION_KEY = "chunky.command.";
+    private static final String COMMAND_PERMISSION_KEY = "chunksmith.command.";
+    private static final String LEGACY_COMMAND_PERMISSION_KEY = "chunky.command.";
     private Chunky chunky;
     private WorldgenOverreachLogFilter overreachFilter;
 
@@ -131,6 +132,13 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
         }
     }
 
+    // Canonical permission namespace is chunksmith.command.*; the pre-rename chunky.command.* nodes
+    // are still honoured so existing server permission setups keep working after the rename.
+    private static boolean hasCommandPermission(final CommandSender sender, final String name) {
+        return sender.hasPermission(COMMAND_PERMISSION_KEY + name)
+                || sender.hasPermission(LEGACY_COMMAND_PERMISSION_KEY + name);
+    }
+
     @SuppressWarnings("NullableProblems")
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
@@ -141,7 +149,7 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
         final Map<String, ChunkyCommand> commands = chunky.getCommands();
         final CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
         if (args.length > 0 && commands.containsKey(args[0].toLowerCase())) {
-            if (sender.hasPermission(COMMAND_PERMISSION_KEY + args[0].toLowerCase())) {
+            if (hasCommandPermission(sender, args[0].toLowerCase())) {
                 commands.get(args[0].toLowerCase()).execute(bukkitSender, arguments);
             } else {
                 bukkitSender.sendMessage(TranslationKey.COMMAND_NO_PERMISSION);
@@ -161,8 +169,8 @@ public final class ChunkyBukkit extends JavaPlugin implements Listener {
         final List<String> suggestions = new ArrayList<>();
         final Map<String, ChunkyCommand> commands = chunky.getCommands();
         if (args.length == 1) {
-            commands.keySet().stream().filter(name -> sender.hasPermission(COMMAND_PERMISSION_KEY + name)).forEach(suggestions::add);
-        } else if (commands.containsKey(args[0].toLowerCase()) && sender.hasPermission(COMMAND_PERMISSION_KEY + args[0].toLowerCase())) {
+            commands.keySet().stream().filter(name -> hasCommandPermission(sender, name)).forEach(suggestions::add);
+        } else if (commands.containsKey(args[0].toLowerCase()) && hasCommandPermission(sender, args[0].toLowerCase())) {
             final CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, 1, args.length));
             suggestions.addAll(commands.get(args[0].toLowerCase()).suggestions(arguments));
         }

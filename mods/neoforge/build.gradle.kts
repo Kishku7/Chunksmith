@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("org.relativitymc.neo-loom") version "1.16.0-alpha.4"
 }
 
