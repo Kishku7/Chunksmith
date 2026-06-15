@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="GNU GPLv3"
+issueTrackerURL="${github}/issues"
+[[mods]]
+modId="${id}"
+version="${version}"
+displayName="${name}"
+displayURL="${github}"
+logoFile="icon.png"
+authors="${author}, pop4959"
+description="${description}"
+[[mixins]]
+config="chunksmith.mixins.json"
+[[dependencies.chunksmith]]
+   modId="neoforge"
+   type="required"
+   versionRange="[21.1,21.2)"
+   ordering="NONE"
+   side="BOTH"
+[[dependencies.chunksmith]]
+   modId="minecraft"
+   type="required"
+   versionRange="[1.21,1.21.2)"
+   ordering="NONE"
+   side="BOTH"
