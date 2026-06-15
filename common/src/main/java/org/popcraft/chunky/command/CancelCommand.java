@@ -58,7 +58,7 @@ public class CancelCommand implements ChunkyCommand {
             };
         }
         chunky.setPendingAction(sender, cancelAction);
-        sender.sendMessagePrefixed(TranslationKey.FORMAT_CANCEL_CONFIRM, "/chunky confirm");
+        sender.sendMessagePrefixed(TranslationKey.FORMAT_CANCEL_CONFIRM, "/cs confirm");
     }
 
     @Override

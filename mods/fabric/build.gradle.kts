@@ -5,7 +5,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 dependencies {
-    minecraft(group = "com.mojang", name = "minecraft", version = "26.2-rc-1")
+    minecraft(group = "com.mojang", name = "minecraft", version = "26.2-rc-2")
     implementation(group = "net.fabricmc", name = "fabric-loader", version = "0.19.3")
     implementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.152.0+26.2")
     compileOnly(group = "me.lucko", name = "fabric-permissions-api", version = "0.7.0")

@@ -88,7 +88,7 @@ public class StartCommand implements ChunkyCommand {
         };
         if (chunky.getTaskLoader().loadTask(current.world()).filter(task -> !task.isCancelled()).isPresent()) {
             chunky.setPendingAction(sender, startAction);
-            sender.sendMessagePrefixed(TranslationKey.FORMAT_START_CONFIRM, "/chunky continue", "/chunky confirm");
+            sender.sendMessagePrefixed(TranslationKey.FORMAT_START_CONFIRM, "/cs continue", "/cs confirm");
         } else {
             startAction.run();
         }
