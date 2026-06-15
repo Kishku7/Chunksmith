@@ -78,7 +78,7 @@ jar {
     from {
         configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
     } {
-        exclude 'META-INF/MANIFEST.MF', 'version.properties'
+        exclude 'META-INF/MANIFEST.MF'
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
