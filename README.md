@@ -1,63 +1,73 @@
-# Chunksmith
+# Chunksmith - `mod/1.21.x`
 
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/2ZxzbCzAHe)
 
-Chunksmith is a Minecraft chunk pre-generator that **paces generation to keep your server healthy** - it builds large areas ahead of time without saturating your disk or freezing the server.
+Chunksmith is a Minecraft chunk pre-generator that **paces generation to keep your server healthy** - it builds large areas ahead of time without saturating your disk or freezing the server. It is a fork of [Chunky](https://github.com/pop4959/Chunky) by **pop4959**, licensed under **GPL-3.0**, and maintained by **Kishku7**.
 
-It is a fork of [Chunky](https://github.com/pop4959/Chunky) by **pop4959**, licensed under **GPL-3.0**, and maintained by **Kishku7**.
+This branch is the **Minecraft 1.21 line** backport (the mod only - Fabric + NeoForge). Quilt runs the Fabric jar. The Paper/Spigot/Folia plugin lives on `plugin/1.21.x`. For the landing page and the current (26.x) release, see the [`main`](https://github.com/Kishku7/Chunksmith) branch.
 
-## Why Chunksmith?
+## Supported Minecraft versions
 
-Chunky pre-generates chunks well, but on slower hardware a heavy pre-gen can saturate disk I/O - leaving the server unresponsive to `pause`/`stop`, and on an empty server even sending it to sleep mid-run. Chunksmith focuses on generating **safely under real-world conditions**:
+The 1.21 line has several hard API breaks for Chunksmith's specific targets, so it ships as **build variants**, one per sub-range. Each variant is a separate jar (per loader); pick the one matching your server's Minecraft version.
 
-- **Adaptive I/O throttle** - generation concurrency is steered by live server tick-health (Fabric, NeoForge, and Paper): it backs off when the server starts to fall behind and ramps back up as it recovers, with a per-chunk latency backstop guarding against disk stalls on every platform.
-- **Run it 24/7 - even with players online.** Because generation is paced by real-time server tick-health, Chunksmith automatically yields capacity to players the moment the server gets busy and reclaims it as load eases. There's no need to schedule pre-generation for off-hours or empty the server first - leave it running continuously and it stays out of players' way until the job is finished.
-- **Write-queue backpressure** - Chunksmith watches the deferred region-write backlog (chunk writes queued to disk but not yet flushed) and holds off *dispatch* the moment it exceeds a cap, resuming once it drains. Generation can no longer outrun your disk: the unflushed-write window stays bounded, so `pause`/`stop` stay instant and a crash can never strand a giant write queue. On Fabric/NeoForge this reads the live `IOWorker` queue directly; on Paper/Spigot it is detected reflectively.
-- **Stays awake during pre-gen** - while a generation task is running, the server won't `pause-when-empty` out from under an unattended pre-gen.
-- **Conflict-safe** - if the original Chunky is also installed, Chunksmith disables it (Paper/Bukkit) or tells you to remove it (Fabric).
-- **Drop-in migration** - on first run Chunksmith adopts your existing Chunky configuration automatically (see below), so upgrading is seamless.
-- **Worldgen overreach diagnostic** - when a worldgen feature or structure tries to `setBlock` outside its chunk (which vanilla refuses, normally spamming 100-200 near-identical log lines per occurrence), Chunksmith collapses the whole burst into a single, readable report naming the offending feature, the affected chunks, the Y range, and the block count - so you can identify and report the culprit mod instead of drowning in log noise. Full structured detail on Fabric/NeoForge (via a version-portable mixin that builds as one binary across 26.1 through 26.2); best-effort on Paper/Spigot/Folia (a Log4j filter that parses and suppresses the vanilla spam).
-- Ongoing focus on generation bug-fixes, with standalone *generate-and-store* on the roadmap.
+| Variant | Minecraft | Java | Notes |
+|---------|-----------|------|-------|
+| `1.21.1`  | 1.21 - 1.21.1   | 21 | Anchor. Keep-awake N/A (no empty-server pause yet). |
+| `1.21.4`  | 1.21.2 - 1.21.4 | 21 | Keep-awake restored (empty-server pause arrives 1.21.2). |
+| `1.21.8`  | 1.21.5 - 1.21.8 | 21 | 1.21.5 NBT + ticket-system refactor. |
+| `1.21.10` | 1.21.9 - 1.21.10| 21 | 1.21.9 ticket/spawn refactor; recompile boundary. |
+| `1.21.11` | 1.21.11         | 21 | 1.21.11 `Identifier` rename, permission overhaul, `SimpleRegionStorage`. |
 
-## Supported versions
+Quilt rides the matching Fabric jar. NeoForge versions track the loader's MC build (21.1 / 21.4 / 21.8 / 21.10 / 21.11).
 
-- **Minecraft:** 26.1, 26.1.1, 26.1.2, and the 26.2 line (currently pre-release). One binary per loader covers the whole 26.1 - 26.2 range.
-- **Java:** 25.
-- **Loaders / platforms:** Fabric (and Quilt, which runs the Fabric jar), NeoForge, and Paper / Spigot / Bukkit / Folia. Paper-specific enhancements are used automatically when Paper is detected.
+## Build
 
-On Fabric, Quilt, and Paper/Spigot/Bukkit/Folia, Minecraft 26.2 needs no special steps - install the jar as usual.
+All variants build on **JDK 21**. Set `JAVA_HOME` to a JDK 21 before invoking Gradle (the toolchain pins the language level, but the Gradle/decompile step expects 21):
 
-### NeoForge on Minecraft 26.2 - special instructions
+```
+# one variant pair
+./gradlew :chunksmith-fabric-1.21.8:build :chunksmith-neoforge-1.21.8:build
 
-NeoForge has not published a 26.2 build yet, so there is no public NeoForge 26.2 loader to install. The Chunksmith NeoForge jar already covers 26.2 - it is built on NeoForge 26.1 and is binary-compatible through the 26.2 line, so you do **not** need to rebuild Chunksmith. But to run it on Minecraft 26.2 you must supply a NeoForge 26.2 loader yourself:
+# everything
+./gradlew build
+```
 
-1. `git clone --branch port/26.2 https://github.com/neoforged/NeoForge`
-2. Install **JDK 25**.
-3. Build it and publish to your local Maven, then install it:
+Output jars land in each variant's `build/libs/` as `Chunksmith-Fabric-<ver>-*.jar` / `Chunksmith-NeoForge-<ver>-*.jar`. The shared, Minecraft-free `common` and `nbt` modules are shaded into every variant jar.
 
-       ./gradlew setup
-       ./gradlew :neoforge:publishToMavenLocal --no-configuration-cache
+### Toolchain
 
-   Run the resulting `*-installer.jar` (under `~/.m2/.../neoforge/26.2.0-alpha.0+<suffix>/`) to install NeoForge 26.2 into your client/server.
-4. Drop `Chunksmith-NeoForge-<version>.jar` into that instance's `mods/` as usual.
+| Layer | Tool |
+|-------|------|
+| Gradle | 8.14 (wrapper) |
+| Fabric (1.21.1 - 1.21.10) | fabric-loom 1.12.7, official Mojang mappings |
+| Fabric (1.21.11) | fabric-loom 1.13.6 (required by fabric-api 0.141.4+1.21.11), official Mojang mappings |
+| NeoForge (all) | ModDevGradle 2.0.141, `net.neoforged:neoforge:21.x`, mojmap-native |
 
-Once NeoForge ships a stable 26.2, this workaround goes away.
+**NeoForge mixins** are built with **no annotation processor and no refmap**: NeoForge 20.2+ is mojmap-native at runtime, so the FML mixin loader resolves `@Inject`/`@Redirect`/`@Accessor` targets directly by their Mojang name. The same mixin classes are compile-validated on the Fabric variants (loom refmap), so runtime resolution by name is sound.
 
-## Download & install
+## Features (per variant)
 
-Compiled jars are on the [**Releases**](https://github.com/Kishku7/Chunksmith/releases/latest) page - no building required:
+| # | Feature | Status across the 1.21 line |
+|---|---------|------------------------------|
+| F1 | Rebrand (`/cs` + `/chunksmith`; `/chunky` + `/cy` deprecated; config auto-migration) | present on all |
+| F2 | Adaptive I/O throttle - mspt EWMA tick-health signal | present on all |
+| F2 | Keep-awake (reset the empty-server idle counter while generating) | **N/A on 1.21.1**; present 1.21.2+ |
+| F3 | Write-queue backpressure (`IOWorker` pending-write depth gate) | present on all |
+| F4 | Worldgen-overreach diagnostic (`WorldGenRegion` far-write capture) | present on all |
+| F5 | Structure-fault diagnostic (`BlockAttachedEntity` invalid-position capture) | present on all (far-anchor case only - the missing-anchor sub-case does not exist for this class) |
+| F6 | SLF4J reporter logging | present on all |
 
-- **Plugin** (Paper / Spigot / Bukkit / Folia) - download `Chunksmith-Plugin-<version>.jar` and drop it in your server's `plugins/` folder.
-- **Mod - Fabric** - download `Chunksmith-Fabric-<version>.jar` and drop it in `mods/` (requires Fabric API).
-- **Mod - NeoForge** - download `Chunksmith-NeoForge-<version>.jar` and drop it in `mods/` (see the NeoForge 26.2 note above if you are on Minecraft 26.2).
+## Per-range API notes (Chunksmith's targets only)
 
-Also published on [Modrinth](https://modrinth.com/mod/chunksmith).
+- **1.21.2** - `MinecraftServer.emptyTicks` / `tickConnection()` appear (empty-server pause); keep-awake becomes applicable. `IOWorker.pendingWrites` changes `Map` -> `SequencedMap`. `RegistryAccess.registryOrThrow` -> `lookupOrThrow`; `Level.getMinBuildHeight` -> `getMinY`; `ServerPlayer.teleportTo` gains the `Set<Relative>` overload.
+- **1.21.5** - `CompoundTag.getString` returns `Optional<String>` (chunk-NBT status path). Ticket system overhaul: `TicketType` becomes a record (`new TicketType(...)`), `addRegionTicket`/`removeRegionTicket` -> `addTicketWithRadius`/`removeTicketWithRadius`.
+- **1.21.6** - `ServerPlayer.serverLevel()` removed; use `(ServerLevel) player.level()` (covariant from 1.21.6). The `BlockAttachedEntity` ValueIO refactor does not affect the F5 redirect (the inner `Logger.error(String,Object)` call is unchanged).
+- **1.21.9** - `TicketType` constructor changes to `(long timeout, int flags)` with `FLAG_LOADING` / `FLAG_SIMULATION` bit constants. `Level.getSharedSpawnPos/Angle` removed -> `getRespawnData().pos()/yaw()/pitch()`. Recompile boundary (separate jar).
+- **1.21.11** - `ChunkStorage` removed; `ChunkMap` now extends `SimpleRegionStorage` (F3 accessor retargeted). `net.minecraft.resources.ResourceLocation` renamed to `Identifier`; `ResourceKey.location()` -> `identifier()`. Permission overhaul: `hasPermissions(int)` -> `permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)`.
 
-Remove any existing **Chunky** jar - Chunksmith supersedes it. (On Paper/Bukkit, Chunksmith will disable Chunky automatically and ask you to delete it.)
+Worldgen (`WorldGenRegion.generatingStep` / `ChunkStep`), structure placement (`StructureStart.placeInChunk`), the chunk-future path (`ServerChunkCache.getChunkFutureMainThread`, ChunkResult era), and `ServerLevel.entityManager` are byte-stable across the whole 1.21 line.
 
 ## Usage
-
-The command is **`/cs`** (with **`/chunksmith`** as a full-name alias). The legacy **`/chunky`** and **`/cy`** still work but print a deprecation notice pointing you to `/cs`.
 
 ```
 /cs start          # pre-generate the current/selected area
@@ -66,35 +76,8 @@ The command is **`/cs`** (with **`/chunksmith`** as a full-name alias). The lega
 /cs progress       # show rate / ETA / throttle status
 ```
 
-## Configuration & migration
-
-On first run, if you don't already have a Chunksmith config, the mod **adopts your existing Chunky config in place** - `config/chunky` -> `config/chunksmith` on Fabric, `plugins/Chunky` -> `plugins/Chunksmith` on Bukkit/Paper. If a Chunksmith config already exists, the old Chunky directory is left untouched.
-
-Throttle behaviour is tunable:
-
-| Key | Default | Meaning |
-|-----|---------|---------|
-| `io-throttle` | `true` | Enable adaptive throttling |
-| `throttle-target-mspt` | `150` | Target ms/tick the throttle steers toward (Fabric/NeoForge/Paper tick-health signal) |
-| `throttle-max-chunk-millis` | `750` | Per-chunk latency backstop - back off if a single chunk load exceeds this |
-| `throttle-max-queued-writes` | `800` | Cap on queued (unflushed) chunk writes before generation is held off until the backlog drains (Fabric/NeoForge; `0` disables) |
-
-Defaults are tuned to keep the server responsive on modest hardware.
-
-## Real-world impact
-
-Measured on a live Minecraft 26.1.x server pre-generating a multi-million-chunk overworld on a spinning-disk (HDD):
-
-| | Stock Chunky | Chunksmith |
-|---|---|---|
-| Disk utilization during pre-gen | ~95-100% (pegged) | ~2-5% |
-| `pause` responsiveness under load | seconds to minutes of lag | instant (same tick) |
-| Post-pause disk drain | long, unbounded tail | bounded by the queue cap |
-| Generation rate | choked by disk thrash | **higher** - ~65-78 chunks/s |
-
-Same hardware, same world: Chunksmith generates **faster** while leaving the disk almost idle - because it stops feeding the disk faster than it can keep up, instead of burying it and choking on its own backlog.
+`/chunksmith` is a full-name alias; legacy `/chunky` and `/cy` still work with a deprecation notice. Requires the Fabric API on Fabric. Remove any existing Chunky jar.
 
 ## Credits & license
 
-Original **Chunky** by pop4959 and contributors. **Chunksmith** fork maintained by Kishku7.
-Licensed under the **GNU General Public License v3.0** - see [`LICENSE`](LICENSE).
+Original **Chunky** by pop4959 and contributors. **Chunksmith** fork maintained by Kishku7. Licensed under the **GNU General Public License v3.0** - see [`LICENSE`](LICENSE).
