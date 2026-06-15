@@ -1,6 +1,5 @@
 package org.popcraft.chunky.platform;
 
-import com.mojang.datafixers.util.Either;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -20,20 +19,23 @@ import net.minecraft.util.Unit;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.LevelResource;
 import org.popcraft.chunky.ChunkyFabric;
 import org.popcraft.chunky.ducks.MinecraftServerExtension;
 import org.popcraft.chunky.mixin.ChunkMapMixin;
+import org.popcraft.chunky.mixin.ChunkStorageAccessor;
+import org.popcraft.chunky.mixin.IOWorkerAccessor;
 import org.popcraft.chunky.mixin.ServerChunkCacheMixin;
 import org.popcraft.chunky.platform.util.Location;
 import org.popcraft.chunky.util.Input;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -191,6 +193,22 @@ public class FabricWorld implements World {
         final ResourceKey<Level> dimension = world.dimension();
         final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
+    }
+
+    @Override
+    public long getQueuedChunkWrites() {
+        try {
+            // On 1.20.1 ChunkMap extends ChunkStorage, which holds the IOWorker (no SimpleRegionStorage yet).
+            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunky$getWorker();
+            if (worker == null) {
+                return -1;
+            }
+            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunky$getPendingWrites();
+            return pendingWrites == null ? -1 : pendingWrites.size();
+        } catch (final Throwable t) {
+            return -1;
+        }
     }
 
     public ServerLevel getWorld() {
