@@ -300,3 +300,8 @@ gradle-app.setting
 run/
 
 build_output.txt
+
+# build helper logs (local only)
+_build_*.log
+_build_*.err
+_build_*.pid

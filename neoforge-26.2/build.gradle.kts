@@ -9,8 +9,11 @@ repositories {
 }
 
 dependencies {
-    minecraft(group = "com.mojang", name = "minecraft", version = "26.1")
-    forgeUserdev(group = "net.neoforged", name = "neoforge", version = "26.1.0.15-beta", classifier = "userdev")
+    // NeoForge 26.2 has no public release yet; this variant builds against a
+    // locally-built NeoForge 26.2 alpha installed in the local Maven repository
+    // (mavenLocal() is declared in the root build's subprojects repositories block).
+    minecraft(group = "com.mojang", name = "minecraft", version = "26.2-rc-2")
+    forgeUserdev(group = "net.neoforged", name = "neoforge", version = "26.2.0-alpha.0+rc-2.20260614.200134", classifier = "userdev")
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }
