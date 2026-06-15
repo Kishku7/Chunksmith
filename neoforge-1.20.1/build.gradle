@@ -1,0 +1,95 @@
+// NeoForge variant for MC 1.20.1.
+//
+// On 1.20.1 "NeoForge" is the project's first release: a Forge fork published as
+// net.neoforged:forge:1.20.1-47.1.x that STILL uses the net.minecraftforge.* API namespace
+// (the rename to net.neoforged.* only lands at 1.20.2 / NeoForge 20.2). At this MC version the
+// loader is binary-compatible with Forge 47.x, so it is built with ForgeGradle 6 + the
+// SpongePowered Mixin gradle plugin -- the same proven toolchain Dave uses for his other
+// 1.20.1 Forge/NeoForge mods (e.g. trident-killers-4-java) -- consuming the NeoForge artifact.
+// JDK 17, official Mojang mappings, mirroring the fabric-1.20.1 variant feature-for-feature.
+
+plugins {
+    id 'eclipse'
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+archivesBaseName = 'chunksmith-neoforge-1.20.1'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+repositories {
+    maven { url = 'https://maven.neoforged.net/releases/' }
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+}
+
+mixin {
+    add sourceSets.main, 'chunksmith.refmap.json'
+    config 'chunksmith.mixins.json'
+}
+
+// Classes/resources from common + nbt are merged into the mod jar (they are Minecraft-free
+// pure-Java libraries shared with the fabric variant).
+configurations {
+    shade
+    implementation.extendsFrom shade
+}
+
+dependencies {
+    minecraft 'net.neoforged:forge:1.20.1-47.1.106'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    implementation project(':chunksmith-common')
+    shade project(':chunksmith-common')
+    shade project(':chunksmith-nbt')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand(
+            'github': project.property('github'),
+            'id': project.property('modId'),
+            'version': project.version,
+            'name': project.property('artifactName'),
+            'author': project.property('author'),
+            'description': project.property('description')
+        )
+    }
+}
+
+jar {
+    // Merge the shared common + nbt library classes into the mod jar before reobf.
+    from {
+        configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude 'META-INF/MANIFEST.MF', 'version.properties'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes([
+            'Implementation-Title'  : rootProject.name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor' : project.property('author'),
+            'MixinConfigs'          : 'chunksmith.mixins.json'
+        ])
+    }
+    archiveFileName = "${project.property('artifactName')}-NeoForge-1.20.1-${project.version}.jar"
+}
+
+// Keep the shaded library resources (version.properties etc.) — pull them in explicitly so
+// runtime classpath lookups in common still resolve.
+sourceSets.main.resources {
+    // (resources are taken from src/main/resources; shaded jars add their classes via jar{from})
+}

@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.popcraft.chunky.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "chunksmith.refmap.json",
+  "mixins": [
+    "ChunkMapMixin",
+    "ChunkStorageAccessor",
+    "HangingEntityMixin",
+    "IOWorkerAccessor",
+    "MinecraftServerMixin",
+    "ServerChunkCacheMixin",
+    "ServerLevelMixin",
+    "StructureStartMixin",
+    "WorldGenRegionMixin"
+  ],
+  "client": [
+    "client.IntegratedServerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
