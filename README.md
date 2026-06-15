@@ -1,100 +1,38 @@
 # Chunksmith
 
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/2ZxzbCzAHe)
+Chunksmith is a Minecraft chunk pre-generator that generates chunks quickly,
+efficiently, and safely. On top of fast pre-generation it adds adaptive I/O
+throttling, region write-backpressure protection, and worldgen diagnostics
+(overreach + structure-fault attribution).
 
-Chunksmith is a Minecraft chunk pre-generator that **paces generation to keep your server healthy** - it builds large areas ahead of time without saturating your disk or freezing the server.
+Ships as a **Fabric + NeoForge mod** and a **Paper / Spigot / Folia plugin**.
 
-It is a fork of [Chunky](https://github.com/pop4959/Chunky) by **pop4959**, licensed under **GPL-3.0**, and maintained by **Kishku7**.
+Originally derived from Chunky by pop4959; now developed independently as
+Chunksmith. Licensed GPL-3.0.
 
-## Why Chunksmith?
+**Download:** https://modrinth.com/mod/chunksmith
 
-Chunky pre-generates chunks well, but on slower hardware a heavy pre-gen can saturate disk I/O - leaving the server unresponsive to `pause`/`stop`, and on an empty server even sending it to sleep mid-run. Chunksmith focuses on generating **safely under real-world conditions**:
+## Repository layout
 
-- **Adaptive I/O throttle** - generation concurrency is steered by live server tick-health (Fabric, NeoForge, and Paper): it backs off when the server starts to fall behind and ramps back up as it recovers, with a per-chunk latency backstop guarding against disk stalls on every platform.
-- **Run it 24/7 - even with players online.** Because generation is paced by real-time server tick-health, Chunksmith automatically yields capacity to players the moment the server gets busy and reclaims it as load eases. There's no need to schedule pre-generation for off-hours or empty the server first - leave it running continuously and it stays out of players' way until the job is finished.
-- **Write-queue backpressure** - Chunksmith watches the deferred region-write backlog (chunk writes queued to disk but not yet flushed) and holds off *dispatch* the moment it exceeds a cap, resuming once it drains. Generation can no longer outrun your disk: the unflushed-write window stays bounded, so `pause`/`stop` stay instant and a crash can never strand a giant write queue. On Fabric/NeoForge this reads the live `IOWorker` queue directly; on Paper/Spigot it is detected reflectively.
-- **Stays awake during pre-gen** - while a generation task is running, the server won't `pause-when-empty` out from under an unattended pre-gen.
-- **Conflict-safe** - if the original Chunky is also installed, Chunksmith disables it (Paper/Bukkit) or tells you to remove it (Fabric).
-- **Drop-in migration** - on first run Chunksmith adopts your existing Chunky configuration automatically (see below), so upgrading is seamless.
-- **Worldgen overreach diagnostic** - when a worldgen feature or structure tries to `setBlock` outside its chunk (which vanilla refuses, normally spamming 100-200 near-identical log lines per occurrence), Chunksmith collapses the whole burst into a single, readable report naming the offending feature, the affected chunks, the Y range, and the block count - so you can identify and report the culprit mod instead of drowning in log noise. Full structured detail on Fabric/NeoForge (via a version-portable mixin that builds as one binary across 26.1 through 26.2); best-effort on Paper/Spigot/Folia (a Log4j filter that parses and suppresses the vanilla spam).
-- Ongoing focus on generation bug-fixes, with standalone *generate-and-store* on the roadmap.
+`main` is just this landing page. The code lives on per-target branches — one
+per Minecraft version family, split by build type.
 
-## Supported versions
+### Mod (Fabric + NeoForge)
+- [`mod/1.20.x`](../../tree/mod/1.20.x)
+- [`mod/1.21.x`](../../tree/mod/1.21.x)
+- [`mod/26.1.x`](../../tree/mod/26.1.x)
+- [`mod/26.2.x`](../../tree/mod/26.2.x) — pre-release line
 
-- **Minecraft:** 26.1, 26.1.1, 26.1.2, and the 26.2 line (currently pre-release). One binary per loader covers the whole 26.1 - 26.2 range.
-- **Java:** 25.
-- **Loaders / platforms:** Fabric (and Quilt, which runs the Fabric jar), NeoForge, and Paper / Spigot / Bukkit / Folia. Paper-specific enhancements are used automatically when Paper is detected.
+### Plugin (Paper / Spigot / Folia)
+- [`plugin/1.20.x`](../../tree/plugin/1.20.x)
+- [`plugin/1.21.x`](../../tree/plugin/1.21.x)
+- [`plugin/26.1.x`](../../tree/plugin/26.1.x)
+- [`plugin/26.2.x`](../../tree/plugin/26.2.x) — pre-release line
 
-On Fabric, Quilt, and Paper/Spigot/Bukkit/Folia, Minecraft 26.2 needs no special steps - install the jar as usual.
+Each branch targets its own Minecraft family; within a branch, build variants
+cover any sub-versions that need a hard split. See each branch's build files for
+the exact Minecraft versions and loaders it produces.
 
-### NeoForge on Minecraft 26.2 - special instructions
+## License
 
-NeoForge has not published a 26.2 build yet, so there is no public NeoForge 26.2 loader to install. The Chunksmith NeoForge jar already covers 26.2 - it is built on NeoForge 26.1 and is binary-compatible through the 26.2 line, so you do **not** need to rebuild Chunksmith. But to run it on Minecraft 26.2 you must supply a NeoForge 26.2 loader yourself:
-
-1. `git clone --branch port/26.2 https://github.com/neoforged/NeoForge`
-2. Install **JDK 25**.
-3. Build it and publish to your local Maven, then install it:
-
-       ./gradlew setup
-       ./gradlew :neoforge:publishToMavenLocal --no-configuration-cache
-
-   Run the resulting `*-installer.jar` (under `~/.m2/.../neoforge/26.2.0-alpha.0+<suffix>/`) to install NeoForge 26.2 into your client/server.
-4. Drop `Chunksmith-NeoForge-<version>.jar` into that instance's `mods/` as usual.
-
-Once NeoForge ships a stable 26.2, this workaround goes away.
-
-## Download & install
-
-Compiled jars are on the [**Releases**](https://github.com/Kishku7/Chunksmith/releases/latest) page - no building required:
-
-- **Plugin** (Paper / Spigot / Bukkit / Folia) - download `Chunksmith-Plugin-<version>.jar` and drop it in your server's `plugins/` folder.
-- **Mod - Fabric** - download `Chunksmith-Fabric-<version>.jar` and drop it in `mods/` (requires Fabric API).
-- **Mod - NeoForge** - download `Chunksmith-NeoForge-<version>.jar` and drop it in `mods/` (see the NeoForge 26.2 note above if you are on Minecraft 26.2).
-
-Also published on [Modrinth](https://modrinth.com/mod/chunksmith).
-
-Remove any existing **Chunky** jar - Chunksmith supersedes it. (On Paper/Bukkit, Chunksmith will disable Chunky automatically and ask you to delete it.)
-
-## Usage
-
-The command is **`/cs`** (with **`/chunksmith`** as a full-name alias). The legacy **`/chunky`** and **`/cy`** still work but print a deprecation notice pointing you to `/cs`.
-
-```
-/cs start          # pre-generate the current/selected area
-/cs pause          # pause (resumable)
-/cs continue       # resume a paused task
-/cs progress       # show rate / ETA / throttle status
-```
-
-## Configuration & migration
-
-On first run, if you don't already have a Chunksmith config, the mod **adopts your existing Chunky config in place** - `config/chunky` -> `config/chunksmith` on Fabric, `plugins/Chunky` -> `plugins/Chunksmith` on Bukkit/Paper. If a Chunksmith config already exists, the old Chunky directory is left untouched.
-
-Throttle behaviour is tunable:
-
-| Key | Default | Meaning |
-|-----|---------|---------|
-| `io-throttle` | `true` | Enable adaptive throttling |
-| `throttle-target-mspt` | `150` | Target ms/tick the throttle steers toward (Fabric/NeoForge/Paper tick-health signal) |
-| `throttle-max-chunk-millis` | `750` | Per-chunk latency backstop - back off if a single chunk load exceeds this |
-| `throttle-max-queued-writes` | `800` | Cap on queued (unflushed) chunk writes before generation is held off until the backlog drains (Fabric/NeoForge; `0` disables) |
-
-Defaults are tuned to keep the server responsive on modest hardware.
-
-## Real-world impact
-
-Measured on a live Minecraft 26.1.x server pre-generating a multi-million-chunk overworld on a spinning-disk (HDD):
-
-| | Stock Chunky | Chunksmith |
-|---|---|---|
-| Disk utilization during pre-gen | ~95-100% (pegged) | ~2-5% |
-| `pause` responsiveness under load | seconds to minutes of lag | instant (same tick) |
-| Post-pause disk drain | long, unbounded tail | bounded by the queue cap |
-| Generation rate | choked by disk thrash | **higher** - ~65-78 chunks/s |
-
-Same hardware, same world: Chunksmith generates **faster** while leaving the disk almost idle - because it stops feeding the disk faster than it can keep up, instead of burying it and choking on its own backlog.
-
-## Credits & license
-
-Original **Chunky** by pop4959 and contributors. **Chunksmith** fork maintained by Kishku7.
-Licensed under the **GNU General Public License v3.0** - see [`LICENSE`](LICENSE).
+GPL-3.0-only. Original Chunky (c) pop4959. Chunksmith modifications (c) Kishku7.
