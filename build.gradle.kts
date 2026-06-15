@@ -1,16 +1,10 @@
-import java.io.ByteArrayOutputStream
-
-plugins {
-    id("java-library")
-    id("maven-publish")
-    id("com.gradleup.shadow") version "9.4.0"
-}
+// mod/1.20.x backport build.
+// common + nbt are Minecraft-FREE pure Java libraries (JDK 17, release 17).
+// The fabric-1.20.1 variant applies fabric-loom itself and shades common+nbt.
+// Per-module config lives in each module's own build.gradle.kts so loom can
+// own the fabric module's java/jar tasks without interference.
 
 subprojects {
-    plugins.apply("java-library")
-    plugins.apply("maven-publish")
-    plugins.apply("com.gradleup.shadow")
-
     group = "${project.property("group")}"
     version = "${project.property("version")}"
 
@@ -18,61 +12,4 @@ subprojects {
         mavenCentral()
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
     }
-
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(25))
-        }
-        withSourcesJar()
-    }
-
-    tasks {
-        withType<JavaCompile> {
-            options.encoding = "UTF-8"
-            options.release = 25
-            options.compilerArgs.add("-Xlint:none")
-        }
-        jar {
-            archiveClassifier.set("noshade")
-        }
-        shadowJar {
-            archiveClassifier.set("")
-            archiveFileName.set("${project.property("artifactName")}-${project.version}.jar")
-        }
-        build {
-            dependsOn(shadowJar)
-        }
-    }
-
-    publishing {
-        repositories {
-            if (project.hasProperty("mavenUsername") && project.hasProperty("mavenPassword")) {
-                maven {
-                    credentials {
-                        username = "${project.property("mavenUsername")}"
-                        password = "${project.property("mavenPassword")}"
-                    }
-                    url = uri("https://repo.codemc.io/repository/maven-releases/")
-                }
-            }
-        }
-        publications {
-            create<MavenPublication>("maven") {
-                groupId = "${project.group}"
-                artifactId = project.name
-                version = "${project.version}"
-                from(components["java"])
-            }
-        }
-    }
-}
-
-fun commitsSinceLastTag(): String {
-    val tagDescription = providers.exec {
-        commandLine("git", "describe", "--tags")
-    }.standardOutput.asText.get()
-    if (tagDescription.indexOf('-') < 0) {
-        return "0"
-    }
-    return tagDescription.split('-')[1]
 }

@@ -2,7 +2,6 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         maven("https://maven.fabricmc.net/")
-        maven("https://maven.minecraftforge.net")
         maven("https://maven.architectury.dev/")
         maven("https://repo.codemc.io/repository/relativitymc/")
     }
@@ -16,17 +15,8 @@ project(":chunksmith-nbt").projectDir = file("nbt")
 include("chunksmith-common")
 project(":chunksmith-common").projectDir = file("common")
 
-include("chunksmith-spigot")
-project(":chunksmith-spigot").projectDir = file("plugin/spigot")
-
-include("chunksmith-paper")
-project(":chunksmith-paper").projectDir = file("plugin/paperMC")
-
-include("chunksmith-folia")
-project(":chunksmith-folia").projectDir = file("plugin/folia")
-
-include("chunksmith-fabric")
-project(":chunksmith-fabric").projectDir = file("mods/fabric")
-
-include("chunksmith-neoforge")
-project(":chunksmith-neoforge").projectDir = file("mods/neoforge")
+// --- mod/1.20.x backport: single fabric-1.20.1 variant (mojmap, JDK 17) ---
+// Plugin (spigot/paper/folia) and neoforge modules are intentionally NOT included
+// in this branch's build yet. They are re-added per the backport plan when ported.
+include("chunksmith-fabric-1.20.1")
+project(":chunksmith-fabric-1.20.1").projectDir = file("fabric-1.20.1")
