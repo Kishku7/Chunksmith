@@ -48,3 +48,16 @@ project(":chunksmith-fabric-1.20.6").projectDir = file("fabric-1.20.6")
 // (coordinate net.neoforged:neoforge:20.6.x). Registered once its module exists.
 include("chunksmith-neoforge-1.20.6")
 project(":chunksmith-neoforge-1.20.6").projectDir = file("neoforge-1.20.6")
+
+// --- 1.20.2 - 1.20.4 gap variants (JDK17 + ChunkResult, OLD ChunkStatus package) ---
+// fabric-1.20.4 (JDK17, mojmap, fabric-loom) -> MC 1.20.2 - 1.20.4.
+// = the fabric-1.20.1 source + the ServerChunkCacheMixin Either->ChunkResult swap ONLY.
+// ChunkStatus stays in net.minecraft.world.level.chunk (the .status move was 1.20.5).
+include("chunksmith-fabric-1.20.4")
+project(":chunksmith-fabric-1.20.4").projectDir = file("fabric-1.20.4")
+
+// neoforge-1.20.4 (JDK17, mojmap, ModDevGradle) -> MC 1.20.2 - 1.20.4.
+// At 1.20.2+ NeoForge uses the net.neoforged.* namespace + MDG (coordinate
+// net.neoforged:neoforge:20.4.x), like 1.20.6 but JDK17 + old ChunkStatus package.
+include("chunksmith-neoforge-1.20.4")
+project(":chunksmith-neoforge-1.20.4").projectDir = file("neoforge-1.20.4")
