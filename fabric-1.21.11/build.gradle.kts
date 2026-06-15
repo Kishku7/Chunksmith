@@ -1,5 +1,5 @@
 plugins {
-    id("fabric-loom") version "1.12.7"
+    id("fabric-loom") version "1.13.6"
     id("com.gradleup.shadow") version "8.3.5"
 }
 
@@ -12,9 +12,9 @@ repositories {
 // fabric-api/loader bumped to the proven 1.21.1 set (mirrors Dave's bank-vault 1.21.1),
 // and the 1.20.6 -> 1.21.1 mojmap API diffs applied to the platform/mixin layer.
 // Quilt rides this jar.
-val minecraftVersion = "1.21.4"
+val minecraftVersion = "1.21.11"
 val fabricLoaderVersion = "0.16.10"
-val fabricApiVersion = "0.119.4+1.21.4"
+val fabricApiVersion = "0.141.4+1.21.11"
 
 java {
     toolchain {

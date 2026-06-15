@@ -61,3 +61,9 @@ project(":chunksmith-fabric-1.21.10").projectDir = file("fabric-1.21.10")
 
 include("chunksmith-neoforge-1.21.10")
 project(":chunksmith-neoforge-1.21.10").projectDir = file("neoforge-1.21.10")
+
+include("chunksmith-fabric-1.21.11")
+project(":chunksmith-fabric-1.21.11").projectDir = file("fabric-1.21.11")
+
+include("chunksmith-neoforge-1.21.11")
+project(":chunksmith-neoforge-1.21.11").projectDir = file("neoforge-1.21.11")
