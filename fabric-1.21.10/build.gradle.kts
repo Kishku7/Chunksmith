@@ -12,9 +12,9 @@ repositories {
 // fabric-api/loader bumped to the proven 1.21.1 set (mirrors Dave's bank-vault 1.21.1),
 // and the 1.20.6 -> 1.21.1 mojmap API diffs applied to the platform/mixin layer.
 // Quilt rides this jar.
-val minecraftVersion = "1.21.1"
+val minecraftVersion = "1.21.10"
 val fabricLoaderVersion = "0.16.10"
-val fabricApiVersion = "0.116.12+1.21.1"
+val fabricApiVersion = "0.138.4+1.21.10"
 
 java {
     toolchain {
