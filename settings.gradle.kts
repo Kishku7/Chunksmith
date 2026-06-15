@@ -18,9 +18,16 @@ project(":chunksmith-nbt").projectDir = file("nbt")
 include("chunksmith-common")
 project(":chunksmith-common").projectDir = file("common")
 
-// --- mod/1.20.x backport variants (mojmap, JDK 17) ---
+// --- mod/1.20.x backport variants (mojmap) ---
 // Plugin (spigot/paper/folia) is intentionally NOT included in this branch's
 // build yet. It is re-added per the backport plan when ported.
+//
+// Split (validated 2026-06-15 via decompiled 1.20.1 + 1.20.6 mojmap):
+//   fabric/neoforge-1.20.1 (JDK17, Either) -> MC 1.20.1 only
+//   fabric/neoforge-1.20.6 (JDK21, ChunkResult) -> MC 1.20.5 - 1.20.6
+// The only CS-target break across the 1.20 line is ServerChunkCache.getChunkFutureMainThread
+// returning Either<..> (1.20.1) vs ChunkResult<..> (1.20.2+); JDK17->21 floor is 1.20.5.
+
 include("chunksmith-fabric-1.20.1")
 project(":chunksmith-fabric-1.20.1").projectDir = file("fabric-1.20.1")
 
@@ -31,3 +38,13 @@ project(":chunksmith-fabric-1.20.1").projectDir = file("fabric-1.20.1")
 // 1.20.2+). One jar, runs on NeoForge (and Forge) 1.20.1.
 include("chunksmith-neoforge-1.20.1")
 project(":chunksmith-neoforge-1.20.1").projectDir = file("neoforge-1.20.1")
+
+// fabric-1.20.6 (JDK21, mojmap, fabric-loom) -> MC 1.20.5 - 1.20.6.
+include("chunksmith-fabric-1.20.6")
+project(":chunksmith-fabric-1.20.6").projectDir = file("fabric-1.20.6")
+
+// neoforge-1.20.6 (JDK21, mojmap, ModDevGradle) -> MC 1.20.5 - 1.20.6.
+// At 1.20.2+ NeoForge uses the net.neoforged.* namespace + the MDG toolchain
+// (coordinate net.neoforged:neoforge:20.6.x). Registered once its module exists.
+//include("chunksmith-neoforge-1.20.6")
+//project(":chunksmith-neoforge-1.20.6").projectDir = file("neoforge-1.20.6")
