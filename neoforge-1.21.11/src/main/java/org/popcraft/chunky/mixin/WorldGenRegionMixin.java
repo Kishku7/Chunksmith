@@ -28,7 +28,9 @@ import java.util.function.Supplier;
  * {@code generatingStep.targetStatus()} - this matches the 26.x shape, so the 1.21 line uses the
  * ChunkStep form rather than the 1.20 two-field form. The far-write log call is still
  * {@code Util.logAndPauseIfInIde(String)} inside {@code WorldGenRegion.ensureCanWrite(BlockPos)},
- * so the @Redirect target is identical. {@code getCenter()} and the {@code currentlyGenerating}
+ * but 1.21.11 RELOCATED Util from {@code net.minecraft.Util} to {@code net.minecraft.util.Util}
+ * (same refactor wave that renamed {@code dimension().location()} -> {@code identifier()}), so the
+ * @Redirect target package is updated here vs the 1.21.1-1.21.10 variants. {@code getCenter()} and the {@code currentlyGenerating}
  * supplier are unchanged.
  */
 @Mixin(WorldGenRegion.class)
@@ -47,7 +49,7 @@ public abstract class WorldGenRegionMixin {
 
     @Redirect(
             method = "ensureCanWrite",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/Util;logAndPauseIfInIde(Ljava/lang/String;)V")
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Util;logAndPauseIfInIde(Ljava/lang/String;)V")
     )
     private void chunky$captureFarWrite(final String message, final BlockPos pos) {
         // Replaces the vanilla log call: record structured data, emit nothing here (spam gone).
