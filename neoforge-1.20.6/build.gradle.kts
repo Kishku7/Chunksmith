@@ -1,16 +1,22 @@
 // NeoForge variant for MC 1.20.5 - 1.20.6.
 //
 // At 1.20.2+ NeoForge dropped the Forge fork and uses its own net.neoforged.* API namespace
-// plus the ModDevGradle (MDG) toolchain (coordinate net.neoforged:neoforge:20.6.x). This is the
-// FIRST MDG-based variant in this repo (the other mods only did 1.20.1 Forge-namespace + 1.21.11);
-// the setup is derived from MDG 2.0.x conventions pointed at NeoForge 20.6, with the entrypoint
-// rewritten from the net.minecraftforge.* namespace (neoforge-1.20.1) to net.neoforged.*.
+// plus the ModDevGradle (MDG) toolchain (coordinate net.neoforged:neoforge:20.6.x). The setup is
+// derived from MDG 2.0.x conventions pointed at NeoForge 20.6, with the entrypoint rewritten from
+// the net.minecraftforge.* namespace (neoforge-1.20.1) to net.neoforged.*.
 // JDK 21, official Mojang mappings, feature-for-feature with fabric-1.20.6.
 //
-// Mixins: NeoForge 20.5+ runs on official Mojang mappings at runtime, so the mojmap names the
-// mixins are written against already match production - no SRG/intermediary remap is needed. The
-// SpongePowered mixin annotation processor is wired so the refmap is generated and, importantly,
-// the mixin targets are VALIDATED at compile time against the real 1.20.6 classes.
+// Mixins: NO annotation processor + NO refmap. NeoForge 20.2+ runs on official Mojang mappings at
+// runtime, so the mojmap names the mixins are written against already match production - dev names
+// == runtime names and the FML mixin loader resolves @Inject/@Redirect/@Accessor/@Invoker targets
+// directly by their mojmap name; no SRG/intermediary remap is needed. The SpongePowered mixin AP
+// CANNOT be used here on a clean tree: its bundled ObfuscationServiceMCP [searge,notch] always
+// activates and demands a searge mapping for every string method target (tickServer, placeInChunk,
+// ensureCanWrite, readAdditionalSaveData) that does not exist for a mojmap-native MDG build,
+// hard-failing the compile ("Unable to locate obfuscation mapping for @Inject target ..."). No AP
+// option suppresses it for @Inject/@Redirect. This matches the proven neoforge-1.21.1 / 26.1 /
+// neoforge-1.20.4 path. The same mixin classes are compile-validated on the fabric-1.20.6 variant
+// (loom refmap), so runtime resolution by mojmap name is sound.
 
 plugins {
     id("net.neoforged.moddev") version "2.0.141"
@@ -39,10 +45,8 @@ neoForge {
 val shade: Configuration by configurations.creating
 
 dependencies {
-    // Mixin annotation processor: generates chunksmith.refmap.json and validates @Mixin/@Shadow/
-    // @Accessor/@Invoker/@Redirect/@Inject targets against the compiled-against MC classes.
+    // Mixin annotations only (compile classpath). NO annotation processor — see header note.
     compileOnly("org.spongepowered:mixin:$mixinVersion")
-    annotationProcessor("org.spongepowered:mixin:$mixinVersion:processor")
 
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
@@ -54,8 +58,6 @@ tasks {
         options.encoding = "UTF-8"
         options.release.set(21)
         options.compilerArgs.add("-Xlint:none")
-        // Tell the mixin AP where to write the refmap (matches "refmap" in chunksmith.mixins.json).
-        options.compilerArgs.add("-AoutRefMapFile=${layout.buildDirectory.get().asFile}/refmap/chunksmith.refmap.json")
     }
     processResources {
         inputs.property("version", project.version)
@@ -74,8 +76,6 @@ tasks {
         configurations = listOf(shade)
         archiveClassifier.set("")
         archiveFileName.set("${project.property("artifactName")}-NeoForge-1.20.6-${project.version}.jar")
-        // Pull the generated refmap into the jar root.
-        from(layout.buildDirectory.dir("refmap"))
         manifest {
             attributes(
                 mapOf(
