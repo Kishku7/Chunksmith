@@ -46,5 +46,5 @@ project(":chunksmith-fabric-1.20.6").projectDir = file("fabric-1.20.6")
 // neoforge-1.20.6 (JDK21, mojmap, ModDevGradle) -> MC 1.20.5 - 1.20.6.
 // At 1.20.2+ NeoForge uses the net.neoforged.* namespace + the MDG toolchain
 // (coordinate net.neoforged:neoforge:20.6.x). Registered once its module exists.
-//include("chunksmith-neoforge-1.20.6")
-//project(":chunksmith-neoforge-1.20.6").projectDir = file("neoforge-1.20.6")
+include("chunksmith-neoforge-1.20.6")
+project(":chunksmith-neoforge-1.20.6").projectDir = file("neoforge-1.20.6")
