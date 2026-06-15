@@ -6,10 +6,12 @@
   "mixins": [
     "ChunkMapMixin",
     "ChunkStorageAccessor",
+    "HangingEntityMixin",
     "IOWorkerAccessor",
     "MinecraftServerMixin",
     "ServerChunkCacheMixin",
     "ServerLevelMixin",
+    "StructureStartMixin",
     "WorldGenRegionMixin"
   ],
   "client": [

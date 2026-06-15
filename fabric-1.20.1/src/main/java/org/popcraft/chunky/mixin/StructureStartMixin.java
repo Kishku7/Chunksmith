@@ -2,7 +2,7 @@ package org.popcraft.chunky.mixin;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
@@ -21,12 +21,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Captures which structure (and chunk) is currently being placed, so that worldgen faults raised
- * deep inside placement - notably the vanilla "Block-attached entity at invalid position" error,
- * intercepted by {@link BlockAttachedEntityMixin} - can be attributed to the owning datapack/mod.
+ * deep inside placement - notably the vanilla "Hanging entity at invalid position" error,
+ * intercepted by {@link HangingEntityMixin} - can be attributed to the owning datapack/mod.
  * <p>
  * {@code StructureStart.placeInChunk} runs synchronously on the worldgen worker thread and all
  * piece/entity placement happens within it, so a ThreadLocal pushed at HEAD and popped at RETURN
  * is live for every fault that fires during the placement.
+ * <p>
+ * 1.20.1 ADAPTATION: {@code placeInChunk} keeps the same six-arg signature, but registry access is
+ * via {@code registryAccess().registryOrThrow(...)} (not the 26.x {@code lookupOrThrow}), the
+ * structure key is a {@code ResourceLocation} (not {@code resources.Identifier}), and {@code ChunkPos}
+ * exposes {@code x}/{@code z} as public fields.
  */
 @Mixin(StructureStart.class)
 public abstract class StructureStartMixin {
@@ -40,15 +45,15 @@ public abstract class StructureStartMixin {
                                          final BoundingBox chunkBB, final ChunkPos chunkPos, final CallbackInfo ci) {
         String id = null;
         try {
-            final Registry<Structure> registry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-            final Identifier key = registry.getKey(this.structure);
+            final Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+            final ResourceLocation key = registry.getKey(this.structure);
             if (key != null) {
                 id = key.toString();
             }
         } catch (final Throwable ignored) {
             // fall through with a null id - the fault is still suppressed + counted, just unattributed
         }
-        StructureFaultReporter.get().pushContext(id, chunkPos.x(), chunkPos.z());
+        StructureFaultReporter.get().pushContext(id, chunkPos.x, chunkPos.z);
     }
 
     @Inject(method = "placeInChunk", at = @At("RETURN"))
