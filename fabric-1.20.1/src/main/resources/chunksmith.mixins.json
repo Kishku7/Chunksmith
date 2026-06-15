@@ -9,7 +9,8 @@
     "IOWorkerAccessor",
     "MinecraftServerMixin",
     "ServerChunkCacheMixin",
-    "ServerLevelMixin"
+    "ServerLevelMixin",
+    "WorldGenRegionMixin"
   ],
   "client": [
     "client.IntegratedServerMixin"
