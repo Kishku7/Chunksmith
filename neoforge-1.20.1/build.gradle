@@ -70,6 +70,9 @@ processResources {
 }
 
 jar {
+    // common + nbt are shaded into this jar; declare the dependency so Gradle's strict
+    // task-dependency validation passes in an aggregate (all-variant) build.
+    dependsOn ':chunksmith-common:jar', ':chunksmith-nbt:jar'
     // Merge the shared common + nbt library classes into the mod jar before reobf.
     from {
         configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
@@ -86,10 +89,4 @@ jar {
         ])
     }
     archiveFileName = "${project.property('artifactName')}-NeoForge-1.20.1-${project.version}.jar"
-}
-
-// Keep the shaded library resources (version.properties etc.) — pull them in explicitly so
-// runtime classpath lookups in common still resolve.
-sourceSets.main.resources {
-    // (resources are taken from src/main/resources; shaded jars add their classes via jar{from})
 }

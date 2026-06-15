@@ -71,6 +71,9 @@ processResources {
 }
 
 jar {
+    // common + nbt are shaded into this jar; declare the dependency so Gradle's strict
+    // task-dependency validation passes in an aggregate (all-variant) build.
+    dependsOn ':chunksmith-common:jar', ':chunksmith-nbt:jar'
     // Merge the shared common + nbt library classes into the mod jar before reobf.
     from {
         configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
