@@ -1,0 +1,93 @@
+// mod/1.21.x — classic Forge (LexForge) variant for MC 1.21.5 - 1.21.8.
+//
+// Standalone LexForge jar built with ForgeGradle 6 (FG6) on JDK 21. Forge 1.21.8 (58.x) runs
+// OFFICIAL MOJANG MAPPINGS at runtime, so dev names == runtime names. Mixins are compiled
+// mojmap-native with NO refmap and NO annotation processor: the SpongePowered mixin loader
+// resolves @Inject/@Redirect/@Accessor/@Invoker targets directly by their mojmap name at load
+// time. (The same mixin classes are refmap-validated on the fabric-1.21.1 loom variant.)
+//
+// Because FG6 1.20.6+ skips reobf and we do not apply the spongepowered mixin gradle plugin, the
+// MixinConfigs manifest attribute must be wired explicitly on the jar — FML reads it to discover
+// chunksmith.mixins.json. (Same pattern as the proven TK4J / Lava Boats 1.21.1 Forge builds.)
+//
+// common + nbt are Minecraft-free pure-Java (JDK 17) libraries; they are shaded into the jar via a
+// dedicated `shade` configuration so the runtime classpath stays clean (gson/slf4j are provided by
+// MC/Forge at runtime and must NOT be bundled). version.properties (expanded in :chunksmith-common)
+// is carried in verbatim — do NOT exclude it.
+
+plugins {
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+version = project.findProperty('version')
+group = project.findProperty('group')
+base { archivesName = project.findProperty('artifactName') }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+minecraft {
+    mappings channel: 'official', version: '1.21.8'
+    copyIdeResources = true
+}
+
+configurations {
+    shade
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.21.8-58.1.18'
+
+    // Mixin annotations only (compile classpath). NO annotation processor — mojmap-native, no refmap.
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+
+    implementation project(':chunksmith-common')
+    shade project(':chunksmith-common')
+    shade project(':chunksmith-nbt')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs.add('-Xlint:none')
+}
+
+processResources {
+    def expandProps = [
+        'github'     : project.findProperty('github'),
+        'id'         : project.findProperty('modId'),
+        'version'    : project.version,
+        'name'       : project.findProperty('artifactName'),
+        'author'     : project.findProperty('author'),
+        'description': project.findProperty('description')
+    ]
+    inputs.properties(expandProps)
+    filesMatching('META-INF/mods.toml') {
+        expand(expandProps)
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.shade]
+    archiveClassifier.set('')
+    archiveFileName.set("${project.findProperty('artifactName')}-Forge-1.21.8-${project.version}.jar")
+    manifest {
+        attributes([
+            'Implementation-Title'  : 'chunksmith',
+            'Implementation-Version': project.version,
+            'Implementation-Vendor' : project.findProperty('author'),
+            'MixinConfigs'          : 'chunksmith.mixins.json'
+        ])
+    }
+}
+
+jar {
+    archiveClassifier.set('slim')
+}
+
+// FG6 wires reobfJar onto `jar` by default; at 1.21.1 reobf is a no-op (mojmap runtime) but the
+// task graph still expects the artifact. The shadowJar is our deployable output.
+build {
+    dependsOn shadowJar
+}

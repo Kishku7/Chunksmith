@@ -53,11 +53,17 @@ project(":chunksmith-fabric-1.21.4").projectDir = file("fabric-1.21.4")
 include("chunksmith-neoforge-1.21.4")
 project(":chunksmith-neoforge-1.21.4").projectDir = file("neoforge-1.21.4")
 
+include("chunksmith-forge-1.21.4")
+project(":chunksmith-forge-1.21.4").projectDir = file("forge-1.21.4")
+
 include("chunksmith-fabric-1.21.8")
 project(":chunksmith-fabric-1.21.8").projectDir = file("fabric-1.21.8")
 
 include("chunksmith-neoforge-1.21.8")
 project(":chunksmith-neoforge-1.21.8").projectDir = file("neoforge-1.21.8")
+
+include("chunksmith-forge-1.21.8")
+project(":chunksmith-forge-1.21.8").projectDir = file("forge-1.21.8")
 
 include("chunksmith-fabric-1.21.10")
 project(":chunksmith-fabric-1.21.10").projectDir = file("fabric-1.21.10")
