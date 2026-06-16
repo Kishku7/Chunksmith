@@ -61,3 +61,13 @@ project(":chunksmith-fabric-1.20.4").projectDir = file("fabric-1.20.4")
 // net.neoforged:neoforge:20.4.x), like 1.20.6 but JDK17 + old ChunkStatus package.
 include("chunksmith-neoforge-1.20.4")
 project(":chunksmith-neoforge-1.20.4").projectDir = file("neoforge-1.20.4")
+
+
+// --- classic Forge (LexForge) variant ---
+// forge-1.20.6 (JDK21, mojmap, ForgeGradle 6 + SpongePowered Mixin) -> MC 1.20.5 - 1.20.6.
+// Standalone classic-Forge jar consuming net.minecraftforge:forge:1.20.6-50.2.8. The Java
+// sources are the net.minecraftforge.* namespace shared with neoforge-1.20.1 plus the 3
+// mojmap-1.20.6 API deltas (Either->ChunkResult, ChunkStatus package move). One jar, runs
+// on classic Forge 1.20.5 - 1.20.6.
+include("chunksmith-forge-1.20.6")
+project(":chunksmith-forge-1.20.6").projectDir = file("forge-1.20.6")
