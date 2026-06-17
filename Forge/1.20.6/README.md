@@ -10,5 +10,5 @@ cd Forge/1.20.6
 ```
 
 - Toolchain: ForgeGradle 6, JDK 21.
-- Output: `build/libs/Chunksmith-Forge-*.jar` (the shaded jar; the `-noshade`/`-slim` jar is the un-shaded one).
-- Shared `common/` + `nbt/` are pulled from the branch root via relative include.
+- Output: `build/libs/Chunksmith-Forge-*.jar` (shaded).
+- Shared `common/` + `nbt/` pulled from the branch root via relative include.

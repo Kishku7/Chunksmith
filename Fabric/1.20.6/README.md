@@ -10,5 +10,5 @@ cd Fabric/1.20.6
 ```
 
 - Toolchain: fabric-loom, JDK 21.
-- Output: `build/libs/Chunksmith-Fabric-*.jar` (the shaded jar; the `-noshade`/`-slim` jar is the un-shaded one).
-- Shared `common/` + `nbt/` are pulled from the branch root via relative include.
+- Output: `build/libs/Chunksmith-Fabric-*.jar` (shaded).
+- Shared `common/` + `nbt/` pulled from the branch root via relative include.
