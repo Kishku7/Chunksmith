@@ -10,5 +10,5 @@ cd NeoForge/1.21.10
 ```
 
 - Toolchain: ModDevGradle / NeoGradle, JDK 21.
-- Output: `build/libs/Chunksmith-NeoForge-*.jar` (the shaded jar; the `-noshade`/`-slim` jar is the un-shaded one).
-- Shared `common/` + `nbt/` are pulled from the branch root via relative include.
+- Output: `build/libs/Chunksmith-NeoForge-*.jar` (shaded).
+- Shared `common/` + `nbt/` pulled from the branch root via relative include.
