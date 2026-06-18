@@ -90,6 +90,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     public void chunky$runChunkSystemHousekeeping(BooleanSupplier haveTime) {
         if (this.chunky$needChunkSystemHousekeeping.compareAndSet(true, false)) {
             for (ServerLevel level : this.getAllLevels()) {
+                ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable
                 ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(() -> true); // push the vanilla chunk system to unload unneeded chunks ASAP
                 ((ServerChunkCacheMixin) level.getChunkSource()).invokeBroadcastChangedChunks(InactiveProfiler.INSTANCE);
                 if (!ChunkyFabric.ENABLE_MOONRISE_WORKAROUNDS) {
