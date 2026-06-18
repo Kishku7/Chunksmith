@@ -86,6 +86,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     public void chunky$runChunkSystemHousekeeping(BooleanSupplier haveTime) {
         if (this.chunky$needChunkSystemHousekeeping.compareAndSet(true, false)) {
             for (ServerLevel level : this.getAllLevels()) {
+                ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates();
                 ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(() -> true); // push the vanilla chunk system to unload unneeded chunks ASAP
                 if (!ChunkyForge.ENABLE_MOONRISE_WORKAROUNDS) {
                     // note: Moonrise destroys the vanilla entity system, so skip it here if it's present

@@ -137,6 +137,7 @@ public class ChunkyForge {
         registerArguments(command, literal(CommandLiteral.CENTER),
                 argument(CommandLiteral.X, word()),
                 argument(CommandLiteral.Z, word()));
+        registerArguments(command, literal(CommandLiteral.DEBUG));
         registerArguments(command, literal(CommandLiteral.CONFIRM));
         registerArguments(command, literal(CommandLiteral.CONTINUE),
                 argument(CommandLiteral.WORLD, dimension()));
