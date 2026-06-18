@@ -1,5 +1,6 @@
 package org.popcraft.chunky.mixin;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.storage.EntityStorage;
 import net.minecraft.world.level.chunk.storage.IOWorker;
@@ -8,10 +9,14 @@ import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
 import net.minecraft.world.level.entity.ChunkEntities;
 import net.minecraft.world.level.entity.EntityPersistentStorage;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+import org.popcraft.chunky.util.Debug;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -26,33 +31,31 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Fixes the long-standing worldgen entity-retention defect: mobs (and other entities) that spawn
- * as chunks are generated during a large pre-generation are never unloaded, so server RAM climbs
- * until a restart, and a blocking save of the backlog can stall the main thread past the 60-second
- * tick watchdog and crash the server.
+ * Fixes the long-standing worldgen entity-retention defect: mobs (and other entities) that spawn as
+ * chunks are generated during a large pre-generation are never unloaded, so server RAM climbs until a
+ * restart, and a blocking save of the backlog can stall the main thread past the 60-second tick
+ * watchdog and crash the server.
  *
  * <p>ROOT CAUSE (vanilla {@code PersistentEntitySectionManager}): worldgen entities enter via
  * {@code addWorldGenChunkEntities}, leaving the chunk's entity load-status {@code FRESH}.
  * {@code storeChunkSections} refuses to free a FRESH chunk's entities until an async disk-read
- * round-trip completes ({@code requestChunkLoad(); return false;}). That read exists only to MERGE
- * any already-persisted entities before the store overwrites the region entry. During heavy pre-gen
- * the world disk is saturated by chunk writes, so the unload reads stall, the chunks never finish
- * unloading, and entities pile up in {@code sectionStorage} until shutdown.
+ * round-trip completes ({@code requestChunkLoad(); return false;}). That read exists only to MERGE any
+ * already-persisted entities before the store overwrites the region entry. During heavy pre-gen the
+ * world disk is saturated by chunk writes, so the unload reads stall and entities pile up.
  *
  * <p>FIX: when the chunk has NO persisted entity data on disk there is nothing to merge, so the read
  * is pure overhead. We {@code @Redirect} the {@code loadEntities} call inside {@code requestChunkLoad}:
- * if the chunk's slot in the entity region's offset table is empty (or the region file does not
- * exist), we return an immediately-completed empty result instead of reading the disk. The chunk
- * resolves FRESH -> LOADED without I/O and vanilla's normal store+unload path then persists the
- * in-memory worldgen entities and frees them. When real on-disk data IS present (e.g. a re-gen over
- * chunks whose entity region was orphaned by a world-region prune), we fall through to the untouched
- * vanilla read+merge, so no entity is ever lost.
+ * if the chunk's slot in the entity region's offset table is empty (or the region file does not exist),
+ * we return an immediately-completed empty result instead of reading the disk. When real on-disk data
+ * IS present we fall through to the untouched vanilla read+merge, so no entity is ever lost.
  *
- * <p>THREAD-SAFETY: {@code requestChunkLoad} runs on the server main thread. We never touch the
- * IO-thread-owned {@code RegionFileStorage} region cache; we read the region file's 4096-byte offset
- * table directly. A FRESH chunk's offset slot is provably 0 (a slot is only written when that chunk
- * is stored, at which point it is no longer FRESH), so even a cached/stale table yields a correct
- * "absent" verdict for fresh chunks - and any uncertainty falls back to the vanilla read.
+ * <p>THREAD-SAFETY: {@code requestChunkLoad} runs on the server main thread; we read the region file's
+ * 4096-byte offset table directly and never touch the IO-thread-owned region cache. A FRESH chunk's
+ * slot is provably 0, so a cached/stale table still yields a correct "absent" verdict, and any
+ * uncertainty falls back to the vanilla read.
+ *
+ * <p>DIAGNOSTICS: the {@code @Inject} into {@code tick} is gated behind {@link Debug#ENABLED} (toggled
+ * by {@code /cs debug}); default OFF means it is a no-op and emits nothing.
  */
 @Mixin(PersistentEntitySectionManager.class)
 public abstract class PersistentEntitySectionManagerMixin {
@@ -63,8 +66,13 @@ public abstract class PersistentEntitySectionManagerMixin {
     @Unique
     private static final int[] CHUNKY$EMPTY_TABLE = new int[1024];
 
-    // Bounded LRU of per-region offset tables. Accessed only on the server main thread
-    // (requestChunkLoad runs there), so no synchronization is required.
+    @Unique
+    private static final Logger CHUNKY$LOG = LogUtils.getLogger();
+
+    @Unique
+    private static final long CHUNKY$DIAG_INTERVAL_MS = 5000L;
+
+    // Accessed only on the server main thread (requestChunkLoad / tick run there) - no sync needed.
     @Unique
     private final Map<Long, int[]> chunky$regionOffsets = new LinkedHashMap<Long, int[]>(64, 0.75f, true) {
         @Override
@@ -72,6 +80,10 @@ public abstract class PersistentEntitySectionManagerMixin {
             return size() > CHUNKY$REGION_CACHE_MAX;
         }
     };
+
+    @Unique private long chunky$fastHits = 0L;
+    @Unique private long chunky$vanillaFalls = 0L;
+    @Unique private long chunky$lastDiag = 0L;
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Redirect(
@@ -84,12 +96,33 @@ public abstract class PersistentEntitySectionManagerMixin {
     private CompletableFuture chunky$skipReadForFreshChunks(final EntityPersistentStorage permanentStorage, final ChunkPos pos) {
         try {
             if (chunky$entitiesAbsentOnDisk(permanentStorage, pos)) {
+                this.chunky$fastHits++;
                 return CompletableFuture.completedFuture(new ChunkEntities(pos, List.of()));
             }
         } catch (final Throwable ignored) {
             // Any uncertainty -> the real vanilla load (never risk skipping genuine on-disk data).
         }
+        this.chunky$vanillaFalls++;
         return permanentStorage.loadEntities(pos);
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void chunky$debugTick(final CallbackInfo ci) {
+        if (!Debug.ENABLED) {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        if (now - this.chunky$lastDiag < CHUNKY$DIAG_INTERVAL_MS) {
+            return;
+        }
+        this.chunky$lastDiag = now;
+        try {
+            // gatherStats() CSV: known,visible,sections,loadStatuses,visibility,inbox,toUnload
+            final String stats = ((PersistentEntitySectionManager) (Object) this).gatherStats();
+            CHUNKY$LOG.info("[Chunksmith debug] fastHits={} vanillaFalls={} | known,visible,sections,loadStatuses,visibility,inbox,toUnload={}",
+                    this.chunky$fastHits, this.chunky$vanillaFalls, stats);
+        } catch (final Throwable ignored) {
+        }
     }
 
     @Unique
@@ -115,10 +148,6 @@ public abstract class PersistentEntitySectionManagerMixin {
         return table[index] == 0;
     }
 
-    /**
-     * Reads the 4096-byte chunk-offset table from the head of an Anvil region file. A non-existent
-     * file means every chunk is absent; each offset int is 0 when that chunk has never been written.
-     */
     @Unique
     private int[] chunky$readOffsetTable(final Path mca) throws IOException {
         if (!Files.exists(mca)) {
