@@ -4,6 +4,9 @@
   "package": "org.popcraft.chunky.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "EntityStorageAccessor",
+    "PersistentEntitySectionManagerMixin",
+    "RegionFileStorageAccessor",
     "ChunkMapMixin",
     "ChunkStorageAccessor",
     "HangingEntityMixin",
