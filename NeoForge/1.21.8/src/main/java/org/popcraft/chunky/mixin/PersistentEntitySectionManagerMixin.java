@@ -5,6 +5,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.storage.EntityStorage;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
 import net.minecraft.world.level.entity.ChunkEntities;
 import net.minecraft.world.level.entity.EntityPersistentStorage;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
@@ -110,7 +111,8 @@ public abstract class PersistentEntitySectionManagerMixin {
         if (!(permanentStorage instanceof EntityStorage)) {
             return false;
         }
-        final IOWorker worker = ((EntityStorageAccessor) permanentStorage).chunky$getEntityWorker();
+        final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunky$getSimpleRegionStorage();
+        final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunky$getWorker();
         final RegionFileStorage storage = ((IOWorkerAccessor) (Object) worker).chunky$getStorage();
         final Path folder = ((RegionFileStorageAccessor) (Object) storage).chunky$getFolder();
 

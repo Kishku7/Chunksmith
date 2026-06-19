@@ -33,7 +33,7 @@ public final class Translator {
         final StringBuilder translation = new StringBuilder();
         final String message = translations.getOrDefault(key, fallbackTranslations.getOrDefault(key, key));
         if (prefixed) {
-            translation.append("[Chunky] ");
+            translation.append("[Chunksmith] ");
         }
         translation.append(String.format(message, args));
         return translation.toString();

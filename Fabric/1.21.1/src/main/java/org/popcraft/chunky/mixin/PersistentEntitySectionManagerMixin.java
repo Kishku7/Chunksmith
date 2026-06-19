@@ -5,6 +5,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.storage.EntityStorage;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
 import net.minecraft.world.level.entity.ChunkEntities;
 import net.minecraft.world.level.entity.EntityPersistentStorage;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
@@ -30,14 +31,16 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Worldgen entity-retention fix - PRE-1.21.11 STRUCTURE variant (MC 1.21.1 - 1.21.10).
+ * Worldgen entity-retention fix - MC 1.21.1 - 1.21.10 STORAGE variant.
  *
- * <p>Identical in behaviour to the 1.21.11/26.x version, but the entity-region folder is reached
- * through {@code EntityStorage.worker} directly (the IOWorker the EntityStorage owns), because the
- * {@code SimpleRegionStorage} layer does not exist before 1.21.11. Everything else - the
- * {@code requestChunkLoad} -> {@code loadEntities} redirect that skips the redundant disk read for
- * chunks with no persisted entities, the offset-table probe, and the {@code /cs debug}-gated
- * telemetry - is the same.
+ * <p>Identical in behaviour to the 1.21.11/26.x version. The entity-region folder is reached through
+ * {@code EntityStorage.simpleRegionStorage -> SimpleRegionStorage.worker}: the SimpleRegionStorage
+ * refactor landed at MC 1.20.5, so on this range EntityStorage no longer holds an {@code IOWorker}
+ * directly - it holds a {@code SimpleRegionStorage} that owns the worker. (The separate 1.21.11
+ * change that moves ChunkMap onto SimpleRegionStorage does not apply to this range and is unrelated
+ * to the entity store.) Everything else - the {@code requestChunkLoad} -> {@code loadEntities}
+ * redirect that skips the redundant disk read for chunks with no persisted entities, the offset-table
+ * probe, and the {@code /cs debug}-gated telemetry - is the same.
  */
 @Mixin(PersistentEntitySectionManager.class)
 public abstract class PersistentEntitySectionManagerMixin {
@@ -110,7 +113,8 @@ public abstract class PersistentEntitySectionManagerMixin {
         if (!(permanentStorage instanceof EntityStorage)) {
             return false;
         }
-        final IOWorker worker = ((EntityStorageAccessor) permanentStorage).chunky$getEntityWorker();
+        final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunky$getSimpleRegionStorage();
+        final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunky$getWorker();
         final RegionFileStorage storage = ((IOWorkerAccessor) (Object) worker).chunky$getStorage();
         final Path folder = ((RegionFileStorageAccessor) (Object) storage).chunky$getFolder();
 
