@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 
 public class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Logger LOGGER = Logger.getLogger("Chunky");
+    private static final Logger LOGGER = Logger.getLogger("Chunksmith");
     // Target ms/tick the throttle steers toward. A healthy 20 TPS server measures ~50 ms,
     // so the floor of this range is 50; the default leaves a small margin above it.
     private static final double TARGET_MSPT_MIN = 54.0;
@@ -100,7 +100,7 @@ public class GsonConfig implements Config {
         final double raw = Optional.ofNullable(configModel.throttleTargetMspt).orElse(TARGET_MSPT_DEFAULT);
         final double clamped = Math.max(TARGET_MSPT_MIN, Math.min(TARGET_MSPT_MAX, raw));
         if (raw != clamped) {
-            LOGGER.warning(String.format("Chunky: throttleTargetMspt %.1f is out of range [%.1f, %.1f], using %.1f",
+            LOGGER.warning(String.format("Chunksmith: throttleTargetMspt %.1f is out of range [%.1f, %.1f], using %.1f",
                     raw, TARGET_MSPT_MIN, TARGET_MSPT_MAX, clamped));
         }
         return clamped;
@@ -111,7 +111,7 @@ public class GsonConfig implements Config {
         final long raw = Optional.ofNullable(configModel.throttleMaxChunkMillis).orElse(MAX_CHUNK_MILLIS_DEFAULT);
         final long clamped = Math.max(MAX_CHUNK_MILLIS_MIN, Math.min(MAX_CHUNK_MILLIS_MAX, raw));
         if (raw != clamped) {
-            LOGGER.warning(String.format("Chunky: throttleMaxChunkMillis %d is out of range [%d, %d], using %d",
+            LOGGER.warning(String.format("Chunksmith: throttleMaxChunkMillis %d is out of range [%d, %d], using %d",
                     raw, MAX_CHUNK_MILLIS_MIN, MAX_CHUNK_MILLIS_MAX, clamped));
         }
         return clamped;
@@ -125,7 +125,7 @@ public class GsonConfig implements Config {
         }
         final long clamped = Math.max(MAX_QUEUED_WRITES_MIN, Math.min(MAX_QUEUED_WRITES_MAX, raw));
         if (raw != clamped) {
-            LOGGER.warning(String.format("Chunky: throttleMaxQueuedWrites %d is out of range [%d, %d], using %d",
+            LOGGER.warning(String.format("Chunksmith: throttleMaxQueuedWrites %d is out of range [%d, %d], using %d",
                     raw, MAX_QUEUED_WRITES_MIN, MAX_QUEUED_WRITES_MAX, clamped));
         }
         return clamped;
