@@ -302,7 +302,7 @@ public class GenerationTask implements Runnable {
     @Override
     public void run() {
         final String poolThreadName = Thread.currentThread().getName();
-        Thread.currentThread().setName(String.format("Chunky-%s Thread", selection.world().getName()));
+        Thread.currentThread().setName(String.format("Chunksmith-%s Thread", selection.world().getName()));
         dispatchThread = Thread.currentThread();
         if (!chunkIterator.process()) {
             stop(true);
