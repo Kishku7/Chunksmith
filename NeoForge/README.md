@@ -1,6 +1,5 @@
 # Chunksmith — NeoForge (1.21.x)
 
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/2ZxzbCzAHe)
 
 NeoForge builds for Minecraft 1.21–1.21.11, one standalone build per Minecraft version:
 

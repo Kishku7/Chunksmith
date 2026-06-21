@@ -1,6 +1,5 @@
 # Chunksmith — `1.21.x` (Minecraft 1.21–1.21.11)
 
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/2ZxzbCzAHe)
 
 Chunksmith **mod** build for Minecraft 1.21–1.21.11, organised loader-on-top.
 
