@@ -21,12 +21,10 @@ Originally derived from Chunky by pop4959; now developed independently. Licensed
 - [`26`](https://github.com/Kishku7/Chunksmith/tree/26) - the unified Minecraft 26 line (26.1, 26.2, 26.3-snapshot-1). One source tree builds the whole line and contains both the mod (Fabric + NeoForge) and the Bukkit/Paper/Spigot plugin.
 
 **Frozen (legacy lines)**
-- [`1.20.x`](https://github.com/Kishku7/Chunksmith/tree/1.20.x) - Minecraft 1.20.1-1.20.6 (mod)
-- [`1.21.x`](https://github.com/Kishku7/Chunksmith/tree/1.21.x) - Minecraft 1.21-1.21.11 (mod)
-- [`plugin/1.20.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/1.20.x) - 1.20.x plugin
-- [`plugin/1.21.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/1.21.x) - 1.21.x plugin
+- [`1.20.x`](https://github.com/Kishku7/Chunksmith/tree/1.20.x) - Minecraft 1.20.1-1.20.6 (mod + plugin)
+- [`1.21.x`](https://github.com/Kishku7/Chunksmith/tree/1.21.x) - Minecraft 1.21-1.21.11 (mod + plugin)
 
-Within the `26` branch the layout is `shared_common/` (MC-agnostic core) + `shared_minecraft/` (shared mod mixins) + `Fabric/`, `NeoForge/`, and `Plugin/`. The frozen lines use the older loader-on-top layout (`Fabric/<version>`, `NeoForge/<version>`, with shared `common/` + `nbt/`).
+Within the `26` branch the layout is `shared_common/` (MC-agnostic core) + `shared_minecraft/` (shared mod mixins) + `Fabric/`, `NeoForge/`, and `Plugin/`. The frozen lines use the older loader-on-top layout (`Fabric/<version>`, `NeoForge/<version>`, with shared `common/` + `nbt/`, plus a `Plugin/` sub-build for the Bukkit/Paper plugin).
 
 ## Usage
 
