@@ -47,9 +47,9 @@ allprojects {
 val shade: Configuration by configurations.creating
 
 dependencies {
-    minecraft(group = "com.mojang", name = "minecraft", version = "26.2")
+    minecraft(group = "com.mojang", name = "minecraft", version = "26.3-snapshot-1")
     implementation(group = "net.fabricmc", name = "fabric-loader", version = "0.19.3")
-    implementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.152.1+26.2")
+    implementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.153.1+26.3")
     compileOnly(group = "me.lucko", name = "fabric-permissions-api", version = "0.7.0")
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))

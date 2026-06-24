@@ -10,7 +10,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "chunksmith-fabric-26.2"
+rootProject.name = "chunksmith-fabric-26.3"
 
 include("chunksmith-nbt")
 project(":chunksmith-nbt").projectDir = file("../../nbt")
