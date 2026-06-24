@@ -10,8 +10,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "chunksmith-neoforge-26.2"
-
+rootProject.name = "chunksmith-neoforge"
 
 include("chunksmith-common")
-project(":chunksmith-common").projectDir = file("../../common")
+project(":chunksmith-common").projectDir = file("../common_26")

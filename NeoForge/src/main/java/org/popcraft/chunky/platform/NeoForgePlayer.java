@@ -59,6 +59,6 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     private Component formatColored(final String message) {
-        return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "§"));
+        return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }

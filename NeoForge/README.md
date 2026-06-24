@@ -1,11 +1,18 @@
-# Chunksmith — NeoForge (26.2)
+# Chunksmith - NeoForge (Minecraft 26.1 - 26.2)
 
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/2ZxzbCzAHe)
+One version-agnostic NeoForge source (ModDevGradle toolchain) builds every supported
+26.x NeoForge target. MC 26.3 has no NeoForge release yet, so it is not built here;
+adding it later is a one-row change in `build-all-neoforge.ps1`.
 
-NeoForge builds for Minecraft 26.2, one standalone build per Minecraft version:
+The only per-version differences are the `neoforge` artifact version and the two
+`neoforge.mods.toml` version ranges; the compiled code is identical across versions.
 
-- [`26.2`](https://github.com/Kishku7/Chunksmith/tree/26.2/NeoForge/26.2) — Minecraft 26.2
+## Build
 
-## Not built here
+From the repo root:
 
-On the 26.x line there is no classic Forge — NeoForge is the Forge-lineage loader. This NeoForge build uses ModDevGradle against the public NeoForge 26.2 toolchain.
+    pwsh build-all-neoforge.ps1          # all targets -> dist/
+    pwsh build-all-neoforge.ps1 26.2     # one target
+
+Targets: 26.1 (neoforge 26.1.0.15-beta), 26.2 (neoforge 26.2.0.1-beta).
+Toolchain: net.neoforged.moddev (MDG) 2.0.141, mixin 0.8.5, Java 25, mojmap-native.

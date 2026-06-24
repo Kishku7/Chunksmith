@@ -39,7 +39,7 @@ allprojects {
 // builds against public neoforge 26.2.0.1-beta, unlike neo-loom 1.16 (cannot resolve 26.2 userdev).
 // JDK 25, mojmap-native, NO mixin AP / NO refmap.
 
-val neoforgeVersion = "26.2.0.1-beta"
+val neoforgeVersion = (project.findProperty("neoforgeVersion") ?: "26.2.0.1-beta").toString()
 val mixinVersion = "0.8.5"
 
 neoForge {
@@ -69,7 +69,9 @@ tasks {
                 "version" to project.version,
                 "name" to project.property("artifactName")!!,
                 "author" to project.property("author")!!,
-                "description" to project.property("description")!!
+                "description" to project.property("description")!!,
+                "neoforgeRange" to (System.getenv("NEOFORGE_RANGE") ?: "[26.2.0-alpha,)"),
+                "mcRange" to (System.getenv("MC_RANGE") ?: "[26.2,)")
             )
         }
     }
