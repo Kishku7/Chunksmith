@@ -1,37 +1,32 @@
 # Chunksmith
 
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/2ZxzbCzAHe)
-
 Chunksmith is a Minecraft chunk pre-generator that generates chunks quickly,
 efficiently, and **safely**. On top of fast pre-generation it adds an adaptive
 I/O throttle (keeps generating 24/7 even with players online), region
 write-backpressure protection, and worldgen diagnostics (overreach detection +
 structure-fault attribution).
 
-Ships as a **Fabric + NeoForge + Forge mod** and a **Paper / Spigot / Folia plugin**.
+Ships as a **Fabric + NeoForge mod** and a **Paper / Spigot plugin**.
 Originally derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
+
+**Current release:** 2.1.0 (the unified Minecraft 26.x line)
 
 **Download:** https://modrinth.com/mod/chunksmith
 
 ## Branches
 
-`main` is this landing page. Code lives on per-target branches — one per Minecraft
-version line, split into the mod build and the plugin build.
+`main` is this landing page. Code lives on per-line branches.
 
-### Mod (Fabric / NeoForge / Forge)
-- [`1.20.x`](https://github.com/Kishku7/Chunksmith/tree/1.20.x) — Minecraft 1.20.1–1.20.6
-- [`1.21.x`](https://github.com/Kishku7/Chunksmith/tree/1.21.x) — Minecraft 1.21–1.21.11
-- [`26.1`](https://github.com/Kishku7/Chunksmith/tree/26.1) — Minecraft 26.1.x
-- [`26.2`](https://github.com/Kishku7/Chunksmith/tree/26.2) — Minecraft 26.2
+**Active**
+- [`26`](https://github.com/Kishku7/Chunksmith/tree/26) - the unified Minecraft 26 line (26.1, 26.2, 26.3-snapshot-1). One source tree builds the whole line and contains both the mod (Fabric + NeoForge) and the Bukkit/Paper/Spigot plugin.
 
-### Plugin (Paper / Spigot / Folia)
-- [`plugin/1.20.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/1.20.x) — Minecraft 1.20.x
-- [`plugin/1.21.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/1.21.x) — Minecraft 1.21.x
-- [`plugin/26.1.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/26.1.x) — Minecraft 26.1.x
-- [`plugin/26.2.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/26.2.x) — Minecraft 26.2.x
+**Frozen (legacy lines)**
+- [`1.20.x`](https://github.com/Kishku7/Chunksmith/tree/1.20.x) - Minecraft 1.20.1-1.20.6 (mod)
+- [`1.21.x`](https://github.com/Kishku7/Chunksmith/tree/1.21.x) - Minecraft 1.21-1.21.11 (mod)
+- [`plugin/1.20.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/1.20.x) - 1.20.x plugin
+- [`plugin/1.21.x`](https://github.com/Kishku7/Chunksmith/tree/plugin/1.21.x) - 1.21.x plugin
 
-Within each mod branch the layout is loader-on-top: `Fabric/<version>`,
-`NeoForge/<version>`, `Forge/<version>`, with shared `common/` + `nbt/` modules.
+Within the `26` branch the layout is `shared_common/` (MC-agnostic core) + `shared_minecraft/` (shared mod mixins) + `Fabric/`, `NeoForge/`, and `Plugin/`. The frozen lines use the older loader-on-top layout (`Fabric/<version>`, `NeoForge/<version>`, with shared `common/` + `nbt/`).
 
 ## Usage
 
