@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerInterface;
 import net.minecraft.server.level.ServerLevel;
-import com.kishku7.chunksmith.ChunkyFabric;
+import com.kishku7.chunksmith.ChunksmithFabric;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
 import com.kishku7.chunksmith.integration.Integration;
 
@@ -18,10 +18,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FabricServer implements Server {
-    private final ChunkyFabric plugin;
+    private final ChunksmithFabric plugin;
     private final MinecraftServer server;
 
-    public FabricServer(final ChunkyFabric plugin, final MinecraftServer server) {
+    public FabricServer(final ChunksmithFabric plugin, final MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -84,6 +84,6 @@ public class FabricServer implements Server {
 
     @Override
     public double getMillisPerTick() {
-        return ((MinecraftServerExtension) server).chunky$getMillisPerTick();
+        return ((MinecraftServerExtension) server).chunksmith$getMillisPerTick();
     }
 }

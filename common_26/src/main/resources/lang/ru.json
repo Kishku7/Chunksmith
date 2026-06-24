@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Обновите Chunky, чтобы использовать ChunkyBorder!",
+  "border_dependency_update": "Обновите Chunksmith, чтобы использовать ChunkyBorder!",
   "border_load_failed": "Сохранённых границ не найдено.",
   "border_save_failed": "Не удалось сохранить границы.",
   "command_no_permission": "&cУ вас недостаточно прав для использования этой команды.",
@@ -59,7 +59,7 @@
   "help_continue": "&2chunky continue&r - Продолжить текущие или сохраненные задачи",
   "help_corners": "&2chunky corners <x1> <z1> <x2> <z2>&r - Установить координаты углов",
   "help_trim": "&2chunky trim&r - Удалить чанки за границами",
-  "help_menu": "&aКоманды Chunky&r%s",
+  "help_menu": "&aКоманды Chunksmith&r%s",
   "help_more": "Используйте &a%s&r, чтобы узнать больше.",
   "help_pattern": "&2chunky pattern <паттерн>&r - Установить паттерн генерации",
   "help_pause": "&2chunky pause&r - Приостановить текущие задачи и сохранить прогресс",

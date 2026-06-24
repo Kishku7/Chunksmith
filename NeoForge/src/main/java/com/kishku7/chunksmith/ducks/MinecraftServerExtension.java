@@ -3,9 +3,9 @@ package com.kishku7.chunksmith.ducks;
 import java.util.function.BooleanSupplier;
 
 public interface MinecraftServerExtension {
-    void chunky$runChunkSystemHousekeeping(BooleanSupplier haveTime);
+    void chunksmith$runChunkSystemHousekeeping(BooleanSupplier haveTime);
 
-    void chunky$markChunkSystemHousekeeping();
+    void chunksmith$markChunkSystemHousekeeping();
 
-    double chunky$getMillisPerTick();
+    double chunksmith$getMillisPerTick();
 }

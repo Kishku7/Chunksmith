@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Chunky muss aktualisiert werden, um ChunkyBorder verwenden zu können!",
+  "border_dependency_update": "Chunksmith muss aktualisiert werden, um ChunkyBorder verwenden zu können!",
   "border_load_failed": "Keine gespeicherten Grenzen gefunden.",
   "border_save_failed": "Konnte Grenzen nicht speichern.",
   "command_no_permission": "&cDu hast keine Berechtigung für diesen Befehl.",

@@ -1,16 +1,16 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.util.TranslationKey;
 
 import java.util.List;
 import java.util.Optional;
 
-public class ConfirmCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class ConfirmCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public ConfirmCommand(final Chunky chunky) {
+    public ConfirmCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

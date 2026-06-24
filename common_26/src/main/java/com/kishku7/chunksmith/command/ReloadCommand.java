@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.event.command.ReloadCommandEvent;
 import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.Sender;
@@ -8,10 +8,10 @@ import com.kishku7.chunksmith.util.TranslationKey;
 
 import java.util.List;
 
-public class ReloadCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class ReloadCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public ReloadCommand(final Chunky chunky) {
+    public ReloadCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

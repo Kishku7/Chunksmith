@@ -1,10 +1,10 @@
 package com.kishku7.chunksmith;
 
-import com.kishku7.chunksmith.api.ChunkyAPI;
-import com.kishku7.chunksmith.api.ChunkyAPIImpl;
+import com.kishku7.chunksmith.api.ChunksmithAPI;
+import com.kishku7.chunksmith.api.ChunksmithAPIImpl;
 import com.kishku7.chunksmith.command.CancelCommand;
 import com.kishku7.chunksmith.command.CenterCommand;
-import com.kishku7.chunksmith.command.ChunkyCommand;
+import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandLiteral;
 import com.kishku7.chunksmith.command.ConfirmCommand;
 import com.kishku7.chunksmith.command.ContinueCommand;
@@ -47,7 +47,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Chunky {
+public class Chunksmith {
     private final Server server;
     private final Config config;
     private final TaskLoader taskLoader;
@@ -60,10 +60,10 @@ public class Chunky {
     private final RegionCache regionCache = new RegionCache();
     private final double limit;
     private final Version version;
-    private final Map<String, ChunkyCommand> commands;
-    private final ChunkyAPI api;
+    private final Map<String, ChunksmithCommand> commands;
+    private final ChunksmithAPI api;
 
-    public Chunky(final Server server, final Config config) {
+    public Chunksmith(final Server server, final Config config) {
         this.server = server;
         this.config = config;
         this.taskLoader = new TaskLoader(this);
@@ -72,15 +72,15 @@ public class Chunky {
         this.limit = loadLimit().orElse(Double.MAX_VALUE);
         this.version = loadVersion();
         this.commands = loadCommands();
-        this.api = new ChunkyAPIImpl(this);
-        ChunkyProvider.register(this);
+        this.api = new ChunksmithAPIImpl(this);
+        ChunksmithProvider.register(this);
     }
 
     public void disable() {
         taskLoader.saveTasks();
         getGenerationTasks().values().forEach(generationTask -> generationTask.stop(false));
         getScheduler().cancelTasks();
-        ChunkyProvider.unregister();
+        ChunksmithProvider.unregister();
     }
 
     private Optional<Double> loadLimit() {
@@ -104,8 +104,8 @@ public class Chunky {
         }
     }
 
-    private Map<String, ChunkyCommand> loadCommands() {
-        final Map<String, ChunkyCommand> commandMap = new HashMap<>();
+    private Map<String, ChunksmithCommand> loadCommands() {
+        final Map<String, ChunksmithCommand> commandMap = new HashMap<>();
         commandMap.put(CommandLiteral.CANCEL, new CancelCommand(this));
         commandMap.put(CommandLiteral.CENTER, new CenterCommand(this));
         commandMap.put(CommandLiteral.CONFIRM, new ConfirmCommand(this));
@@ -158,7 +158,7 @@ public class Chunky {
         return trimTasks;
     }
 
-    public Map<String, ChunkyCommand> getCommands() {
+    public Map<String, ChunksmithCommand> getCommands() {
         return commands;
     }
 
@@ -192,7 +192,7 @@ public class Chunky {
         return version;
     }
 
-    public ChunkyAPI getApi() {
+    public ChunksmithAPI getApi() {
         return api;
     }
 }

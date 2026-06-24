@@ -13,6 +13,6 @@ import java.util.function.BooleanSupplier;
 public abstract class IntegratedServerMixin implements MinecraftServerExtension {
     @Inject(method = "tickServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/server/IntegratedServer;tickPaused()V"))
     private void tickPaused(BooleanSupplier booleanSupplier, CallbackInfo ci) {
-        this.chunky$runChunkSystemHousekeeping(booleanSupplier);
+        this.chunksmith$runChunkSystemHousekeeping(booleanSupplier);
     }
 }

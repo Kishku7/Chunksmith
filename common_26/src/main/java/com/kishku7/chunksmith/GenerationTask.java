@@ -23,8 +23,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 public class GenerationTask implements Runnable {
-    private static final int MAX_WORKING_COUNT = Input.tryInteger(System.getProperty("chunky.maxWorkingCount")).orElse(50);
-    private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunky.sampleInterval")).orElse(30), 30);
+    private static final int MAX_WORKING_COUNT = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount")).orElse(50);
+    private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunksmith.sampleInterval")).orElse(30), 30);
     private static final double SAMPLE_SUB_INTERVAL = SAMPLE_INTERVAL / 30;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
     // Adaptive concurrency uses asymmetric AIMD-style timing: back off quickly under load,
@@ -40,9 +40,9 @@ public class GenerationTask implements Runnable {
     // (region-file eviction on a saturated disk). Absolute depth misses this -- the queue can
     // stay shallow while each individual flush blocks for seconds. Trip when the queue has held
     // >= MIN_DEPTH with no drain progress for STALL_MILLIS. JVM-tunable; STALL_MILLIS=0 disables.
-    private static final long WRITE_STALL_MILLIS = Math.max(0L, Input.tryInteger(System.getProperty("chunky.writeStallMillis")).orElse(2000));
-    private static final long WRITE_STALL_MIN_DEPTH = Math.max(1L, Input.tryInteger(System.getProperty("chunky.writeStallMinDepth")).orElse(16));
-    private final Chunky chunky;
+    private static final long WRITE_STALL_MILLIS = Math.max(0L, Input.tryInteger(System.getProperty("chunksmith.writeStallMillis")).orElse(2000));
+    private static final long WRITE_STALL_MIN_DEPTH = Math.max(1L, Input.tryInteger(System.getProperty("chunksmith.writeStallMinDepth")).orElse(16));
+    private final Chunksmith chunky;
     private final Selection selection;
     private final Shape shape;
     private final AtomicLong startTime = new AtomicLong();
@@ -72,7 +72,7 @@ public class GenerationTask implements Runnable {
     private boolean stopped, cancelled;
     private long prevTime;
 
-    public GenerationTask(final Chunky chunky, final Selection selection, final long count, final long time, final boolean cancelled) {
+    public GenerationTask(final Chunksmith chunky, final Selection selection, final long count, final long time, final boolean cancelled) {
         this(chunky, selection);
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection, count);
         this.finishedChunks.set(count);
@@ -80,7 +80,7 @@ public class GenerationTask implements Runnable {
         this.prevTime = time;
     }
 
-    public GenerationTask(final Chunky chunky, final Selection selection) {
+    public GenerationTask(final Chunksmith chunky, final Selection selection) {
         this.chunky = chunky;
         this.selection = selection;
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection);
@@ -379,7 +379,7 @@ public class GenerationTask implements Runnable {
         this.cancelled = cancelled;
     }
 
-    public Chunky getChunky() {
+    public Chunksmith getChunky() {
         return chunky;
     }
 

@@ -14,5 +14,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(EntityStorage.class)
 public interface EntityStorageAccessor {
     @Accessor("simpleRegionStorage")
-    SimpleRegionStorage chunky$getSimpleRegionStorage();
+    SimpleRegionStorage chunksmith$getSimpleRegionStorage();
 }

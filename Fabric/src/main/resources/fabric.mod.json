@@ -22,7 +22,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.kishku7.chunksmith.ChunkyFabric"
+      "com.kishku7.chunksmith.ChunksmithFabric"
     ]
   },
   "mixins": [

@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerInterface;
 import net.minecraft.server.level.ServerLevel;
-import com.kishku7.chunksmith.ChunkyNeoForge;
+import com.kishku7.chunksmith.ChunksmithNeoForge;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
 import com.kishku7.chunksmith.integration.Integration;
 
@@ -18,10 +18,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class NeoForgeServer implements Server {
-    private final ChunkyNeoForge plugin;
+    private final ChunksmithNeoForge plugin;
     private final MinecraftServer server;
 
-    public NeoForgeServer(final ChunkyNeoForge plugin, final MinecraftServer server) {
+    public NeoForgeServer(final ChunksmithNeoForge plugin, final MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -84,6 +84,6 @@ public class NeoForgeServer implements Server {
 
     @Override
     public double getMillisPerTick() {
-        return ((MinecraftServerExtension) server).chunky$getMillisPerTick();
+        return ((MinecraftServerExtension) server).chunksmith$getMillisPerTick();
     }
 }

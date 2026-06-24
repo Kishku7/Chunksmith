@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.iterator;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.nbt.StringTag;
 import com.kishku7.chunksmith.nbt.TagType;
@@ -25,7 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class WorldChunkIterator implements ChunkIterator {
-    private final Chunky chunky;
+    private final Chunksmith chunky;
     private final int minRegionX;
     private final int minRegionZ;
     private final int maxRegionX;

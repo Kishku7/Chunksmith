@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Atualize o Chunky para continuar usando o ChunkyBorder!",
+  "border_dependency_update": "Atualize o Chunksmith para continuar usando o ChunkyBorder!",
   "border_load_failed": "Nenhuma barreira salva encontrada.",
   "border_save_failed": "Não foi possível salvar as barreiras.",
   "command_no_permission": "&cVocê não pode executar esse comando.",
@@ -59,7 +59,7 @@
   "help_continue": "&2chunky continue&r - Continuar tarefas atuais ou salvas",
   "help_corners": "&2chunky corners <x1> <z1> <x2> <z2>&r - Definir pelos cantos",
   "help_trim": "&2chunky trim&r - Excluir chunks fora da seleção",
-  "help_menu": "&aComandos do Chunky&r%s",
+  "help_menu": "&aComandos do Chunksmith&r%s",
   "help_more": "Digite &a%s&r para saber mais.",
   "help_pattern": "&2chunky pattern <pattern>&r - Definir o padrão de geração",
   "help_pause": "&2chunky pause&r - Pausar tarefas atuais e salvar progresso",

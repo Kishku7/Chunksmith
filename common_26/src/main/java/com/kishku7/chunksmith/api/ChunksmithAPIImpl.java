@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.api;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.api.event.task.GenerationCompleteEvent;
@@ -12,10 +12,10 @@ import com.kishku7.chunksmith.util.Parameter;
 import java.util.function.Consumer;
 
 @SuppressWarnings("ClassCanBeRecord")
-public class ChunkyAPIImpl implements ChunkyAPI {
-    private final Chunky chunky;
+public class ChunksmithAPIImpl implements ChunksmithAPI {
+    private final Chunksmith chunky;
 
-    public ChunkyAPIImpl(final Chunky chunky) {
+    public ChunksmithAPIImpl(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

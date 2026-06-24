@@ -13,7 +13,7 @@ public final class Selection {
     public static final double DEFAULT_CENTER_X = 0d;
     public static final double DEFAULT_CENTER_Z = 0d;
     public static final double DEFAULT_RADIUS = 500d;
-    private final Chunky chunky;
+    private final Chunksmith chunky;
     private final World world;
     private final double centerX;
     private final double centerZ;
@@ -34,7 +34,7 @@ public final class Selection {
     private final int diameterRegionsX;
     private final int diameterRegionsZ;
 
-    private Selection(final Chunky chunky, final World world, final double centerX, final double centerZ, final double radiusX, final double radiusZ, final Parameter pattern, final String shape) {
+    private Selection(final Chunksmith chunky, final World world, final double centerX, final double centerZ, final double radiusX, final double radiusZ, final Parameter pattern, final String shape) {
         this.chunky = chunky;
         this.world = world;
         this.centerX = centerX;
@@ -57,11 +57,11 @@ public final class Selection {
         this.diameterRegionsZ = 2 * radiusRegionsZ + 1;
     }
 
-    public static Builder builder(final Chunky chunky, final World world) {
+    public static Builder builder(final Chunksmith chunky, final World world) {
         return new Builder(chunky, world);
     }
 
-    public Chunky chunky() {
+    public Chunksmith chunky() {
         return chunky;
     }
 
@@ -142,7 +142,7 @@ public final class Selection {
     }
 
     public static final class Builder {
-        private final Chunky chunky;
+        private final Chunksmith chunky;
         private World world;
         private double centerX = DEFAULT_CENTER_X;
         private double centerZ = DEFAULT_CENTER_Z;
@@ -151,7 +151,7 @@ public final class Selection {
         private Parameter pattern = Parameter.of(PatternType.REGION);
         private String shape = ShapeType.SQUARE;
 
-        private Builder(final Chunky chunky, final World world) {
+        private Builder(final Chunksmith chunky, final World world) {
             this.chunky = chunky;
             this.world = world;
         }

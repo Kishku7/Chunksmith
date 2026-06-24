@@ -8,7 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.level.Level;
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.event.task.GenerationTaskUpdateEvent;
 import com.kishku7.chunksmith.platform.NeoForgeWorld;
@@ -28,7 +28,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
     @Override
     public void accept(final GenerationTaskUpdateEvent event) {
         final GenerationTask task = event.generationTask();
-        final Chunky chunky = task.getChunky();
+        final Chunksmith chunky = task.getChunky();
         final World world = task.getSelection().world();
         final Identifier worldIdentifier = Identifier.tryParse(world.getKey());
         if (worldIdentifier == null || !(world instanceof final NeoForgeWorld neoForgeWorld)) {

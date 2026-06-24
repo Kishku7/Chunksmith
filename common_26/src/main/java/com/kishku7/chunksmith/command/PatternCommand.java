@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.iterator.PatternType;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.util.Input;
@@ -12,10 +12,10 @@ import java.util.Optional;
 
 import static com.kishku7.chunksmith.util.Translator.translate;
 
-public class PatternCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class PatternCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public PatternCommand(final Chunky chunky) {
+    public PatternCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

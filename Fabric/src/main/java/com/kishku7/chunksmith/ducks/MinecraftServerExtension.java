@@ -3,9 +3,9 @@ package com.kishku7.chunksmith.ducks;
 import java.util.function.BooleanSupplier;
 
 public interface MinecraftServerExtension {
-    void chunky$runChunkSystemHousekeeping(BooleanSupplier haveTime);
+    void chunksmith$runChunkSystemHousekeeping(BooleanSupplier haveTime);
 
-    void chunky$markChunkSystemHousekeeping();
+    void chunksmith$markChunkSystemHousekeeping();
 
     /**
      * Smoothed mean milliseconds-per-tick of the server main thread, sampled only
@@ -13,5 +13,5 @@ public interface MinecraftServerExtension {
      * A value at or near 50 ms means the server is holding a full 20 TPS; higher
      * means it is falling behind (the direct symptom of I/O saturation).
      */
-    double chunky$getMillisPerTick();
+    double chunksmith$getMillisPerTick();
 }

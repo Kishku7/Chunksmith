@@ -17,7 +17,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import com.kishku7.chunksmith.command.ChunkyCommand;
+import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
 import com.kishku7.chunksmith.command.CommandLiteral;
 import com.kishku7.chunksmith.command.suggestion.SuggestionProviders;
@@ -48,14 +48,14 @@ import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
 
-@Mod(ChunkyNeoForge.MOD_ID)
-public class ChunkyNeoForge {
+@Mod(ChunksmithNeoForge.MOD_ID)
+public class ChunksmithNeoForge {
     public static final String MOD_ID = "chunksmith";
     public static final boolean ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise");
-    private Chunky chunky;
+    private Chunksmith chunky;
     private final Map<Identifier, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
 
-    public ChunkyNeoForge() {
+    public ChunksmithNeoForge() {
         if (ModList.get().isLoaded("chunky")) {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
@@ -70,7 +70,7 @@ public class ChunkyNeoForge {
         final Path legacyDir = configDir.resolve("chunky");
         // Auto-migrate the legacy Chunky config on first run: if our directory does not yet
         // exist but a chunky directory does, take it over in place. If chunksmith already
-        // exists, the legacy directory is left untouched. (Mirrors ChunkyFabric.)
+        // exists, the legacy directory is left untouched. (Mirrors ChunksmithFabric.)
         if (!Files.exists(baseDir) && Files.exists(legacyDir)) {
             try {
                 Files.move(legacyDir, baseDir);
@@ -82,7 +82,7 @@ public class ChunkyNeoForge {
         }
         final Path configPath = baseDir.resolve("config.json");
             StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
-        this.chunky = new Chunky(new NeoForgeServer(this, server), new GsonConfig(configPath));
+        this.chunky = new Chunksmith(new NeoForgeServer(this, server), new GsonConfig(configPath));
         if (chunky.getConfig().getContinueOnRestart()) {
             chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
         }
@@ -116,7 +116,7 @@ public class ChunkyNeoForge {
                     } else {
                         sender = new NeoForgeSender(context.getSource());
                     }
-                    final Map<String, ChunkyCommand> commands = chunky.getCommands();
+                    final Map<String, ChunksmithCommand> commands = chunky.getCommands();
                     final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
                     final String[] tokens = input.split(" ");
                     if (CommandLiteral.CHUNKY.equals(tokens[0]) || CommandLiteral.CY.equals(tokens[0])) {
@@ -219,7 +219,7 @@ public class ChunkyNeoForge {
         }
     }
 
-    public Chunky getChunky() {
+    public Chunksmith getChunky() {
         return chunky;
     }
 }

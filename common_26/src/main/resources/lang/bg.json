@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Chunky трябва да бъде ъпдейтнат, за да може да използвате ChunkyBorder!",
+  "border_dependency_update": "Chunksmith трябва да бъде ъпдейтнат, за да може да използвате ChunkyBorder!",
   "border_load_failed": "Няма намерени запазени граници.",
   "border_save_failed": "Неуспешно запазване на границите.",
   "command_no_permission": "&cНямате достъп до тази команда.",

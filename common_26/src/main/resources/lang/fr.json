@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Chunky a besoin d'être mis à jour afin d'utiliser ChunkyBorder !",
+  "border_dependency_update": "Chunksmith a besoin d'être mis à jour afin d'utiliser ChunkyBorder !",
   "border_load_failed": "Aucune bordure sauvegardée trouvée.",
   "border_save_failed": "Impossible d'enregistrer les bordures.",
   "command_no_permission": "&cVous n'avez pas la permission pour cette commande.",
@@ -59,7 +59,7 @@
   "help_continue": "&2chunky continue&r - Poursuivre les tâches en cours ou sauvegardées",
   "help_corners": "&2chunky corners <x1> <z1> <x2> <z2>&r - Définir par les coins",
   "help_trim": "&2chunky trim&r - Supprimer les tronçons en dehors de la sélection",
-  "help_menu": "&aCommandes de Chunky&r%s",
+  "help_menu": "&aCommandes de Chunksmith&r%s",
   "help_more": "Tapez &a%s&r pour en voir plus.",
   "help_pattern": "&2chunky pattern <pattern>&r - Définir le modèle de génération",
   "help_pause": "&2chunky pause&r - Mettre en pause les tâches en cours et enregistrer la progression",

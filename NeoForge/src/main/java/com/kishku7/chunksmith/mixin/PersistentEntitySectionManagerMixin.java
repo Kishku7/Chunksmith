@@ -74,16 +74,16 @@ public abstract class PersistentEntitySectionManagerMixin {
 
     // Accessed only on the server main thread (requestChunkLoad / tick run there) - no sync needed.
     @Unique
-    private final Map<Long, int[]> chunky$regionOffsets = new LinkedHashMap<Long, int[]>(64, 0.75f, true) {
+    private final Map<Long, int[]> chunksmith$regionOffsets = new LinkedHashMap<Long, int[]>(64, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(final Map.Entry<Long, int[]> eldest) {
             return size() > CHUNKY$REGION_CACHE_MAX;
         }
     };
 
-    @Unique private long chunky$fastHits = 0L;
-    @Unique private long chunky$vanillaFalls = 0L;
-    @Unique private long chunky$lastDiag = 0L;
+    @Unique private long chunksmith$fastHits = 0L;
+    @Unique private long chunksmith$vanillaFalls = 0L;
+    @Unique private long chunksmith$lastDiag = 0L;
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Redirect(
@@ -93,63 +93,63 @@ public abstract class PersistentEntitySectionManagerMixin {
                     target = "Lnet/minecraft/world/level/entity/EntityPersistentStorage;loadEntities(Lnet/minecraft/world/level/ChunkPos;)Ljava/util/concurrent/CompletableFuture;"
             )
     )
-    private CompletableFuture chunky$skipReadForFreshChunks(final EntityPersistentStorage permanentStorage, final ChunkPos pos) {
+    private CompletableFuture chunksmith$skipReadForFreshChunks(final EntityPersistentStorage permanentStorage, final ChunkPos pos) {
         try {
-            if (chunky$entitiesAbsentOnDisk(permanentStorage, pos)) {
-                this.chunky$fastHits++;
+            if (chunksmith$entitiesAbsentOnDisk(permanentStorage, pos)) {
+                this.chunksmith$fastHits++;
                 return CompletableFuture.completedFuture(new ChunkEntities(pos, List.of()));
             }
         } catch (final Throwable ignored) {
             // Any uncertainty -> the real vanilla load (never risk skipping genuine on-disk data).
         }
-        this.chunky$vanillaFalls++;
+        this.chunksmith$vanillaFalls++;
         return permanentStorage.loadEntities(pos);
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
-    private void chunky$debugTick(final CallbackInfo ci) {
+    private void chunksmith$debugTick(final CallbackInfo ci) {
         if (!Debug.ENABLED) {
             return;
         }
         final long now = System.currentTimeMillis();
-        if (now - this.chunky$lastDiag < CHUNKY$DIAG_INTERVAL_MS) {
+        if (now - this.chunksmith$lastDiag < CHUNKY$DIAG_INTERVAL_MS) {
             return;
         }
-        this.chunky$lastDiag = now;
+        this.chunksmith$lastDiag = now;
         try {
             // gatherStats() CSV: known,visible,sections,loadStatuses,visibility,inbox,toUnload
             final String stats = ((PersistentEntitySectionManager) (Object) this).gatherStats();
             CHUNKY$LOG.info("[Chunksmith debug] fastHits={} vanillaFalls={} | known,visible,sections,loadStatuses,visibility,inbox,toUnload={}",
-                    this.chunky$fastHits, this.chunky$vanillaFalls, stats);
+                    this.chunksmith$fastHits, this.chunksmith$vanillaFalls, stats);
         } catch (final Throwable ignored) {
         }
     }
 
     @Unique
-    private boolean chunky$entitiesAbsentOnDisk(final EntityPersistentStorage<?> permanentStorage, final ChunkPos pos) throws IOException {
+    private boolean chunksmith$entitiesAbsentOnDisk(final EntityPersistentStorage<?> permanentStorage, final ChunkPos pos) throws IOException {
         if (!(permanentStorage instanceof EntityStorage)) {
             return false;
         }
-        final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunky$getSimpleRegionStorage();
-        final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunky$getWorker();
-        final RegionFileStorage storage = ((IOWorkerAccessor) (Object) worker).chunky$getStorage();
-        final Path folder = ((RegionFileStorageAccessor) (Object) storage).chunky$getFolder();
+        final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunksmith$getSimpleRegionStorage();
+        final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunksmith$getWorker();
+        final RegionFileStorage storage = ((IOWorkerAccessor) (Object) worker).chunksmith$getStorage();
+        final Path folder = ((RegionFileStorageAccessor) (Object) storage).chunksmith$getFolder();
 
         final int regionX = pos.getRegionX();
         final int regionZ = pos.getRegionZ();
         final long regionKey = (((long) regionX) << 32) | (regionZ & 0xFFFFFFFFL);
 
-        int[] table = chunky$regionOffsets.get(regionKey);
+        int[] table = chunksmith$regionOffsets.get(regionKey);
         if (table == null) {
-            table = chunky$readOffsetTable(folder.resolve("r." + regionX + "." + regionZ + ".mca"));
-            chunky$regionOffsets.put(regionKey, table);
+            table = chunksmith$readOffsetTable(folder.resolve("r." + regionX + "." + regionZ + ".mca"));
+            chunksmith$regionOffsets.put(regionKey, table);
         }
         final int index = pos.getRegionLocalX() + pos.getRegionLocalZ() * 32;
         return table[index] == 0;
     }
 
     @Unique
-    private int[] chunky$readOffsetTable(final Path mca) throws IOException {
+    private int[] chunksmith$readOffsetTable(final Path mca) throws IOException {
         if (!Files.exists(mca)) {
             return CHUNKY$EMPTY_TABLE;
         }

@@ -24,7 +24,7 @@ public abstract class BlockAttachedEntityMixin {
             method = "readAdditionalSaveData",
             at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V")
     )
-    private void chunky$captureInvalidPosition(final Logger logger, final String message, final Object storedPos) {
+    private void chunksmith$captureInvalidPosition(final Logger logger, final String message, final Object storedPos) {
         try {
             StructureFaultReporter.get().recordBlockAttached(storedPos == null);
         } catch (final Throwable ignored) {

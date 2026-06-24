@@ -48,7 +48,7 @@ public abstract class WorldGenRegionMixin {
             method = "ensureCanWrite",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Util;logAndPauseIfInIde(Ljava/lang/String;)V")
     )
-    private void chunky$captureFarWrite(final String message, final BlockPos pos) {
+    private void chunksmith$captureFarWrite(final String message, final BlockPos pos) {
         // Replaces the vanilla log call: record structured data, emit nothing here (spam gone).
         // ensureCanWrite still returns false on its own - only the log line is intercepted.
         try {

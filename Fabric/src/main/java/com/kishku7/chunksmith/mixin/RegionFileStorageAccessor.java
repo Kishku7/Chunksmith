@@ -16,5 +16,5 @@ import java.nio.file.Path;
 @Mixin(RegionFileStorage.class)
 public interface RegionFileStorageAccessor {
     @Accessor("folder")
-    Path chunky$getFolder();
+    Path chunksmith$getFolder();
 }

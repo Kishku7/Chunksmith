@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.shape.ShapeType;
 import com.kishku7.chunksmith.util.Formatting;
@@ -10,10 +10,10 @@ import com.kishku7.chunksmith.util.TranslationKey;
 import java.util.List;
 import java.util.Optional;
 
-public class CornersCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class CornersCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public CornersCommand(final Chunky chunky) {
+    public CornersCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

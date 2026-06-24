@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.util.TranslationKey;
@@ -10,8 +10,8 @@ import java.util.List;
 
 import static com.kishku7.chunksmith.util.Translator.translate;
 
-public class HelpCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class HelpCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
     private final List<String> helpCommands = List.of(
             CommandLiteral.START,
             CommandLiteral.PAUSE,
@@ -34,7 +34,7 @@ public class HelpCommand implements ChunkyCommand {
             CommandLiteral.RELOAD
     );
 
-    public HelpCommand(final Chunky chunky) {
+    public HelpCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

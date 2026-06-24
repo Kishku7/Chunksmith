@@ -6,10 +6,10 @@ import com.kishku7.chunksmith.api.event.task.GenerationProgressEvent;
 import java.util.function.Consumer;
 
 /**
- * The Chunky API
+ * The Chunksmith API
  */
 @SuppressWarnings("unused")
-public interface ChunkyAPI {
+public interface ChunksmithAPI {
     /**
      * Gets the current API version.
      *

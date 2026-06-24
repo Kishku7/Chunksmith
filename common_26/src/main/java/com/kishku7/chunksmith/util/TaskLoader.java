@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.util;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.iterator.PatternType;
@@ -20,11 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public class TaskLoader {
-    private final Chunky chunky;
+    private final Chunksmith chunky;
     private final Path savePath;
     private final Map<String, Properties> tasks = new ConcurrentHashMap<>();
 
-    public TaskLoader(final Chunky chunky) {
+    public TaskLoader(final Chunksmith chunky) {
         this.chunky = chunky;
         this.savePath = chunky.getConfig().getDirectory().resolve("tasks");
         reload();

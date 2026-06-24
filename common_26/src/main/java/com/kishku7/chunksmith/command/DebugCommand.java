@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.util.Debug;
 
@@ -14,11 +14,11 @@ import java.util.Optional;
  * (known/visible/sections/loadStatuses/visibility/inbox/toUnload, plus disk-read fast-path hits).
  * Default off, so a normal install logs nothing.
  */
-public class DebugCommand implements ChunkyCommand {
+public class DebugCommand implements ChunksmithCommand {
     @SuppressWarnings("unused")
-    private final Chunky chunky;
+    private final Chunksmith chunky;
 
-    public DebugCommand(final Chunky chunky) {
+    public DebugCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

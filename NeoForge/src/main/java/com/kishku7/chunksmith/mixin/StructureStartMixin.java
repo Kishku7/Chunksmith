@@ -35,7 +35,7 @@ public abstract class StructureStartMixin {
     private Structure structure;
 
     @Inject(method = "placeInChunk", at = @At("HEAD"))
-    private void chunky$pushFaultContext(final WorldGenLevel level, final StructureManager structureManager,
+    private void chunksmith$pushFaultContext(final WorldGenLevel level, final StructureManager structureManager,
                                          final ChunkGenerator generator, final RandomSource random,
                                          final BoundingBox chunkBB, final ChunkPos chunkPos, final CallbackInfo ci) {
         String id = null;
@@ -52,7 +52,7 @@ public abstract class StructureStartMixin {
     }
 
     @Inject(method = "placeInChunk", at = @At("RETURN"))
-    private void chunky$popFaultContext(final WorldGenLevel level, final StructureManager structureManager,
+    private void chunksmith$popFaultContext(final WorldGenLevel level, final StructureManager structureManager,
                                         final ChunkGenerator generator, final RandomSource random,
                                         final BoundingBox chunkBB, final ChunkPos chunkPos, final CallbackInfo ci) {
         StructureFaultReporter.get().popContext();

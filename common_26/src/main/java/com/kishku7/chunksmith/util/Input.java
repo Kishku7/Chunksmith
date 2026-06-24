@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.util;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.iterator.PatternType;
 import com.kishku7.chunksmith.platform.World;
 import com.kishku7.chunksmith.shape.ShapeType;
@@ -11,7 +11,7 @@ public final class Input {
     private Input() {
     }
 
-    public static Optional<World> tryWorld(final Chunky chunky, final String input) {
+    public static Optional<World> tryWorld(final Chunksmith chunky, final String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }

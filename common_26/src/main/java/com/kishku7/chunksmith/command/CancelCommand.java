@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.platform.World;
@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class CancelCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class CancelCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public CancelCommand(final Chunky chunky) {
+    public CancelCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

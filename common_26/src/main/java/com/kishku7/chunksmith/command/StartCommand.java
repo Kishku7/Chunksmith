@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.platform.Sender;
@@ -16,10 +16,10 @@ import java.util.Optional;
 
 import static com.kishku7.chunksmith.util.Translator.translate;
 
-public class StartCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class StartCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public StartCommand(final Chunky chunky) {
+    public StartCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

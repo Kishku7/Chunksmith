@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.integration.BorderIntegration;
 import com.kishku7.chunksmith.integration.Integration;
@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class WorldBorderCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class WorldBorderCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public WorldBorderCommand(final Chunky chunky) {
+    public WorldBorderCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

@@ -21,7 +21,7 @@ import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.LevelResource;
-import com.kishku7.chunksmith.ChunkyNeoForge;
+import com.kishku7.chunksmith.ChunksmithNeoForge;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
 import com.kishku7.chunksmith.mixin.ChunkMapMixin;
 import com.kishku7.chunksmith.mixin.MinecraftServerAccess;
@@ -40,10 +40,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
-    private static final int TICKING_LOAD_DURATION = Input.tryInteger(System.getProperty("chunky.tickingLoadDuration")).orElse(0);
+    private static final int TICKING_LOAD_DURATION = Input.tryInteger(System.getProperty("chunksmith.tickingLoadDuration")).orElse(0);
     private static final TicketType CHUNKY = new TicketType(0L, TicketType.FLAG_LOADING);
     private static final TicketType CHUNKY_TICKING = new TicketType(TICKING_LOAD_DURATION * 20L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
-    private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
+    private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunksmith.updateChunkNbt");
     private final ServerLevel world;
     private final Border worldBorder;
 
@@ -110,13 +110,13 @@ public class NeoForgeWorld implements World {
             ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            boolean create = ChunkyNeoForge.ENABLE_MOONRISE_WORKAROUNDS;
+            boolean create = ChunksmithNeoForge.ENABLE_MOONRISE_WORKAROUNDS;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
                         serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
-                        ((MinecraftServerExtension) world.getServer()).chunky$markChunkSystemHousekeeping();
-                        if (ChunkyNeoForge.ENABLE_MOONRISE_WORKAROUNDS) {
+                        ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
+                        if (ChunksmithNeoForge.ENABLE_MOONRISE_WORKAROUNDS) {
                             // note: to prevent pausing on dedicated server when Moonrise is present
                             ((MinecraftServerAccess) world.getServer()).setEmptyTicks(0);
                         }
@@ -202,11 +202,11 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunky$getWorker();
+            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunky$getPendingWrites();
+            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
         } catch (final Throwable t) {
             return -1;

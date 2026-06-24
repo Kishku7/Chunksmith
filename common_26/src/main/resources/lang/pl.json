@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Chunky wymaga aktualizacji, aby korzystać z ChunkyBorder!",
+  "border_dependency_update": "Chunksmith wymaga aktualizacji, aby korzystać z ChunkyBorder!",
   "border_load_failed": "Nie znaleziono zapisanych granic.",
   "border_save_failed": "Nie można zapisać granic.",
   "command_no_permission": "&cNie masz uprawnień, aby użyć tej komendy.",
@@ -59,7 +59,7 @@
   "help_continue": "&2chunky continue&r - Kontynuuj obecne lub zapisane zadania",
   "help_corners": "&2chunky corners <x1> <z1> <x2> <z2>&r - Ustaw według narożników",
   "help_trim": "&2chunky trim&r - Usuń chunki poza zaznaczonym regionem",
-  "help_menu": "&aKomendy Chunky&r%s",
+  "help_menu": "&aKomendy Chunksmith&r%s",
   "help_more": "Wpisz &a%s&r aby zobaczyć więcej.",
   "help_pattern": "&2chunky pattern <pattern>&r - Ustaw wzór generowania",
   "help_pause": "&2chunky pause&r - Wstrzymaj obecne zadania i zapisz ich postęp",

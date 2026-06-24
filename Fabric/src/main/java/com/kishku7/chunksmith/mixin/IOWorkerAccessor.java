@@ -21,8 +21,8 @@ import java.util.SequencedMap;
 @Mixin(IOWorker.class)
 public interface IOWorkerAccessor {
     @Accessor("pendingWrites")
-    SequencedMap<?, ?> chunky$getPendingWrites();
+    SequencedMap<?, ?> chunksmith$getPendingWrites();
 
     @Accessor("storage")
-    RegionFileStorage chunky$getStorage();
+    RegionFileStorage chunksmith$getStorage();
 }

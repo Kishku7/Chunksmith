@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "在使用 ChunkyBorder 前你應該先更新 Chunky 的版本！",
+  "border_dependency_update": "在使用 ChunkyBorder 前你應該先更新 Chunksmith 的版本！",
   "border_load_failed": "找不到已儲存的世界邊界。",
   "border_save_failed": "無法儲存世界邊界。",
   "command_no_permission": "&c你沒有執行此指令的權限。",

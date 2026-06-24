@@ -12,7 +12,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
-import com.kishku7.chunksmith.command.ChunkyCommand;
+import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
 import com.kishku7.chunksmith.command.CommandLiteral;
 import com.kishku7.chunksmith.command.suggestion.SuggestionProviders;
@@ -43,9 +43,9 @@ import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
 
-public class ChunkyFabric implements ModInitializer {
+public class ChunksmithFabric implements ModInitializer {
     public static final boolean ENABLE_MOONRISE_WORKAROUNDS = FabricLoader.getInstance().isModLoaded("moonrise");
-    private Chunky chunky;
+    private Chunksmith chunky;
     private final Map<Identifier, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
 
     @Override
@@ -71,7 +71,7 @@ public class ChunkyFabric implements ModInitializer {
             }
             final Path configPath = baseDir.resolve("config.json");
             StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
-            this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(configPath));
+            this.chunky = new Chunksmith(new FabricServer(this, minecraftServer), new GsonConfig(configPath));
             if (chunky.getConfig().getContinueOnRestart()) {
                 chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
             }
@@ -101,7 +101,7 @@ public class ChunkyFabric implements ModInitializer {
                     if (minecraftServer != null && minecraftServer.isSingleplayer()) {
                         return true;
                     }
-                    return new FabricSender(serverCommandSource).hasPermission("chunky.command", true);
+                    return new FabricSender(serverCommandSource).hasPermission("chunksmith.command", true);
                 })
                 .executes(context -> {
                     final Sender sender;
@@ -110,7 +110,7 @@ public class ChunkyFabric implements ModInitializer {
                     } else {
                         sender = new FabricSender(context.getSource());
                     }
-                    final Map<String, ChunkyCommand> commands = chunky.getCommands();
+                    final Map<String, ChunksmithCommand> commands = chunky.getCommands();
                     final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
                     final String[] tokens = input.split(" ");
                     if (CommandLiteral.CHUNKY.equals(tokens[0]) || CommandLiteral.CY.equals(tokens[0])) {
@@ -206,7 +206,7 @@ public class ChunkyFabric implements ModInitializer {
         command.then(arguments[0].executes(command.getCommand()));
     }
 
-    public Chunky getChunky() {
+    public Chunksmith getChunky() {
         return chunky;
     }
 }

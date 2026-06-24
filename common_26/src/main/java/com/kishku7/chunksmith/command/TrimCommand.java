@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.Chunky;
+import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.nbt.LongTag;
 import com.kishku7.chunksmith.nbt.Tag;
@@ -29,10 +29,10 @@ import java.util.stream.Stream;
 
 import static com.kishku7.chunksmith.util.Translator.translate;
 
-public class TrimCommand implements ChunkyCommand {
-    private final Chunky chunky;
+public class TrimCommand implements ChunksmithCommand {
+    private final Chunksmith chunky;
 
-    public TrimCommand(final Chunky chunky) {
+    public TrimCommand(final Chunksmith chunky) {
         this.chunky = chunky;
     }
 

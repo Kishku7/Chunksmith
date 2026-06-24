@@ -12,5 +12,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(SimpleRegionStorage.class)
 public interface SimpleRegionStorageAccessor {
     @Accessor("worker")
-    IOWorker chunky$getWorker();
+    IOWorker chunksmith$getWorker();
 }

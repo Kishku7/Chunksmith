@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Cần update Chunky để dùng ChunkyBorder!",
+  "border_dependency_update": "Cần update Chunksmith để dùng ChunkyBorder!",
   "border_load_failed": "Không tìm thấy đường biên giới đã lưu.",
   "border_save_failed": "Không thể lưu đường biên giới.",
   "command_no_permission": "&cBạn không có quyền sử dụng lệnh này.",
@@ -59,7 +59,7 @@
   "help_continue": "&2chunky continue&r - Tiếp tục tác vụ hiện tại hoặc tác vụ đã lưu",
   "help_corners": "&2chunky corners <x1> <z1> <x2> <z2>&r - Đặt các vị trí góc",
   "help_trim": "&2chunky trim&r - Xóa phần thế giới thừa ngoài khu vực đã chọn",
-  "help_menu": "&aCác lệnh của Chunky&r%s",
+  "help_menu": "&aCác lệnh của Chunksmith&r%s",
   "help_more": "Hãy gõ &a%s&r để xem thêm.",
   "help_pattern": "&2chunky pattern <pattern>&r - Đặt kiểu tạo khu vực",
   "help_pause": "&2chunky pause&r - Tạm dừng tác vụ hiện tại và lưu lại quá trình",

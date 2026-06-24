@@ -1,5 +1,5 @@
 {
-  "border_dependency_update": "Chunky musí být aktualizovaný, aby bylo možné používat ChunkyBorder!",
+  "border_dependency_update": "Chunksmith musí být aktualizovaný, aby bylo možné používat ChunkyBorder!",
   "border_load_failed": "Nenalezeny žádné uložené hranice.",
   "border_save_failed": "Nelze uložit hranice.",
   "command_no_permission": "&cNemáš oprávnění k použití tohoto příkazu.",
@@ -59,7 +59,7 @@
   "help_continue": "&2chunky continue&r - Pokračuje v aktuálních nebo uložených úkolech",
   "help_corners": "&2chunky corners <x1> <z1> <x2> <z2>&r - Nastaví rohy",
   "help_trim": "&2chunky trim&r - Smaže chunky mimo označenou oblast",
-  "help_menu": "&aPříkazy Chunky&r%s",
+  "help_menu": "&aPříkazy Chunksmith&r%s",
   "help_more": "Zadej &a%s&r k zobrazení více.",
   "help_pattern": "&2chunky pattern <pattern>&r - Nastaví vzor generace",
   "help_pause": "&2chunky pause&r - Pozastaví aktuální úkol a uloží postup",
