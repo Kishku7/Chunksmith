@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith.platform;
 
+import com.kishku7.chunksmith.util.Reflection;
+
 import io.papermc.paper.threadedregions.RegionizedServerInitEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -11,7 +13,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 public final class Folia {
-    private static final boolean CONFIG_EXISTS = classExists("io.papermc.paper.threadedregions.RegionizedServer") || classExists("io.papermc.paper.threadedregions.RegionizedServerInitEvent");
+    private static final boolean CONFIG_EXISTS = Reflection.classExists("io.papermc.paper.threadedregions.RegionizedServer") || Reflection.classExists("io.papermc.paper.threadedregions.RegionizedServerInitEvent");
 
     private Folia() {
     }
@@ -67,14 +69,5 @@ public final class Folia {
                 runnable.run();
             }
         }, plugin);
-    }
-
-    private static boolean classExists(final String clazz) {
-        try {
-            Class.forName(clazz);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
     }
 }

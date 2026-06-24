@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith.platform;
 
+import com.kishku7.chunksmith.util.Reflection;
+
 import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -11,7 +13,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import java.util.concurrent.CompletableFuture;
 
 public final class Paper {
-    private static final boolean CONFIG_EXISTS = classExists("com.destroystokyo.paper.PaperConfig") || classExists("io.papermc.paper.configuration.Configuration");
+    private static final boolean CONFIG_EXISTS = Reflection.classExists("com.destroystokyo.paper.PaperConfig") || Reflection.classExists("io.papermc.paper.configuration.Configuration");
 
     private Paper() {
     }
@@ -34,14 +36,5 @@ public final class Paper {
 
     public static CompletableFuture<Boolean> teleportAsyncWithPassengers(final Entity entity, final Location location) {
         return entity.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
-    }
-
-    private static boolean classExists(final String clazz) {
-        try {
-            Class.forName(clazz);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
     }
 }
