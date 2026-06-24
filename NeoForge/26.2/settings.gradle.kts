@@ -12,8 +12,6 @@ pluginManagement {
 
 rootProject.name = "chunksmith-neoforge-26.2"
 
-include("chunksmith-nbt")
-project(":chunksmith-nbt").projectDir = file("../../nbt")
 
 include("chunksmith-common")
 project(":chunksmith-common").projectDir = file("../../common")
