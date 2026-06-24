@@ -1,0 +1,180 @@
+name: ${name}
+version: ${version}
+main: ${group}.chunksmith.ChunksmithBukkit
+api-version: 1.21
+folia-supported: true
+softdepend: [dynmap, BlueMap, squaremap, WorldBorder, Chunky]
+load: POSTWORLD
+authors: [${author}, pop4959]
+description: ${description}
+website: https://github.com/Kishku7/Chunksmith
+commands:
+  cs:
+    description: Generates chunks
+    aliases: [chunksmith, chunky, cy]
+    permission: chunksmith.command
+    usage: /cs
+permissions:
+  # === Canonical namespace: chunksmith.command.* ===
+  chunksmith.command:
+    default: op
+  chunksmith.command.border:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.cancel:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.center:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.confirm:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.continue:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.corners:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.help:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.pattern:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.pause:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.progress:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.quiet:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.radius:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.reload:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.selection:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.shape:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.silent:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.spawn:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.start:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.trim:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.worldborder:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.command.world:
+    default: op
+    children: [chunksmith.command]
+  chunksmith.chunky:
+    default: false
+    children:
+      - chunksmith.command
+      - chunksmith.command.cancel
+      - chunksmith.command.center
+      - chunksmith.command.confirm
+      - chunksmith.command.continue
+      - chunksmith.command.corners
+      - chunksmith.command.help
+      - chunksmith.command.pattern
+      - chunksmith.command.pause
+      - chunksmith.command.progress
+      - chunksmith.command.quiet
+      - chunksmith.command.radius
+      - chunksmith.command.reload
+      - chunksmith.command.selection
+      - chunksmith.command.shape
+      - chunksmith.command.silent
+      - chunksmith.command.spawn
+      - chunksmith.command.start
+      - chunksmith.command.worldborder
+      - chunksmith.command.world
+  # === Legacy aliases: pre-rename chunky.command.* still work ===
+  # The legacy base cascades to the new base, so any old grant (a specific
+  # chunky.command.X cascades to chunky.command) also satisfies the chunksmith.command
+  # command gate. The dispatcher additionally accepts chunky.command.X directly.
+  chunky.command:
+    default: op
+    children: [chunksmith.command]
+  chunky.command.border:
+    default: op
+    children: [chunky.command]
+  chunky.command.cancel:
+    default: op
+    children: [chunky.command]
+  chunky.command.center:
+    default: op
+    children: [chunky.command]
+  chunky.command.confirm:
+    default: op
+    children: [chunky.command]
+  chunky.command.continue:
+    default: op
+    children: [chunky.command]
+  chunky.command.corners:
+    default: op
+    children: [chunky.command]
+  chunky.command.help:
+    default: op
+    children: [chunky.command]
+  chunky.command.pattern:
+    default: op
+    children: [chunky.command]
+  chunky.command.pause:
+    default: op
+    children: [chunky.command]
+  chunky.command.progress:
+    default: op
+    children: [chunky.command]
+  chunky.command.quiet:
+    default: op
+    children: [chunky.command]
+  chunky.command.radius:
+    default: op
+    children: [chunky.command]
+  chunky.command.reload:
+    default: op
+    children: [chunky.command]
+  chunky.command.selection:
+    default: op
+    children: [chunky.command]
+  chunky.command.shape:
+    default: op
+    children: [chunky.command]
+  chunky.command.silent:
+    default: op
+    children: [chunky.command]
+  chunky.command.spawn:
+    default: op
+    children: [chunky.command]
+  chunky.command.start:
+    default: op
+    children: [chunky.command]
+  chunky.command.trim:
+    default: op
+    children: [chunky.command]
+  chunky.command.worldborder:
+    default: op
+    children: [chunky.command]
+  chunky.command.world:
+    default: op
+    children: [chunky.command]
+  chunky.chunky:
+    default: false
+    children:
+      - chunksmith.chunky
