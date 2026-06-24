@@ -14,10 +14,7 @@ include("chunksmith-common")
 project(":chunksmith-common").projectDir = file("../shared_common")
 
 include("chunksmith-bukkit")
-project(":chunksmith-bukkit").projectDir = file("shared_bukkit")
+project(":chunksmith-bukkit").projectDir = file("bukkit")
 
-include("chunksmith-paper")
-project(":chunksmith-paper").projectDir = file("paperMC")
-
-include("chunksmith-folia")
-project(":chunksmith-folia").projectDir = file("folia")
+include("chunksmith-platform")
+project(":chunksmith-platform").projectDir = file("platform")
