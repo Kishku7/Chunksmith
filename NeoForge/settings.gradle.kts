@@ -13,4 +13,4 @@ pluginManagement {
 rootProject.name = "chunksmith-neoforge"
 
 include("chunksmith-common")
-project(":chunksmith-common").projectDir = file("../common_26")
+project(":chunksmith-common").projectDir = file("../shared_common")

@@ -21,7 +21,7 @@ import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.LevelResource;
-import com.kishku7.chunksmith.ChunksmithFabric;
+import com.kishku7.chunksmith.PlatformCompat;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
 import com.kishku7.chunksmith.mixin.ChunkMapMixin;
 import com.kishku7.chunksmith.mixin.MinecraftServerAccess;
@@ -39,7 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class FabricWorld implements World {
+public class FabricWorld implements World, ServerLevelHolder {
     private static final int TICKING_LOAD_DURATION = Input.tryInteger(System.getProperty("chunksmith.tickingLoadDuration")).orElse(0);
     private static final TicketType CHUNKY = new TicketType(0L, TicketType.FLAG_LOADING);
     private static final TicketType CHUNKY_TICKING = new TicketType(TICKING_LOAD_DURATION * 20L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
@@ -110,13 +110,13 @@ public class FabricWorld implements World {
             ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            boolean create = ChunksmithFabric.ENABLE_MOONRISE_WORKAROUNDS;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
                         serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                        if (ChunksmithFabric.ENABLE_MOONRISE_WORKAROUNDS) {
+                        if (PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS) {
                             // note: to prevent pausing on dedicated server when Moonrise is present
                             ((MinecraftServerAccess) world.getServer()).setEmptyTicks(0);
                         }

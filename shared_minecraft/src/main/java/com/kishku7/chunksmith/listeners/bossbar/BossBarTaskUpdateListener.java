@@ -11,7 +11,7 @@ import net.minecraft.world.level.Level;
 import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.event.task.GenerationTaskUpdateEvent;
-import com.kishku7.chunksmith.platform.NeoForgeWorld;
+import com.kishku7.chunksmith.platform.ServerLevelHolder;
 import com.kishku7.chunksmith.platform.World;
 
 import java.util.Map;
@@ -31,7 +31,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
         final Chunksmith chunky = task.getChunky();
         final World world = task.getSelection().world();
         final Identifier worldIdentifier = Identifier.tryParse(world.getKey());
-        if (worldIdentifier == null || !(world instanceof final NeoForgeWorld neoForgeWorld)) {
+        if (worldIdentifier == null || !(world instanceof final ServerLevelHolder serverWorld)) {
             return;
         }
         final ServerBossEvent bossBar = bossBars.computeIfAbsent(worldIdentifier, x -> createNewBossBar(worldIdentifier));
@@ -39,7 +39,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
         if (silent == bossBar.isVisible()) {
             bossBar.setVisible(!silent);
         }
-        final MinecraftServer server = neoForgeWorld.getWorld().getServer();
+        final MinecraftServer server = serverWorld.getWorld().getServer();
         for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
                 bossBar.addPlayer(player);
@@ -54,7 +54,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
                 String.format("%01d", progress.getHours()),
                 String.format("%02d", progress.getMinutes()),
                 String.format("%02d", progress.getSeconds()))));
-        bossBar.setProgress(task.getProgress().getPercentComplete() / 100f);
+        bossBar.setProgress(progress.getPercentComplete() / 100f);
         if (progress.isComplete()) {
             bossBar.removeAllPlayers();
             bossBars.remove(worldIdentifier);

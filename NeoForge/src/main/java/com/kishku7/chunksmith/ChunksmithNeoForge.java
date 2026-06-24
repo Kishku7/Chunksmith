@@ -51,7 +51,7 @@ import static net.minecraft.commands.arguments.EntityArgument.player;
 @Mod(ChunksmithNeoForge.MOD_ID)
 public class ChunksmithNeoForge {
     public static final String MOD_ID = "chunksmith";
-    public static final boolean ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise");
+    static { PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise"); }
     private Chunksmith chunky;
     private final Map<Identifier, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
 
