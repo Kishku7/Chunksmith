@@ -1,11 +1,14 @@
 # Chunksmith - NeoForge (Minecraft 26.1 - 26.2)
 
-One version-agnostic NeoForge source (ModDevGradle toolchain) builds every supported
-26.x NeoForge target. MC 26.3 has no NeoForge release yet, so it is not built here;
-adding it later is a one-row change in `build-all-neoforge.ps1`.
+The NeoForge mod build (ModDevGradle toolchain). One version-agnostic source builds every
+supported 26.x NeoForge target. MC 26.3 has no NeoForge release yet, so it is not built
+here; adding it later is a one-row change in `build-all-neoforge.ps1`. The only per-version
+differences are the `neoforge` artifact version and the two `neoforge.mods.toml` version
+ranges; the compiled code is identical across versions.
 
-The only per-version differences are the `neoforge` artifact version and the two
-`neoforge.mods.toml` version ranges; the compiled code is identical across versions.
+Shared code: the MC-agnostic core is [`../shared_common`](../shared_common); the
+Minecraft-touching mod layer (Mixins/accessors that keep big pre-gens safe on vanilla) is
+[`../shared_minecraft`](../shared_minecraft). See those READMEs for feature detail.
 
 ## Build
 
