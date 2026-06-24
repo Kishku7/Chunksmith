@@ -69,7 +69,10 @@ public class BukkitServer implements Server {
         // Tick-health signal for the adaptive I/O throttle. getAverageTickTime() is a Paper
         // addition, so route through the Paper helper when present; on plain Spigot/Bukkit
         // this returns -1 and the per-chunk latency backstop carries the throttle.
-        if (Paper.isPaper()) {
+        if (Platform.isFolia()) {
+            return -1.0D;
+        }
+        if (Platform.isPaper()) {
             return Paper.getAverageTickTime(plugin.getServer());
         }
         return -1.0D;

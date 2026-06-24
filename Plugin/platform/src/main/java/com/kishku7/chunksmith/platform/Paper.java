@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.platform;
 
-import com.kishku7.chunksmith.util.Reflection;
+// platform detection centralized in Platform
 
 import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Chunk;
@@ -13,13 +13,13 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import java.util.concurrent.CompletableFuture;
 
 public final class Paper {
-    private static final boolean CONFIG_EXISTS = Reflection.classExists("com.destroystokyo.paper.PaperConfig") || Reflection.classExists("io.papermc.paper.configuration.Configuration");
+    
 
     private Paper() {
     }
 
     public static boolean isPaper() {
-        return CONFIG_EXISTS;
+        return Platform.isPaper();
     }
 
     public static double getAverageTickTime(final Server server) {

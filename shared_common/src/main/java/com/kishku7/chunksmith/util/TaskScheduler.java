@@ -25,7 +25,7 @@ public class TaskScheduler {
     }
 
     public void runTask(final Runnable runnable) {
-        futures.add(executor.submit(runnable));
+        futures.add(executor.submit(() -> { try { runnable.run(); } catch (final Throwable t) { java.util.logging.Logger.getLogger("Chunksmith").log(java.util.logging.Level.SEVERE, "Generation task threw an uncaught exception", t); throw t; } }));
         futures.removeIf(Future::isDone);
     }
 

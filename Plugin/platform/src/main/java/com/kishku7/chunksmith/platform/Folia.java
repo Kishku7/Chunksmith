@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.platform;
 
-import com.kishku7.chunksmith.util.Reflection;
+// platform detection centralized in Platform
 
 import io.papermc.paper.threadedregions.RegionizedServerInitEvent;
 import org.bukkit.Bukkit;
@@ -13,13 +13,13 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 public final class Folia {
-    private static final boolean CONFIG_EXISTS = Reflection.classExists("io.papermc.paper.threadedregions.RegionizedServer") || Reflection.classExists("io.papermc.paper.threadedregions.RegionizedServerInitEvent");
+    
 
     private Folia() {
     }
 
     public static boolean isFolia() {
-        return CONFIG_EXISTS;
+        return Platform.isFolia();
     }
 
     public static void schedule(final Plugin plugin, final Location location, final Runnable runnable) {
