@@ -20,7 +20,7 @@ tasks {
             }
         }
         setDestinationDir(rootProject.projectDir.resolve("docs/chunksmith/javadoc"))
-        include("org/popcraft/chunky/api/**")
-        exclude("org/popcraft/chunky/api/ChunkyAPIImpl.java")
+        include("com/kishku7/chunksmith/api/**")
+        exclude("com/kishku7/chunksmith/api/ChunkyAPIImpl.java")
     }
 }

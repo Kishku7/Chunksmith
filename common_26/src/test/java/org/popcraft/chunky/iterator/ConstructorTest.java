@@ -1,8 +1,8 @@
-package org.popcraft.chunky.iterator;
+package com.kishku7.chunksmith.iterator;
 
 import org.junit.Test;
-import org.popcraft.chunky.Selection;
-import org.popcraft.chunky.util.ChunkCoordinate;
+import com.kishku7.chunksmith.Selection;
+import com.kishku7.chunksmith.util.ChunkCoordinate;
 
 import java.util.ArrayList;
 import java.util.List;

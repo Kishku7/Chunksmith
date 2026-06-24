@@ -1,9 +1,9 @@
-package org.popcraft.chunky.util;
+package com.kishku7.chunksmith.util;
 
 import org.junit.Test;
-import org.popcraft.chunky.Selection;
-import org.popcraft.chunky.iterator.ChunkIterator;
-import org.popcraft.chunky.iterator.ConcentricChunkIterator;
+import com.kishku7.chunksmith.Selection;
+import com.kishku7.chunksmith.iterator.ChunkIterator;
+import com.kishku7.chunksmith.iterator.ConcentricChunkIterator;
 
 import static org.junit.Assert.assertTrue;
 

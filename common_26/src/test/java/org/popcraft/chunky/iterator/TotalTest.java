@@ -1,7 +1,7 @@
-package org.popcraft.chunky.iterator;
+package com.kishku7.chunksmith.iterator;
 
 import org.junit.Test;
-import org.popcraft.chunky.Selection;
+import com.kishku7.chunksmith.Selection;
 
 import static org.junit.Assert.assertEquals;
 

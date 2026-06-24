@@ -1,9 +1,9 @@
-package org.popcraft.chunky.util;
+package com.kishku7.chunksmith.util;
 
 import org.junit.Test;
 
-import static org.popcraft.chunky.util.Translator.setLanguage;
-import static org.popcraft.chunky.util.Translator.translate;
+import static com.kishku7.chunksmith.util.Translator.setLanguage;
+import static com.kishku7.chunksmith.util.Translator.translate;
 
 /**
  * This test checks that each translation in every language is parsed without errors.
