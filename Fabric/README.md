@@ -24,9 +24,9 @@ Or directly:
 
 | MC target | minecraft | fabric-api | declared compat |
 |-----------|-----------|------------|-----------------|
-| 26.1 | 26.1.2 | 0.150.0+26.1.2 | >=26.1 <26.2 |
-| 26.2 | 26.2 | 0.152.1+26.2 | >=26.2- |
-| 26.3 | 26.3-snapshot-1 | 0.153.1+26.3 | >=26.3- |
+| 26.1 | 26.1.2 | 0.150.0+26.1.2 | >=26.1- <26.2 |
+| 26.2 | 26.2 | 0.152.1+26.2 | >=26.2- <26.3 |
+| 26.3 | 26.3-snapshot-1 | 0.153.1+26.3 | >=26.3- <26.4 |
 
 Toolchain: relativitymc neo-loom 1.16.0-alpha.4, fabric-loader 0.19.3, Java 25.
 To add a new 26.x version, add one row to the matrix in `build-all-fabric.ps1`.

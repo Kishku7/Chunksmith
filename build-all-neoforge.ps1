@@ -8,8 +8,8 @@ $dist = Join-Path $repo "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 $matrix = [ordered]@{
-  "26.1" = @{ nf = "26.1.0.15-beta"; nfRange = "[26.1.0.0-beta,)"; mcRange = "[26.1,)" }
-  "26.2" = @{ nf = "26.2.0.1-beta";  nfRange = "[26.2.0-alpha,)"; mcRange = "[26.2,)" }
+  "26.1" = @{ nf = "26.1.0.15-beta"; nfRange = "[26.1.0.0-beta,)"; mcRange = "[26.1,26.2)" }
+  "26.2" = @{ nf = "26.2.0.1-beta";  nfRange = "[26.2.0-alpha,)"; mcRange = "[26.2,26.3)" }
 }
 if (-not $Versions -or $Versions.Count -eq 0) { $Versions = @($matrix.Keys) }
 $modver = (Select-String -Path (Join-Path $nf "gradle.properties") -Pattern '^version=(.+)$').Matches[0].Groups[1].Value

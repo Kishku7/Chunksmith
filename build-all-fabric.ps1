@@ -8,9 +8,9 @@ $dist   = Join-Path $repo "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 $matrix = [ordered]@{
-  "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1 <26.2" }
-  "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2-" }
-  "26.3" = @{ mc = "26.3-snapshot-1"; api = "0.153.1+26.3";   dep = ">=26.3-" }
+  "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2" }
+  "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3" }
+  "26.3" = @{ mc = "26.3-snapshot-1"; api = "0.153.1+26.3";   dep = ">=26.3- <26.4" }
 }
 if (-not $Versions -or $Versions.Count -eq 0) { $Versions = @($matrix.Keys) }
 
