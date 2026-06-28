@@ -1,5 +1,7 @@
 package org.popcraft.chunky.mixin;
 
+import net.minecraft.util.thread.ProcessorMailbox;
+import net.minecraft.util.thread.StrictQueue;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
 import org.spongepowered.asm.mixin.Mixin;
@@ -8,21 +10,25 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 import java.util.Map;
 
 /**
- * Exposes IOWorker internals.
- * <p>
- * {@code pendingWrites} size is the count of chunk writes queued to disk but not yet
- * flushed - the deferred region-write backlog used for write-queue backpressure. Read
- * size() only (the map is mutated solely on the IO executor thread; iterating it
- * off-thread is unsafe, but a size() read is benign and at worst slightly stale).
- * On MC 1.21.1-1.21.10 {@code pendingWrites} is a plain {@link Map} (LinkedHashMap), NOT the
- * {@code SequencedMap} of the newer Java-21 line - the field name is identical, only the declared
- * type differs, and {@code Map} is the correct match here.
- * <p>
- * {@code storage} is the RegionFileStorage the worker writes through; the entity-unload
- * fix uses it only to resolve the region folder Path (read-only metadata).
+ * Exposes IOWorker internals used by the worldgen entity-unload fix (LEGACY: MC 1.20.1 - 1.21.3).
+ *
+ * <p>The pre-1.21.4 worker drains its single thread via a {@code ProcessorMailbox} rather than a
+ * {@code PriorityConsecutiveExecutor}. The fix enqueues its "does this chunk have persisted entity
+ * data?" probe onto this mailbox so the check is serialized against in-flight stores instead of
+ * racing the writer thread.
+ *
+ * <p>{@code pendingWrites} is a plain {@link Map} (LinkedHashMap) on this line, mutated only on the
+ * mailbox thread; the fix reads it via {@code containsKey} inside a mailbox task to catch entities
+ * persisted-but-not-yet-on-disk.
+ *
+ * <p>{@code storage} is the RegionFileStorage the worker writes through; the fix uses it only to
+ * resolve the entity-region folder Path.
  */
 @Mixin(IOWorker.class)
 public interface IOWorkerAccessor {
+    @Accessor("mailbox")
+    ProcessorMailbox<StrictQueue.IntRunnable> chunky$getMailbox();
+
     @Accessor("pendingWrites")
     Map<?, ?> chunky$getPendingWrites();
 

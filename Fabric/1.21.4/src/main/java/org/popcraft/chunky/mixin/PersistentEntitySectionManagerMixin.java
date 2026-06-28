@@ -1,6 +1,7 @@
 package org.popcraft.chunky.mixin;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.util.thread.PriorityConsecutiveExecutor;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.storage.EntityStorage;
 import net.minecraft.world.level.chunk.storage.IOWorker;
@@ -20,51 +21,36 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.SequencedMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Worldgen entity-retention fix - PRE-1.21.11 STRUCTURE variant (MC 1.21.1 - 1.21.10).
+ * Worldgen entity-retention fix - MODERN variant (PriorityConsecutiveExecutor + SimpleRegionStorage
+ * chain: MC 1.21.4 - 1.21.11). Behaviourally identical to the 26.x version.
  *
- * <p>Identical in behaviour to the 1.21.11/26.x version, but the entity-region folder is reached
- * through {@code EntityStorage.worker} directly (the IOWorker the EntityStorage owns), because the
- * {@code SimpleRegionStorage} layer does not exist before 1.21.11. Everything else - the
- * {@code requestChunkLoad} -> {@code loadEntities} redirect that skips the redundant disk read for
- * chunks with no persisted entities, the offset-table probe, and the {@code /cs debug}-gated
- * telemetry - is the same.
+ * <p>Worldgen entities enter via {@code addWorldGenChunkEntities} leaving the chunk FRESH;
+ * {@code storeChunkSections} defers unload via {@code requestChunkLoad}'s {@code loadEntities} read,
+ * whose only purpose is to MERGE already-persisted entities before the store overwrites them. We
+ * {@code @Redirect} that read: a chunk with no persisted entity data has nothing to merge, so the
+ * read is skipped. The presence check runs ON the IOWorker's own executor (the single thread that
+ * owns pendingWrites and the region files) and tests BOTH the pendingWrites queue AND the on-disk
+ * offset table, so it cannot race the writer, cannot tear, and never relies on a stale cache.
+ * Present-or-uncertain falls through to the untouched vanilla read+merge: no entity is ever lost.
  */
 @Mixin(PersistentEntitySectionManager.class)
 public abstract class PersistentEntitySectionManagerMixin {
 
-    @Unique
-    private static final int CHUNKY$REGION_CACHE_MAX = 256;
+    @Unique private static final Logger CHUNKY$LOG = LogUtils.getLogger();
+    @Unique private static final long CHUNKY$DIAG_INTERVAL_MS = 5000L;
 
-    @Unique
-    private static final int[] CHUNKY$EMPTY_TABLE = new int[1024];
-
-    @Unique
-    private static final Logger CHUNKY$LOG = LogUtils.getLogger();
-
-    @Unique
-    private static final long CHUNKY$DIAG_INTERVAL_MS = 5000L;
-
-    @Unique
-    private final Map<Long, int[]> chunky$regionOffsets = new LinkedHashMap<Long, int[]>(64, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(final Map.Entry<Long, int[]> eldest) {
-            return size() > CHUNKY$REGION_CACHE_MAX;
-        }
-    };
-
-    @Unique private long chunky$fastHits = 0L;
-    @Unique private long chunky$vanillaFalls = 0L;
+    @Unique private final AtomicLong chunky$fastHits = new AtomicLong();
+    @Unique private final AtomicLong chunky$vanillaFalls = new AtomicLong();
     @Unique private long chunky$lastDiag = 0L;
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -76,16 +62,41 @@ public abstract class PersistentEntitySectionManagerMixin {
             )
     )
     private CompletableFuture chunky$skipReadForFreshChunks(final EntityPersistentStorage permanentStorage, final ChunkPos pos) {
-        try {
-            if (chunky$entitiesAbsentOnDisk(permanentStorage, pos)) {
-                this.chunky$fastHits++;
-                return CompletableFuture.completedFuture(new ChunkEntities(pos, List.of()));
-            }
-        } catch (final Throwable ignored) {
-            // Any uncertainty -> the real vanilla load (never risk skipping genuine on-disk data).
+        if (!(permanentStorage instanceof EntityStorage)) {
+            return permanentStorage.loadEntities(pos);
         }
-        this.chunky$vanillaFalls++;
-        return permanentStorage.loadEntities(pos);
+
+        final PriorityConsecutiveExecutor executor;
+        final SequencedMap<?, ?> pendingWrites;
+        final Path entityRegionFolder;
+        try {
+            final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunky$getSimpleRegionStorage();
+            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunky$getWorker();
+            final IOWorkerAccessor wa = (IOWorkerAccessor) (Object) worker;
+            executor = wa.chunky$getConsecutiveExecutor();
+            pendingWrites = wa.chunky$getPendingWrites();
+            final RegionFileStorage storage = wa.chunky$getStorage();
+            entityRegionFolder = ((RegionFileStorageAccessor) (Object) storage).chunky$getFolder();
+        } catch (final Throwable introspectionFailed) {
+            return permanentStorage.loadEntities(pos);
+        }
+
+        return executor.<Boolean>scheduleWithResult(0, (final CompletableFuture<Boolean> result) -> {
+            boolean present;
+            try {
+                present = pendingWrites.containsKey(pos) || chunky$entitiesOnDisk(entityRegionFolder, pos);
+            } catch (final Throwable uncertain) {
+                present = true;
+            }
+            if (present) {
+                this.chunky$vanillaFalls.incrementAndGet();
+            } else {
+                this.chunky$fastHits.incrementAndGet();
+            }
+            result.complete(present);
+        }).thenCompose(present -> present
+                ? permanentStorage.loadEntities(pos)
+                : CompletableFuture.completedFuture(new ChunkEntities(pos, List.of())));
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -101,50 +112,34 @@ public abstract class PersistentEntitySectionManagerMixin {
         try {
             final String stats = ((PersistentEntitySectionManager) (Object) this).gatherStats();
             CHUNKY$LOG.info("[Chunksmith debug] fastHits={} vanillaFalls={} | known,visible,sections,loadStatuses,visibility,inbox,toUnload={}",
-                    this.chunky$fastHits, this.chunky$vanillaFalls, stats);
+                    this.chunky$fastHits.get(), this.chunky$vanillaFalls.get(), stats);
         } catch (final Throwable ignored) {
         }
     }
 
+    /**
+     * True iff the entity region file exists AND its 4096-byte offset table marks this chunk present.
+     * MUST run on the IOWorker executor thread so the read is serialized against region writes and
+     * never creates a region file (Files.exists gate).
+     */
     @Unique
-    private boolean chunky$entitiesAbsentOnDisk(final EntityPersistentStorage<?> permanentStorage, final ChunkPos pos) throws IOException {
-        if (!(permanentStorage instanceof EntityStorage)) {
+    private static boolean chunky$entitiesOnDisk(final Path folder, final ChunkPos pos) throws IOException {
+        final Path mca = folder.resolve("r." + pos.getRegionX() + "." + pos.getRegionZ() + ".mca");
+        if (!Files.exists(mca)) {
             return false;
         }
-        final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunky$getSimpleRegionStorage();
-        final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunky$getWorker();
-        final RegionFileStorage storage = ((IOWorkerAccessor) (Object) worker).chunky$getStorage();
-        final Path folder = ((RegionFileStorageAccessor) (Object) storage).chunky$getFolder();
-
-        final int regionX = pos.getRegionX();
-        final int regionZ = pos.getRegionZ();
-        final long regionKey = (((long) regionX) << 32) | (regionZ & 0xFFFFFFFFL);
-
-        int[] table = chunky$regionOffsets.get(regionKey);
-        if (table == null) {
-            table = chunky$readOffsetTable(folder.resolve("r." + regionX + "." + regionZ + ".mca"));
-            chunky$regionOffsets.put(regionKey, table);
-        }
-        final int index = pos.getRegionLocalX() + pos.getRegionLocalZ() * 32;
-        return table[index] == 0;
-    }
-
-    @Unique
-    private int[] chunky$readOffsetTable(final Path mca) throws IOException {
-        if (!Files.exists(mca)) {
-            return CHUNKY$EMPTY_TABLE;
-        }
-        final int[] table = new int[1024];
+        final int slot = pos.getRegionLocalX() + pos.getRegionLocalZ() * 32;
         try (FileChannel channel = FileChannel.open(mca, StandardOpenOption.READ)) {
-            final ByteBuffer buffer = ByteBuffer.allocate(4096);
-            final int read = channel.read(buffer, 0L);
-            buffer.flip();
-            final IntBuffer ints = buffer.asIntBuffer();
-            final int count = Math.min(1024, Math.max(0, read) / 4);
-            for (int i = 0; i < count; i++) {
-                table[i] = ints.get(i);
+            final ByteBuffer header = ByteBuffer.allocate(4096);
+            while (header.hasRemaining()) {
+                if (channel.read(header) < 0) {
+                    break;
+                }
             }
+            if (header.position() < (slot + 1) * 4) {
+                return false;
+            }
+            return header.getInt(slot * 4) != 0;
         }
-        return table;
     }
 }
