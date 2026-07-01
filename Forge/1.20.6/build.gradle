@@ -22,7 +22,6 @@ allprojects {
     version = project.findProperty('version')
     repositories {
         mavenCentral()
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
     }
 }
 
@@ -65,6 +64,7 @@ dependencies {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 21
+    options.compilerArgs.add('-Xlint:all,-processing')
 }
 
 processResources {
