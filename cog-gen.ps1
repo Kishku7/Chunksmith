@@ -32,7 +32,11 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$Cell,
-    [Parameter(Mandatory = $true)][string]$McVer
+    [Parameter(Mandatory = $true)][string]$McVer,
+    # Loader for this cell. Only Forge changes behaviour: classic-SRG Forge (the ancient 1.20.1/
+    # 1.20.4 line) needs a "refmap" key in chunksmith.mixins.json; every other loader/version omits
+    # it (mojmap-native or loom-managed). Auto-detected from the cell path when not given.
+    [Parameter(Mandatory = $false)][ValidateSet('Fabric','NeoForge','Forge')][string]$Loader
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,6 +51,12 @@ if ([System.IO.Path]::IsPathRooted($Cell)) {
     $cellPath = Join-Path $repoRoot $Cell
 }
 if (-not (Test-Path $cellPath)) { throw "Cell not found: $cellPath" }
+
+# Resolve the loader (default: infer from the cell path, e.g. "Forge/1.21.4" -> Forge).
+if (-not $Loader) {
+    $leadSeg = ($Cell -replace '\\', '/').TrimStart('/').Split('/')[0]
+    if ($leadSeg -in @('Fabric','NeoForge','Forge')) { $Loader = $leadSeg } else { $Loader = 'Fabric' }
+}
 
 $sharedJava = Join-Path $repoRoot 'shared_minecraft/src/main/java'
 if (-not (Test-Path $sharedJava)) { throw "shared_minecraft java not found: $sharedJava" }
@@ -93,6 +103,7 @@ try {
     $hasMcServerAcc  = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_minecraft_server_access('$McVer') else '0')")
     $hangingClass    = (& python -c "import compat,sys; sys.stdout.write(compat.hanging_entity_class('$McVer'))")
     $compatLevel     = (& python -c "import compat,sys; v=compat._parse('$McVer'); sys.stdout.write('JAVA_17' if (v[0]>=26 or v[0]==1 and v[1]<=20) else 'JAVA_21')")
+    $forgeNeedsRefmap = (& python -c "import compat,sys; sys.stdout.write('1' if compat.forge_needs_refmap('$McVer') else '0')")
 } finally {
     Pop-Location
 }
@@ -171,13 +182,25 @@ $presentMixins = Get-ChildItem -File (Join-Path $genJava $mixinPkg) |
 
 $mixinsArray = ($presentMixins | ForEach-Object { "    `"$_`"" }) -join ",`n"
 
+# Classic-SRG Forge (ancient 1.20.1/1.20.4) needs a refmap key so the SpongePowered mixin loader
+# can resolve mojmap<->srg target names at runtime; every other loader/version omits it (a
+# stray refmap on a mojmap-native runtime would MISRESOLVE targets). forgeNeedsRefmap is only 1
+# when -Loader Forge AND compat.forge_needs_refmap(mcver) is true.
+$refmapLine = ''
+if ($Loader -eq 'Forge' -and $forgeNeedsRefmap -eq '1') {
+    $refmapLine = "  `"refmap`": `"chunksmith.refmap.json`",`n"
+    Write-Host "[cog-gen] + refmap key (classic-SRG Forge on $McVer)"
+} elseif ($Loader -eq 'Forge') {
+    Write-Host "[cog-gen] - refmap key (mojmap-native Forge on $McVer)"
+}
+
 $jsonText = @"
 {
   "required": true,
   "minVersion": "0.8",
   "package": "com.kishku7.chunksmith.mixin",
   "compatibilityLevel": "$compatLevel",
-  "mixins": [
+$($refmapLine)  "mixins": [
 $mixinsArray
   ],
   "client": [

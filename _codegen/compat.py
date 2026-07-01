@@ -154,6 +154,29 @@ def has_minecraft_server_access(mcver):
     return v[0] >= 26
 
 
+def forge_needs_refmap(mcver):
+    """Does a classic-Forge (LexForge / ForgeGradle 6) cell for this MC version need a mixin
+    refmap wired (the "refmap" key in chunksmith.mixins.json + the mixin AP that generates it)?
+
+    Loader-specific: this ONLY applies to the Forge loader. Fabric (loom always emits + consults
+    its own refmap transparently) and NeoForge (mojmap-native runtime, no refmap) never key on
+    this -- cog-gen calls it exclusively when -Loader Forge.
+
+    Classic Forge runs SRG-mapped at runtime up to and including the 1.20.4 line, so the
+    SpongePowered mixin loader needs the srg<->mojmap refmap to resolve @Inject/@At/@Accessor
+    targets by name -> the "refmap" key is MANDATORY there (a missing refmap is a fatal
+    "No refMap loaded" at boot). From MC 1.20.6 (ForgeGradle 6.0.16+, which SKIPS reobf) Forge
+    runs OFFICIAL MOJANG MAPPINGS at runtime, so dev names == runtime names and NO refmap is
+    consulted -> the "refmap" key must be ABSENT (the same mojmap-native posture as NeoForge and
+    modern Forge 1.21.x). Ground truth: old-branch Forge cells carry "refmap" only on 1.20.1 /
+    1.20.4; 1.20.6 and every 1.21.x cell omit it.
+
+    Boundary == the "ancient" era (1.20.1 / 1.20.4). Returns True there, False from transitional
+    (1.20.6) onward, so the four modern Forge cells (1.21.4/1.21.8/1.21.10/1.21.11) get NO refmap.
+    """
+    return era(mcver) == "ancient"
+
+
 def has_chunk_storage_accessor(mcver):
     """Is ChunkStorageAccessor (@Mixin ChunkStorage) present?
 
