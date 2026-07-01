@@ -1,0 +1,112 @@
+// ChunkSmith Forge cell -- classic Forge (LexForge) variant, MC 1.21.11.
+//
+// Standalone LexForge jar built with ForgeGradle 6 (FG6) on JDK 21. Forge 1.21.x runs OFFICIAL
+// MOJANG MAPPINGS at runtime, so dev names == runtime names. Mixins are compiled mojmap-native
+// with NO refmap and NO annotation processor: the SpongePowered mixin loader resolves
+// @Inject/@Redirect/@Accessor/@Invoker targets directly by their mojmap name at load time. (The
+// same Cog-generated mixin classes are refmap-validated on the fabric variant.)
+//
+// Because FG6 1.20.6+ skips reobf and we do not apply the SpongePowered mixin gradle plugin, the
+// MixinConfigs manifest attribute must be wired explicitly on the jar -- FML reads it to discover
+// chunksmith.mixins.json. (Same pattern as the proven NeoForge cell + the old-branch Forge cells.)
+//
+// Single-cross-version-source model (Goal 5): compiles the Cog-generated shared_minecraft output
+// (gen/, produced by cog-gen.ps1 -Loader Forge) plus the per-cell platform/entrypoint seam, and
+// pulls MC-agnostic code from :chunksmith-common (= ../../shared_common). Version drift in the
+// shared mixins is resolved by Cog, NOT reflection. -Xlint:all + zero warnings.
+
+plugins {
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+allprojects {
+    group = project.findProperty('group')
+    version = project.findProperty('version')
+    repositories {
+        mavenCentral()
+    }
+}
+
+version = project.findProperty('version')
+group = project.findProperty('group')
+base { archivesName = project.findProperty('artifactName') }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+// Ensure the plain-Java shared_common subproject gets the java-library plugin + JDK 21 toolchain.
+project(':chunksmith-common') {
+    apply plugin: 'java-library'
+    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+minecraft {
+    mappings channel: 'official', version: project.findProperty('minecraft_version')
+    copyIdeResources = true
+}
+
+configurations {
+    shade
+}
+
+// Cog-generated shared_minecraft source (produced by cog-gen.ps1 for this MC version).
+sourceSets.main.java.srcDir 'gen/src/main/java'
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.findProperty('forge_version')}"
+
+    // Mixin annotations only (compile classpath). NO annotation processor -- mojmap-native, no refmap.
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+
+    implementation project(':chunksmith-common')
+    shade project(':chunksmith-common')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    // Forge @Mod/@SubscribeEvent + Mixin annotations are never AP-claimed; the ,-processing lint
+    // category suppresses the spurious "No processor claimed any of these annotations" warning so the
+    // zero-warning gate holds. It is ONE -Xlint token (a lint-category disable), not a separate flag.
+    options.compilerArgs << '-Xlint:all,-processing'
+}
+
+processResources {
+    def expandProps = [
+        'github'     : project.findProperty('github'),
+        'id'         : project.findProperty('modId'),
+        'version'    : project.findProperty('version'),
+        'name'       : project.findProperty('artifactName'),
+        'author'     : project.findProperty('author'),
+        'description': project.findProperty('description')
+    ]
+    inputs.properties(expandProps)
+    filesMatching('META-INF/mods.toml') {
+        expand(expandProps)
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.shade]
+    archiveClassifier.set('')
+    archiveFileName.set("${project.findProperty('artifactName')}-Forge-${project.findProperty('minecraft_version')}-${project.version}.jar")
+    manifest {
+        attributes([
+            'Implementation-Title'  : 'chunksmith',
+            'Implementation-Version': project.version,
+            'Implementation-Vendor' : project.findProperty('author'),
+            'MixinConfigs'          : 'chunksmith.mixins.json'
+        ])
+    }
+}
+
+jar {
+    archiveClassifier.set('slim')
+}
+
+// FG6 wires reobfJar onto `jar` by default; at 1.21.x reobf is a no-op (mojmap runtime) but the
+// task graph still expects the artifact. The shadowJar is our deployable output.
+build {
+    dependsOn shadowJar
+}
