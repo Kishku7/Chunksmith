@@ -1,0 +1,123 @@
+// ChunkSmith Forge cell -- ANCIENT classic Forge (LexForge) variant, MC 1.20.2 - 1.20.4.
+//
+// Standalone LexForge jar built with ForgeGradle 6 (FG6) + the SpongePowered Mixin gradle plugin on
+// JDK 17. Unlike the transitional/modern Forge cells (1.20.6+), 1.20.1 Forge runs an SRG (obfuscated)
+// runtime, so the mixin classes MUST ship a refmap (chunksmith.refmap.json) that maps the mojmap
+// dev-time @Inject/@Redirect/@Accessor/@Invoker target names to their SRG runtime names. The refmap is
+// produced by the SpongePowered mixin annotation processor (org.spongepowered:mixin:0.8.5:processor),
+// wired via the org.spongepowered.mixin gradle plugin's mixin{} block. This is the same proven
+// toolchain the old-branch 1.20.1 Forge cell used (and Dave's other 1.20.1 Forge/NeoForge mods).
+//
+// On 1.20.1 "NeoForge" is the project's first release: net.minecraftforge:forge:1.20.4-49.x still uses the
+// net.minecraftforge.* API namespace, so this cell is built against net.minecraftforge:forge:1.20.4-49.x
+// and is binary-compatible with both. JDK 17, official Mojang mappings at dev time.
+//
+// Single-cross-version-source model (Goal 5): compiles the Cog-generated shared_minecraft output
+// (gen/, produced by cog-gen.ps1 -Loader Forge, which KEEPS the refmap key for this ancient cell) plus
+// the per-cell platform/entrypoint seam, and pulls MC-agnostic code from :chunksmith-common
+// (= ../../shared_common). Version drift in the shared mixins is resolved by Cog. -Xlint:all + zero warnings.
+
+plugins {
+    id 'eclipse'
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+allprojects {
+    group = project.findProperty('group')
+    version = project.findProperty('version')
+    repositories {
+        mavenCentral()
+    }
+}
+
+version = project.findProperty('version')
+group = project.findProperty('group')
+base { archivesName = project.findProperty('artifactName') }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+// Ensure the plain-Java shared_common subproject gets the java-library plugin + JDK 17 toolchain.
+project(':chunksmith-common') {
+    apply plugin: 'java-library'
+    java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+repositories {
+    maven { url = 'https://maven.minecraftforge.net/' }
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+
+minecraft {
+    mappings channel: 'official', version: project.findProperty('minecraft_version')
+    copyIdeResources = true
+}
+
+// The SpongePowered mixin gradle plugin generates chunksmith.refmap.json from the mixin classes in
+// gen/ and registers the mixin config for reobfuscation into the SRG runtime.
+mixin {
+    add sourceSets.main, 'chunksmith.refmap.json'
+    config 'chunksmith.mixins.json'
+}
+
+configurations {
+    shade
+    implementation.extendsFrom shade
+}
+
+// Cog-generated shared_minecraft source (produced by cog-gen.ps1 for this MC version).
+sourceSets.main.java.srcDir 'gen/src/main/java'
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.findProperty('forge_version')}"
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    implementation project(':chunksmith-common')
+    shade project(':chunksmith-common')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+    // Forge @Mod/@SubscribeEvent are consumed at bytecode/runtime, not by an annotation processor, and
+    // the mixin AP does not claim javac lint categories, so the ,-processing token suppresses the
+    // spurious "No processor claimed any of these annotations" warning while every other lint stays on.
+    // It is ONE -Xlint token (a lint-category disable), not a separate flag.
+    options.compilerArgs.add('-Xlint:all,-processing')
+}
+
+processResources {
+    def expandProps = [
+        'github'     : project.findProperty('github'),
+        'id'         : project.findProperty('modId'),
+        'version'    : project.findProperty('version'),
+        'name'       : project.findProperty('artifactName'),
+        'author'     : project.findProperty('author'),
+        'description': project.findProperty('description')
+    ]
+    inputs.properties(expandProps)
+    filesMatching('META-INF/mods.toml') {
+        expand(expandProps)
+    }
+}
+
+jar {
+    dependsOn ':chunksmith-common:jar'
+    // Merge the shared common library classes into the mod jar before reobf.
+    from {
+        configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude 'META-INF/MANIFEST.MF'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes([
+            'Implementation-Title'  : 'chunksmith',
+            'Implementation-Version': project.version,
+            'Implementation-Vendor' : project.findProperty('author'),
+            'MixinConfigs'          : 'chunksmith.mixins.json'
+        ])
+    }
+    archiveFileName = "${project.findProperty('artifactName')}-Forge-${project.findProperty('minecraft_version')}-${project.version}.jar"
+}
