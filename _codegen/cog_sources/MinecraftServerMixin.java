@@ -27,8 +27,9 @@ import java.util.function.BooleanSupplier;
 /**
  * KEEP-AWAKE + tick-health telemetry + chunk-system housekeeping for the pre-gen path.
  *
- * <p>COG DRIFT (modern era): the idle-pause reset differs - pre-26 zeroes the @Shadow emptyTicks
- * field directly, whereas 26 routes through the MinecraftServerAccess seam accessor (setEmptyTicks).
+ * <p>COG DRIFT: the idle-pause reset differs - MC 1.21.2..1.21.11 zero the @Shadow emptyTicks field
+ * directly, 26 routes through the MinecraftServerAccess seam accessor (setEmptyTicks), and <1.21.2
+ * (the field does not exist yet) emits a no-op (keep-awake N/A).
  * The housekeeping @Inject binds at tickServer TAIL pre-26 vs the 26-only tickConnection()V INVOKE
  * hook. 26 also runs an extra ServerChunkCache.broadcastChangedChunks(ProfilerFiller) invoker that
  * older lines lack. All three are Cog-emitted from compat.py.
@@ -40,7 +41,8 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
 
     //[[[cog
     // import cog, compat
-    // # Pre-26 (non-ancient) needs the emptyTicks shadow field for the direct reset.
+    // # The emptyTicks idle-pause counter exists from MC 1.21.2 onward; pre-26 with the field
+    // # present needs the @Shadow for the direct reset (26 uses the accessor; <1.21.2 has no field).
     // if compat.needs_empty_ticks_shadow(mcver):
     //     cog.outl("    @Shadow")
     //     cog.outl("    private int emptyTicks;")

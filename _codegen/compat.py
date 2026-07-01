@@ -186,26 +186,52 @@ def has_chunk_storage_accessor(mcver):
     return era(mcver) != "modern_11plus"
 
 
+def has_empty_ticks(mcver):
+    """Does vanilla MinecraftServer carry the 'emptyTicks' idle-pause counter field?
+
+    NEW AXIS (independent of the era classification). The empty-server pause feature (the
+    pauseWhenEmptySeconds server property + the private int emptyTicks counter) landed at MC
+    1.21.2 (snapshot 24w33a). VERIFIED against the decompiled mojmap sources in MC-Java:
+    emptyTicks is ABSENT on 1.20.1/1.20.4/1.20.6/1.21/1.21.1 and FIRST PRESENT at 1.21.2
+    (present 1.21.2 onward: 1.21.2/1.21.3/1.21.4/1.21.8/1.21.10/1.21.11/26). GROUND TRUTH from the
+    OLD published cells confirms it: Fabric/1.20.6 + Fabric/1.21.1 carry NO @Shadow emptyTicks and
+    do NOT reset it (keep-awake N/A - "nothing to reset"); Fabric/1.21.4 DOES @Shadow it and
+    resets 'this.emptyTicks = 0'.
+
+    DISTINCT from the era axis (a version below 1.21.2 can be transitional, e.g. 1.20.6 / 1.21.1)
+    and from the 26-only setter axis (major>=26 routes the reset through the MinecraftServerAccess
+    seam accessor rather than the direct @Shadow field). So:
+      - major >= 26          : field present; reset via the accessor (has_empty_ticks True but
+                               needs_empty_ticks_shadow False -- 26 uses the accessor).
+      - 1.21.2 <= mcver < 26 : field present; reset via the direct @Shadow field.
+      - mcver < 1.21.2       : field ABSENT -> no @Shadow, no reset (no-op keep-awake), matching
+                               the pre-1.21.2 published cells.
+    """
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return True
+    return v >= (1, 21, 2)
+
+
 def empty_ticks_reset(mcver):
     """MinecraftServerMixin keep-awake reset of the idle counter.
 
-    1.21.8 (modern_pre11): direct @Shadow field 'this.emptyTicks = 0;'
-    26 (modern_11plus): via seam accessor '((MinecraftServerAccess) (Object) this).setEmptyTicks(0);'
-    (26 routes through the accessor because the shadow-field form was flaky under
-    its mixin/AT setup; both are equivalent.)
+    26 (major>=26): via seam accessor '((MinecraftServerAccess) (Object) this).setEmptyTicks(0);'
+      (26 routes through the accessor because the shadow-field form was flaky under its mixin/AT
+      setup; both are equivalent.)
+    1.21.2 <= mcver < 26: direct @Shadow field 'this.emptyTicks = 0;'
+    mcver < 1.21.2 (all ancient + pre-1.21.2 transitional): the emptyTicks field + empty-server
+      pause do NOT exist yet -> no-op (matches the old published 1.20.6 / 1.21.1 cells exactly).
     """
-    e = era(mcver)
     if _parse(mcver)[0] >= 26:
         # 26 routes through the MinecraftServerAccess seam accessor (26-only mixin).
         return "((MinecraftServerAccess) (Object) this).setEmptyTicks(0);"
-    if e in ("modern_pre11", "transitional", "modern_11plus"):
-        # pre-26 (incl 1.21.11): zero the @Shadow emptyTicks field directly. MinecraftServerAccess
-        # does NOT exist on 1.21.11, so the accessor form is 26-only.
+    if has_empty_ticks(mcver):
+        # 1.21.2 .. 1.21.11: zero the @Shadow emptyTicks field directly. MinecraftServerAccess
+        # does NOT exist pre-26, so the accessor form is 26-only.
         return "this.emptyTicks = 0;"
-    if e == "ancient":
-        # 1.20.1/1.20.4: the empty-server pause + emptyTicks field do NOT exist -> no-op.
-        return "// no idle-pause on this MC version (emptyTicks absent)"
-    return _stub("empty_ticks_reset", mcver)
+    # < 1.21.2: the empty-server pause + emptyTicks field do NOT exist -> no-op.
+    return "// no idle-pause on this MC version (emptyTicks absent)"
 
 
 def housekeeping_inject_at(mcver):
@@ -225,13 +251,17 @@ def housekeeping_inject_at(mcver):
 def needs_empty_ticks_shadow(mcver):
     """Does MinecraftServerMixin need a @Shadow private int emptyTicks; field?
 
-    Needed whenever empty_ticks_reset() references the shadow field directly: every pre-26
-    non-ancient line, INCLUDING 1.21.11 (modern_11plus but pre-26, so no MinecraftServerAccess).
-    26 uses the accessor; ancient (1.20.1/1.20.4) has no such field.
+    Needed only when empty_ticks_reset() references the shadow field DIRECTLY: the emptyTicks
+    field exists (has_empty_ticks) AND we are pre-26 (26 zeroes it through the
+    MinecraftServerAccess seam accessor instead). So this is True for 1.21.2 <= mcver < 26 and
+    False otherwise -- False on 26 (accessor), False below 1.21.2 (field absent: 1.20.1/1.20.4
+    ancient, plus 1.20.6 / 1.21 / 1.21.1 transitional). A @Shadow of a nonexistent field is a
+    RUNTIME mixin-apply FATAL ("@Shadow field emptyTicks not located"), which is exactly the
+    smoketest failure this axis fixes.
     """
     if _parse(mcver)[0] >= 26:
         return False
-    return era(mcver) in ("modern_pre11", "transitional", "modern_11plus")
+    return has_empty_ticks(mcver)
 
 
 def broadcast_changed_chunks_call(mcver):
