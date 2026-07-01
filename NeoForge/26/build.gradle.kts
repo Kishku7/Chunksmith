@@ -34,13 +34,19 @@ allprojects {
     }
 }
 
-// NeoForge variant for MC 26.2 — ModDevGradle toolchain (matches the other Kishku7 mods' 26.2
+// NeoForge variant for MC 26.2 -- ModDevGradle toolchain (matches the other Kishku7 mods' 26.2
 // NeoForge builds + chunksmith's own NeoForge/1.20.6). MDG self-manages the neoforged maven and
 // builds against public neoforge 26.2.0.1-beta, unlike neo-loom 1.16 (cannot resolve 26.2 userdev).
 // JDK 25, mojmap-native, NO mixin AP / NO refmap.
 
 val neoforgeVersion = (project.findProperty("neoforgeVersion") ?: "26.2.0.1-beta").toString()
 val mixinVersion = "0.8.5"
+// Resource pack_format is per-26.X (26.1=84, 26.2=88); build-all overrides via PACK_FORMAT so each
+// emitted jar carries its own correct value. On MC 26 the SERVER_DATA lastPreMinorVersion is 81, so
+// ANY pack_format > 81 (all 26.x) triggers the strict parser's mandatory min_format/max_format demand
+// -- the pack.mcmeta template therefore declares min_format=max_format=pack_format (an exact single-
+// format range) so each jar validates on the strict NeoForge datapack path. Default = 26.2.
+val packFormat = (System.getenv("PACK_FORMAT") ?: "88")
 
 neoForge {
     version = neoforgeVersion
@@ -64,6 +70,7 @@ dependencies {
 tasks {
     processResources {
         inputs.property("version", project.version)
+        inputs.property("packFormat", packFormat)
         filesMatching("META-INF/neoforge.mods.toml") {
             expand(
                 "github" to project.property("github")!!,
@@ -75,6 +82,9 @@ tasks {
                 "neoforgeRange" to (System.getenv("NEOFORGE_RANGE") ?: "[26.2.0-alpha,)"),
                 "mcRange" to (System.getenv("MC_RANGE") ?: "[26.2,)")
             )
+        }
+        filesMatching("pack.mcmeta") {
+            expand("packFormat" to packFormat)
         }
     }
     shadowJar {

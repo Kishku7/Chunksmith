@@ -51,6 +51,12 @@ val shade: Configuration by configurations.creating
 val mcVersion = (project.findProperty("mcVersion") ?: "26.3-snapshot-1").toString()
 val fabricApiVersion = (project.findProperty("fabricApiVersion") ?: "0.153.1+26.3").toString()
 val mcDep = (System.getenv("MC_DEP") ?: ">=26.3-")
+// Resource pack_format is per-26.X (26.1=84, 26.2=88, 26.3=90); build-all overrides via
+// PACK_FORMAT so each emitted jar carries its own correct value. Above the MC 26 SERVER_DATA
+// lastPreMinorVersion (81) the strict pack.mcmeta parser REQUIRES min_format/max_format, so the
+// pack.mcmeta template declares min_format=max_format=pack_format (an exact single-format range).
+// Default = 26.3 (dev tip).
+val packFormat = (System.getenv("PACK_FORMAT") ?: "90")
 
 sourceSets["main"].java.srcDir("../../shared_minecraft/src/main/java")
 
@@ -71,6 +77,7 @@ loom {
 
 tasks {
     processResources {
+        inputs.property("packFormat", packFormat)
         filesMatching("fabric.mod.json") {
             expand(
                 "id" to project.property("modId")!!,
@@ -81,6 +88,9 @@ tasks {
                 "github" to project.property("github")!!,
                 "mcDep" to mcDep
             )
+        }
+        filesMatching("pack.mcmeta") {
+            expand("packFormat" to packFormat)
         }
     }
     shadowJar {

@@ -1,6 +1,8 @@
 {
   "pack": {
     "description": "Chunksmith resources",
-    "pack_format": 88
+    "pack_format": ${packFormat},
+    "min_format": ${packFormat},
+    "max_format": ${packFormat}
   }
 }
