@@ -48,7 +48,7 @@ import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
 
 @Mod(ChunkyForge.MOD_ID)
-public class ChunkyForge {
+public final class ChunkyForge {
     public static final String MOD_ID = "chunksmith";
     public static final boolean ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise");
     private Chunky chunky;

@@ -30,7 +30,7 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
 
     @Override
     public World getWorld() {
-        return new NeoForgeWorld((ServerLevel) player.level());
+        return new NeoForgeWorld(player.level());
     }
 
     @Override

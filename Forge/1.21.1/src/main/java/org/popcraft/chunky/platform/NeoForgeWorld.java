@@ -141,6 +141,8 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
+    // isSolid() is @Deprecated in vanilla with no public non-deprecated equivalent; retained for surface detection.
+    @SuppressWarnings("deprecation")
     public int getElevation(final int x, final int z) {
         final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
         final int logicalHeight = world.getLogicalHeight();
