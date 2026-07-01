@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "${description}",
+  "authors": [
+    "${author}"
+  ],
+  "contributors": [
+    "pop4959 (original Chunky author)"
+  ],
+  "contact": {
+    "website": "${github}",
+    "homepage": "${github}",
+    "repo": "${github}",
+    "sources": "${github}",
+    "issues": "${github}/issues"
+  },
+  "license": "GPLv3",
+  "icon": "assets/chunksmith/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.kishku7.chunksmith.ChunksmithFabric"
+    ]
+  },
+  "mixins": [
+    "chunksmith.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": ">=1.20.2 <1.20.5",
+    "java": ">=17"
+  }
+}
