@@ -5,7 +5,14 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.status.ChunkStep;
+//[[[cog
+// import cog, compat
+// if compat.worldgen_uses_chunkstep(mcver):
+//     cog.outl('import net.minecraft.world.level.chunk.status.ChunkStep;')
+// else:
+//     cog.outl('import net.minecraft.world.level.chunk.status.ChunkStatus;')
+//]]]
+//[[[end]]]
 import com.kishku7.chunksmith.util.WorldgenOverreachReporter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,9 +36,21 @@ import java.util.function.Supplier;
  */
 @Mixin(WorldGenRegion.class)
 public abstract class WorldGenRegionMixin {
-    @Shadow
-    @Final
-    private ChunkStep generatingStep;
+    //[[[cog
+    // import cog, compat
+    // if compat.worldgen_uses_chunkstep(mcver):
+    //     cog.outl('    @Shadow')
+    //     cog.outl('    @Final')
+    //     cog.outl('    private ChunkStep generatingStep;')
+    // else:
+    //     cog.outl('    @Shadow')
+    //     cog.outl('    @Final')
+    //     cog.outl('    private ChunkStatus generatingStatus;')
+    //     cog.outl('    @Shadow')
+    //     cog.outl('    @Final')
+    //     cog.outl('    private int writeRadiusCutoff;')
+    //]]]
+    //[[[end]]]
     @Shadow
     @Final
     private ServerLevel level;
@@ -54,14 +73,28 @@ public abstract class WorldGenRegionMixin {
         // ensureCanWrite still returns false on its own - only the log line is intercepted.
         try {
             final String feature = this.currentlyGenerating == null ? null : String.valueOf(this.currentlyGenerating.get());
-            final String step = String.valueOf(this.generatingStep.targetStatus());
+            //[[[cog
+            // import cog, compat
+            // if compat.worldgen_uses_chunkstep(mcver):
+            //     cog.outl('final String step = String.valueOf(this.generatingStep.targetStatus());')
+            // else:
+            //     cog.outl('final String step = String.valueOf(this.generatingStatus);')
+            //]]]
+            //[[[end]]]
             //[[[cog
             // import cog, compat
             // cog.outl('final String dimension = this.level.dimension().%s().toString();' % compat.dimension_identifier_call(mcver))
             //]]]
             //[[[end]]]
             final ChunkPos center = this.getCenter();
-            final int writeRadius = this.generatingStep.blockStateWriteRadius();
+            //[[[cog
+            // import cog, compat
+            // if compat.worldgen_uses_chunkstep(mcver):
+            //     cog.outl('final int writeRadius = this.generatingStep.blockStateWriteRadius();')
+            // else:
+            //     cog.outl('final int writeRadius = this.writeRadiusCutoff;')
+            //]]]
+            //[[[end]]]
             //[[[cog
             // import cog, compat
             // cog.outl('WorldgenOverreachReporter.get().record(')

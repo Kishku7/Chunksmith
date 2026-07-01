@@ -297,6 +297,19 @@ def needs_inactive_profiler_import(mcver):
 # right shape via the helpers below.
 # ---------------------------------------------------------------------------
 
+def worldgen_uses_chunkstep(mcver):
+    """WorldGenRegion generation-step shape: 1.21.*+ carries a single ChunkStep record
+    (generatingStep, with .targetStatus() + .blockStateWriteRadius()); 1.20.* carries the older
+    two-field form (ChunkStatus generatingStatus + int writeRadiusCutoff). ChunkStep did not
+    exist on the 1.20 line. Keyed on major/minor (1.21+ vs 1.20.*), same boundary as the
+    Hanging->BlockAttached rename -- it cuts THROUGH the transitional era (1.20.6 = two-field,
+    1.21.1 = ChunkStep)."""
+    v = _parse(mcver)
+    if v[0] == 1 and v[1] == 20:
+        return False
+    return True
+
+
 def registry_lookup_call(mcver):
     """RegistryAccess registry fetch method: registryOrThrow (ancient+transitional, <=1.21.1) vs
     lookupOrThrow (modern, >=1.21.4). registryAccess().registryOrThrow(...) was renamed to
