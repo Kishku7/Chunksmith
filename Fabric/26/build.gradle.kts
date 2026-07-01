@@ -52,7 +52,7 @@ val mcVersion = (project.findProperty("mcVersion") ?: "26.3-snapshot-1").toStrin
 val fabricApiVersion = (project.findProperty("fabricApiVersion") ?: "0.153.1+26.3").toString()
 val mcDep = (System.getenv("MC_DEP") ?: ">=26.3-")
 
-sourceSets["main"].java.srcDir("../shared_minecraft/src/main/java")
+sourceSets["main"].java.srcDir("../../shared_minecraft/src/main/java")
 
 dependencies {
     minecraft(group = "com.mojang", name = "minecraft", version = mcVersion)

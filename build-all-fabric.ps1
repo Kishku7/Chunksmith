@@ -3,7 +3,7 @@
 param([string[]]$Versions)
 $ErrorActionPreference = "Stop"
 $repo   = Split-Path -Parent $MyInvocation.MyCommand.Path
-$fabric = Join-Path $repo "Fabric"
+$fabric = Join-Path $repo "Fabric\26"
 $dist   = Join-Path $repo "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 

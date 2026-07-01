@@ -53,7 +53,7 @@ neoForge {
 
 val shade: Configuration by configurations.creating
 
-sourceSets["main"].java.srcDir("../shared_minecraft/src/main/java")
+sourceSets["main"].java.srcDir("../../shared_minecraft/src/main/java")
 
 dependencies {
     compileOnly("org.spongepowered:mixin:$mixinVersion")
