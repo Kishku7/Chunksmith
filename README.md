@@ -82,9 +82,12 @@ platform already provides. See `Plugin/README.md` and `.docs/plugin-api-parity.m
 
 ## Build
 
-    pwsh build-all-fabric.ps1       # Fabric, all 26.x targets -> dist/
-    pwsh build-all-neoforge.ps1     # NeoForge 26.1 + 26.2 -> dist/
-    cd Plugin && ./gradlew build    # plugin -> Plugin/bukkit/build/libs/
+    pwsh scripts/build-fabric.ps1     # Fabric: every cell (1.20.1..1.21.11) + the 26 line -> dist/
+    pwsh scripts/build-neoforge.ps1   # NeoForge: every cell + 26.1/26.2 -> dist/
+    pwsh scripts/build-forge.ps1      # Forge: every cell (1.20.1..1.21.11; no 26) -> dist/
+    pwsh scripts/build-plugin.ps1     # plugin: 1.20.x / 1.21.x / 26.x jars -> dist/
+
+Each build script takes an optional version filter, e.g. `pwsh scripts/build-fabric.ps1 26.2`.
 
 ## Credits
 

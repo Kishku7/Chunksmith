@@ -40,7 +40,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = $PSScriptRoot
+$repoRoot = Split-Path $PSScriptRoot -Parent   # cog-gen.ps1 lives in scripts/; repo root is one up
 $codegen  = Join-Path $repoRoot '_codegen'
 $cogSrc   = Join-Path $codegen 'cog_sources'
 

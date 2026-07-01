@@ -308,3 +308,8 @@ _build_*.pid
 
 # Cog-generated per-cell shared_minecraft source (reproducible via cog-gen.ps1); never committed.
 **/gen/
+# Local-only publish/release/stage helpers under scripts/ (read credentials; never committed).
+# The tracked build tooling (build-*.ps1, cog-gen.ps1) lives alongside them and IS committed.
+scripts/_publish_*.py
+scripts/_release_*.py
+scripts/build-stage.ps1
