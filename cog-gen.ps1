@@ -68,12 +68,14 @@ Copy-Item -Recurse -Force (Join-Path $sharedJava '*') $genJava
 # Each entry is: cog_source basename => destination path RELATIVE to gen java root.
 # These files carry Cog markers; the plain shared copies are replaced so cog can process them.
 $driftMap = [ordered]@{
-    'ServerChunkCacheMixin.java'      = 'com/kishku7/chunksmith/mixin/ServerChunkCacheMixin.java'
-    'WorldGenRegionMixin.java'        = 'com/kishku7/chunksmith/mixin/WorldGenRegionMixin.java'
-    'StructureStartMixin.java'        = 'com/kishku7/chunksmith/mixin/StructureStartMixin.java'
-    'MinecraftServerMixin.java'       = 'com/kishku7/chunksmith/mixin/MinecraftServerMixin.java'
-    'BossBarTaskFinishListener.java'  = 'com/kishku7/chunksmith/listeners/bossbar/BossBarTaskFinishListener.java'
-    'BossBarTaskUpdateListener.java'  = 'com/kishku7/chunksmith/listeners/bossbar/BossBarTaskUpdateListener.java'
+    'ServerChunkCacheMixin.java'                = 'com/kishku7/chunksmith/mixin/ServerChunkCacheMixin.java'
+    'WorldGenRegionMixin.java'                  = 'com/kishku7/chunksmith/mixin/WorldGenRegionMixin.java'
+    'StructureStartMixin.java'                  = 'com/kishku7/chunksmith/mixin/StructureStartMixin.java'
+    'MinecraftServerMixin.java'                 = 'com/kishku7/chunksmith/mixin/MinecraftServerMixin.java'
+    'IOWorkerAccessor.java'                     = 'com/kishku7/chunksmith/mixin/IOWorkerAccessor.java'
+    'PersistentEntitySectionManagerMixin.java'  = 'com/kishku7/chunksmith/mixin/PersistentEntitySectionManagerMixin.java'
+    'BossBarTaskFinishListener.java'            = 'com/kishku7/chunksmith/listeners/bossbar/BossBarTaskFinishListener.java'
+    'BossBarTaskUpdateListener.java'            = 'com/kishku7/chunksmith/listeners/bossbar/BossBarTaskUpdateListener.java'
 }
 foreach ($name in $driftMap.Keys) {
     $src = Join-Path $cogSrc $name
@@ -87,6 +89,7 @@ Push-Location $codegen
 try {
     $hasChunkStorage = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_chunk_storage_accessor('$McVer') else '0')")
     $hasMcServerAcc  = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_minecraft_server_access('$McVer') else '0')")
+    $hangingClass    = (& python -c "import compat,sys; sys.stdout.write(compat.hanging_entity_class('$McVer'))")
     $compatLevel     = (& python -c "import compat,sys; v=compat._parse('$McVer'); sys.stdout.write('JAVA_17' if (v[0]>=26 or v[0]==1 and v[1]<=20) else 'JAVA_21')")
 } finally {
     Pop-Location
@@ -109,6 +112,23 @@ if ($hasMcServerAcc -eq '1') {
 } else {
     if (Test-Path $mcServerAccDst) { Remove-Item -Force $mcServerAccDst }
     Write-Host "[cog-gen] - MinecraftServerAccess (absent on $McVer)"
+}
+
+# --- Hanging / BlockAttached presence swap (invalid-position log suppressor). ---
+# shared_minecraft carries the 1.21.*+ shape (BlockAttachedEntityMixin, @Mixin BlockAttachedEntity).
+# On the 1.20.* line the target class is HangingEntity, so swap in the HangingEntityMixin cog_source
+# (same @Redirect body) and drop BlockAttachedEntityMixin. Both are Cog-processed (no markers today,
+# but running cog is harmless and keeps them uniform if markers are added later).
+$blockAttachedDst = Join-Path $genJava (Join-Path $mixinPkg 'BlockAttachedEntityMixin.java')
+$hangingDst       = Join-Path $genJava (Join-Path $mixinPkg 'HangingEntityMixin.java')
+if ($hangingClass -eq 'HangingEntity') {
+    if (Test-Path $blockAttachedDst) { Remove-Item -Force $blockAttachedDst }
+    Copy-Item -Force (Join-Path $cogSrc 'HangingEntityMixin.java') $hangingDst
+    Write-Host "[cog-gen] + HangingEntityMixin / - BlockAttachedEntityMixin (1.20.* target on $McVer)"
+} else {
+    if (Test-Path $hangingDst) { Remove-Item -Force $hangingDst }
+    # BlockAttachedEntityMixin already present from shared_minecraft; leave it.
+    Write-Host "[cog-gen] + BlockAttachedEntityMixin (1.21.*+ target on $McVer)"
 }
 
 # --- Step 5: run Cog over the drift files (compat.py on PYTHONPATH via the -D define) ---

@@ -279,6 +279,117 @@ def needs_inactive_profiler_import(mcver):
 
 
 # ---------------------------------------------------------------------------
+# AXIS A -- IOWorker executor primitive (drift matrix section 2b/2c).
+#
+#   LEGACY (mailbox)  : ancient + transitional  (MC 1.20.1 .. 1.21.1/1.21.3)
+#       field  mailbox            : ProcessorMailbox<StrictQueue.IntRunnable>
+#       pendingWrites             : java.util.Map
+#       submit  mailbox.tell(new StrictQueue.IntRunnable(0, () -> {...})) + own CompletableFuture
+#   MODERN (executor) : modern_pre11 + modern_11plus (MC 1.21.4 .. 26)
+#       field  consecutiveExecutor: PriorityConsecutiveExecutor
+#       pendingWrites             : java.util.SequencedMap
+#       submit  executor.<Boolean>scheduleWithResult(0, result -> {...})
+#
+# These two shapes were byte-IDENTICAL from 1.21.4 through 26, so the shared_minecraft
+# copies (IOWorkerAccessor, PersistentEntitySectionManagerMixin) carry the MODERN form
+# verbatim and were NOT previously Cog'd. Wiring the transitional/ancient eras makes the
+# executor primitive a real Cog axis; the cog_sources copies of those two files select the
+# right shape via the helpers below.
+# ---------------------------------------------------------------------------
+
+def use_mailbox_executor(mcver):
+    """True on the LEGACY (ProcessorMailbox) IOWorker eras (ancient + transitional), False on
+    the MODERN (PriorityConsecutiveExecutor) eras (modern_pre11 + modern_11plus)."""
+    return era(mcver) in ("ancient", "transitional")
+
+
+def ioworker_executor_field(mcver):
+    """The @Accessor("...") field name for the IOWorker single-thread executor."""
+    return "mailbox" if use_mailbox_executor(mcver) else "consecutiveExecutor"
+
+
+def ioworker_executor_type(mcver):
+    """The declared Java type of the IOWorker executor accessor return value."""
+    if use_mailbox_executor(mcver):
+        return "ProcessorMailbox<StrictQueue.IntRunnable>"
+    return "PriorityConsecutiveExecutor"
+
+
+def ioworker_executor_getter(mcver):
+    """The IOWorkerAccessor getter name for the executor (kept role-descriptive per era)."""
+    return "chunksmith$getMailbox" if use_mailbox_executor(mcver) else "chunksmith$getConsecutiveExecutor"
+
+
+def pending_writes_type(mcver):
+    """The declared Java type of the IOWorker pendingWrites map: Map (legacy) vs SequencedMap (modern).
+
+    This is a real vanilla field-type change (LinkedHashMap declared as Map pre-1.21.4, as
+    SequencedMap from 1.21.4), not just our accessor declaration.
+    """
+    return "Map" if use_mailbox_executor(mcver) else "SequencedMap"
+
+
+def ioworker_executor_imports(mcver):
+    """The import lines the IOWorker executor primitive needs, as a list (order-stable).
+
+    Legacy: ProcessorMailbox + StrictQueue.
+    Modern: PriorityConsecutiveExecutor.
+    (The pendingWrites map import is emitted separately via pending_writes_import.)
+    """
+    if use_mailbox_executor(mcver):
+        return [
+            "import net.minecraft.util.thread.ProcessorMailbox;",
+            "import net.minecraft.util.thread.StrictQueue;",
+        ]
+    return [
+        "import net.minecraft.util.thread.PriorityConsecutiveExecutor;",
+    ]
+
+
+def pending_writes_import(mcver):
+    """The single java.util import line for the pendingWrites map type (Map vs SequencedMap)."""
+    return "import java.util.%s;" % pending_writes_type(mcver)
+
+
+# ---------------------------------------------------------------------------
+# EntityStorage worker reach (drift matrix section 2a) -- AXIS B entity side.
+#   ancient (1.20.1/1.20.4): @Accessor("worker") -> IOWorker (no SimpleRegionStorage layer)
+#   transitional .. 26      : @Accessor("simpleRegionStorage") -> SimpleRegionStorage
+# The transitional+modern eras are identical here (SRS); only ancient differs. Wired so the
+# ancient batch can slot in without reshaping the EntityStorageAccessor cog_source.
+# ---------------------------------------------------------------------------
+
+def entity_storage_uses_srs(mcver):
+    """True when EntityStorage exposes 'simpleRegionStorage' (SimpleRegionStorage layer present:
+    transitional and newer); False on ancient where it directly holds the 'worker' IOWorker."""
+    return era(mcver) != "ancient"
+
+
+# ---------------------------------------------------------------------------
+# Hanging / BlockAttached entity mixin (drift matrix section 1 presence anomaly).
+#   1.20.* : @Mixin(HangingEntity)        -> HangingEntityMixin
+#   1.21.*+: @Mixin(BlockAttachedEntity)  -> BlockAttachedEntityMixin
+# Same @Redirect body + role; only the target class + file name differ. Keyed on major/minor,
+# NOT era (the boundary is 1.20.2, i.e. 1.21+ vs 1.20.*, which cuts THROUGH the transitional
+# era: 1.20.6 is Hanging, 1.21.1 is BlockAttached).
+# ---------------------------------------------------------------------------
+
+def hanging_entity_class(mcver):
+    """The target class for the invalid-position log suppressor: HangingEntity (1.20.*) vs
+    BlockAttachedEntity (1.21.*+). Mojang moved the save+log logic up to the new
+    BlockAttachedEntity superclass at 1.20.2."""
+    v = _parse(mcver)
+    if v[0] == 1 and v[1] == 20:
+        return "HangingEntity"
+    return "BlockAttachedEntity"
+
+
+def hanging_mixin_basename(mcver):
+    """The mixin class/file base name matching hanging_entity_class()."""
+    return "%sMixin" % hanging_entity_class(mcver)
+
+
+# ---------------------------------------------------------------------------
 # Self-test: print the full matrix for the wired versions.
 # ---------------------------------------------------------------------------
 
