@@ -19,7 +19,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-public class TaskLoader {
+public final class TaskLoader {
     private final Chunksmith chunky;
     private final Path savePath;
     private final Map<String, Properties> tasks = new ConcurrentHashMap<>();

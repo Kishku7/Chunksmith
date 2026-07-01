@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-public class GsonConfig implements Config {
+public final class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Logger LOGGER = Logger.getLogger("Chunksmith");
     // Target ms/tick the throttle steers toward. A healthy 20 TPS server measures ~50 ms,

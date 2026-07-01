@@ -113,6 +113,10 @@ public class BukkitPlayer extends BukkitSender implements Player {
     }
 
     @Override
+    // Legacy Spigot action-bar fallback (guarded by ACTION_BAR_SUPPORTED): TextComponent.fromLegacyText
+    // is deprecated in favour of Adventure, but this pre-Adventure branch must keep the BungeeCord chat
+    // API for the older servers it targets.
+    @SuppressWarnings("deprecation")
     public void sendActionBar(final String key) {
         if (ACTION_BAR_SUPPORTED) {
             final String message = formatColored(translateKey(key, false));

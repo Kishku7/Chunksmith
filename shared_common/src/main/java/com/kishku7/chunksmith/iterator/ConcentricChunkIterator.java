@@ -28,13 +28,13 @@ public class ConcentricChunkIterator implements ChunkIterator {
         this.z += annulus;
         this.span = 2 * annulus;
         long perimeterCount = count - ((long) diameterFinished * diameterFinished) + 1;
-        this.down += Math.min(span, perimeterCount);
+        this.down += (int) Math.min(span, perimeterCount);
         perimeterCount -= Math.min(span, perimeterCount);
-        this.left += Math.min(span, perimeterCount);
+        this.left += (int) Math.min(span, perimeterCount);
         perimeterCount -= Math.min(span, perimeterCount);
-        this.up += Math.min(span, perimeterCount);
+        this.up += (int) Math.min(span, perimeterCount);
         perimeterCount -= Math.min(span, perimeterCount);
-        this.right += Math.min(span, perimeterCount);
+        this.right += (int) Math.min(span, perimeterCount);
         this.x += right - left;
         this.z += up - down;
         if (annulus > radiusChunks) {

@@ -1,5 +1,22 @@
 # Chunksmith Changelog
 
+## 2.1.3
+
+### Minecraft 26.3-snapshot-2 support
+
+Adds Fabric support for 26.3-snapshot-2. This build covers BOTH 26.3-snapshot-1 and 26.3-snapshot-2,
+so snapshot-1 users should upgrade. It is a pure dependency bump: no worldgen or mixin logic changed
+(verified against the 26.3-snapshot-1 -> snapshot-2 decompiled source diff -- the snapshot-2 worldgen
+refactor does not touch any Chunksmith injection point).
+
+### Packaging + build hygiene
+
+- Every jar now ships a correct per-version `pack.mcmeta` (added the missing Fabric resource metadata;
+  corrected the NeoForge `pack_format`).
+- The mod and plugin now compile clean under `-Xlint:all` with zero warnings. These are behavior-
+  preserving changes only (final classes, explicit numeric casts, a non-deprecated permission API call,
+  and justified suppressions for intentional cross-version Bukkit/Paper API use).
+
 ## 2.1.2
 
 ### Fixed: worldgen entities (mobs, item frames, armor stands, etc.) could fail to save

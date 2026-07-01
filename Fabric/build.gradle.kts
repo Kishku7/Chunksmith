@@ -29,7 +29,7 @@ allprojects {
         withType<JavaCompile> {
             options.encoding = "UTF-8"
             options.release = 25
-            options.compilerArgs.add("-Xlint:none")
+            options.compilerArgs.add("-Xlint:all")
         }
         jar {
             archiveClassifier.set("noshade")

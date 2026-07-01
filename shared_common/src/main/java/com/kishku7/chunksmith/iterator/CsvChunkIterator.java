@@ -14,7 +14,7 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
-public class CsvChunkIterator implements ChunkIterator {
+public final class CsvChunkIterator implements ChunkIterator {
     private final Queue<ChunkCoordinate> chunks;
     private final long total;
     private final String name;

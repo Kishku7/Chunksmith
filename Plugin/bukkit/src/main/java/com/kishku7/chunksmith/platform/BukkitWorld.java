@@ -213,6 +213,9 @@ public class BukkitWorld implements World {
     }
 
     @Override
+    // Sound.valueOf is deprecated (Sound became a registry interface) but retained for cross-version
+    // string->Sound lookup; the Registry-based replacement is absent on older targeted servers.
+    @SuppressWarnings("deprecation")
     public void playSound(final Player player, final String sound) {
         final Sound soundType;
         try {

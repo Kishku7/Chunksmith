@@ -30,8 +30,8 @@ public class SpiralChunkIterator implements ChunkIterator {
         this.x += radiusFinished + 1;
         this.z += radiusFinished;
         long perimeterCount = count - (long) diameterFinished * diameterFinished;
-        long spanned;
-        spanned = Math.min(span, perimeterCount);
+        int spanned;
+        spanned = (int) Math.min(span, perimeterCount);
         this.z -= spanned;
         if (spanned == span) {
             ++span;
@@ -41,7 +41,7 @@ public class SpiralChunkIterator implements ChunkIterator {
             spanProgress += spanned;
         }
         perimeterCount -= spanned;
-        spanned = Math.min(span, perimeterCount);
+        spanned = (int) Math.min(span, perimeterCount);
         this.x -= spanned;
         if (spanned == span) {
             spanCount = 1;
@@ -50,7 +50,7 @@ public class SpiralChunkIterator implements ChunkIterator {
             spanProgress += spanned;
         }
         perimeterCount -= spanned;
-        spanned = Math.min(span, perimeterCount);
+        spanned = (int) Math.min(span, perimeterCount);
         this.z += spanned;
         if (spanned == span) {
             ++span;
@@ -60,7 +60,7 @@ public class SpiralChunkIterator implements ChunkIterator {
             spanProgress += spanned;
         }
         perimeterCount -= spanned;
-        spanned = Math.min(span, perimeterCount);
+        spanned = (int) Math.min(span, perimeterCount);
         this.x += spanned;
         if (spanned == span) {
             spanCount = 1;

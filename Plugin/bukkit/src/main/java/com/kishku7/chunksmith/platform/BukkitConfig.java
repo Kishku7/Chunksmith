@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-public class BukkitConfig implements Config {
+public final class BukkitConfig implements Config {
     private static final List<String> HEADER = Arrays.asList("Chunksmith Configuration", "https://github.com/pop4959/Chunksmith/wiki/Configuration");
     private final ChunksmithBukkit plugin;
 

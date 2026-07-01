@@ -47,7 +47,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Chunksmith {
+public final class Chunksmith {
     private final Server server;
     private final Config config;
     private final TaskLoader taskLoader;

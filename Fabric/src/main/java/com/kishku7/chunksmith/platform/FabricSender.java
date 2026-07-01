@@ -60,7 +60,7 @@ public class FabricSender implements Sender {
     public boolean hasPermission(final String permission, final boolean defaultOp) {
         if (HAS_PERMISSIONS) {
             if (defaultOp) {
-                return Permissions.check(source, permission, 2);
+                return Permissions.check(source, permission, source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
             } else {
                 return Permissions.check(source, permission, false);
             }

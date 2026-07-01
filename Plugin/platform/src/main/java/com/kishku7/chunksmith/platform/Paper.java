@@ -34,6 +34,10 @@ public final class Paper {
         return entity.teleportAsync(location);
     }
 
+    // RETAIN_PASSENGERS/RETAIN_VEHICLE are @Deprecated(forRemoval) in newer Paper but kept intentionally:
+    // they are required to retain passengers/vehicle on the Paper versions this jar targets, with no
+    // cross-version-safe replacement available yet.
+    @SuppressWarnings("removal")
     public static CompletableFuture<Boolean> teleportAsyncWithPassengers(final Entity entity, final Location location) {
         return entity.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
     }
