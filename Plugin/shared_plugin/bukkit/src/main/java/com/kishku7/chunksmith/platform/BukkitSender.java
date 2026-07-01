@@ -13,18 +13,21 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 
 public class BukkitSender implements Sender {
     private static final Pattern RGB_PATTERN = Pattern.compile("&#[0-9a-fA-F]{6}");
-    private static final boolean RGB_COLORS_SUPPORTED;
+    private static final boolean RGB_COLORS_SUPPORTED = detectRgbSupport();
 
-    static {
-        boolean rgbSupported;
+    // net.md_5.bungee.api.ChatColor is deprecated on Paper/Folia (Adventure is preferred), but the
+    // legacy path is retained intentionally for cross-version '&#RRGGBB' hex-colour support, guarded
+    // by this runtime probe. There is no cross-version-safe non-deprecated replacement on the older
+    // servers these jars target.
+    @SuppressWarnings("deprecation")
+    private static boolean detectRgbSupport() {
         try {
             Class.forName("net.md_5.bungee.api.ChatColor");
             ChatColor.class.getMethod("of", String.class);
-            rgbSupported = true;
+            return true;
         } catch (ClassNotFoundException | NoSuchMethodException e) {
-            rgbSupported = false;
+            return false;
         }
-        RGB_COLORS_SUPPORTED = rgbSupported;
     }
 
     private final CommandSender sender;
@@ -63,6 +66,10 @@ public class BukkitSender implements Sender {
         sender.sendMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
+    // Legacy ChatColor usage (net.md_5.bungee hex + org.bukkit.ChatColor code translation) is
+    // deprecated on Paper/Folia but intentionally retained for cross-version colour output; no
+    // non-deprecated replacement exists across every targeted server version.
+    @SuppressWarnings("deprecation")
     protected String formatColored(final String message) {
         String coloredMessage = message;
         if (RGB_COLORS_SUPPORTED) {
