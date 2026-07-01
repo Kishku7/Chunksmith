@@ -305,3 +305,6 @@ build_output.txt
 _build_*.log
 _build_*.err
 _build_*.pid
+
+# Cog-generated per-cell shared_minecraft source (reproducible via cog-gen.ps1); never committed.
+**/gen/
