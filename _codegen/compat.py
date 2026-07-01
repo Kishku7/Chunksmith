@@ -387,6 +387,89 @@ def entity_storage_uses_srs(mcver):
     return era(mcver) != "ancient"
 
 
+def has_simple_region_storage_accessor(mcver):
+    """Is the SimpleRegionStorageAccessor (@Mixin SimpleRegionStorage) present?
+
+    The SimpleRegionStorage class landed at 1.20.5, so on ancient (1.20.1/1.20.4) the class
+    does NOT exist and the accessor cannot compile -> ABSENT there, PRESENT from transitional
+    onward. Same boolean as entity_storage_uses_srs but named for the file-presence concern
+    (cog-gen drops the file when False). On ancient the ChunkMap->worker path uses
+    ChunkStorageAccessor and the entity path reaches EntityStorage.worker directly, so nothing
+    references SimpleRegionStorage at all."""
+    return entity_storage_uses_srs(mcver)
+
+
+def entity_storage_accessor_type(mcver):
+    """EntityStorageAccessor @Accessor return type: IOWorker (ancient, direct 'worker' field) vs
+    SimpleRegionStorage (transitional+, the 'simpleRegionStorage' layer)."""
+    return "IOWorker" if not entity_storage_uses_srs(mcver) else "SimpleRegionStorage"
+
+
+def entity_storage_accessor_field(mcver):
+    """EntityStorageAccessor @Accessor("...") target field: 'worker' (ancient) vs
+    'simpleRegionStorage' (transitional+)."""
+    return "simpleRegionStorage" if entity_storage_uses_srs(mcver) else "worker"
+
+
+def entity_storage_accessor_getter(mcver):
+    """EntityStorageAccessor getter name (role-descriptive per era): chunksmith$getEntityWorker
+    (ancient, returns the IOWorker directly) vs chunksmith$getSimpleRegionStorage (transitional+)."""
+    return "chunksmith$getSimpleRegionStorage" if entity_storage_uses_srs(mcver) else "chunksmith$getEntityWorker"
+
+
+def entity_storage_accessor_import(mcver):
+    """The import line for the EntityStorageAccessor return type (IOWorker vs SimpleRegionStorage)."""
+    if entity_storage_uses_srs(mcver):
+        return "import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;"
+    return "import net.minecraft.world.level.chunk.storage.IOWorker;"
+
+
+# ---------------------------------------------------------------------------
+# ServerChunkCache getChunkFutureMainThread return type (drift matrix section 2f).
+#   ancient (1.20.1/1.20.4): Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>
+#                            (imports com.mojang.datafixers.util.Either + ChunkHolder)
+#   transitional .. 26     : ChunkResult<ChunkAccess>
+#                            (import net.minecraft.server.level.ChunkResult)
+# ChunkResult replaced the Either result at 1.20.5. Only the @Invoker declared return type +
+# its imports drift; the invoker is a structural @Invoker so it just needs the right signature
+# to bind. STRING-in-signature, so a reflection facade cannot help -> Cog.
+# ---------------------------------------------------------------------------
+
+def chunk_future_result_type(mcver):
+    """The generic return type of ServerChunkCache.getChunkFutureMainThread's CompletableFuture:
+    'Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>' (ancient) vs 'ChunkResult<ChunkAccess>'
+    (transitional+)."""
+    if era(mcver) == "ancient":
+        return "Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>"
+    return "ChunkResult<ChunkAccess>"
+
+
+def chunk_future_result_imports(mcver):
+    """The import lines the getChunkFutureMainThread return type needs, as a list (order-stable).
+
+    ancient: com.mojang.datafixers.util.Either + net.minecraft.server.level.ChunkHolder.
+    transitional+: net.minecraft.server.level.ChunkResult.
+    (ChunkAccess is imported unconditionally by the file.)"""
+    if era(mcver) == "ancient":
+        return [
+            "import com.mojang.datafixers.util.Either;",
+            "import net.minecraft.server.level.ChunkHolder;",
+        ]
+    return [
+        "import net.minecraft.server.level.ChunkResult;",
+    ]
+
+
+def chunkstatus_import(mcver):
+    """The import line for net.minecraft ChunkStatus. Mojang moved ChunkStatus into the
+    '...chunk.status' subpackage at 1.20.5 (same boundary as SimpleRegionStorage/ChunkResult).
+    ancient (1.20.1/1.20.4): net.minecraft.world.level.chunk.ChunkStatus
+    transitional+:           net.minecraft.world.level.chunk.status.ChunkStatus"""
+    if era(mcver) == "ancient":
+        return "import net.minecraft.world.level.chunk.ChunkStatus;"
+    return "import net.minecraft.world.level.chunk.status.ChunkStatus;"
+
+
 # ---------------------------------------------------------------------------
 # Hanging / BlockAttached entity mixin (drift matrix section 1 presence anomaly).
 #   1.20.* : @Mixin(HangingEntity)        -> HangingEntityMixin

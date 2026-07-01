@@ -10,7 +10,9 @@ import net.minecraft.world.level.ChunkPos;
 // if compat.worldgen_uses_chunkstep(mcver):
 //     cog.outl('import net.minecraft.world.level.chunk.status.ChunkStep;')
 // else:
-//     cog.outl('import net.minecraft.world.level.chunk.status.ChunkStatus;')
+//     # 1.20.* two-field form. ChunkStatus moved into the .status subpackage at 1.20.5, so
+//     # ancient (1.20.1/1.20.4) imports the bare package while transitional 1.20.6 uses .status.
+//     cog.outl(compat.chunkstatus_import(mcver))
 //]]]
 //[[[end]]]
 import com.kishku7.chunksmith.util.WorldgenOverreachReporter;

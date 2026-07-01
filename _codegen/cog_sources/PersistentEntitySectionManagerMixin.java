@@ -11,14 +11,22 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.storage.EntityStorage;
 //[[[cog
 // import cog, compat
-// # The LEGACY (mailbox) submit path holds the worker as an IOWorker local before casting to the
-// # accessor, so it needs the IOWorker import; the MODERN path casts inline and does not.
-// if compat.use_mailbox_executor(mcver):
+// # IOWorker local is declared when the reach-path holds the worker as an IOWorker before casting:
+// #  - ancient (direct EntityStorage.worker): always holds an IOWorker local.
+// #  - SRS + mailbox (transitional): holds an IOWorker local (rawWorker) before casting.
+// #  - SRS + executor (modern): casts inline, no IOWorker local.
+// if (not compat.entity_storage_uses_srs(mcver)) or compat.use_mailbox_executor(mcver):
 //     cog.outl("import net.minecraft.world.level.chunk.storage.IOWorker;")
 //]]]
 //[[[end]]]
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
-import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
+//[[[cog
+// import cog, compat
+// # SimpleRegionStorage only exists / is referenced on the SRS eras (transitional+).
+// if compat.entity_storage_uses_srs(mcver):
+//     cog.outl("import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;")
+//]]]
+//[[[end]]]
 import net.minecraft.world.level.entity.ChunkEntities;
 import net.minecraft.world.level.entity.EntityPersistentStorage;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
@@ -74,14 +82,21 @@ import java.util.concurrent.atomic.AtomicLong;
  * read+merge, so no entity is ever lost. Only a provably-empty chunk skips the read (returns an
  * immediately-completed empty result), which is where the RAM/stall win comes from.
  *
- * <p>COG DRIFT (AXIS A -- IOWorker executor primitive, drift matrix section 2c): the task-submit
- * primitive changed shape at MC 1.21.4. LEGACY (1.20.1 .. 1.21.3) drains the worker's single thread
- * via a {@code ProcessorMailbox}: we {@code mailbox.tell(new StrictQueue.IntRunnable(...))} and
- * complete our own future. MODERN (1.21.4 .. 26) uses a {@code PriorityConsecutiveExecutor}:
- * {@code executor.scheduleWithResult(...)} returns the future directly. Both submit onto the exact
- * same single thread that owns {@code pendingWrites}, so behaviour is identical; only the plumbing
- * differs. The {@code pendingWrites} local type ({@code Map} vs {@code SequencedMap}) follows the same
- * axis. Cog emits the correct shape per version (compat.use_mailbox_executor).
+ * <p>COG DRIFT: TWO independent axes cross here (drift matrix section 2c), giving three live body
+ * shapes.
+ * <ul>
+ *   <li>AXIS A -- executor primitive: LEGACY (1.20.1 .. 1.21.3) drains the worker's single thread via a
+ *       {@code ProcessorMailbox} ({@code mailbox.tell(new StrictQueue.IntRunnable(...))} + our own
+ *       future); MODERN (1.21.4 .. 26) uses a {@code PriorityConsecutiveExecutor}
+ *       ({@code executor.scheduleWithResult(...)} returns the future directly). The {@code pendingWrites}
+ *       local type ({@code Map} vs {@code SequencedMap}) follows this axis.</li>
+ *   <li>AXIS B -- worker reach: ANCIENT (1.20.1/1.20.4) reads {@code EntityStorage.worker} DIRECTLY
+ *       (no SimpleRegionStorage layer); TRANSITIONAL+ goes EntityStorage -> SimpleRegionStorage ->
+ *       worker.</li>
+ * </ul>
+ * Both submit onto the exact same single thread that owns {@code pendingWrites}, so behaviour is
+ * identical across all shapes; only the plumbing differs. Cog emits the correct shape per version
+ * (compat.use_mailbox_executor + compat.entity_storage_uses_srs).
  *
  * <p>DIAGNOSTICS: the {@code @Inject} into {@code tick} is gated behind {@link Debug#ENABLED} (toggled
  * by {@code /cs debug}); default OFF means it is a no-op and emits nothing.
@@ -122,14 +137,21 @@ public abstract class PersistentEntitySectionManagerMixin {
         //[[[end]]]
         final Path entityRegionFolder;
         try {
-            final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunksmith$getSimpleRegionStorage();
             //[[[cog
             // import cog, compat
-            // if compat.use_mailbox_executor(mcver):
-            //     cog.outl('            final IOWorker rawWorker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunksmith$getWorker();')
-            //     cog.outl('            final IOWorkerAccessor worker = (IOWorkerAccessor) (Object) rawWorker;')
+            // # AXIS B -- reach the IOWorker from the EntityStorage.
+            // if compat.entity_storage_uses_srs(mcver):
+            //     cog.outl('            final SimpleRegionStorage simpleRegionStorage = ((EntityStorageAccessor) permanentStorage).chunksmith$getSimpleRegionStorage();')
+            //     if compat.use_mailbox_executor(mcver):
+            //         cog.outl('            final IOWorker rawWorker = ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunksmith$getWorker();')
+            //         cog.outl('            final IOWorkerAccessor worker = (IOWorkerAccessor) (Object) rawWorker;')
+            //     else:
+            //         cog.outl('            final IOWorkerAccessor worker = (IOWorkerAccessor) (Object) ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunksmith$getWorker();')
             // else:
-            //     cog.outl('            final IOWorkerAccessor worker = (IOWorkerAccessor) (Object) ((SimpleRegionStorageAccessor) (Object) simpleRegionStorage).chunksmith$getWorker();')
+            //     # ANCIENT: EntityStorage holds its IOWorker directly (no SimpleRegionStorage layer).
+            //     cog.outl('            final IOWorker rawWorker = ((EntityStorageAccessor) permanentStorage).chunksmith$getEntityWorker();')
+            //     cog.outl('            final IOWorkerAccessor worker = (IOWorkerAccessor) (Object) rawWorker;')
+            // # AXIS A -- grab the executor primitive off the worker.
             // cog.outl('            executor = worker.%s();' % compat.ioworker_executor_getter(mcver))
             //]]]
             //[[[end]]]

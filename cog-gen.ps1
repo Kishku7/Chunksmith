@@ -73,6 +73,7 @@ $driftMap = [ordered]@{
     'StructureStartMixin.java'                  = 'com/kishku7/chunksmith/mixin/StructureStartMixin.java'
     'MinecraftServerMixin.java'                 = 'com/kishku7/chunksmith/mixin/MinecraftServerMixin.java'
     'IOWorkerAccessor.java'                     = 'com/kishku7/chunksmith/mixin/IOWorkerAccessor.java'
+    'EntityStorageAccessor.java'                = 'com/kishku7/chunksmith/mixin/EntityStorageAccessor.java'
     'PersistentEntitySectionManagerMixin.java'  = 'com/kishku7/chunksmith/mixin/PersistentEntitySectionManagerMixin.java'
     'BossBarTaskFinishListener.java'            = 'com/kishku7/chunksmith/listeners/bossbar/BossBarTaskFinishListener.java'
     'BossBarTaskUpdateListener.java'            = 'com/kishku7/chunksmith/listeners/bossbar/BossBarTaskUpdateListener.java'
@@ -88,6 +89,7 @@ foreach ($name in $driftMap.Keys) {
 Push-Location $codegen
 try {
     $hasChunkStorage = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_chunk_storage_accessor('$McVer') else '0')")
+    $hasSimpleRegionStorage = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_simple_region_storage_accessor('$McVer') else '0')")
     $hasMcServerAcc  = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_minecraft_server_access('$McVer') else '0')")
     $hangingClass    = (& python -c "import compat,sys; sys.stdout.write(compat.hanging_entity_class('$McVer'))")
     $compatLevel     = (& python -c "import compat,sys; v=compat._parse('$McVer'); sys.stdout.write('JAVA_17' if (v[0]>=26 or v[0]==1 and v[1]<=20) else 'JAVA_21')")
@@ -112,6 +114,17 @@ if ($hasMcServerAcc -eq '1') {
 } else {
     if (Test-Path $mcServerAccDst) { Remove-Item -Force $mcServerAccDst }
     Write-Host "[cog-gen] - MinecraftServerAccess (absent on $McVer)"
+}
+
+# SimpleRegionStorage landed at 1.20.5; on ancient (1.20.1/1.20.4) the class does not exist, so
+# SimpleRegionStorageAccessor cannot compile -> drop it there. Present transitional and newer.
+$simpleRegionStorageDst = Join-Path $genJava (Join-Path $mixinPkg 'SimpleRegionStorageAccessor.java')
+if ($hasSimpleRegionStorage -eq '1') {
+    Write-Host "[cog-gen] + SimpleRegionStorageAccessor (present on $McVer)"
+    # already copied from shared_minecraft; leave it.
+} else {
+    if (Test-Path $simpleRegionStorageDst) { Remove-Item -Force $simpleRegionStorageDst }
+    Write-Host "[cog-gen] - SimpleRegionStorageAccessor (absent on $McVer)"
 }
 
 # --- Hanging / BlockAttached presence swap (invalid-position log suppressor). ---
