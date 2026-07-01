@@ -120,23 +120,22 @@ def dimension_identifier_call(mcver):
 
 
 def chunkpos_x(mcver):
-    """ChunkPos x coord access: field 'x' (<=1.21.10) vs method 'x()' (1.21.11/26)."""
-    e = era(mcver)
-    if e == "modern_11plus":
+    """ChunkPos x coord access: field 'x' (<=1.21.11) vs method 'x()' (26+).
+
+    ChunkPos exposed x/z as PUBLIC FIELDS on every pre-26 line INCLUDING 1.21.11; the
+    accessor-method form (x()/z()) is a 26-only change. So this keys on major>=26, NOT the
+    era name (1.21.11 is modern_11plus but still uses the field).
+    """
+    if _parse(mcver)[0] >= 26:
         return "x()"
-    if e in ("modern_pre11", "transitional", "ancient"):
-        return "x"
-    return _stub("chunkpos_x", mcver)
+    return "x"
 
 
 def chunkpos_z(mcver):
-    """ChunkPos z coord access: field 'z' (<=1.21.10) vs method 'z()' (1.21.11/26)."""
-    e = era(mcver)
-    if e == "modern_11plus":
+    """ChunkPos z coord access: field 'z' (<=1.21.11) vs method 'z()' (26+). See chunkpos_x."""
+    if _parse(mcver)[0] >= 26:
         return "z()"
-    if e in ("modern_pre11", "transitional", "ancient"):
-        return "z"
-    return _stub("chunkpos_z", mcver)
+    return "z"
 
 
 def has_broadcast_changed_chunks(mcver):
@@ -173,9 +172,12 @@ def empty_ticks_reset(mcver):
     its mixin/AT setup; both are equivalent.)
     """
     e = era(mcver)
-    if e == "modern_11plus":
+    if _parse(mcver)[0] >= 26:
+        # 26 routes through the MinecraftServerAccess seam accessor (26-only mixin).
         return "((MinecraftServerAccess) (Object) this).setEmptyTicks(0);"
-    if e in ("modern_pre11", "transitional"):
+    if e in ("modern_pre11", "transitional", "modern_11plus"):
+        # pre-26 (incl 1.21.11): zero the @Shadow emptyTicks field directly. MinecraftServerAccess
+        # does NOT exist on 1.21.11, so the accessor form is 26-only.
         return "this.emptyTicks = 0;"
     if e == "ancient":
         # 1.20.1/1.20.4: the empty-server pause + emptyTicks field do NOT exist -> no-op.
@@ -200,10 +202,13 @@ def housekeeping_inject_at(mcver):
 def needs_empty_ticks_shadow(mcver):
     """Does MinecraftServerMixin need a @Shadow private int emptyTicks; field?
 
-    Only when empty_ticks_reset() references the shadow field directly (pre-26,
-    non-ancient). 26 uses the accessor; ancient has no such field.
+    Needed whenever empty_ticks_reset() references the shadow field directly: every pre-26
+    non-ancient line, INCLUDING 1.21.11 (modern_11plus but pre-26, so no MinecraftServerAccess).
+    26 uses the accessor; ancient (1.20.1/1.20.4) has no such field.
     """
-    return era(mcver) in ("modern_pre11", "transitional")
+    if _parse(mcver)[0] >= 26:
+        return False
+    return era(mcver) in ("modern_pre11", "transitional", "modern_11plus")
 
 
 def broadcast_changed_chunks_call(mcver):
@@ -237,19 +242,25 @@ def identifier_import(mcver):
 def gamemaster_permission_check(mcver, player_var):
     """Boss-bar visibility gate: does this player have gamemaster/op-level permission?
 
-    26 (modern_11plus): the new permissions API -
+    modern_11plus (1.21.11 AND 26): the new permissions API -
         player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
       (requires import net.minecraft.server.permissions.Permissions)
-    pre-26: the classic op-level check player.hasPermissions(2). No extra import.
+    The permissions() API + Permissions class landed at 1.21.11 and ServerPlayer.hasPermissions(int)
+    was REMOVED there, so this keys on the era (modern_11plus), NOT major>=26.
+    pre-1.21.11: the classic op-level check player.hasPermissions(2). No extra import.
     """
-    if _parse(mcver)[0] >= 26:
+    if era(mcver) == "modern_11plus":
         return "%s.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)" % player_var
     return "%s.hasPermissions(2)" % player_var
 
 
 def needs_permissions_import(mcver):
-    """Is the 26-only net.minecraft.server.permissions.Permissions import needed?"""
-    return _parse(mcver)[0] >= 26
+    """Is the net.minecraft.server.permissions.Permissions import needed?
+
+    Needed on modern_11plus (1.21.11 + 26), where the permissions() API is used. See
+    gamemaster_permission_check.
+    """
+    return era(mcver) == "modern_11plus"
 
 
 def server_boss_event_has_uuid_arg(mcver):
