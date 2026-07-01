@@ -40,6 +40,9 @@ tasks {
         manifest {
             attributes("paperweight-mappings-namespace" to "mojang")
         }
-        archiveFileName.set("${project.property("artifactName")}-Bukkit-${project.version}.jar")
+        // The one shipped plugin jar. A Bukkit plugin versions differently from the
+        // mod jars: ONE jar spans many MC versions (Paper api-version + folia-supported),
+        // named <modId>-<version>-plugin.jar -- NOT the per-26.X-line / +26.X mod scheme.
+        archiveFileName.set("${project.property("modId")}-${project.version}-plugin.jar")
     }
 }
