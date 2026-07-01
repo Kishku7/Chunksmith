@@ -148,7 +148,10 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
         return worldBorder;
     }
 
+    // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
+    // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @Override
+    @SuppressWarnings("deprecation")
     public int getElevation(final int x, final int z) {
         final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
         final int logicalHeight = world.getLogicalHeight();

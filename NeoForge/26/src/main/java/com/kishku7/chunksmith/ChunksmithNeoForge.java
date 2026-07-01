@@ -55,6 +55,10 @@ public class ChunksmithNeoForge {
     private Chunksmith chunky;
     private final Map<Identifier, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
 
+    // this-escape: NeoForge.EVENT_BUS.register(this) publishes this before the ctor returns,
+    // but the instance is fully constructed at that point (no subclass, fields assigned) and the
+    // bus only invokes handlers on later server events, so the escape is benign.
+    @SuppressWarnings("this-escape")
     public ChunksmithNeoForge() {
         if (ModList.get().isLoaded("chunky")) {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
