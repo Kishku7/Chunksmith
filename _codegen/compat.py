@@ -297,6 +297,15 @@ def needs_inactive_profiler_import(mcver):
 # right shape via the helpers below.
 # ---------------------------------------------------------------------------
 
+def registry_lookup_call(mcver):
+    """RegistryAccess registry fetch method: registryOrThrow (ancient+transitional, <=1.21.1) vs
+    lookupOrThrow (modern, >=1.21.4). registryAccess().registryOrThrow(...) was renamed to
+    lookupOrThrow at 1.21.4; on the transitional/ancient lines lookupOrThrow returns a
+    RegistryLookup (not a Registry<T>), so the old name MUST be used there. Also surfaces in
+    FabricWorld.playSound (.registryOrThrow(SOUND_EVENT) vs .lookupOrThrow(...)), handled per-cell."""
+    return "registryOrThrow" if era(mcver) in ("ancient", "transitional") else "lookupOrThrow"
+
+
 def use_mailbox_executor(mcver):
     """True on the LEGACY (ProcessorMailbox) IOWorker eras (ancient + transitional), False on
     the MODERN (PriorityConsecutiveExecutor) eras (modern_pre11 + modern_11plus)."""

@@ -39,7 +39,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p>COG DRIFT: the structure-key type is resources.ResourceLocation (&lt;=1.21.10) vs
  * resources.Identifier (1.21.11/26), and ChunkPos exposes x/z as fields (&lt;=1.21.10) vs methods
- * x()/z() (1.21.11/26). Both are Cog-emitted so one source compiles on every runtime.
+ * x()/z() (1.21.11/26), and the RegistryAccess fetch is registryOrThrow (ancient+transitional,
+ * <=1.21.1) vs lookupOrThrow (modern, >=1.21.4) -- on the older lines lookupOrThrow returns a
+ * RegistryLookup, not a Registry, so the method name itself must switch. All Cog-emitted so one
+ * source compiles on every runtime.
  */
 @Mixin(StructureStart.class)
 public abstract class StructureStartMixin {
@@ -53,7 +56,12 @@ public abstract class StructureStartMixin {
                                          final BoundingBox chunkBB, final ChunkPos chunkPos, final CallbackInfo ci) {
         String id = null;
         try {
-            final Registry<Structure> registry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+            //[[[cog
+            // import cog, compat
+            // cog.outl('final Registry<Structure> registry = level.registryAccess().%s(Registries.STRUCTURE);'
+            //          % compat.registry_lookup_call(mcver))
+            //]]]
+            //[[[end]]]
             //[[[cog
             // import cog, compat
             // keytype = "Identifier" if compat.dimension_identifier_call(mcver) == "identifier" else "ResourceLocation"
