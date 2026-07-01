@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public abstract class BlockAttachedEntityMixin {
     @Redirect(
             method = "readAdditionalSaveData",
-            at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V")
+            at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V", remap = false)
     )
     private void chunksmith$captureInvalidPosition(final Logger logger, final String message, final Object storedPos) {
         try {
