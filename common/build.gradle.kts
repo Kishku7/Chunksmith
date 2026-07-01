@@ -20,7 +20,7 @@ tasks {
     withType<JavaCompile> {
         options.encoding = "UTF-8"
         options.release.set(17)
-        options.compilerArgs.add("-Xlint:none")
+        options.compilerArgs.add("-Xlint:all")
     }
     processResources {
         filesMatching("version.properties") {
