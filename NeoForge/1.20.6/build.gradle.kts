@@ -77,7 +77,7 @@ tasks {
                 "name" to project.property("artifactName")!!,
                 "author" to project.property("author")!!,
                 "description" to project.property("description")!!,
-                "neoforgeRange" to (System.getenv("NEOFORGE_RANGE") ?: "[20.6,20.7)"),
+                "neoforgeRange" to (System.getenv("NEOFORGE_RANGE") ?: "[20.5,20.7)"),
                 "mcRange" to (System.getenv("MC_RANGE") ?: "[1.20.5,1.21)")
             )
         }

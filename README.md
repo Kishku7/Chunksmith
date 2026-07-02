@@ -5,7 +5,7 @@ Chunky. This branch (`26`) covers the entire Minecraft 26 line -- 26.1 through 2
 one unified codebase: a shared core, a shared mod layer, and per-loader builds that ship
 the whole range.
 
-Version: **2.1.3**
+Version: **2.2**
 
 ## What it does
 
