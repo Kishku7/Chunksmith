@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[54,)"
+loaderVersion="[53,)"
 license="GNU GPLv3"
 issueTrackerURL="${github}/issues"
 [[mods]]
@@ -15,12 +15,12 @@ config="chunksmith.mixins.json"
 [[dependencies.${id}]]
     modId="forge"
     mandatory=true
-    versionRange="[54,)"
+    versionRange="[53,)"
     ordering="NONE"
     side="BOTH"
 [[dependencies.${id}]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.21.4,1.21.5)"
+    versionRange="[1.21.2,1.21.5)"
     ordering="NONE"
     side="BOTH"
