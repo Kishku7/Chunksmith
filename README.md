@@ -1,95 +1,108 @@
-# Chunksmith (Minecraft 26.x line)
+# Chunksmith - Build Guide (minecraft-1.20-26.3 branch)
 
-Chunksmith is a chunk pre-generator for Minecraft, maintained as a fork of pop4959's
-Chunky. This branch (`26`) covers the entire Minecraft 26 line -- 26.1 through 26.3 -- as
-one unified codebase: a shared core, a shared mod layer, and per-loader builds that ship
-the whole range.
+This branch is the unified Chunksmith source tree. One codebase builds every supported
+target - the Fabric and NeoForge mod plus the Bukkit/Paper/Folia plugin - across Minecraft
+1.20.1 through 26.3.
 
-Version: **2.2**
+For what Chunksmith is and how to use it, see the [landing page](https://github.com/Kishku7/Chunksmith).
+Questions or bug reports: https://github.com/Kishku7/mod_support/issues
 
-## What it does
+## What you need installed
 
-Pre-generates world chunks ahead of time so they are ready before players arrive,
-eliminating the lag of on-demand generation. Core features (shared by every platform):
+Chunksmith builds on Windows using PowerShell build scripts and per-cell Gradle wrappers.
 
-- Generation by shape (square, circle, diamond, triangle, star, and more) centered on
-  coordinates, world spawn, or the world border, by radius/diameter.
-- Multi-world, with live progress, rate, ETA, and an optional boss bar.
-- Pause / continue / cancel, and continue-on-restart.
-- World trimming (delete chunks outside a selected region).
-- Configurable work-per-tick with an adaptive throttle that backs off when tick health
-  degrades.
-- A developer API (generation progress/complete events).
+**Required:**
 
-Commands run under `/chunksmith` (alias `/cs`); permission nodes are `chunksmith.command.*`.
+- **Windows + PowerShell 7 (`pwsh`)** - the build scripts are `.ps1` and call `gradlew.bat`.
+- **Python 3 with Cog (`cogapp`) on `PATH`:**
 
-## Improvements over upstream Chunky
+      pip install cogapp
 
-This is not a straight re-skin -- the 26 line is a substantial cleanup of the fork:
+  Cog is the code generator that resolves cross-version API drift. It is invoked
+  automatically by the build scripts, so it must be installed before you build. The
+  generator brain is `_codegen/compat.py` (pure Python, in-repo).
+- **JDKs, installed and discoverable by Gradle's toolchain detection.** There is **no
+  foojay auto-download** configured, so you must install these yourself:
+    - JDK 17 (Temurin/Adoptium)
+    - JDK 21
+    - JDK 25
 
-- **One branch for the whole 26.x line.** What used to be three separate branches
-  (26.1 / 26.2 / 26.3) is now a single unified tree: one edit ships every version, and
-  backporting an idea across the line is trivial.
-- **Finished rebrand, Chunky -> Chunksmith.** Internal package `org.popcraft.chunky` ->
-  `com.kishku7.chunksmith`, every class name, permission nodes (`chunksmith.command.*`,
-  with legacy `chunky.command.*` still honored), JVM `-D` flags, the Mixin package prefix,
-  and the language strings -- while preserving upstream credit lines and the `ChunkyBorder`
-  integration names.
-- **Inherited dead code removed.** Dropped the cross-platform disk-space estimation
-  (unreliable/blocked on some platforms), unused Hilbert-curve imports, and pre-26
-  (1.20.x / 1.21.x) code paths no longer relevant to the 26 line.
-- **Cross-loader consolidation.** Duplicated Fabric/NeoForge Minecraft code merged into a
-  single `shared_minecraft` layer -- one copy, both loaders.
-- **Plugin unified onto the mod's core.** The Bukkit/Paper/Folia plugin now builds on the
-  same `shared_common` as the mod (no divergent copy); the Paper and Folia helpers were
-  merged and duplicate helpers folded together.
-- **Pruned stray pre-26 builds** from the 26 line (the old Forge 1.20/1.21 folders).
+  Which JDK each target uses is in the matrix below. Install all three to build the whole
+  tree, or just the one(s) for the cells you care about.
 
-## Layout
+**Provided for you (do NOT install manually):**
+
+- **Gradle** - each cell ships a wrapper (`gradlew.bat`). Pre-26 cells use Gradle 8.14;
+  the 26 cells and all plugin cells use Gradle 9.4.1.
+- **Loader SDKs and dependencies** - Gradle downloads them on first build: Fabric Loom +
+  Fabric API, NeoForge ModDevGradle, Forge (ForgeGradle 6), and the Paper/Folia API for
+  the plugin. An internet connection is required the first time each cell is built.
+
+## How to build
+
+From the repo root, run the loader script for what you want. With no argument it builds
+every cell for that loader into `dist/`; pass a version to build a single cell.
+
+    pwsh scripts/build-fabric.ps1             # all Fabric cells (1.20.1..1.21.11 + 26.1/26.2/26.3)
+    pwsh scripts/build-fabric.ps1 26.2        # one target
+    pwsh scripts/build-neoforge.ps1           # all NeoForge cells (1.20.6..1.21.11 + 26.1/26.2)
+    pwsh scripts/build-forge.ps1              # all Forge cells (1.20.1..1.21.11; no 26 - FG6 ceiling)
+    pwsh scripts/build-plugin.ps1             # plugin: 1.20.x / 1.21.x / 26.x
+    pwsh scripts/build-plugin.ps1 -Only 26.x  # one plugin line
+
+All jars land in `dist/`. The pre-26 mod cells run Cog code-generation automatically
+(`scripts/cog-gen.ps1`) before compiling; the unified 26 cells build from a `-P` version
+matrix.
+
+## Toolchain matrix
+
+| Loader   | MC versions                                                | JDK | Gradle |
+|----------|------------------------------------------------------------|-----|--------|
+| Fabric   | 1.20.1, 1.20.4                                             | 17  | 8.14   |
+| Fabric   | 1.20.6, 1.21.1, 1.21.4, 1.21.5, 1.21.8, 1.21.10, 1.21.11  | 21  | 8.14   |
+| Fabric   | 26 (26.1 / 26.2 / 26.3)                                   | 25  | 9.4.1  |
+| NeoForge | 1.20.6, 1.21.1, 1.21.4, 1.21.8, 1.21.10, 1.21.11          | 21  | 8.14   |
+| NeoForge | 26 (26.1 / 26.2)                                          | 25  | 9.4.1  |
+| Forge    | 1.20.1, 1.20.4                                             | 17  | 8.14   |
+| Forge    | 1.20.6, 1.21.1, 1.21.4, 1.21.5, 1.21.8, 1.21.10, 1.21.11  | 21  | 8.14   |
+| Plugin   | 1.20.x, 1.21.x                                            | 21  | 9.4.1  |
+| Plugin   | 26.x                                                      | 25  | 9.4.1  |
+
+Notes:
+
+- **Forge** stops at 1.21.11 - ForgeGradle 6 is the ceiling and there is no Forge for MC 26.
+- **NeoForge** begins at 1.20.6; the 1.20.1 fork point is covered by the Forge jar (NeoForge
+  1.20.1 runs the Forge build).
+- **MC 26.3** has a Fabric build but no NeoForge yet (NeoForge has not shipped for 26.3).
+
+## Repository layout
 
 | Directory | What it is |
 |-----------|------------|
-| `shared_common/` | MC-agnostic core -- commands, tasks, shapes, trim, config, the API, region NBT. Shared by the mod AND the plugin. |
-| `shared_minecraft/` | Shared mod layer -- the Mixins/accessors that keep big pre-gens safe on an unpatched (vanilla) server. Used by the Fabric and NeoForge builds only. |
-| `Fabric/` | Fabric mod build -- one source, three jars (26.1, 26.2, 26.3). |
-| `NeoForge/` | NeoForge mod build -- 26.1 and 26.2 (26.3 pending; no NeoForge 26.3 yet). |
-| `Plugin/` | Bukkit/Paper/Folia plugin -- one jar, runs Spigot through Folia. |
+| `shared_common/`    | MC-agnostic core - commands, tasks, shapes, trim, config, the API, region NBT. Shared by the mod AND the plugin. |
+| `shared_minecraft/` | Shared mod layer - the Mixins/accessors used by the Fabric and NeoForge builds. Cog copies this into `<Cell>/gen/` per cell at build time. |
+| `Fabric/`, `NeoForge/`, `Forge/` | Per-loader builds; one `<version>` subfolder per MC cell, plus the unified `26/` cell (Fabric and NeoForge). |
+| `Plugin/`           | Bukkit/Paper/Folia plugin - one jar per line (1.20.x / 1.21.x / 26.x) built over `shared_common`. |
+| `_codegen/`         | Cog generator: `compat.py` (version/era rules) + `cog_sources/` (instrumented drift files). |
+| `scripts/`          | The build scripts (`build-<loader>.ps1`) and `cog-gen.ps1`. |
+| `dist/`             | Build output (generated). |
 
-Each directory has its own README with the detail for that piece.
+## How the code generation works
 
-## Platform / version coverage
+Cross-version API drift is resolved at build time by Cog, driven by `_codegen/compat.py`.
+For each pre-26 mod cell, `scripts/cog-gen.ps1`:
 
-| Platform | MC versions | Builds |
-|----------|-------------|--------|
-| Fabric (mod) | 26.1, 26.2, 26.3-snapshot-1 | 3 jars |
-| NeoForge (mod) | 26.1, 26.2 | 2 jars |
-| Plugin (Bukkit/Paper/Folia) | 26.1 -- 26.3-snapshot-1 | 1 jar |
+1. Copies `shared_minecraft` into `<Cell>/gen/`.
+2. Swaps in the Cog-instrumented drift files from `_codegen/cog_sources/`.
+3. Adds or removes the presence-gated accessors for that MC version.
+4. Runs `cog` to resolve the version define.
+5. Regenerates `chunksmith.mixins.json` to match the files actually present.
 
-The compiled mod code is identical across the versions within each loader; only the
-dependency versions and the declared compatibility range differ per target.
+The cell's Gradle build compiles `<Cell>/gen/`, not `shared_minecraft` directly - which is
+why Cog must be installed before building. The unified 26 cells do not use cog-gen; they
+build from a `-P` version matrix supplied by the build script.
 
-## Mod vs plugin: same core, different depth
+## Credits / License
 
-The shared core (`shared_common`) is identical everywhere. The difference is the
-server-internal work in `shared_minecraft`: the mod Mixins into Minecraft to keep huge
-pre-gens safe (keep-awake during generation, prompt chunk unloading, and a worldgen
-entity-retention fix) on an otherwise-unpatched server. A Bukkit plugin cannot Mixin --
-but on Paper/Folia it does not need to: the server's Moonrise chunk system already
-provides those protections (verified against decompiled Paper 26.1.2/26.2 source). So the
-plugin reaches the same outcomes through the public API or the server itself, and is
-thinner by design rather than less capable. We do not re-implement, or claim, fixes the
-platform already provides. See `Plugin/README.md` and `.docs/plugin-api-parity.md`.
-
-## Build
-
-    pwsh scripts/build-fabric.ps1     # Fabric: every cell (1.20.1..1.21.11) + the 26 line -> dist/
-    pwsh scripts/build-neoforge.ps1   # NeoForge: every cell + 26.1/26.2 -> dist/
-    pwsh scripts/build-forge.ps1      # Forge: every cell (1.20.1..1.21.11; no 26) -> dist/
-    pwsh scripts/build-plugin.ps1     # plugin: 1.20.x / 1.21.x / 26.x jars -> dist/
-
-Each build script takes an optional version filter, e.g. `pwsh scripts/build-fabric.ps1 26.2`.
-
-## Credits
-
-Original Chunky by pop4959. The Paper/Folia chunk-system internals referenced above are
-Moonrise (Spottedleaf). Chunksmith is maintained by Kishku7.
+Original Chunky by pop4959; the Paper/Folia chunk-system internals referenced in the code
+are Moonrise (Spottedleaf). Chunksmith is maintained by Kishku7. GPL-3.0-only.
