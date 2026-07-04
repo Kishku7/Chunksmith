@@ -1,49 +1,49 @@
 # Chunksmith
 
-Chunksmith is a Minecraft chunk pre-generator that generates chunks quickly,
-efficiently, and **safely**. On top of fast pre-generation it adds an adaptive
-I/O throttle (keeps generating 24/7 even with players online), region
-write-backpressure protection, and worldgen diagnostics (overreach detection +
-structure-fault attribution).
+**Need help or found a bug?** Report it at the [Chunksmith support forum](https://github.com/Kishku7/mod_support/issues).
 
-Ships as a **Fabric + NeoForge mod** and a **Paper / Spigot plugin**.
-Originally derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
+Chunksmith is a Minecraft chunk pre-generator that generates chunks quickly, efficiently,
+and **safely**. On top of fast pre-generation it adds an adaptive I/O throttle (so it keeps
+generating around the clock even with players online), region write-backpressure protection,
+and worldgen diagnostics (overreach detection and structure-fault attribution).
 
-**Current release:** 2.1.0 (the unified Minecraft 26.x line)
+Ships as a **Fabric + NeoForge mod** and a **Paper / Spigot / Folia plugin**. Originally
+derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 
 **Download:** https://modrinth.com/mod/chunksmith
+**Source code:** [`minecraft-1.20-26.3` branch](https://github.com/Kishku7/Chunksmith/tree/minecraft-1.20-26.3)
 
-## Branches
+## Why Chunksmith
 
-`main` is this landing page. Code lives on per-line branches.
-
-**Active**
-- [`26`](https://github.com/Kishku7/Chunksmith/tree/26) - the unified Minecraft 26 line (26.1, 26.2, 26.3-snapshot-1). One source tree builds the whole line and contains both the mod (Fabric + NeoForge) and the Bukkit/Paper/Spigot plugin.
-
-**Frozen (legacy lines)**
-- [`1.20.x`](https://github.com/Kishku7/Chunksmith/tree/1.20.x) - Minecraft 1.20.1-1.20.6 (mod + plugin)
-- [`1.21.x`](https://github.com/Kishku7/Chunksmith/tree/1.21.x) - Minecraft 1.21-1.21.11 (mod + plugin)
-
-Within the `26` branch the layout is `shared_common/` (MC-agnostic core) + `shared_minecraft/` (shared mod mixins) + `Fabric/`, `NeoForge/`, and `Plugin/`. The frozen lines use the older loader-on-top layout (`Fabric/<version>`, `NeoForge/<version>`, with shared `common/` + `nbt/`, plus a `Plugin/` sub-build for the Bukkit/Paper plugin).
+- **Fast.** Pre-generates chunks ahead of time so they are ready before players arrive,
+  eliminating the lag of on-demand generation.
+- **Safe under load.** An adaptive throttle watches server tick-health and backs off
+  automatically, so generation can run while players are online without tanking TPS.
+- **Flexible shapes.** Generate by square, circle, diamond, triangle, star, and more -
+  centered on coordinates, world spawn, or the world border, by radius or diameter.
+- **Multi-world**, with live progress, rate, ETA, and an optional boss bar.
+- **Resumable.** Pause, continue, cancel, and continue-on-restart - progress is saved.
+- **World trimming.** Delete chunks outside a selected region.
+- **Developer API** for generation progress and completion events.
 
 ## Usage
 
-Primary command is `/cs` (alias `/chunksmith`); `/chunky` and `/cy` are deprecated
-aliases that redirect to `/cs`. On servers the mod/plugin is op-gated; on Bukkit it
-uses the `chunksmith.command.*` permission namespace (legacy `chunky.command.*` still works).
+The primary command is `/cs` (alias `/chunksmith`); `/chunky` and `/cy` are deprecated
+aliases that redirect to `/cs`. The mod/plugin is op-gated on servers; on Bukkit it uses
+the `chunksmith.command.*` permission namespace (legacy `chunky.command.*` still works).
 
 Common workflow:
 
-- `/cs world <world>` — choose the target world (defaults to the current overworld)
-- `/cs spawn` or `/cs center <x> <z>` — set the generation center
-- `/cs radius <blocks>` — set the radius (or `/cs worldborder` to use the world border)
-- `/cs start` — begin generating
-- `/cs pause` / `/cs continue` — pause and resume (progress is saved)
-- `/cs cancel` then `/cs confirm` — stop and discard the current/saved task
+- `/cs world <world>` - choose the target world (defaults to the current overworld)
+- `/cs spawn` or `/cs center <x> <z>` - set the generation center
+- `/cs radius <blocks>` - set the radius (or `/cs worldborder` to use the world border)
+- `/cs start` - begin generating
+- `/cs pause` / `/cs continue` - pause and resume (progress is saved)
+- `/cs cancel` then `/cs confirm` - stop and discard the current/saved task
 
-Generation is throttled automatically against server tick-health, so it can run
-while players are online without tanking TPS.
+Generation is throttled automatically against server tick-health, so it can run while
+players are online.
 
 ## License
 
-GPL-3.0-only. Original Chunky © pop4959. Chunksmith modifications © Kishku7.
+GPL-3.0-only. Original Chunky (c) pop4959. Chunksmith modifications (c) Kishku7.
