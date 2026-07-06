@@ -67,4 +67,4 @@ Paper/Folia the platform already does that work - usually better, because it is 
 and bounded - so the plugin is thinner by design, not less capable.
 
 Credits: original Chunky by pop4959; the Paper/Folia chunk-system work referenced above is
-Moonrise (Spottedleaf). Findings detail: [`../.docs/plugin-api-parity.md`](../.docs/plugin-api-parity.md).
+Moonrise (Spottedleaf). Findings detail: [`../docs/plugin-api-parity.md`](../docs/plugin-api-parity.md).

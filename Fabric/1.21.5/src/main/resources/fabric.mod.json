@@ -15,7 +15,7 @@
     "homepage": "${github}",
     "repo": "${github}",
     "sources": "${github}",
-    "issues": "${github}/issues"
+    "issues": "https://github.com/Kishku7/mod_support/issues"
   },
   "license": "GPLv3",
   "icon": "assets/chunksmith/icon.png",

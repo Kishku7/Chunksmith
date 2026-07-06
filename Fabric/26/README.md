@@ -14,8 +14,8 @@ those READMEs for feature detail.
 
 From the repo root:
 
-    pwsh build-all-fabric.ps1            # all targets -> dist/
-    pwsh build-all-fabric.ps1 26.2       # one target
+    pwsh scripts/build-fabric.ps1            # all targets -> dist/
+    pwsh scripts/build-fabric.ps1 26.2       # one target
 
 Or directly:
 
@@ -29,4 +29,4 @@ Or directly:
 | 26.3 | 26.3-snapshot-1 | 0.153.1+26.3 | >=26.3- <26.4 |
 
 Toolchain: relativitymc neo-loom 1.16.0-alpha.4, fabric-loader 0.19.3, Java 25.
-To add a new 26.x version, add one row to the matrix in `build-all-fabric.ps1`.
+To add a new 26.x version, add one row to the matrix in `scripts/build-fabric.ps1`.

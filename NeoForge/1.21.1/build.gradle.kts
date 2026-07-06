@@ -16,7 +16,6 @@ allprojects {
     version = project.property("version") as String
     repositories {
         mavenCentral()
-        maven("https://oss.sonatype.org/content/repositories/snapshots/")
     }
 }
 

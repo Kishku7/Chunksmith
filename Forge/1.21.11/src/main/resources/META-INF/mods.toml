@@ -1,7 +1,7 @@
 modLoader="javafml"
 loaderVersion="[61,)"
 license="GNU GPLv3"
-issueTrackerURL="${github}/issues"
+issueTrackerURL="https://github.com/Kishku7/mod_support/issues"
 [[mods]]
 modId="${id}"
 version="${version}"

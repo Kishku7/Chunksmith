@@ -1,5 +1,18 @@
 # Chunksmith Changelog
 
+## 2.2.1 (2026-07-05) -- metadata + build hygiene bugfix
+
+- Issue-tracker URL: every mod manifest now points to the mod_support hub
+  (github.com/Kishku7/mod_support/issues), single-sourced + audit-checked via
+  scripts/_metadata.py (previously the mod's own disabled Issues tab).
+- pack.mcmeta: the 1.21.10 / 1.21.11 cells (Fabric/Forge/NeoForge) now ship the
+  supported_formats range form required for pack_format > 64 (were plain int,
+  which caused the client to skip the mod resource pack on 1.21.9+).
+- Removed the dead oss.sonatype.org snapshots repo and the unused Architectury
+  maven repo from all cell build scripts.
+- Internal docs folder renamed .docs -> docs (gitignored). README build-script
+  references corrected to scripts/build-*.ps1.
+
 ## 2.1.3
 
 ### Minecraft 26.3-snapshot-2 support

@@ -7,7 +7,7 @@ of duplicating it.
 The plugin does **not** use this module. A Bukkit server cannot apply Mixins, and on
 Paper/Folia these protections are already provided by the server's Moonrise chunk system
 (see [`../Plugin/README.md`](../Plugin/README.md) and
-[`../.docs/plugin-api-parity.md`](../.docs/plugin-api-parity.md)).
+[`../docs/plugin-api-parity.md`](../docs/plugin-api-parity.md)).
 
 ## What it provides
 

@@ -314,6 +314,6 @@ scripts/_release_*.py
 scripts/build-stage.ps1
 
 # Internal docs - keep local, not in the public tree.
-.docs/
+docs/
 # Crowdin localization config - keep local, not in the public tree.
 crowdin.yml
