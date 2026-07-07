@@ -17,10 +17,11 @@ $cogGen = Join-Path $PSScriptRoot "cog-gen.ps1"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 # 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format per Memory/knowledge/pack-formats.md.
+# 26.3 pinned to snapshot-3 EXCLUSIVELY (2026-07-07): dep uses the Fabric-normalized alpha form; no lower-26.3 compat.
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3-snapshot-2"; api = "0.153.2+26.3";   dep = ">=26.3- <26.4"; packFormat = "90" }
+  "26.3" = @{ mc = "26.3-snapshot-3"; api = "0.154.3+26.3";   dep = "26.3-alpha.3"; packFormat = "91" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object

@@ -47,15 +47,15 @@ val shade: Configuration by configurations.creating
 
 // Per-version dependency matrix. Defaults target the dev tip (26.3); the build-all
 // script overrides via -PmcVersion / -PfabricApiVersion for each 26.x target.
-val mcVersion = (project.findProperty("mcVersion") ?: "26.3-snapshot-1").toString()
-val fabricApiVersion = (project.findProperty("fabricApiVersion") ?: "0.153.1+26.3").toString()
+val mcVersion = (project.findProperty("mcVersion") ?: "26.3-snapshot-3").toString()
+val fabricApiVersion = (project.findProperty("fabricApiVersion") ?: "0.154.3+26.3").toString()
 val mcDep = (System.getenv("MC_DEP") ?: ">=26.3-")
-// Resource pack_format is per-26.X (26.1=84, 26.2=88, 26.3=90); build-all overrides via
+// Resource pack_format is per-26.X (26.1=84, 26.2=88, 26.3=91); build-all overrides via
 // PACK_FORMAT so each emitted jar carries its own correct value. Above the MC 26 SERVER_DATA
 // lastPreMinorVersion (81) the strict pack.mcmeta parser REQUIRES min_format/max_format, so the
 // pack.mcmeta template declares min_format=max_format=pack_format (an exact single-format range).
 // Default = 26.3 (dev tip).
-val packFormat = (System.getenv("PACK_FORMAT") ?: "90")
+val packFormat = (System.getenv("PACK_FORMAT") ?: "91")
 
 sourceSets["main"].java.srcDir("../../shared_minecraft/src/main/java")
 
@@ -77,6 +77,7 @@ loom {
 tasks {
     processResources {
         inputs.property("packFormat", packFormat)
+        inputs.property("mcDep", mcDep)
         filesMatching("fabric.mod.json") {
             expand(
                 "id" to project.property("modId")!!,
