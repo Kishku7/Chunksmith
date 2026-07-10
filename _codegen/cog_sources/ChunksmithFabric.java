@@ -3,34 +3,34 @@ package com.kishku7.chunksmith;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.resources.ResourceLocation;
+//[[[cog
+// import cog, compat
+// cog.outl(compat.identifier_import(mcver))
+//]]]
+//[[[end]]]
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
 import com.kishku7.chunksmith.command.CommandLiteral;
 import com.kishku7.chunksmith.command.suggestion.SuggestionProviders;
-import com.kishku7.chunksmith.util.StructureFaultReporter;
-import com.kishku7.chunksmith.util.TranslationKey;
 import com.kishku7.chunksmith.event.task.GenerationTaskFinishEvent;
 import com.kishku7.chunksmith.event.task.GenerationTaskUpdateEvent;
 import com.kishku7.chunksmith.listeners.bossbar.BossBarTaskFinishListener;
 import com.kishku7.chunksmith.listeners.bossbar.BossBarTaskUpdateListener;
-import com.kishku7.chunksmith.platform.NeoForgePlayer;
-import com.kishku7.chunksmith.platform.NeoForgeSender;
-import com.kishku7.chunksmith.platform.NeoForgeServer;
+import com.kishku7.chunksmith.platform.FabricPlayer;
+import com.kishku7.chunksmith.platform.FabricSender;
+import com.kishku7.chunksmith.platform.FabricServer;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.platform.impl.GsonConfig;
+import com.kishku7.chunksmith.util.StructureFaultReporter;
+import com.kishku7.chunksmith.util.TranslationKey;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,77 +47,76 @@ import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
 
-@Mod(ChunksmithNeoForge.MOD_ID)
-public class ChunksmithNeoForge {
-    public static final String MOD_ID = "chunksmith";
-    static { PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise"); }
+public class ChunksmithFabric implements ModInitializer {
+    static { PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = FabricLoader.getInstance().isModLoaded("moonrise"); }
     private Chunksmith chunky;
-    private final Map<ResourceLocation, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
+    //[[[cog
+    // import cog, compat
+    // cog.outl("private final Map<%s, ServerBossEvent> bossBars = new ConcurrentHashMap<>();" % compat.identifier_type(mcver))
+    //]]]
+    //[[[end]]]
 
-    // NeoForge.EVENT_BUS.register(this) is the documented FML registration pattern; the bus stores
-    // the fully-constructed handler and does not call back during construction, so the this-escape
-    // is benign here. (26/JDK25 does not flag it; pre-26/JDK21 does.)
-    @SuppressWarnings("this-escape")
-    public ChunksmithNeoForge() {
-        if (ModList.get().isLoaded("chunky")) {
+    @Override
+    public void onInitialize() {
+        if (FabricLoader.getInstance().isModLoaded("chunky")) {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
-        NeoForge.EVENT_BUS.register(this);
-    }
-
-    @SubscribeEvent
-    public void onServerStarting(final ServerStartingEvent event) {
-        final MinecraftServer server = event.getServer();
-        final Path configDir = FMLPaths.CONFIGDIR.get();
-        Path baseDir = configDir.resolve("chunksmith");
-        final Path legacyDir = configDir.resolve("chunky");
-        // Auto-migrate the legacy Chunky config on first run: if our directory does not yet
-        // exist but a chunky directory does, take it over in place. If chunksmith already
-        // exists, the legacy directory is left untouched. (Mirrors ChunksmithFabric.)
-        if (!Files.exists(baseDir) && Files.exists(legacyDir)) {
-            try {
-                Files.move(legacyDir, baseDir);
-                org.slf4j.LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
-            } catch (final IOException e) {
-                org.slf4j.LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
-                baseDir = legacyDir;
+        ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
+            final Path configDir = FabricLoader.getInstance().getConfigDir();
+            Path baseDir = configDir.resolve("chunksmith");
+            final Path legacyDir = configDir.resolve("chunky");
+            // Auto-migrate the legacy Chunky config on first run: if our directory does not
+            // yet exist but a chunky directory does, take it over in place. If chunksmith
+            // already exists, the legacy directory is left untouched.
+            if (!Files.exists(baseDir) && Files.exists(legacyDir)) {
+                try {
+                    Files.move(legacyDir, baseDir);
+                    org.slf4j.LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
+                } catch (final IOException e) {
+                    org.slf4j.LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
+                    baseDir = legacyDir;
+                }
             }
-        }
-        final Path configPath = baseDir.resolve("config.json");
+            final Path configPath = baseDir.resolve("config.json");
             StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
-        this.chunky = new Chunksmith(new NeoForgeServer(this, server), new GsonConfig(configPath));
-        if (chunky.getConfig().getContinueOnRestart()) {
-            chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
-        }
-        chunky.getEventBus().subscribe(GenerationTaskUpdateEvent.class, new BossBarTaskUpdateListener(bossBars));
-        chunky.getEventBus().subscribe(GenerationTaskFinishEvent.class, new BossBarTaskFinishListener(bossBars));
-    }
-
-    @SubscribeEvent
-    public void onRegisterCommands(final RegisterCommandsEvent event) {
-        // Primary commands plus deprecated aliases (which emit a notice pointing to /cs).
-        event.getDispatcher().register(buildCommand(CommandLiteral.CS));
-        event.getDispatcher().register(buildCommand(CommandLiteral.CHUNKSMITH));
-        event.getDispatcher().register(buildCommand(CommandLiteral.CHUNKY));
-        event.getDispatcher().register(buildCommand(CommandLiteral.CY));
+            this.chunky = new Chunksmith(new FabricServer(this, minecraftServer), new GsonConfig(configPath));
+            if (chunky.getConfig().getContinueOnRestart()) {
+                chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
+            }
+            chunky.getEventBus().subscribe(GenerationTaskUpdateEvent.class, new BossBarTaskUpdateListener(bossBars));
+            chunky.getEventBus().subscribe(GenerationTaskFinishEvent.class, new BossBarTaskFinishListener(bossBars));
+            FabricLoader.getInstance().getEntrypointContainers("chunky", ModInitializer.class)
+                    .forEach(entryPoint -> entryPoint.getEntrypoint().onInitialize());
+        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(minecraftServer -> {
+            if (chunky != null) {
+                chunky.disable();
+            }
+        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            // Primary commands plus deprecated aliases (which emit a notice pointing to /cs).
+            dispatcher.register(buildCommand(CommandLiteral.CS));
+            dispatcher.register(buildCommand(CommandLiteral.CHUNKSMITH));
+            dispatcher.register(buildCommand(CommandLiteral.CHUNKY));
+            dispatcher.register(buildCommand(CommandLiteral.CY));
+        });
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> buildCommand(final String root) {
         final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
-                    final MinecraftServer server = serverCommandSource.getServer();
-                    //noinspection ConstantValue
-                    if (server != null && server.isSingleplayer()) {
+                    final MinecraftServer minecraftServer = serverCommandSource.getServer();
+                    if (minecraftServer != null && minecraftServer.isSingleplayer()) {
                         return true;
                     }
-                    return serverCommandSource.hasPermission(2);
+                    return new FabricSender(serverCommandSource).hasPermission("chunksmith.command", true);
                 })
                 .executes(context -> {
                     final Sender sender;
                     if (context.getSource().getEntity() instanceof final ServerPlayer player) {
-                        sender = new NeoForgePlayer(player);
+                        sender = new FabricPlayer(player);
                     } else {
-                        sender = new NeoForgeSender(context.getSource());
+                        sender = new FabricSender(context.getSource());
                     }
                     final Map<String, ChunksmithCommand> commands = chunky.getCommands();
                     final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
@@ -213,13 +212,6 @@ public class ChunksmithNeoForge {
             arguments[i - 1].then(arguments[i].executes(command.getCommand()));
         }
         command.then(arguments[0].executes(command.getCommand()));
-    }
-
-    @SubscribeEvent
-    public void onServerStopping(final ServerStoppingEvent event) {
-        if (chunky != null) {
-            chunky.disable();
-        }
     }
 
     public Chunksmith getChunky() {

@@ -57,7 +57,7 @@ val mcDep = (System.getenv("MC_DEP") ?: ">=26.3-")
 // Default = 26.3 (dev tip).
 val packFormat = (System.getenv("PACK_FORMAT") ?: "91")
 
-sourceSets["main"].java.srcDir("../../shared_minecraft/src/main/java")
+sourceSets["main"].java.srcDir("gen/src/main/java")
 
 dependencies {
     minecraft(group = "com.mojang", name = "minecraft", version = mcVersion)

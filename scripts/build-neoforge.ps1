@@ -56,6 +56,8 @@ function Build-26($v) {
   $mm = $m26[$v]
   $modver = (Select-String -Path (Join-Path $cell "gradle.properties") -Pattern '^version=(.+)$').Matches[0].Groups[1].Value
   Write-Host "=== $loader/26 -> $v  (neoforge=$($mm.nf)  pack_format=$($mm.packFormat)) ==="
+  & $cogGen -Cell "$loader/26" -McVer "26" -Loader $loader
+  if ($LASTEXITCODE -ne 0) { throw "cog-gen FAILED for $loader/26 -> $v" }
   $env:NEOFORGE_RANGE = $mm.nfRange
   $env:MC_RANGE = $mm.mcRange
   $env:PACK_FORMAT = $mm.packFormat

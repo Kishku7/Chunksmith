@@ -95,6 +95,15 @@ foreach ($name in $driftMap.Keys) {
     Copy-Item -Force $src $dst
 }
 
+# --- Step 3b: loader entrypoint, single-sourced via cog (D15). Chunksmith<Loader>.java is emitted
+# from ONE cog_source per loader (drift resolved by compat.py) into gen/, replacing the hand-copied
+# per-cell src/main/java entrypoint (deleted 2026-07-10). ---
+$entrypointName = "Chunksmith$Loader.java"
+$entrypointSrc  = Join-Path $cogSrc $entrypointName
+$entrypointDst  = Join-Path $genJava "com/kishku7/chunksmith/$entrypointName"
+if (-not (Test-Path $entrypointSrc)) { throw "cog_source entrypoint missing: $entrypointSrc" }
+Copy-Item -Force $entrypointSrc $entrypointDst
+
 # --- Step 4: presence-gated files (query compat.py so the rule lives in ONE place) ---
 Push-Location $codegen
 try {
@@ -166,6 +175,7 @@ $cogTargets = @()
 foreach ($name in $driftMap.Keys) {
     $cogTargets += (Join-Path $genJava $driftMap[$name])
 }
+$cogTargets += $entrypointDst
 Push-Location $codegen
 try {
     $env:PYTHONPATH = $codegen

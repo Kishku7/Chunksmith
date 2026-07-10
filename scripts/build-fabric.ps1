@@ -60,6 +60,8 @@ function Build-26($v) {
   $mm = $m26[$v]
   $modver = (Select-String -Path (Join-Path $cell "gradle.properties") -Pattern '^version=(.+)$').Matches[0].Groups[1].Value
   Write-Host "=== $loader/26 -> $v  (mc=$($mm.mc)  api=$($mm.api)  pack_format=$($mm.packFormat)) ==="
+  & $cogGen -Cell "$loader/26" -McVer "26" -Loader $loader
+  if ($LASTEXITCODE -ne 0) { throw "cog-gen FAILED for $loader/26 -> $v" }
   $env:MC_DEP = $mm.dep
   $env:PACK_FORMAT = $mm.packFormat
   Push-Location $cell

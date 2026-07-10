@@ -4,10 +4,20 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.resources.ResourceLocation;
+//[[[cog
+// import cog, compat
+// cog.outl(compat.identifier_import(mcver))
+//]]]
+//[[[end]]]
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
+//[[[cog
+// import cog, compat
+// if compat.needs_permissions_import(mcver):
+//     cog.outl("import net.minecraft.server.permissions.Permissions;")
+//]]]
+//[[[end]]]
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
@@ -52,7 +62,11 @@ public class ChunksmithNeoForge {
     public static final String MOD_ID = "chunksmith";
     static { PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise"); }
     private Chunksmith chunky;
-    private final Map<ResourceLocation, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
+    //[[[cog
+    // import cog, compat
+    // cog.outl("private final Map<%s, ServerBossEvent> bossBars = new ConcurrentHashMap<>();" % compat.identifier_type(mcver))
+    //]]]
+    //[[[end]]]
 
     // NeoForge.EVENT_BUS.register(this) is the documented FML registration pattern; the bus stores
     // the fully-constructed handler and does not call back during construction, so the this-escape
@@ -110,7 +124,16 @@ public class ChunksmithNeoForge {
                     if (server != null && server.isSingleplayer()) {
                         return true;
                     }
-                    return serverCommandSource.hasPermission(2);
+                    //[[[cog
+                    // import cog, compat
+                    // # CommandSourceStack permission gate (singular hasPermission, NOT the plural
+                    // # ServerPlayer method -- so it cannot reuse compat.gamemaster_permission_check).
+                    // if compat.needs_permissions_import(mcver):
+                    //     cog.outl("return serverCommandSource.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);")
+                    // else:
+                    //     cog.outl("return serverCommandSource.hasPermission(2);")
+                    //]]]
+                    //[[[end]]]
                 })
                 .executes(context -> {
                     final Sender sender;

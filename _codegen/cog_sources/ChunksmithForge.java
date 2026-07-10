@@ -4,18 +4,41 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.resources.ResourceLocation;
+//[[[cog
+// import cog, compat
+// cog.outl(compat.identifier_import(mcver))
+//]]]
+//[[[end]]]
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+//[[[cog
+// import cog, compat
+// # Classic-Forge eventbus import (old) OR the 26-era permissions import (new+1.21.11); never both.
+// if not compat.forge_new_eventbus(mcver):
+//     cog.outl("import net.minecraftforge.eventbus.api.SubscribeEvent;")
+// elif compat.needs_permissions_import(mcver):
+//     cog.outl("import net.minecraft.server.permissions.Permissions;")
+//]]]
+//[[[end]]]
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod;
+//[[[cog
+// import cog, compat
+// if compat.forge_new_eventbus(mcver):
+//     cog.outl("import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;")
+//]]]
+//[[[end]]]
+import net.minecraftforge.fml.loading.FMLPaths;
+//[[[cog
+// import cog, compat
+// if not compat.forge_new_eventbus(mcver):
+//     cog.outl("import net.minecraftforge.common.MinecraftForge;")
+//]]]
+//[[[end]]]
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
 import com.kishku7.chunksmith.command.CommandLiteral;
@@ -47,25 +70,61 @@ import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
 
-@Mod(ChunksmithNeoForge.MOD_ID)
-public class ChunksmithNeoForge {
+@Mod(ChunksmithForge.MOD_ID)
+public final class ChunksmithForge {
     public static final String MOD_ID = "chunksmith";
     static { PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = ModList.get().isLoaded("moonrise"); }
     private Chunksmith chunky;
-    private final Map<ResourceLocation, ServerBossEvent> bossBars = new ConcurrentHashMap<>();
+    //[[[cog
+    // import cog, compat
+    // cog.outl("private final Map<%s, ServerBossEvent> bossBars = new ConcurrentHashMap<>();" % compat.identifier_type(mcver))
+    //]]]
+    //[[[end]]]
 
-    // NeoForge.EVENT_BUS.register(this) is the documented FML registration pattern; the bus stores
-    // the fully-constructed handler and does not call back during construction, so the this-escape
-    // is benign here. (26/JDK25 does not flag it; pre-26/JDK21 does.)
+    //[[[cog
+    // import cog, compat
+    // if compat.forge_new_eventbus(mcver):
+    //     cog.outl("// Forge 1.21.8+ (58.x-61.x) uses the new EventBus 7.x API. The mod constructor takes the")
+    //     cog.outl("// FMLJavaModLoadingContext; mod-bus events would attach to the mod bus, but Chunksmith has NO")
+    //     cog.outl("// registries/DeferredRegisters so it needs none. All three events it cares about are game-bus")
+    //     cog.outl("// lifecycle events, registered via each event's static BUS field. The addListener(this::...)")
+    //     cog.outl("// method references publish `this` before construction finishes, hence the benign this-escape.")
+    // else:
+    //     cog.outl("// MinecraftForge.EVENT_BUS.register(this) is the documented FML registration pattern; the bus stores")
+    //     cog.outl("// the fully-constructed handler and does not call back during construction, so the this-escape")
+    //     cog.outl("// is benign here. (26/JDK25 does not flag it; pre-26/JDK21 does.)")
+    //]]]
+    //[[[end]]]
     @SuppressWarnings("this-escape")
-    public ChunksmithNeoForge() {
+    //[[[cog
+    // import cog, compat
+    // if compat.forge_new_eventbus(mcver):
+    //     cog.outl("public ChunksmithForge(final FMLJavaModLoadingContext context) {")
+    // else:
+    //     cog.outl("public ChunksmithForge() {")
+    //]]]
+    //[[[end]]]
         if (ModList.get().isLoaded("chunky")) {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
-        NeoForge.EVENT_BUS.register(this);
+        //[[[cog
+        // import cog, compat
+        // if compat.forge_new_eventbus(mcver):
+        //     cog.outl("ServerStartingEvent.BUS.addListener(this::onServerStarting);")
+        //     cog.outl("RegisterCommandsEvent.BUS.addListener(this::onRegisterCommands);")
+        //     cog.outl("ServerStoppingEvent.BUS.addListener(this::onServerStopping);")
+        // else:
+        //     cog.outl("MinecraftForge.EVENT_BUS.register(this);")
+        //]]]
+        //[[[end]]]
     }
 
-    @SubscribeEvent
+    //[[[cog
+    // import cog, compat
+    // if not compat.forge_new_eventbus(mcver):
+    //     cog.outl("@SubscribeEvent")
+    //]]]
+    //[[[end]]]
     public void onServerStarting(final ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
         final Path configDir = FMLPaths.CONFIGDIR.get();
@@ -93,7 +152,12 @@ public class ChunksmithNeoForge {
         chunky.getEventBus().subscribe(GenerationTaskFinishEvent.class, new BossBarTaskFinishListener(bossBars));
     }
 
-    @SubscribeEvent
+    //[[[cog
+    // import cog, compat
+    // if not compat.forge_new_eventbus(mcver):
+    //     cog.outl("@SubscribeEvent")
+    //]]]
+    //[[[end]]]
     public void onRegisterCommands(final RegisterCommandsEvent event) {
         // Primary commands plus deprecated aliases (which emit a notice pointing to /cs).
         event.getDispatcher().register(buildCommand(CommandLiteral.CS));
@@ -110,7 +174,18 @@ public class ChunksmithNeoForge {
                     if (server != null && server.isSingleplayer()) {
                         return true;
                     }
-                    return serverCommandSource.hasPermission(2);
+                    //[[[cog
+                    // import cog, compat
+                    // # CommandSourceStack permission gate. Old = hasPermission(int) (singular); 26/1.21.11
+                    // # = permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER). This is the
+                    // # CommandSourceStack method (singular), NOT ServerPlayer.hasPermissions (plural), so it
+                    // # cannot reuse compat.gamemaster_permission_check (that targets a player var).
+                    // if compat.needs_permissions_import(mcver):
+                    //     cog.outl("return serverCommandSource.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);")
+                    // else:
+                    //     cog.outl("return serverCommandSource.hasPermission(2);")
+                    //]]]
+                    //[[[end]]]
                 })
                 .executes(context -> {
                     final Sender sender;
@@ -215,7 +290,12 @@ public class ChunksmithNeoForge {
         command.then(arguments[0].executes(command.getCommand()));
     }
 
-    @SubscribeEvent
+    //[[[cog
+    // import cog, compat
+    // if not compat.forge_new_eventbus(mcver):
+    //     cog.outl("@SubscribeEvent")
+    //]]]
+    //[[[end]]]
     public void onServerStopping(final ServerStoppingEvent event) {
         if (chunky != null) {
             chunky.disable();

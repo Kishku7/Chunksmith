@@ -603,3 +603,13 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def forge_new_eventbus(mcver):
+    """Forge EventBus 7.x era. MC 1.21.8+ (Forge 58.x-61.x) uses the new EventBus 7.x API: the @Mod
+    constructor takes an FMLJavaModLoadingContext and the game-bus lifecycle handlers register via each
+    event's static BUS.addListener(this::...). Classic Forge (<=1.21.5, 47.x-57.x) uses
+    MinecraftForge.EVENT_BUS.register(this) with @SubscribeEvent-annotated handlers. Loader-specific
+    (Forge only) -- Fabric/NeoForge never call this.
+    """
+    return _parse(mcver)[:3] >= (1, 21, 8)
