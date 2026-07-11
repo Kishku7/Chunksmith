@@ -16,7 +16,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.zip.CRC32;
 
 /**
@@ -31,7 +32,7 @@ import java.util.zip.CRC32;
  */
 public final class CsLodServerNet {
 
-    private static final Logger LOGGER = Logger.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private static final CsLodTokens TOKENS = new CsLodTokens();
     private static CsLodHttpServer http;
@@ -71,7 +72,7 @@ public final class CsLodServerNet {
         try {
             Files.createDirectories(root);
         } catch (final IOException e) {
-            LOGGER.warning("Chunksmith: cannot create the LOD store root " + root + ": " + e);
+            LOGGER.warn("Chunksmith: cannot create the LOD store root " + root + ": " + e);
             return;
         }
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
@@ -132,11 +133,11 @@ public final class CsLodServerNet {
                 case CsLodProtocol.C2S_REQUEST_REGIONS -> LOGGER.info(
                         "Chunksmith: in-band region fetch requested by " + player.getGameProfile().name()
                                 + " -- not implemented yet (backchannel is the fast path)");
-                case CsLodProtocol.C2S_CANCEL -> LOGGER.fine("Chunksmith: LOD transfer cancelled by client");
-                default -> LOGGER.warning("Chunksmith: unknown LOD message id " + id);
+                case CsLodProtocol.C2S_CANCEL -> LOGGER.debug("Chunksmith: LOD transfer cancelled by client");
+                default -> LOGGER.warn("Chunksmith: unknown LOD message id " + id);
             }
         } catch (final IOException e) {
-            LOGGER.warning("Chunksmith: malformed LOD message from " + player.getGameProfile().name() + ": " + e);
+            LOGGER.warn("Chunksmith: malformed LOD message from " + player.getGameProfile().name() + ": " + e);
         }
     }
 

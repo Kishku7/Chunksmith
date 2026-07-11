@@ -16,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.regex.Pattern;
 
 /**
@@ -47,7 +48,7 @@ import java.util.regex.Pattern;
  */
 public final class CsLodHttpServer {
 
-    private static final Logger LOGGER = Logger.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     /** The ONLY filename shape we will ever serve. Anything else is a 404. */
     private static final Pattern REGION_FILE = Pattern.compile("r\\.-?\\d{1,7}\\.-?\\d{1,7}\\.cslod");
@@ -179,7 +180,7 @@ public final class CsLodHttpServer {
             }
         } catch (final RuntimeException e) {
             // Never let a handler bug take the game server with it.
-            LOGGER.warning("Chunksmith: LOD backchannel error: " + e);
+            LOGGER.warn("Chunksmith: LOD backchannel error: " + e);
             fail(exchange);
         } finally {
             exchange.close();

@@ -5,7 +5,8 @@ import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Writes {@link CsLodChunk} records to a {@link CsLodRegionStore} off the server thread.
@@ -22,7 +23,7 @@ import java.util.logging.Logger;
  */
 public final class CsLodStoreSink implements LodSink {
 
-    private static final Logger LOGGER = Logger.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private final CsLodRegionStore store;
     private final BlockingQueue<CsLodChunk> queue;
@@ -97,7 +98,7 @@ public final class CsLodStoreSink implements LodSink {
         try {
             store.close();
         } catch (final IOException e) {
-            LOGGER.warning("Chunksmith: failed to close the LOD store: " + e);
+            LOGGER.warn("Chunksmith: failed to close the LOD store: " + e);
         }
     }
 
@@ -119,7 +120,7 @@ public final class CsLodStoreSink implements LodSink {
             written.incrementAndGet();
             bytes.addAndGet(size);
         } catch (final IOException e) {
-            LOGGER.warning(String.format("Chunksmith: failed to write LOD for chunk %d,%d: %s",
+            LOGGER.warn(String.format("Chunksmith: failed to write LOD for chunk %d,%d: %s",
                     record.getChunkX(), record.getChunkZ(), e));
         }
     }
