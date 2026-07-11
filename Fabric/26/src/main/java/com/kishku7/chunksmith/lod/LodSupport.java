@@ -121,6 +121,14 @@ public final class LodSupport {
         return sink;
     }
 
+    /**
+     * {@code <world>/chunksmith/lod} -- the store ROOT. This is the ONLY tree the backchannel ever serves,
+     * so it is the boundary every request path is canonicalized against.
+     */
+    public static Path storeRootBase(final net.minecraft.server.MinecraftServer server) {
+        return server.getWorldPath(LevelResource.ROOT).resolve("chunksmith").resolve("lod").normalize();
+    }
+
     /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; we never touch voxy's or DH's store. */
     public static Path storeRoot(final ServerLevel level) {
         final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);

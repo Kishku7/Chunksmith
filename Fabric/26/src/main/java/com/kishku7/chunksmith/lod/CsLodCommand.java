@@ -47,7 +47,8 @@ public final class CsLodCommand {
                                 + " | exists: " + Files.isDirectory(store)
                                 + " | size: " + (bytes / 1024) + " KB"
                                 + " | voxy: " + (CsLodVoxyInjector.voxyAvailable() ? "available" : "not available")
-                                + " | dh: " + dhStatus()), false);
+                                + " | dh: " + dhStatus()
+                                + " | " + com.kishku7.chunksmith.lod.net.CsLodServerNet.describe()), false);
                 return 1;
             }));
 
@@ -124,6 +125,22 @@ public final class CsLodCommand {
                 worker.start();
                 return 1;
             }));
+
+            root.then(Commands.literal("token")
+                    .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                            .executes(context -> {
+                                final net.minecraft.server.level.ServerPlayer target =
+                                        net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                                final String token = com.kishku7.chunksmith.lod.net.CsLodServerNet.issueFor(target);
+                                if (token == null) {
+                                    context.getSource().sendFailure(Component.literal(
+                                            "[chunksmith] the LOD backchannel is not running"));
+                                    return 0;
+                                }
+                                context.getSource().sendSuccess(() -> Component.literal(
+                                        "[chunksmith] token for " + target.getGameProfile().name() + ": " + token), false);
+                                return 1;
+                            })));
 
             dispatcher.register(root);
         });

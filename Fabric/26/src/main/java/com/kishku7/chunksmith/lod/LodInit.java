@@ -18,6 +18,14 @@ public final class LodInit implements ModInitializer {
     public void onInitialize() {
         CsLodCommand.register();
 
+        // The LOD protocol: the channel is registered at init; the HTTP backchannel binds
+        // once the server is up and its port is known, and unbinds when it stops.
+        com.kishku7.chunksmith.lod.net.CsLodServerNet.register();
+        ServerLifecycleEvents.SERVER_STARTED.register(
+                com.kishku7.chunksmith.lod.net.CsLodServerNet::onServerStarted);
+        ServerLifecycleEvents.SERVER_STOPPED.register(
+                server -> com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped());
+
         // CsLodDhSupport hard-references Distant Horizons types, so it must not be class-loaded
         // unless DH is actually installed.
         //
