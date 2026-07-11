@@ -23,6 +23,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.LevelResource;
 import com.kishku7.chunksmith.PlatformCompat;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
+import com.kishku7.chunksmith.lod.LodSupport;
 import com.kishku7.chunksmith.mixin.ChunkMapMixin;
 import com.kishku7.chunksmith.mixin.MinecraftServerAccess;
 import com.kishku7.chunksmith.mixin.ServerChunkCacheMixin;
@@ -113,7 +114,15 @@ public class FabricWorld implements World, ServerLevelHolder {
             boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
-                    .whenCompleteAsync((ignored, throwable) -> {
+                    .whenCompleteAsync((result, throwable) -> {
+                        // The only moment a live chunk at FULL status exists on the main thread while it
+                        // is still ticket-pinned. Offer it to the LOD sink BEFORE the ticket is released.
+                        // FULL is downstream of the LIGHT status, so the light engine has already run and
+                        // voxy's ingest gate is satisfied.
+                        // P1: a false return is backpressure -- retry the chunk instead of dropping it.
+                        if (throwable == null && result != null) {
+                            result.ifSuccess(chunkAccess -> LodSupport.sink().offer(chunkAccess));
+                        }
                         serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
                         if (PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS) {

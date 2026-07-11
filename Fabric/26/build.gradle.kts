@@ -64,6 +64,10 @@ dependencies {
     implementation(group = "net.fabricmc", name = "fabric-loader", version = "0.19.3")
     implementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = fabricApiVersion)
     compileOnly(group = "me.lucko", name = "fabric-permissions-api", version = "0.7.0")
+    // voxy: OPTIONAL soft dependency (LOD generation). All-Rights-Reserved -- never vendored,
+    // never shipped; the jar is gitignored and compileOnly. MC 26.x mods ship mojmap-named,
+    // so no remapping is required.
+    compileOnly(files("libs/voxy-0.2.16-beta.jar"))
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }
