@@ -5,6 +5,10 @@ target - the Fabric, Forge, and NeoForge mods plus the Bukkit/Paper/Folia plugin
 1.20.1 through 26.3.
 
 For what Chunksmith is and how to use it, see the [landing page](https://github.com/Kishku7/Chunksmith).
+
+**`readme-main_dev.md`** in this repo root is the landing-page README **in waiting**: it holds the
+user-facing pitch for everything on this branch that has not shipped to `main` yet. When this branch
+goes live, its contents replace `main`'s README and the staging file is deleted.
 Questions or bug reports: https://github.com/Kishku7/mod_support/issues
 
 ## What you need installed
