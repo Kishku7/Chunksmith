@@ -13,10 +13,12 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registers ChunkSmith as Distant Horizons' world-generator override, so DH is served straight from
- * the CSLOD store.
+ * the CSLOD store, and keeps the per-level DH wrappers the PUSH path addresses.
  *
  * <p>Hard-references DH types, so it must not be loaded unless DH is present -- {@link LodInit} owns
  * that gate.
@@ -37,6 +39,21 @@ public final class CsLodDhSupport {
 
     private static volatile MinecraftServer server;
     private static volatile CsLodDhGenerator lastGenerator;
+    private static volatile IDhApiLevelWrapper lastWrapper;
+
+    /**
+     * Every level wrapper DH has reported, keyed by identity of the vanilla level object it wraps.
+     *
+     * <p>DH loads EVERY dimension at server start -- overworld, then the nether, then the end --
+     * firing one {@link DhApiLevelLoadEvent} each. A single "last wrapper wins" field therefore ends
+     * up holding THE END, and a push addressed to it lands, silently and successfully, in the end's
+     * DH database. Measured on the first run of this spike: all 1089 OVERWORLD chunks were written
+     * into {@code dimensions/minecraft/the_end/data/DistantHorizons.sqlite} (ChunkHash 1089, 81 of 81
+     * detail-0 sections) while the overworld DB held only DH's own ordinary ingest. DH does not
+     * sanity-check the dimension of the data it is handed, and reports success either way. So the
+     * pusher MUST address DH per-level.
+     */
+    private static final Map<Object, IDhApiLevelWrapper> WRAPPERS = new ConcurrentHashMap<>();
 
     private CsLodDhSupport() {
     }
@@ -47,15 +64,26 @@ public final class CsLodDhSupport {
      * exists.
      */
     public static void register() {
-        if (!enabled()) {
+        // Bind the level-load event even when the OVERRIDE is disabled: it is also how we learn the
+        // level wrappers, which the PUSH path (the one that actually works on a multiplayer client) needs.
+        if (!dhPresent()) {
             return;
         }
+        final boolean override = enabled();
 
         DhApi.events.bind(DhApiLevelLoadEvent.class, new DhApiLevelLoadEvent() {
             @Override
             public void onLevelLoad(final DhApiEventParam<DhApiLevelLoadEvent.EventParam> event) {
                 final IDhApiLevelWrapper level = event.value.levelWrapper;
+                lastWrapper = level;
+                final Object raw = level.getWrappedMcObject();
+                if (raw != null) {
+                    WRAPPERS.put(raw, level);
+                }
                 final Path store = storeFor(level);
+                if (!override) {
+                    return;
+                }
                 if (store == null || !Files.isDirectory(store)) {
                     System.out.println("[chunksmith] DH loaded a level with no CSLOD store; not overriding its generator");
                     return;
@@ -66,7 +94,7 @@ public final class CsLodDhSupport {
                 System.out.println("[chunksmith] serving Distant Horizons from the CSLOD store -> " + store);
             }
         });
-        System.out.println("[chunksmith] Distant Horizons detected -- CSLOD world-generator override armed");
+        System.out.println("[chunksmith] Distant Horizons detected -- CSLOD level events bound");
     }
 
     /**
@@ -94,8 +122,13 @@ public final class CsLodDhSupport {
         return null;
     }
 
+    /** DH installed at all. The level-load event binds on this alone -- it is how we learn the wrappers. */
+    private static boolean dhPresent() {
+        return FabricLoader.getInstance().isModLoaded("distanthorizons");
+    }
+
     private static boolean enabled() {
-        if (!FabricLoader.getInstance().isModLoaded("distanthorizons")) {
+        if (!dhPresent()) {
             return false;
         }
         final Config config = config();
@@ -124,6 +157,25 @@ public final class CsLodDhSupport {
     }
 
     /**
+     * The DH level wrapper for THIS level, or null if DH has not reported it.
+     *
+     * <p>This is the ONLY correct way to address DH from the push path -- see {@link #WRAPPERS}.
+     */
+    public static IDhApiLevelWrapper wrapperFor(final ServerLevel level) {
+        return WRAPPERS.get(level);
+    }
+
+    /** The last level wrapper DH handed us. Diagnostics only -- never push to this. */
+    public static IDhApiLevelWrapper wrapper() {
+        return lastWrapper;
+    }
+
+    /** How many levels DH has reported so far. */
+    public static int knownLevelCount() {
+        return WRAPPERS.size();
+    }
+
+    /**
      * One-line report of what DH has actually asked us for. The ABSENCE of these counters is what let
      * two silent P3 bugs (an override that never armed, and a null return that killed DH's queue) hide
      * -- surface them.
@@ -131,7 +183,7 @@ public final class CsLodDhSupport {
     public static String describe() {
         final CsLodDhGenerator generator = lastGenerator;
         if (generator == null) {
-            return "not serving DH";
+            return "not serving DH (levels known: " + WRAPPERS.size() + ")";
         }
         return "serving DH: " + generator.getServedCount() + " chunks from the store, "
                 + generator.getMissedCount() + " not pregenerated";

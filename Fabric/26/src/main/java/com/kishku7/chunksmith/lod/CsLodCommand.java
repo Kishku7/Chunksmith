@@ -17,6 +17,8 @@ import java.nio.file.Path;
  *   <li>{@code /cslod status} -- where the store is, and how big.</li>
  *   <li>{@code /cslod inject} -- replay the store for the current dimension into voxy. This is the
  *       backfill: LODs for a world that was pregenerated BEFORE voxy was ever installed.</li>
+ *   <li>{@code /cslod dhpush} -- replay the store for the current dimension into Distant Horizons by
+ *       PUSHING synthesized chunks at it.</li>
  * </ul>
  *
  * <p>Registered as its own root command rather than folded into {@code /chunksmith}: the shared
@@ -78,6 +80,46 @@ public final class CsLodCommand {
                                 Component.literal("[chunksmith] LOD injection failed: " + e)));
                     }
                 }, "chunksmith-lod-inject");
+                worker.setDaemon(true);
+                worker.start();
+                return 1;
+            }));
+
+            root.then(Commands.literal("dhpush").executes(context -> {
+                final CommandSourceStack source = context.getSource();
+                final ServerLevel level = source.getLevel();
+                final Path store = LodSupport.storeRoot(level);
+
+                if (!Files.isDirectory(store)) {
+                    source.sendFailure(Component.literal("[chunksmith] no LOD store for this dimension"));
+                    return 0;
+                }
+                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("distanthorizons")) {
+                    source.sendFailure(Component.literal("[chunksmith] Distant Horizons is not installed"));
+                    return 0;
+                }
+                // THIS level's wrapper -- never "the last one DH mentioned". DH loads every dimension
+                // at startup, so a last-wins wrapper is the END, and DH will happily (and silently)
+                // accept overworld chunks into the end's database.
+                final var wrapper = CsLodDhSupport.wrapperFor(level);
+                if (wrapper == null) {
+                    source.sendFailure(Component.literal(
+                            "[chunksmith] DH has not reported this level yet -- rejoin the world and retry"));
+                    return 0;
+                }
+
+                source.sendSuccess(() -> Component.literal(
+                        "[chunksmith] pushing LOD store into Distant Horizons -> " + wrapper.getDhIdentifier()), true);
+                final Thread worker = new Thread(() -> {
+                    try {
+                        CsLodDhPusher.push(level, wrapper, store,
+                                line -> source.getServer().execute(() ->
+                                        source.sendSuccess(() -> Component.literal("[chunksmith] " + line), true)));
+                    } catch (final Exception e) {
+                        source.getServer().execute(() -> source.sendFailure(
+                                Component.literal("[chunksmith] DH push failed: " + e)));
+                    }
+                }, "chunksmith-dh-push");
                 worker.setDaemon(true);
                 worker.start();
                 return 1;

@@ -1,0 +1,94 @@
+package com.kishku7.chunksmith.lod;
+
+import com.seibel.distanthorizons.api.DhApi;
+import com.seibel.distanthorizons.api.interfaces.world.IDhApiLevelWrapper;
+import com.seibel.distanthorizons.api.objects.DhApiResult;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.function.Consumer;
+
+/**
+ * SPIKE: PUSH a CSLOD record into Distant Horizons, instead of waiting to be pulled.
+ *
+ * <p><b>Why this exists.</b> The world-generator override (P3) only ever fires on a level that has a
+ * server: DH's {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a
+ * MULTIPLAYER CLIENT gets a {@code RemoteWorldRetrievalQueue} instead -- so {@code generateApiChunk} is
+ * never called there. The whole pull design is inapplicable to Chunksmith-Client. The client must PUSH.
+ *
+ * <p>The push path is {@code DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(levelWrapper, {chunk, level})}
+ * -> {@code SharedApi.applyChunkUpdate}: the same code path DH uses when a player edits a block. It
+ * writes at gen step LIGHT, persists, and re-renders on its own.
+ *
+ * <p><b>What this spike is really testing</b> is not the API call -- it is whether we can SYNTHESIZE a
+ * vanilla {@link LevelChunk} from a stored CSLOD record that DH will accept and, crucially, LIGHT
+ * correctly. If DH reads light from the level's light engine rather than from the chunk we hand it, a
+ * synthesized chunk will come out BLACK, and (as everywhere else in this project) nothing will report an
+ * error. So: run it, then LOOK at it.
+ *
+ * <p>Known gate, and the reason this may report success and do nothing on a real server:
+ * {@code DhClientLevel.shouldProcessChunkUpdate} silently DISCARDS an update for any position seen in the
+ * last 10 minutes when connected to a DH server with real-time updates on -- while still returning
+ * {@code createSuccess()}. Chunksmith-Client will mixin that gate off. Singleplayer is not affected, which
+ * is why the spike runs here.
+ */
+public final class CsLodDhPusher {
+
+    private CsLodDhPusher() {
+    }
+
+    /**
+     * Replay a CSLOD store into DH by pushing synthesized chunks at it.
+     *
+     * @return number of chunks pushed
+     */
+    public static int push(final ServerLevel level,
+                           final IDhApiLevelWrapper wrapper,
+                           final Path storeRoot,
+                           final Consumer<String> progress) throws IOException {
+        final int[] pushed = {0};
+        final int[] failed = {0};
+
+        CsLodRegionStore.forEachChunk(storeRoot, record -> {
+            final LevelChunk chunk = synthesize(level, record);
+            final DhApiResult<Void> result =
+                    DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(wrapper, new Object[]{chunk, level});
+            if (result.success) {
+                pushed[0]++;
+            } else {
+                failed[0]++;
+                if (failed[0] == 1) {
+                    progress.accept("first failure: " + result.message);
+                }
+            }
+            if ((pushed[0] + failed[0]) % 250 == 0) {
+                progress.accept("pushed " + pushed[0] + ", failed " + failed[0]);
+            }
+        });
+
+        progress.accept("done: pushed " + pushed[0] + ", failed " + failed[0]
+                + " -- NOTE a 'success' here does NOT prove DH kept it; check the DB and LOOK at the terrain");
+        return pushed[0];
+    }
+
+    /**
+     * Build a vanilla {@link LevelChunk} out of a CSLOD record.
+     *
+     * <p>The empty {@code LevelChunk(Level, ChunkPos)} constructor allocates the section array for the
+     * level's height; we fill it with sections rebuilt from the record (the same reconstruction the voxy
+     * injector already does and that P2 proved correct).
+     */
+    private static LevelChunk synthesize(final ServerLevel level, final CsLodChunk record) {
+        final LevelChunk chunk = new LevelChunk(level, new ChunkPos(record.getChunkX(), record.getChunkZ()));
+        final LevelChunkSection[] sections = chunk.getSections();
+        final int count = Math.min(sections.length, record.getSections().size());
+        for (int i = 0; i < count; i++) {
+            sections[i] = CsLodSectionBuilder.rebuild(level, record, record.getSections().get(i));
+        }
+        return chunk;
+    }
+}
