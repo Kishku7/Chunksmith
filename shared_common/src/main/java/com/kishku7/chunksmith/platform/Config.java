@@ -44,5 +44,20 @@ public interface Config {
      */
     long getThrottleMaxQueuedWrites();
 
+    /**
+     * Whether ChunkSmith emits LOD data for the chunks it generates (currently: into voxy, when voxy
+     * is installed). OPT-IN, default false: LOD ingestion measurably slows a pregen (~2.4x in the
+     * 26.1.2 spike), so it must never be switched on behind the operator's back.
+     */
+    boolean isLodEnabled();
+
+    /**
+     * Maximum items allowed to queue in the LOD sink before the throttle backs off dispatch.
+     *
+     * <p>Voxy's ingest queue is UNBOUNDED and its ingest call never reports saturation, so without
+     * this governor a fast pregen can outrun LOD ingestion and drive the heap into an OOM. 0 disables.
+     */
+    long getThrottleMaxLodQueue();
+
     void reload();
 }

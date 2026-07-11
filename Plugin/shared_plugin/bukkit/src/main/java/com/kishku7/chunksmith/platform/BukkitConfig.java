@@ -92,6 +92,20 @@ public final class BukkitConfig implements Config {
         return plugin.getConfig().getLong("throttle-max-queued-writes", 800L);
     }
 
+    /**
+     * LOD generation is a client/integrated-server feature (voxy is a Fabric client mod), so it is
+     * permanently off on the Bukkit platform. The governor is disabled to match.
+     */
+    @Override
+    public boolean isLodEnabled() {
+        return false;
+    }
+
+    @Override
+    public long getThrottleMaxLodQueue() {
+        return 0L;
+    }
+
     @Override
     public void reload() {
         plugin.reloadConfig();

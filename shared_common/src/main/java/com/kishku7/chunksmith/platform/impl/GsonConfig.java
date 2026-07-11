@@ -32,6 +32,11 @@ public final class GsonConfig implements Config {
     private static final long MAX_QUEUED_WRITES_MIN = 50L;
     private static final long MAX_QUEUED_WRITES_MAX = 1_000_000L;
     private static final long MAX_QUEUED_WRITES_DEFAULT = 800L;
+    // Governor for the LOD sink. Voxy's ingest queue is unbounded and never reports saturation, so
+    // this is the only thing standing between a fast pregen and an OOM.
+    private static final long MAX_LOD_QUEUE_MIN = 16L;
+    private static final long MAX_LOD_QUEUE_MAX = 100_000L;
+    private static final long MAX_LOD_QUEUE_DEFAULT = 512L;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
@@ -132,6 +137,25 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isLodEnabled() {
+        return Optional.ofNullable(configModel.lodEnabled).orElse(false);
+    }
+
+    @Override
+    public long getThrottleMaxLodQueue() {
+        final long raw = Optional.ofNullable(configModel.throttleMaxLodQueue).orElse(MAX_LOD_QUEUE_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        final long clamped = Math.max(MAX_LOD_QUEUE_MIN, Math.min(MAX_LOD_QUEUE_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: throttleMaxLodQueue %d is out of range [%d, %d], using %d",
+                    raw, MAX_LOD_QUEUE_MIN, MAX_LOD_QUEUE_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
     public void reload() {
         try (final Reader reader = Files.newBufferedReader(savePath)) {
             configModel = GSON.fromJson(reader, ConfigModel.class);
@@ -165,6 +189,8 @@ public final class GsonConfig implements Config {
         private Double throttleTargetMspt = TARGET_MSPT_DEFAULT;
         private Long throttleMaxChunkMillis = MAX_CHUNK_MILLIS_DEFAULT;
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
+        private Boolean lodEnabled = false;
+        private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }

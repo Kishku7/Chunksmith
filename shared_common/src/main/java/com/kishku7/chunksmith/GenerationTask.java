@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith;
 
+import com.kishku7.chunksmith.lod.LodSinks;
+
 import com.kishku7.chunksmith.api.event.task.GenerationCompleteEvent;
 import com.kishku7.chunksmith.api.event.task.GenerationProgressEvent;
 import com.kishku7.chunksmith.event.task.GenerationTaskFinishEvent;
@@ -61,6 +63,7 @@ public class GenerationTask implements Runnable {
     private final double targetMspt;
     private final long maxChunkMillis;
     private final long maxQueuedWrites;
+    private final long maxLodQueue;
     private final long resumeQueuedWrites;
     private final AtomicLong lastWriteCheckTime = new AtomicLong(0);
     private final AtomicLong lastWriteNoticeTime = new AtomicLong(0);
@@ -91,6 +94,7 @@ public class GenerationTask implements Runnable {
         this.targetMspt = chunky.getConfig().getThrottleTargetMspt();
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
+        this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
         this.resumeQueuedWrites = this.maxQueuedWrites > 0 ? Math.max(1L, this.maxQueuedWrites / 2L) : 0L;
     }
 
@@ -185,6 +189,20 @@ public class GenerationTask implements Runnable {
      */
     private void adjustFromChunkLatency(final long elapsed) {
         if (elapsed > maxChunkMillis) {
+            backoff();
+        }
+    }
+
+    /**
+     * LOD-sink governor. The LOD sink (voxy) queues ingest work on an UNBOUNDED queue and never
+     * reports saturation, so it cannot push back on us -- we have to watch it. When its backlog
+     * exceeds the configured bound, back off dispatch until it drains.
+     */
+    private void adjustFromLodQueue() {
+        if (maxLodQueue <= 0L) {
+            return;
+        }
+        if (LodSinks.get().queueDepth() > maxLodQueue) {
             backoff();
         }
     }
@@ -332,6 +350,9 @@ public class GenerationTask implements Runnable {
                         evaluateWriteBackpressure();
                     }
                 }
+                // The LOD sink is governed regardless of ioThrottleEnabled: it is not a disk-I/O
+                // signal, and an unbounded ingest backlog is an OOM, not a slowdown.
+                adjustFromLodQueue();
                 if (!writeQueueStalled && inFlight.get() < Math.max(1, dispatchLimit.get())) {
                     break;
                 }
