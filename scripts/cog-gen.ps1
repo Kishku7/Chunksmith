@@ -3,12 +3,12 @@
   ChunkSmith Cog code-generation driver for one cell.
 
 .DESCRIPTION
-  Materialises a per-cell, per-MC-version copy of the shared_minecraft mixin/accessor
+  Materialises a per-cell, per-MC-version copy of the shared mixin/accessor
   source under <Cell>/gen/, with all version drift resolved by Cog (direct-compile,
   driven by _codegen/compat.py). Steps:
 
     1. Wipe + recreate <Cell>/gen/ (it is a build artifact, never committed).
-    2. Copy shared_minecraft/src/main/java -> <Cell>/gen/ verbatim.
+    2. Copy _codegen/cog_sources/shared -> <Cell>/gen/ verbatim (D16: one source of truth).
     3. Overwrite the drifting files with the Cog-instrumented copies from _codegen/cog_sources/.
     4. Add/remove the presence-gated files for this MC version:
          - ChunkStorageAccessor  : present <=1.21.10, absent 1.21.11/26
@@ -58,8 +58,10 @@ if (-not $Loader) {
     if ($leadSeg -in @('Fabric','NeoForge','Forge')) { $Loader = $leadSeg } else { $Loader = 'Fabric' }
 }
 
-$sharedJava = Join-Path $repoRoot 'shared_minecraft/src/main/java'
-if (-not (Test-Path $sharedJava)) { throw "shared_minecraft java not found: $sharedJava" }
+# D16 (2026-07-10): shared_minecraft is GONE -- cog_sources is the ONE source of truth.
+# The invariant (non-drifting) shared classes now live in _codegen/cog_sources/shared.
+$sharedJava = Join-Path $cogSrc 'shared'
+if (-not (Test-Path $sharedJava)) { throw "cog_sources/shared not found: $sharedJava" }
 
 $genDir     = Join-Path $cellPath 'gen'
 $genJava    = Join-Path $genDir 'src/main/java'
@@ -71,7 +73,7 @@ Write-Host "[cog-gen] cell=$Cell mcver=$McVer"
 if (Test-Path $genDir) { Remove-Item -Recurse -Force $genDir }
 New-Item -ItemType Directory -Force -Path $genJava | Out-Null
 
-# --- Step 2: copy shared_minecraft java verbatim ---
+# --- Step 2: copy the invariant shared java (cog_sources/shared) verbatim ---
 Copy-Item -Recurse -Force (Join-Path $sharedJava '*') $genJava
 
 # --- Step 3: overwrite drifting files with the Cog-instrumented copies ---
@@ -92,6 +94,9 @@ foreach ($name in $driftMap.Keys) {
     $src = Join-Path $cogSrc $name
     $dst = Join-Path $genJava $driftMap[$name]
     if (-not (Test-Path $src)) { throw "cog_source missing: $src" }
+    # D16: the drift files are no longer duplicated in the shared tree, so their package dir may not
+    # exist yet in gen/ (e.g. listeners/bossbar, whose only members are drift files). Create it.
+    New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
     Copy-Item -Force $src $dst
 }
 
@@ -103,6 +108,18 @@ $entrypointSrc  = Join-Path $cogSrc $entrypointName
 $entrypointDst  = Join-Path $genJava "com/kishku7/chunksmith/$entrypointName"
 if (-not (Test-Path $entrypointSrc)) { throw "cog_source entrypoint missing: $entrypointSrc" }
 Copy-Item -Force $entrypointSrc $entrypointDst
+
+# --- Step 3c: platform Border, single-sourced via cog (D14, 2026-07-10). FabricBorder was
+# byte-identical across all 10 Fabric cells and NeoForgeBorder across all 16 Forge/NeoForge cells
+# (26 hand-copies, zero drift) -- now emitted from ONE cog_source per loader; the per-cell copies
+# were deleted. Border carries no version drift, so it is copied plain (no cog markers). ---
+$borderName = if ($Loader -eq 'Fabric') { 'FabricBorder.java' } else { 'NeoForgeBorder.java' }
+$borderSrc  = Join-Path $cogSrc $borderName
+$borderDst  = Join-Path $genJava "com/kishku7/chunksmith/platform/$borderName"
+if (-not (Test-Path $borderSrc)) { throw "cog_source border missing: $borderSrc" }
+New-Item -ItemType Directory -Force -Path (Split-Path $borderDst) | Out-Null
+Copy-Item -Force $borderSrc $borderDst
+Write-Host "[cog-gen] + $borderName (single-sourced platform border)"
 
 # --- Step 4: presence-gated files (query compat.py so the rule lives in ONE place) ---
 Push-Location $codegen
