@@ -68,6 +68,9 @@ dependencies {
     // never shipped; the jar is gitignored and compileOnly. MC 26.x mods ship mojmap-named,
     // so no remapping is required.
     compileOnly(files("libs/voxy-0.2.16-beta.jar"))
+    // Distant Horizons: OPTIONAL soft dependency. LGPL-3 -- we link against its published API,
+    // never vendor it. The jar is gitignored and compileOnly.
+    compileOnly(files("libs/DistantHorizons-3.2.0-b-26.1.2.jar"))
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }

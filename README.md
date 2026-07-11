@@ -102,6 +102,79 @@ The cell's Gradle build compiles `<Cell>/gen/`, not `shared_minecraft` directly 
 why Cog must be installed before building. The unified 26 cells do not use cog-gen; they
 build from a `-P` version matrix supplied by the build script.
 
+## LOD generation (26.x Fabric, in development on `dev`)
+
+Chunksmith can emit **level-of-detail data while it pregenerates** - so the same pass that builds your
+world also builds the LODs for it. No second scan, no re-reading region files, no separate LOD pregen.
+
+The point is that the LOD data is written in **Chunksmith's own neutral format (CSLOD)** rather than in
+any one LOD mod's private shape. From that single store we can serve **every** LOD consumer:
+
+| Consumer | How it is fed |
+|----------|---------------|
+| [Voxy](https://modrinth.com/mod/voxy) | Fed live during pregen, **and** replayable afterwards (`/cslod inject`) |
+| [Distant Horizons](https://modrinth.com/mod/distanthorizons) | Chunksmith registers as DH's world-generator override and answers straight from the store |
+| Remote clients | Planned - the same bytes are already the wire format |
+
+### Why a neutral format
+
+- **Voxy's on-disk format is not frozen** (`STORAGE_VERSION = 0`, with an unused key re-order sitting
+  in the code), and its block/biome ids are **database-local and allocation-ordered** - issued lazily
+  by a live mapper, so they cannot even be computed offline. Anything written in voxy's shape is
+  hostage to voxy's internals.
+- **Distant Horizons is a completely different data model** - run-length columns in SQLite, not a dense
+  voxel grid - and it *pulls* data rather than accepting pushes.
+
+CSLOD stores **vanilla registry strings**: full block *states* (`minecraft:oak_stairs[facing=east,
+waterlogged=true]`), per-voxel biomes, and sky/block light kept **separate**, carried even for air, all
+the way to the build ceiling. That is the union of what both mods need, so both can be reconstructed
+losslessly - and DH's own wrapper factory eats our palette strings verbatim, with no id translation at
+either end.
+
+### What it costs
+
+Measured on MC 26.1.2, a 1089-chunk pregen:
+
+| | |
+|---|---|
+| CSLOD store | **~5.8 KB per chunk** |
+| Voxy's RocksDB, same chunks | ~43 KB per chunk (**7.4x larger**) |
+| Pregen slowdown with the store on | **~16%** |
+| Compression | JDK Deflate - **zero native dependencies** |
+
+The store is plain Anvil-style region files: no native database, no lock, readable by a second process
+while the game runs. Writes append the payload and *then* update the index, so a torn write costs one
+chunk, never the file.
+
+### The trick worth stealing
+
+**You do not need the LOD mod installed when you pregenerate.** Pregen a world today with nothing but
+Chunksmith; install Voxy or Distant Horizons a month later; run `/cslod inject` (Voxy) or just load the
+world (DH) - and the LODs are there, instantly, with no regeneration. The world does not have to be
+touched again.
+
+### Usage
+
+Off by default. In `config/chunksmith.json`:
+
+    "lodEnabled": true,        // write the CSLOD store during pregen (and feed voxy if installed)
+    "lodDhOverride": true      // additionally serve Distant Horizons from the store
+
+Commands (op):
+
+    /cslod status              // store path, size, and whether voxy / DH are being served
+    /cslod inject              // replay the whole store into voxy
+
+Notes:
+
+- Voxy pins an exact Sodium version (`<= 0.8.12` on 26.1.2) and will not load without it.
+- `lodDhOverride` **replaces** DH's own distant generator for that level: pregenerated area appears
+  instantly, everything else returns empty. That is right for a world you have pregenerated and wrong
+  for one you have not - which is why it is opt-in.
+- Neither mod is bundled. Voxy is All-Rights-Reserved and DH is LGPL; both are optional soft
+  dependencies, compiled against and never shipped. To build the LOD code, drop the jars in
+  `Fabric/26/libs/` (gitignored).
+
 ## Credits / License
 
 Original Chunky by pop4959; the Paper/Folia chunk-system internals referenced in the code

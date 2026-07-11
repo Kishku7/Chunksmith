@@ -44,7 +44,8 @@ public final class CsLodCommand {
                         "[chunksmith] LOD store: " + store
                                 + " | exists: " + Files.isDirectory(store)
                                 + " | size: " + (bytes / 1024) + " KB"
-                                + " | voxy: " + (CsLodVoxyInjector.voxyAvailable() ? "available" : "not available")), false);
+                                + " | voxy: " + (CsLodVoxyInjector.voxyAvailable() ? "available" : "not available")
+                                + " | dh: " + dhStatus()), false);
                 return 1;
             }));
 
@@ -84,6 +85,18 @@ public final class CsLodCommand {
 
             dispatcher.register(root);
         });
+    }
+
+    /** CsLodDhSupport hard-references DH types, so only touch it when DH is actually installed. */
+    private static String dhStatus() {
+        if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("distanthorizons")) {
+            return "not installed";
+        }
+        try {
+            return CsLodDhSupport.describe();
+        } catch (final LinkageError error) {
+            return "incompatible";
+        }
     }
 
     private static long sizeOf(final Path dir) {

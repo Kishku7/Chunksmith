@@ -107,6 +107,11 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isLodDhOverrideEnabled() {
+        return false;
+    }
+
+    @Override
     public void reload() {
         plugin.reloadConfig();
     }

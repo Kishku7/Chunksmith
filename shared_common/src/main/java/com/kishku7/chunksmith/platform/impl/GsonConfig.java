@@ -156,6 +156,11 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isLodDhOverrideEnabled() {
+        return Optional.ofNullable(configModel.lodDhOverride).orElse(false);
+    }
+
+    @Override
     public void reload() {
         try (final Reader reader = Files.newBufferedReader(savePath)) {
             configModel = GSON.fromJson(reader, ConfigModel.class);
@@ -191,6 +196,7 @@ public final class GsonConfig implements Config {
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
         private Boolean lodEnabled = false;
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
+        private Boolean lodDhOverride = false;
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }

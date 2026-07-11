@@ -59,5 +59,15 @@ public interface Config {
      */
     long getThrottleMaxLodQueue();
 
+    /**
+     * Whether ChunkSmith registers itself as Distant Horizons' world-generator override, serving DH
+     * from the CSLOD store.
+     *
+     * <p>OPT-IN, default false, and deliberately so: overriding DH's generator means DH STOPS
+     * generating for itself. Pregenerated area appears instantly; everything else returns no data.
+     * That is right for a world you have pregenerated and wrong for one you have not.
+     */
+    boolean isLodDhOverrideEnabled();
+
     void reload();
 }

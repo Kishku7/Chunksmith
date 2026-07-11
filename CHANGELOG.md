@@ -1,5 +1,28 @@
 # Chunksmith Changelog
 
+## [Unreleased]
+
+### Added
+
+- **LOD generation (26.x Fabric).** Chunksmith can now emit level-of-detail data while it pregenerates,
+  in its own neutral format (CSLOD): full block states, per-voxel biomes, and separate sky/block light
+  carried even for air. ~5.8 KB per chunk, ~16% slower pregen, zero native dependencies. Off by default
+  (`lodEnabled`).
+- **Voxy support.** LODs are fed to voxy live during pregen, and an existing store can be replayed into
+  voxy at any time with `/cslod inject` -- so a world pregenerated before voxy was ever installed can be
+  given LODs after the fact, with no regeneration.
+- **Distant Horizons support.** Chunksmith registers as DH's world-generator override and serves it
+  straight from the CSLOD store, so DH's LODs appear for pregenerated area without DH generating
+  anything. Opt-in (`lodDhOverride`).
+- `/cslod status` and `/cslod inject` commands.
+
+### Fixed
+
+- Build scripts silently ignored all but the first target (`build-fabric.ps1 1.21.8 26.1` built only
+  1.21.8), aborted the whole matrix on the first failing cell, and could corrupt each other when run
+  concurrently (all cells share `shared_common`). All three fixed; a build lock now prevents overlap.
+
+
 ## [2.2.3] - 2026-07-10
 
 Fixes a hard crash at startup that could hit large modpacks. Chunksmith's five optional worldgen/entity diagnostic mixins are now best-effort (`require = 0`), so another mod that removes or overrides one of their target methods can no longer take the game down at boot. Reported on NeoForge 1.21.1 in a ~400-mod pack.
