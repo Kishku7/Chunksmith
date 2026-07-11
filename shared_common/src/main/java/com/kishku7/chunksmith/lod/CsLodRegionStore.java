@@ -97,6 +97,52 @@ public final class CsLodRegionStore {
         return CsLodCodec.decode(payload);
     }
 
+    /**
+     * Walk every record in a CSLOD tree and hand each decoded chunk to the visitor.
+     *
+     * <p>Static and stateless on purpose: this is how a SECOND process (a backfill/verify tool) reads
+     * the store while the game holds nothing. Plain files, no lock, no native DB -- unlike voxy's
+     * process-exclusive RocksDB, which is the whole reason we keep our own store.
+     *
+     * @return the number of records visited
+     */
+    public static int forEachChunk(final Path root, final ChunkVisitor visitor) throws IOException {
+        if (!Files.isDirectory(root)) {
+            return 0;
+        }
+        int visited = 0;
+        try (java.util.stream.Stream<Path> walk = Files.walk(root)) {
+            final java.util.List<Path> regions = walk
+                    .filter(path -> path.getFileName().toString().endsWith(".cslod"))
+                    .sorted()
+                    .toList();
+            for (final Path region : regions) {
+                try (RandomAccessFile file = new RandomAccessFile(region.toFile(), "r")) {
+                    for (int slot = 0; slot < SLOTS; slot++) {
+                        file.seek((long) slot * SLOT_BYTES);
+                        final int offset = file.readInt();
+                        final int length = file.readInt();
+                        if (offset <= 0 || length <= 0) {
+                            continue;
+                        }
+                        final byte[] payload = new byte[length];
+                        file.seek(offset);
+                        file.readFully(payload);
+                        visitor.visit(CsLodCodec.decode(payload));
+                        visited++;
+                    }
+                }
+            }
+        }
+        return visited;
+    }
+
+    /** Visitor for {@link #forEachChunk}. May throw to abort the walk. */
+    @FunctionalInterface
+    public interface ChunkVisitor {
+        void visit(CsLodChunk chunk) throws IOException;
+    }
+
     /** Close every open region file. */
     public synchronized void close() throws IOException {
         IOException first = null;

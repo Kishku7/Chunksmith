@@ -22,7 +22,8 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.kishku7.chunksmith.ChunksmithFabric"
+      "com.kishku7.chunksmith.ChunksmithFabric",
+      "com.kishku7.chunksmith.lod.LodInit"
     ]
   },
   "mixins": [

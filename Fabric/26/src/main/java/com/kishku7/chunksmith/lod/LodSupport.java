@@ -103,7 +103,7 @@ public final class LodSupport {
 
         final List<LodSink> sinks = new ArrayList<>(2);
 
-        final Path root = lodRoot(level);
+        final Path root = storeRoot(level);
         sinks.add(new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY));
         System.out.println("[chunksmith] LOD store enabled -> " + root);
 
@@ -122,7 +122,7 @@ public final class LodSupport {
     }
 
     /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; we never touch voxy's or DH's store. */
-    private static Path lodRoot(final ServerLevel level) {
+    public static Path storeRoot(final ServerLevel level) {
         final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
         final String dim = level.dimension().identifier().toString().replace(':', '_').replace('/', '_');
         return worldRoot.resolve("chunksmith").resolve("lod").resolve(dim).normalize();
