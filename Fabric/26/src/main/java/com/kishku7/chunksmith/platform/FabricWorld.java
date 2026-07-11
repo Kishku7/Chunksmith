@@ -16,6 +16,7 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -121,7 +122,11 @@ public class FabricWorld implements World, ServerLevelHolder {
                         // voxy's ingest gate is satisfied.
                         // P1: a false return is backpressure -- retry the chunk instead of dropping it.
                         if (throwable == null && result != null) {
-                            result.ifSuccess(chunkAccess -> LodSupport.sink().offer(chunkAccess));
+                            result.ifSuccess(chunkAccess -> {
+                                if (chunkAccess instanceof final LevelChunk levelChunk) {
+                                    LodSupport.offer(world, levelChunk);
+                                }
+                            });
                         }
                         serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
