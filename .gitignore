@@ -320,3 +320,6 @@ crowdin.yml
 
 # Optional soft-dep jars compiled against but never shipped (voxy is All-Rights-Reserved).
 libs/
+
+# Guard file written by the build scripts while a build is running.
+.build-lock

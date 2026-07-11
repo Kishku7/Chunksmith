@@ -7,7 +7,7 @@
 #   pwsh scripts/build-fabric.ps1 1.21.8          # build one pre-26 cell
 #   pwsh scripts/build-fabric.ps1 26.2            # build one 26.X target
 #   pwsh scripts/build-fabric.ps1 1.21.8 26.1     # build a specific set
-param([string[]]$Only)
+param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Only)
 $ErrorActionPreference = "Stop"
 $repo   = Split-Path $PSScriptRoot -Parent
 $loader = "Fabric"
@@ -15,6 +15,20 @@ $root   = Join-Path $repo $loader
 $dist   = Join-Path $repo "dist"
 $cogGen = Join-Path $PSScriptRoot "cog-gen.ps1"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+# --- single-build guard -------------------------------------------------------------------
+# All loader cells share the ONE shared_common subproject, and every cell build runs
+# :chunksmith-common:clean. Two builds at once race on shared_common/build -- one wipes the
+# classes the other is compiling against, which shows up as a bogus
+# "package com.kishku7.chunksmith.util does not exist" in the cell's own sources. Never run two.
+$lockFile = Join-Path $repo ".build-lock"
+if (Test-Path $lockFile) {
+  $owner = (Get-Content $lockFile -Raw -ErrorAction SilentlyContinue).Trim()
+  throw "Another ChunkSmith build appears to be running ($owner). Cell builds share shared_common and MUST NOT overlap. If this is stale, delete: $lockFile"
+}
+Set-Content -Path $lockFile -Value "pid=$PID started=$(Get-Date -Format o)" -Encoding ascii
+try {
+
 
 # 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format per Memory/knowledge/pack-formats.md.
 # 26.3 pinned to snapshot-3 EXCLUSIVELY (2026-07-07): dep uses the Fabric-normalized alpha form; no lower-26.3 compat.
@@ -75,7 +89,25 @@ function Build-26($v) {
   Write-Host "  -> $dest"
 }
 
+# Build every requested cell even if one fails: a single failing cell must NOT hide the state of
+# the rest of the matrix (it used to throw, so later cells were never built and a 'full build'
+# was silently partial). Failures are collected, reported, and the script exits non-zero.
+$failed = @()
 foreach ($t in $targets) {
-  if ($m26.Contains($t)) { Build-26 $t } else { Build-PreCell $t }
+  try {
+    if ($m26.Contains($t)) { Build-26 $t } else { Build-PreCell $t }
+  } catch {
+    Write-Host "!!! CELL FAILED: Fabric/$t -- $($_.Exception.Message)" -ForegroundColor Red
+    $failed += $t
+  }
+}
+if ($failed.Count -gt 0) {
+  Write-Host ""
+  Write-Host "Fabric build FINISHED WITH FAILURES ($($failed.Count)): $($failed -join ', ')" -ForegroundColor Red
+  Write-Host "Jars for the cells that DID build are in $dist"
+  exit 1
 }
 Write-Host "Fabric build complete. Jars in $dist"
+} finally {
+  Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+}
