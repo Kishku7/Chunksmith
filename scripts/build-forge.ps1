@@ -35,7 +35,7 @@ foreach ($v in $targets) {
   $jar = Get-ChildItem (Join-Path $cellPath "build\libs") -Filter "Chunksmith-$loader-*.jar" |
          Where-Object { $_.Name -notmatch 'noshade|slim|sources|dev-shadow' } | Sort-Object LastWriteTime | Select-Object -Last 1
   if (-not $jar) { throw "No built jar for $loader/$v" }
-  $dest = Join-Path $dist ("Chunksmith-{0}-{1}+mc{2}.jar" -f $loader, $modver, $v)
+  $dest = Join-Path $dist ("chunksmith-{0}+{1}-forge.jar" -f $modver, $v)
   Copy-Item $jar.FullName $dest -Force
   Write-Host "  -> $dest"
 }

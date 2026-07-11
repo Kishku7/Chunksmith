@@ -1,0 +1,9 @@
+{
+  "modrinth_id": "4BeAEBIb",
+  "slug": "chunksmith",
+  "jar_prefix": "chunksmith",
+  "fabric_api_dep": "P7dR8mSH",
+  "env": "server_only",
+  "quilt_via_fabric_pre26": true,
+  "forge_jar_also_neoforge_below_mc": null
+}

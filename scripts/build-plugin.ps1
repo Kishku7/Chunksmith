@@ -38,7 +38,9 @@ foreach ($line in $keys) {
     }
     $src = Join-Path $cellDir ("build\libs\{0}" -f $jar)
     if (-not (Test-Path $src)) { throw "Missing jar: $src" }
-    Copy-Item $src (Join-Path $dist $jar) -Force
-    Write-Host "  -> $(Join-Path $dist $jar)"
+    $modver = (Select-String -Path (Join-Path $cellDir "gradle.properties") -Pattern '^version=(.+)$').Matches[0].Groups[1].Value
+    $destName = "chunksmith-{0}+{1}-plugin.jar" -f $modver, $line
+    Copy-Item $src (Join-Path $dist $destName) -Force
+    Write-Host "  -> $(Join-Path $dist $destName)"
 }
 Write-Host "Plugin build complete. Jars in $dist"
