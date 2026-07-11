@@ -7,10 +7,9 @@ and **safely**. On top of fast pre-generation it adds an adaptive I/O throttle (
 generating around the clock even with players online), region write-backpressure protection,
 and worldgen diagnostics (overreach detection and structure-fault attribution).
 
-Ships as a **Fabric + NeoForge mod** and a **Paper / Spigot / Folia plugin**. Originally
+Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot / Folia plugin**. Originally
 derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 
-**Download:** https://modrinth.com/mod/chunksmith
 **Source code:** [`minecraft-1.20-26.3` branch](https://github.com/Kishku7/Chunksmith/tree/minecraft-1.20-26.3)
 
 ## Why Chunksmith
