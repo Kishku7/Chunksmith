@@ -1,7 +1,7 @@
 # Chunksmith - Build Guide (minecraft-1.20-26.3 branch)
 
 This branch is the unified Chunksmith source tree. One codebase builds every supported
-target - the Fabric and NeoForge mod plus the Bukkit/Paper/Folia plugin - across Minecraft
+target - the Fabric, Forge, and NeoForge mods plus the Bukkit/Paper/Folia plugin - across Minecraft
 1.20.1 through 26.3.
 
 For what Chunksmith is and how to use it, see the [landing page](https://github.com/Kishku7/Chunksmith).

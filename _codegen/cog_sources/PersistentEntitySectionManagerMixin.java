@@ -208,7 +208,7 @@ public abstract class PersistentEntitySectionManagerMixin {
         //[[[end]]]
     }
 
-    @Inject(method = "tick", at = @At("HEAD"))
+    @Inject(method = "tick", at = @At("HEAD"), require = 0)
     private void chunksmith$debugTick(final CallbackInfo ci) {
         if (!Debug.ENABLED) {
             return;

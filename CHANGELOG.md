@@ -1,5 +1,19 @@
 # Chunksmith Changelog
 
+## 2.2.3 (2026-07-10) -- crash-hardening + build unification
+
+- Crash fix: the five worldgen/entity DIAGNOSTIC mixin injectors are now
+  require=0 (best-effort). A conflicting mod that removes or claims one of their
+  target calls can no longer hard-crash the game at bootstrap (reported on
+  NeoForge 1.21.1 in a ~400-mod pack). Functional mixins (keep-awake, chunk
+  housekeeping, entity-retention, client housekeeping) stay hard-required, so a
+  genuine miss there still fails loudly.
+- Build: all 26-line loader entrypoints are single-sourced through the cog
+  generator and the 26 cells now build from cog-gen like the rest of the matrix.
+  No functional change to the produced jars.
+- Docs: README platform line corrected to include Forge; removed the Modrinth
+  download link per the two-links README convention.
+
 ## 2.2.1 (2026-07-05) -- metadata + build hygiene bugfix
 
 - Issue-tracker URL: every mod manifest now points to the mod_support hub

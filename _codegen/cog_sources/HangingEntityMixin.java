@@ -26,7 +26,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public abstract class HangingEntityMixin {
     @Redirect(
             method = "readAdditionalSaveData",
-            at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V", remap = false)
+            at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V", remap = false),
+            require = 0
     )
     private void chunksmith$captureInvalidPosition(final Logger logger, final String message, final Object storedPos) {
         try {

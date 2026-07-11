@@ -64,6 +64,7 @@ public abstract class WorldGenRegionMixin {
 
     @Redirect(
             method = "ensureCanWrite",
+            require = 0,
             //[[[cog
             // import cog, compat
             // cog.outl('at = @At(value = "INVOKE", target = "%s")' % compat.util_at_target(mcver))

@@ -50,7 +50,7 @@ public abstract class StructureStartMixin {
     @Final
     private Structure structure;
 
-    @Inject(method = "placeInChunk", at = @At("HEAD"))
+    @Inject(method = "placeInChunk", at = @At("HEAD"), require = 0)
     private void chunksmith$pushFaultContext(final WorldGenLevel level, final StructureManager structureManager,
                                          final ChunkGenerator generator, final RandomSource random,
                                          final BoundingBox chunkBB, final ChunkPos chunkPos, final CallbackInfo ci) {
@@ -82,7 +82,7 @@ public abstract class StructureStartMixin {
         //[[[end]]]
     }
 
-    @Inject(method = "placeInChunk", at = @At("RETURN"))
+    @Inject(method = "placeInChunk", at = @At("RETURN"), require = 0)
     private void chunksmith$popFaultContext(final WorldGenLevel level, final StructureManager structureManager,
                                         final ChunkGenerator generator, final RandomSource random,
                                         final BoundingBox chunkBB, final ChunkPos chunkPos, final CallbackInfo ci) {
