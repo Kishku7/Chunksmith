@@ -51,6 +51,14 @@ has something to draw it with.
 
 ### Fixed
 
+- **`pack.mcmeta` on 1.21.10 and 1.21.11.** From MC 1.21.9 the pack-metadata codec validates a mod jar
+  TWICE -- once as a resource pack, once as a data pack -- and each pack type has its own threshold above
+  which `min_format`/`max_format` become mandatory (64 for resources, 81 for data). The resource format on
+  those versions (69 and 75) lands between the two, so no single `pack.mcmeta` can satisfy both, and the
+  client logged `Couldn't load chunksmith pack metadata ... missing mandatory fields min_format and
+  max_format`. The Fabric and NeoForge cells now ship no `pack.mcmeta` at all (both loaders synthesise
+  correct per-type metadata when a mod jar omits it); the Forge cells, where the file is mandatory, use the
+  exact-range form with the data-pack format, the only value above both thresholds.
 - Build scripts silently ignored all but the first target (`build-fabric.ps1 1.21.8 26.1` built only
   1.21.8), aborted the whole matrix on the first failing cell, and could corrupt each other when run
   concurrently (all cells share `shared_common`). All three fixed; a build lock now prevents overlap.

@@ -1,7 +1,8 @@
 {
   "pack": {
     "description": "Chunksmith resources",
-    "pack_format": 69,
-    "supported_formats": [69, 69]
+    "pack_format": 88,
+    "min_format": 88,
+    "max_format": 88
   }
 }
