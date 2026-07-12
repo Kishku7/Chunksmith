@@ -27,6 +27,9 @@ current development happens. The 2.x line is frozen on
 - **World trimming.** Delete chunks outside a selected region.
 - **LOD generation, on by default.** Install Distant Horizons or Voxy and Chunksmith builds their
   distant-horizon data while it pregenerates. No config file to find first - see below.
+- **A re-run fills LOD holes automatically.** Pregenerated the world before you installed the renderer?
+  Run the same pregen again and Chunksmith builds the LODs from the chunks it already has - it does not
+  regenerate them, and it skips everything that is already done.
 - **Developer API** for generation progress and completion events.
 
 ## LOD: see what you pregenerated
@@ -66,6 +69,25 @@ server is required.
 > and Forge (1.20.1). The Modrinth page is
 > [modrinth.com/mod/chunksmith-client](https://modrinth.com/mod/chunksmith-client) and will go live once
 > it is approved.
+
+### A re-run fills in the missing LODs
+
+Already pregenerated your world before you installed a LOD renderer? **Just run the same pregen
+again.** Chunksmith checks the CSLOD store as well as the world, chunk by chunk:
+
+| On disk | What Chunksmith does |
+|---|---|
+| No chunk | Generates it - the LOD is built on the way past |
+| Chunk, but no LOD | **Loads the chunk and builds the LOD from it** - no worldgen, nothing regenerated |
+| Chunk **and** LOD | Skips it entirely - no load, no write |
+
+So the second run builds only what is missing, and a third run does nothing at all. Delete part of the
+store and only those pieces come back. Nothing already done is redone, and nothing is rewritten.
+
+The check is a single small read per region file, so it costs nothing worth measuring - a 6,500-chunk
+selection spends under a millisecond deciding what it can skip. The pregen then tells you exactly what
+it did: how many chunks it generated, how many LODs it built from chunks that already existed, and how
+many it skipped because both were already there.
 
 ### Forcing it on, or off
 
