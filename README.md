@@ -10,7 +10,9 @@ and worldgen diagnostics (overreach detection and structure-fault attribution).
 Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot / Folia plugin**. Originally
 derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 
-**Source code:** [`minecraft-1.20-26.3` branch](https://github.com/Kishku7/Chunksmith/tree/minecraft-1.20-26.3)
+**Source code:** [`CSv3` branch](https://github.com/Kishku7/Chunksmith/tree/CSv3) - the 3.x line, where
+current development happens. The 2.x line is frozen on
+[`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
 
 ## Why Chunksmith
 
@@ -53,9 +55,17 @@ shows your pregenerated area without generating anything itself, and `/cslod dhp
 existing store into DH on demand - a world pregenerated long before you installed DH gets its LODs
 after the fact, with no regeneration. Where **voxy** exists, `/cslod inject` does the same for voxy.
 
-**In multiplayer, players install [Chunksmith-Client](https://modrinth.com/mod/chunksmith-client).**
-The server keeps the CSLOD store; the client downloads what it needs and feeds it to that player's
-Distant Horizons or voxy. Nothing else on the server is required.
+**In multiplayer, players install Chunksmith-Client.** The server keeps the CSLOD store; the client
+downloads what it needs and feeds it to that player's Distant Horizons or voxy. Nothing else on the
+server is required.
+
+> **Chunksmith-Client is awaiting Modrinth approval.** Until it clears review, download it from the
+> GitHub release:
+> **[Chunksmith-Client 1.0-beta-2](https://github.com/Kishku7/chunksmith-client/releases/tag/1.0-beta-2)**
+> - jars for Fabric (1.20.1, 1.21.1, 1.21.11, 26.1, 26.2, 26.3), NeoForge (1.21.1, 1.21.11, 26.1, 26.2)
+> and Forge (1.20.1). The Modrinth page is
+> [modrinth.com/mod/chunksmith-client](https://modrinth.com/mod/chunksmith-client) and will go live once
+> it is approved.
 
 ### Forcing it on, or off
 
@@ -77,15 +87,16 @@ region files - no native database, nothing extra to install.
 
 | | Distant Horizons | voxy |
 |---|---|---|
-| **Fabric** | 1.20.1, 1.21.1, 1.21.11, 26.x | 1.21.11, 26.x |
-| **NeoForge** | 1.21.1, 1.21.11, 26.x | - |
+| **Fabric** | 1.20.1, 1.21.1, 1.21.11, 26.1, 26.2, 26.3 | 1.21.11, 26.1, 26.2, 26.3 |
+| **NeoForge** | 1.21.1, 1.21.11, 26.1, 26.2 | - |
 | **Forge** | 1.20.1 | - |
 
 Those are the versions the renderers themselves ship on - Chunksmith never claims a renderer it
 cannot feed. **voxy is Fabric-only** (upstream builds no NeoForge or Forge jar) and exists only on
-**1.21.11 and 26.x**. The Paper / Spigot / Folia plugin has no LOD: there is no client-side renderer
-to hand data to on that platform. The remaining mod versions (1.20.4, 1.20.6, 1.21.4, 1.21.5,
-1.21.8, 1.21.10) carry everything except LOD.
+**1.21.11 and 26.x**. **Distant Horizons works everywhere** on the list - Chunksmith needs **DH
+2.3.0-b or newer**, with no upper bound. The Paper / Spigot / Folia plugin has **no LOD**: there is no
+client-side renderer to hand data to on that platform. The remaining mod versions (1.20.4, 1.20.6,
+1.21.4, 1.21.5, 1.21.8, 1.21.10) carry everything except LOD.
 
 ### Conflicts
 
