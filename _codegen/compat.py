@@ -628,9 +628,25 @@ def forge_new_eventbus(mcver):
 # Plugin (Bukkit/Paper/Folia) is PERMANENTLY out of scope: there is no plugin-side renderer.
 # ===========================================================================
 
-# The (loader, MC) cells that carry the LOD feature. Exact tuples -- no ranges, because this is a
-# renderer-availability fact, not an API fact, and a range would silently pick up a cell whose
-# renderer does not exist.
+# The (loader, MC) cells that carry the LOD feature. Exact tuples -- no ranges, deliberately.
+#
+# This list is a CURATION, not a capability boundary. Two different constraints are at work and it is
+# worth keeping them apart, because conflating them is how a mod ends up "explaining" a gap it simply
+# has not filled yet:
+#
+#   HARD (the feature CANNOT exist):
+#     - Forge 26.x -- there is no Forge 26 line at all (FG6 cannot build it).
+#     - Forge/NeoForge 1.20.1 for VOXY -- voxy is Fabric-only, and has never published 1.20.1 or 1.21.1
+#       on any loader; those cells therefore carry the store/backchannel only, never VoxyLodSink.
+#     - NeoForge 1.20.1 -- Distant Horizons ships Forge there, not NeoForge (and we ship no NeoForge
+#       1.20.1 cell anyway).
+#
+#   CHOSEN (the feature COULD exist and does not, yet):
+#     - Fabric/NeoForge 1.20.4, 1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10. Distant Horizons DOES ship on
+#       these, so a renderer exists to serve. They are left out because these are the versions people
+#       do not actually run -- the LOD feature ships first on the CRITICAL line (1.20.1, 1.21.1,
+#       1.21.11, 26.x). This is a scope decision, and it is a real coverage gap to fill, not a fact
+#       about the loaders. Do not write it up as one.
 _LOD_CELLS = {
     "Fabric": ((1, 20, 1), (1, 21, 1), (1, 21, 11)),   # + every 26.x (handled below)
     "NeoForge": ((1, 21, 1), (1, 21, 11)),             # + every 26.x
@@ -641,8 +657,9 @@ _LOD_CELLS = {
 def has_lod(mcver, loader):
     """Does this (loader, MC) cell carry the server-side LOD feature?
 
-    True only where a client-side LOD renderer actually exists for that (loader, MC) -- otherwise the
-    server would be generating and serving data nothing can draw. 26.x is LOD-capable on Fabric and
+    The cell must (a) have a client-side LOD renderer that exists for that (loader, MC) -- otherwise the
+    server would be generating and serving data nothing can draw -- AND (b) be on the shipped list above.
+    (b) is a CURATION, not a capability: see the _LOD_CELLS comment. 26.x is LOD-capable on Fabric and
     NeoForge (DH ships both); Forge has no 26 line at all (FG6 cannot build it), and Forge's only DH
     line is 1.20.1.
     """

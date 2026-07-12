@@ -24,6 +24,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
  */
 public final class LodInit implements ModInitializer {
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+
     @Override
     public void onInitialize() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
@@ -58,7 +60,7 @@ public final class LodInit implements ModInitializer {
         //     cog.outl("        ServerLifecycleEvents.SERVER_STARTING.register(CsLodDhSupport::setServer);")
         //     cog.outl("        CsLodDhSupport.register();")
         //     cog.outl("    } catch (final LinkageError error) {")
-        //     cog.outl('        System.out.println("[chunksmith] Distant Horizons present but incompatible, skipping: " + error);')
+        //     cog.outl('        LOGGER.warn("Chunksmith: Distant Horizons present but incompatible, skipping: {}", error.toString());')
         //     cog.outl("    }")
         //     cog.outl("}")
         // else:

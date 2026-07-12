@@ -40,7 +40,8 @@ derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 
 ## LOD generation
 
-*(MC 26.x, Fabric. Off by default.)*
+*(Off by default. Ships on Fabric 1.20.1, 1.21.1, 1.21.11 and 26.x; NeoForge 1.21.1, 1.21.11 and 26.x;
+Forge 1.20.1 - the versions with a client-side LOD renderer to serve.)*
 
 Pre-generating a world and then building LODs for it usually means doing the work **twice**: once to
 generate the chunks, then again while an LOD mod re-reads every region file back off disk. Chunksmith
@@ -51,9 +52,9 @@ The data is written in Chunksmith's own neutral format, so a single store can fe
 
 | Consumer | How it is fed |
 |----------|---------------|
-| [Voxy](https://modrinth.com/mod/voxy) | Fed live during pre-generation, **and** replayable afterwards with `/cslod inject` |
-| [Distant Horizons](https://modrinth.com/mod/distanthorizons) | Chunksmith becomes DH's world-generator and serves it straight from the store - DH generates nothing |
-| Remote clients | Planned |
+| [Voxy](https://modrinth.com/mod/voxy) | Fed live during pre-generation, **and** replayable afterwards with `/cslod inject` (Fabric 26.x - Voxy ships nowhere else) |
+| [Distant Horizons](https://modrinth.com/mod/distanthorizons) | Chunksmith becomes DH's world-generator and serves it straight from the store - DH generates nothing (Fabric 26.x) |
+| Remote clients | Served on request, over an authenticated side-channel, to any player running Chunksmith-Client |
 
 ### The part worth reading twice
 

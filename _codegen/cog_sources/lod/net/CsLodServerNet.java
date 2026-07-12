@@ -42,6 +42,20 @@ public final class CsLodServerNet {
 
     private static final CsLodTokens TOKENS = new CsLodTokens();
 
+    /**
+     * SERVER POLICY caps on what one client may ask for. Not wire constants -- they live here rather than
+     * in CsLodProtocol because they are this server's limits, not part of the format.
+     *
+     * <p>Every number below arrives FROM THE NETWORK, from a player who has authenticated but is otherwise
+     * untrusted. An unbounded region count would be handed straight to {@code new ArrayList<>(count)},
+     * which allocates that array immediately -- a one-packet OOM; a negative one throws out of the tick
+     * task. An unbounded radius would hand back an index of the entire store, however large it is.
+     */
+    private static final int MAX_REGIONS_PER_REQUEST = 4096;
+
+    /** ~16k blocks: further than any LOD renderer draws, and it bounds the index we build. */
+    private static final int MAX_RADIUS_BLOCKS = 16384;
+
     /** The radius each client's renderer is actually configured to draw, in blocks. */
     private static final Map<UUID, Integer> RADIUS = new java.util.concurrent.ConcurrentHashMap<>();
     private static CsLodHttpServer http;
@@ -106,7 +120,7 @@ public final class CsLodServerNet {
     /** For the status command. */
     public static String describe() {
         final String inBand = CsLodInBandSender.pending() > 0
-                ? " | in-band backlog: " + CsLodInBandSender.pending() + " slices" : "";
+                ? " | in-band backlog: " + CsLodInBandSender.pending() + " regions" : "";
         return (http == null ? "LOD serving: in-band only (no backchannel)" : "LOD serving: " + http.describe())
                 + inBand;
     }
@@ -181,7 +195,8 @@ public final class CsLodServerNet {
         send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                 CsLodProtocol.VERSION, available, port, token, dimensions())));
 
-        RADIUS.put(player.getUUID(), Math.max(16, hello.radiusBlocks()));
+        RADIUS.put(player.getUUID(),
+                Math.min(MAX_RADIUS_BLOCKS, Math.max(16, hello.radiusBlocks())));
 
         LOGGER.info("Chunksmith: LOD hello from " + nameOf(player)
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
@@ -195,6 +210,13 @@ public final class CsLodServerNet {
     private static void inBand(final ServerPlayer player, final DataInputStream in) throws IOException {
         final String dimension = in.readUTF();
         final int count = in.readInt();
+        // Bound BEFORE sizing anything: count came off the wire (see MAX_REGIONS_PER_REQUEST). A client
+        // with more than this left to fetch simply asks again -- the index tells it what it is missing.
+        if (count < 0 || count > MAX_REGIONS_PER_REQUEST) {
+            LOGGER.warn("Chunksmith: ignoring an in-band LOD request from {} for {} regions (max {})",
+                    nameOf(player), count, MAX_REGIONS_PER_REQUEST);
+            return;
+        }
         final List<CsLodMessages.RegionEntry> wanted = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             wanted.add(new CsLodMessages.RegionEntry(in.readInt(), in.readInt(), 0L, 0L));

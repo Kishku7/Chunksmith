@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Resolves the active {@link LodSink} per world, and drives the generation hook.
@@ -39,6 +41,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class LodSupport {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     /** Bounded queue for the CSLOD writer thread. The throttle's governor keeps depth far below this. */
     private static final int WRITE_QUEUE_CAPACITY = 2048;
@@ -91,8 +95,8 @@ public final class LodSupport {
         for (final LodSink sink : SINKS.values()) {
             for (final LodSink leaf : leaves(sink)) {
                 if (leaf instanceof final CsLodStoreSink store) {
-                    System.out.println(String.format(
-                            "[chunksmith] LOD store: %d chunks, %d bytes (%.1f KB/chunk), %d synchronous writes",
+                    LOGGER.info(String.format(
+                            "Chunksmith: LOD store: %d chunks, %d bytes (%.1f KB/chunk), %d synchronous writes",
                             store.getWrittenCount(), store.getWrittenBytes(),
                             store.getWrittenCount() == 0 ? 0.0
                                     : store.getWrittenBytes() / 1024.0 / store.getWrittenCount(),
@@ -110,7 +114,7 @@ public final class LodSupport {
 
         final Path root = storeRoot(level);
         sinks.add(new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY));
-        System.out.println("[chunksmith] LOD store enabled -> " + root);
+        LOGGER.info("Chunksmith: LOD store enabled -> {}", root);
 
         //[[[cog
         // import cog, compat
@@ -118,9 +122,9 @@ public final class LodSupport {
         //     cog.outl('if (FabricLoader.getInstance().isModLoaded("voxy")) {')
         //     cog.outl('    try {')
         //     cog.outl('        sinks.add(new VoxyLodSink());')
-        //     cog.outl('        System.out.println("[chunksmith] voxy detected -- feeding LODs to voxy as well");')
+        //     cog.outl('        LOGGER.info("Chunksmith: voxy detected -- feeding LODs to voxy as well");')
         //     cog.outl('    } catch (final LinkageError error) {')
-        //     cog.outl('        System.out.println("[chunksmith] voxy present but incompatible, skipping voxy sink: " + error);')
+        //     cog.outl('        LOGGER.warn("Chunksmith: voxy present but incompatible, skipping voxy sink: {}", error.toString());')
         //     cog.outl('    }')
         //     cog.outl('}')
         // else:

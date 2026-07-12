@@ -22,10 +22,12 @@ has something to draw it with.
 - **The LOD server ports to the versions people actually play.** The whole server side -- the CSLOD store,
   the HTTP backchannel (game port + 1, zero config), the authenticated in-band handshake and tokens, the
   in-band fallback transfer, the worldgen hook, and `/cslod` -- now ships on **Fabric 1.20.1, 1.21.1,
-  1.21.11 and 26.x**, **NeoForge 1.21.1, 1.21.11 and 26.x**, and **Forge 1.20.1**. That is exactly the set
-  of (loader, version) pairs where a client-side LOD renderer exists to serve: Distant Horizons ships on
-  all of them (Forge, not NeoForge, on 1.20.1), and upstream voxy has never published a 1.20.1 or 1.21.1
-  build at all.
+  1.21.11 and 26.x**, **NeoForge 1.21.1, 1.21.11 and 26.x**, and **Forge 1.20.1** -- the versions people
+  actually run. Every one of them has a client-side LOD renderer to serve: Distant Horizons ships on all
+  of them (Forge, not NeoForge, on 1.20.1). Voxy is fed live only on Fabric 26.x, because upstream voxy is
+  Fabric-only and has never published a 1.20.1 or 1.21.1 build at all. The remaining versions (1.20.4,
+  1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10) can carry the feature and will get it -- they are simply not
+  in this release.
 - The wire protocol is IDENTICAL on every one of them. The format is the disk format is the wire format,
   and it lives in one place -- so any Chunksmith-Client talks to any Chunksmith server.
 - `/cslod status` and `/cslod token <player>` on every LOD cell; `/cslod inject` and `/cslod dhpush` where
@@ -45,6 +47,15 @@ has something to draw it with.
 - Build scripts silently ignored all but the first target (`build-fabric.ps1 1.21.8 26.1` built only
   1.21.8), aborted the whole matrix on the first failing cell, and could corrupt each other when run
   concurrently (all cells share `shared_common`). All three fixed; a build lock now prevents overlap.
+- **In-band LOD requests no longer trust the client's numbers.** A region count arriving off the wire was
+  used to pre-size a list and to slurp every requested region file into memory on the server thread: a
+  large but perfectly legitimate request meant hundreds of megabytes and a multi-second stall, and a
+  hostile one was a single packet away from an out-of-memory kill. Requests are now bounded, and the
+  transfer streams each region a slice at a time off disk instead of buffering it. The client's declared
+  LOD radius is clamped as well.
+- The NeoForge 26.x manifest declared its Minecraft and NeoForge version requirements under the mod id
+  `chunky` (a leftover from the fork's ancestry), so the loader never applied them.
+- LOD store logging went to `System.out` instead of the mod's logger.
 
 
 ## [2.2.3] - 2026-07-10

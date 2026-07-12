@@ -12,13 +12,13 @@ authors="${author}, pop4959"
 description="${description}"
 [[mixins]]
 config="chunksmith.mixins.json"
-[[dependencies.chunky]]
+[[dependencies.chunksmith]]
    modId="neoforge"
    type="required"
    versionRange="${neoforgeRange}"
    ordering="NONE"
    side="BOTH"
-[[dependencies.chunky]]
+[[dependencies.chunksmith]]
    modId="minecraft"
    type="required"
    versionRange="${mcRange}"
