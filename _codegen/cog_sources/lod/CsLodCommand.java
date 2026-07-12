@@ -24,10 +24,14 @@ import java.nio.file.Path;
  *   <li>{@code /cslod status} -- where the store is, how big, and whether the backchannel is up.</li>
  *   <li>{@code /cslod token <player>} -- mint a backchannel token by hand (the "why can't my client
  *       download?" answer).</li>
- *   <li>{@code /cslod inject} / {@code /cslod dhpush} -- replay the store into voxy / Distant Horizons.
- *       Present ONLY on cells that compile against those jars (Fabric 26): both are SINGLEPLAYER
- *       backfills -- voxy's engine is client-side and cannot run on a dedicated server at all.</li>
+ *   <li>{@code /cslod dhpush} -- replay the store into Distant Horizons. Present on every LOD cell: DH
+ *       ships a build for all of them.</li>
+ *   <li>{@code /cslod inject} -- replay the store into voxy. Present ONLY where a voxy jar exists to
+ *       compile against (Fabric 1.21.11 + Fabric 26).</li>
  * </ul>
+ *
+ * <p>Both are SINGLEPLAYER backfills: the renderer engines are client-side, so on a dedicated server they
+ * report "not available" and the store is served over the backchannel to Chunksmith-Client instead.
  *
  * <p>Loader-blind by construction: this class only BUILDS the brigadier node. Each loader's
  * {@code LodInit} registers it (Fabric via CommandRegistrationCallback, NeoForge/Forge via
@@ -71,7 +75,7 @@ public final class CsLodCommand {
 
         //[[[cog
         // import cog, compat
-        // if compat.has_lod_renderer_integration(mcver, loader):
+        // if compat.has_voxy(mcver, loader):
         //     cog.outl('root.then(Commands.literal("inject").executes(context -> {')
         //     cog.outl('    final CommandSourceStack source = context.getSource();')
         //     cog.outl('    final ServerLevel level = source.getLevel();')
@@ -102,6 +106,12 @@ public final class CsLodCommand {
         //     cog.outl('    worker.start();')
         //     cog.outl('    return 1;')
         //     cog.outl('}));')
+        // else:
+        //     cog.outl("// /cslod inject is absent on this cell: it compiles directly against the voxy jar, and voxy")
+        //     cog.outl("// (Fabric-only; never published for 1.20.1 or 1.21.1) has no build for this (loader, MC).")
+        //     cog.outl("// Distant Horizons IS served here -- see /cslod dhpush below.")
+        //
+        // if compat.has_dh(mcver, loader):
         //     cog.outl('')
         //     cog.outl('root.then(Commands.literal("dhpush").executes(context -> {')
         //     cog.outl('    final CommandSourceStack source = context.getSource();')
@@ -111,7 +121,7 @@ public final class CsLodCommand {
         //     cog.outl('        source.sendFailure(Component.literal("[chunksmith] no LOD store for this dimension"));')
         //     cog.outl('        return 0;')
         //     cog.outl('    }')
-        //     cog.outl('    if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("distanthorizons")) {')
+        //     cog.outl('    if (!LodPlatform.isModLoaded("distanthorizons")) {')
         //     cog.outl('        source.sendFailure(Component.literal("[chunksmith] Distant Horizons is not installed"));')
         //     cog.outl('        return 0;')
         //     cog.outl('    }')
@@ -141,9 +151,7 @@ public final class CsLodCommand {
         //     cog.outl('    return 1;')
         //     cog.outl('}));')
         // else:
-        //     cog.outl("// /cslod inject + /cslod dhpush are absent on this cell: they compile directly against the")
-        //     cog.outl("// voxy and Distant Horizons jars, and voxy has no build for this (loader, MC). Both are")
-        //     cog.outl("// SINGLEPLAYER backfills; a dedicated server serves the store over the backchannel instead.")
+        //     cog.outl("// /cslod dhpush is absent on this cell: no LOD renderer exists for this (loader, MC) at all.")
         //]]]
         //[[[end]]]
 
@@ -171,15 +179,27 @@ public final class CsLodCommand {
         return root;
     }
 
-    /** The renderer-integration fields of the status line -- present only where those classes exist. */
+    /**
+     * The renderer fields of the status line.
+     *
+     * <p>A cell reports ONLY the renderers it can actually feed. Where voxy has no build, the line says so
+     * rather than reporting "not available" for something that could never be available -- claiming a
+     * renderer you cannot feed is exactly the failure this whole gate exists to prevent.
+     */
     private static String renderers() {
         //[[[cog
         // import cog, compat
-        // if compat.has_lod_renderer_integration(mcver, loader):
-        //     cog.outl('return " | voxy: " + (CsLodVoxyInjector.voxyAvailable() ? "available" : "not available")')
-        //     cog.outl('        + " | dh: " + dhStatus();')
+        // parts = []
+        // if compat.has_voxy(mcver, loader):
+        //     parts.append('" | voxy: " + (CsLodVoxyInjector.voxyAvailable() ? "available" : "not available")')
+        // elif compat.has_dh(mcver, loader):
+        //     parts.append('" | voxy: no build for this loader/MC"')
+        // if compat.has_dh(mcver, loader):
+        //     parts.append('" | dh: " + dhStatus()')
+        // if parts:
+        //     cog.outl("return %s;" % ("\n        + ".join(parts)))
         // else:
-        //     cog.outl('// No direct renderer integration on this cell -- the store is served, not injected.')
+        //     cog.outl('// No renderer exists for this cell -- the store is served, not injected.')
         //     cog.outl('return "";')
         //]]]
         //[[[end]]]
@@ -187,10 +207,10 @@ public final class CsLodCommand {
 
     //[[[cog
     // import cog, compat
-    // if compat.has_lod_renderer_integration(mcver, loader):
+    // if compat.has_dh(mcver, loader):
     //     cog.outl('/** CsLodDhSupport hard-references DH types, so only touch it when DH is actually installed. */')
     //     cog.outl('private static String dhStatus() {')
-    //     cog.outl('    if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("distanthorizons")) {')
+    //     cog.outl('    if (!LodPlatform.isModLoaded("distanthorizons")) {')
     //     cog.outl('        return "not installed";')
     //     cog.outl('    }')
     //     cog.outl('    try {')

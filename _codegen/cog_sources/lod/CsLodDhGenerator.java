@@ -40,6 +40,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * data for them rather than generating them itself. That is why this is opt-in
  * ({@code lodDhOverride}, default false): it is the right behaviour for a world you have pregenerated
  * and the wrong one for a world you have not.
+ *
+ * <p><b>Loader- and version-blind.</b> Every symbol here is {@code com.seibel.*} or ours; it names no
+ * Minecraft type at all, which is why one source compiles unchanged on all eight LOD cells.
+ *
+ * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
+ * under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
 

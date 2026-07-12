@@ -4,12 +4,6 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-//[[[cog
-// import cog, compat
-// if compat.has_lod_renderer_integration(mcver, loader):
-//     cog.outl("import net.fabricmc.loader.api.FabricLoader;")
-//]]]
-//[[[end]]]
 
 /**
  * Second Fabric entrypoint, owning everything LOD.
@@ -47,7 +41,7 @@ public final class LodInit implements ModInitializer {
 
         //[[[cog
         // import cog, compat
-        // if compat.has_lod_renderer_integration(mcver, loader):
+        // if compat.has_dh(mcver, loader):
         //     cog.outl("// CsLodDhSupport hard-references Distant Horizons types, so it must not be class-loaded")
         //     cog.outl("// unless DH is actually installed.")
         //     cog.outl("//")
@@ -55,7 +49,10 @@ public final class LodInit implements ModInitializer {
         //     cog.outl("// ServerWorldEvents.LOAD -- i.e. while the server is still STARTING -- so a binding made on")
         //     cog.outl("// SERVER_STARTED is already too late to override its generator, and SERVER_STARTING is the")
         //     cog.outl("// last point at which the MinecraftServer can be captured before that event fires.")
-        //     cog.outl('if (FabricLoader.getInstance().isModLoaded("distanthorizons")) {')
+        //     cog.outl("//")
+        //     cog.outl("// In SINGLEPLAYER the integrated server is in the client JVM, so this is the whole LOD path:")
+        //     cog.outl("// no Chunksmith-Client and no network -- we hand the player's own DH its data directly.")
+        //     cog.outl('if (LodPlatform.isModLoaded("distanthorizons")) {')
         //     cog.outl("    try {")
         //     cog.outl("        ServerLifecycleEvents.SERVER_STARTING.register(CsLodDhSupport::setServer);")
         //     cog.outl("        CsLodDhSupport.register();")
@@ -64,9 +61,7 @@ public final class LodInit implements ModInitializer {
         //     cog.outl("    }")
         //     cog.outl("}")
         // else:
-        //     cog.outl("// No direct Distant Horizons hook on this cell: the DH generator-override + push classes")
-        //     cog.outl("// compile against the DH API jar and are a SINGLEPLAYER path. A dedicated server serves the")
-        //     cog.outl("// CSLOD store over the backchannel and lets Chunksmith-Client feed the player's own DH.")
+        //     cog.outl("// No LOD renderer exists for this (loader, MC) at all, so there is nothing to bind.")
         //]]]
         //[[[end]]]
     }

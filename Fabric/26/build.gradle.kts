@@ -64,13 +64,18 @@ dependencies {
     implementation(group = "net.fabricmc", name = "fabric-loader", version = "0.19.3")
     implementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = fabricApiVersion)
     compileOnly(group = "me.lucko", name = "fabric-permissions-api", version = "0.7.0")
-    // voxy: OPTIONAL soft dependency (LOD generation). All-Rights-Reserved -- never vendored,
-    // never shipped; the jar is gitignored and compileOnly. MC 26.x mods ship mojmap-named,
-    // so no remapping is required.
-    compileOnly(files("libs/voxy-0.2.16-beta.jar"))
-    // Distant Horizons: OPTIONAL soft dependency. LGPL-3 -- we link against its published API,
-    // never vendor it. The jar is gitignored and compileOnly.
-    compileOnly(files("libs/DistantHorizons-3.2.0-b-26.1.2.jar"))
+    // The LOD renderers this cell feeds in SINGLEPLAYER. OPTIONAL soft dependencies: compiled against,
+    // NEVER shipped. voxy is All-Rights-Reserved and Distant Horizons is LGPL-3 -- neither is ours to
+    // redistribute. Both jars live in the ONE gitignored ../../libs/ that every LOD cell now shares
+    // (they were per-cell copies; one tree, one jar, one md5).
+    //
+    // voxy is a PLAIN compileOnly here: the 26.x line ships unobfuscated, so the published voxy 26 jar is
+    // mojmap-native and there is nothing to remap. (The 1.21.11 cell cannot do this -- its voxy jar is
+    // intermediary-mapped and needs modCompileOnly + prep-libs.py. See that cell's build file.)
+    compileOnly(files("../../libs/voxy-0.2.16-beta+26.1.2.jar"))
+    // Distant Horizons: everything we touch is com.seibel.* and names no Minecraft type, so this same jar
+    // works on every loader and every runtime mapping.
+    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-26.1.2.jar"))
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }

@@ -671,20 +671,220 @@ def has_lod(mcver, loader):
     return v[:3] in _LOD_CELLS[loader]
 
 
-def has_lod_renderer_integration(mcver, loader):
-    """Does this cell carry the DIRECT renderer-integration classes (VoxyLodSink, CsLodVoxyInjector,
-    CsLodDhSupport/Generator/Pusher) and the /cslod inject + /cslod dhpush subcommands?
+# ---------------------------------------------------------------------------
+# RENDERER-ADAPTER AXIS (3.0.0-beta-1, 2026-07-12) -- the SINGLEPLAYER injection path.
+#
+# In singleplayer the integrated server runs INSIDE the client JVM, so Chunksmith can hand LODs to the
+# renderer DIRECTLY -- no Chunksmith-Client, no network. That path needs classes that compile against
+# the third-party jar, so a cell can only carry an adapter where that jar EXISTS for its (loader, MC).
+# Bounds are read off Memory\minecraft\lod-ecosystem.md (Modrinth API + jar manifests, 2026-07-12):
+#
+#   Distant Horizons 3.2.0-b : EVERY LOD cell. 1.20.1 (fabric + FORGE), 1.21.1 / 1.21.11 / 26.x
+#                              (fabric + neoforge). So has_dh == has_lod, and the DH sink/override/push
+#                              reaches all 8 cells.
+#   voxy (upstream)          : FABRIC ONLY, and NEVER published for 1.20.1 or 1.21.1. Published lines are
+#                              1.21.11 and 26.x. So exactly Fabric/1.21.11 + Fabric/26. Everywhere else
+#                              the voxy seam is COMPILE-TIME ABSENT (the classes are not generated at all)
+#                              -- the mod must never claim a renderer it cannot feed.
+#
+# The two are now INDEPENDENT gates. They used to be one (has_lod_renderer_integration, "Fabric 26
+# only"), which conflated "DH exists here" with "voxy exists here" and cost every other cell its
+# singleplayer LODs.
+# ---------------------------------------------------------------------------
 
-    These are the SINGLEPLAYER / integrated-server path: they compile DIRECTLY against the voxy and
-    Distant Horizons jars, so a cell can only carry them where BOTH third-party jars exist for that
-    (loader, MC). Today that is Fabric 26 only:
-      - voxy is Fabric-ONLY and was NEVER published for 1.20.1 or 1.21.1, so those cells have nothing
-        to compile VoxyLodSink/CsLodVoxyInjector against.
-      - the DH API jar we link (distanthorizonsapi 6.0.0) is the 26-line API.
-    Every other LOD cell carries the SERVER core only (store + backchannel + in-band + /cslod status
-    + /cslod token), which is exactly what a DEDICATED server needs to feed Chunksmith-Client.
+def has_dh(mcver, loader):
+    """Does this cell carry the Distant Horizons adapter (CsLodDhSupport / CsLodDhGenerator /
+    CsLodDhPusher, and the /cslod dhpush subcommand)?
+
+    TRUE on every LOD cell: DH ships a jar for all of them (see the module note above). DH's whole API
+    surface that we touch (DhApi.Delayed.terrainRepo, DhApiLevelLoadEvent, IDhApiLevelWrapper,
+    DhApiChunk, DhApiResult) is com.seibel.* and names NO Minecraft type, so one plain compileOnly jar
+    works on every loader and every runtime mapping -- nothing to remap.
     """
-    return loader == "Fabric" and _parse(mcver)[0] >= 26
+    return has_lod(mcver, loader)
+
+
+def has_voxy(mcver, loader):
+    """Does this cell carry the voxy adapter (VoxyLodSink + CsLodVoxyInjector, and /cslod inject)?
+
+    Fabric >= 1.21.11 ONLY. voxy is Fabric-only (its VoxyCommon implements net.fabricmc.api.
+    ModInitializer -- the adapter does not even COMPILE on another loader) and upstream has NEVER
+    published a 1.20.1 or a 1.21.1 build on any loader. Published lines: 1.21.11, 26.1.x, 26.2.
+    Every other cell gets NO voxy class at all -- a compile-time-absent seam, not a stub.
+    """
+    if loader != "Fabric":
+        return False
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return True
+    return v >= (1, 21, 11)
+
+
+def has_section_builder(mcver, loader):
+    """Is CsLodSectionBuilder generated? It is the shared inverse of CsLodExtractor (stored record ->
+    vanilla LevelChunkSection) and is used by BOTH renderer adapters, so it is present wherever either
+    is."""
+    return has_dh(mcver, loader) or has_voxy(mcver, loader)
+
+
+def dh_jar(mcver):
+    """The DH soft-dep jar for this MC line, in libs/. DH publishes one artifact per MC line; the whole
+    26.x line takes the 26.1.2 artifact (the API is identical, and it is what the 26 cell already used).
+    """
+    v = _parse(mcver)
+    key = "26.1.2" if v[0] >= 26 else str(mcver)
+    return "DistantHorizons-3.2.0-b-%s.jar" % key
+
+
+def voxy_jar(mcver):
+    """The voxy soft-dep jar for this MC line, in libs/. Only called where has_voxy() is true."""
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return "voxy-0.2.16-beta+26.1.2.jar"
+    # The 1.21.11 cell consumes the -loomcompat copy produced by scripts/prep-libs.py; see voxy_needs_remap.
+    return "voxy-0.2.16-beta+1.21.11-loomcompat.jar"
+
+
+def voxy_needs_remap(mcver):
+    """Must the voxy jar be taken as a modCompileOnly (loom remaps it) rather than a plain compileOnly?
+
+    YES below 26. The PUBLISHED voxy 1.21.11 jar is INTERMEDIARY-mapped
+    (WorldIdentifier.of(net.minecraft.class_1937), rawIngest(..., class_2826, ..., class_2804, class_2804));
+    the 26.1.2 jar is mojmap-native because the 26 line ships unobfuscated. Read out of both jars with
+    javap, 2026-07-12. A plain compileOnly of the 1.21.11 jar does not compile at all -- the adapter's
+    mojmap parameter types do not match voxy's intermediary ones.
+    """
+    return _parse(mcver)[0] < 26
+
+
+# ---------------------------------------------------------------------------
+# CsLodSectionBuilder drift -- the file MC churn hits hardest (stored record -> vanilla objects).
+#
+# The 1.21.11 boundary moved the WHOLE paletted-container construction path and renamed every registry
+# accessor it leans on. [version-gates.md, 1.21.11 entry, src: mc-java 1.21.1 vs 1.21.11 --
+# LevelChunkSection.java / PalettedContainer.java / PalettedContainerFactory.java / RegistryAccess.java /
+# Registry.java / HolderGetter.java / BlockStateParser.java]:
+#     < 1.21.11 : new PalettedContainer<>(IdMap, T, PalettedContainer.Strategy.SECTION_STATES)
+#     >=1.21.11 : PalettedContainerFactory.create(registryAccess).createForBlockStates()/createForBiomes()
+#                 (PalettedContainer.Strategy is GONE -- Strategy moved top-level, SECTION_* deleted)
+#     RegistryAccess.registryOrThrow -> lookupOrThrow
+#     Registry.getHolder(ResourceKey) -> get(ResourceKey)         (both Optional<Holder.Reference<T>>)
+#     Registry.getHolderOrThrow      -> getOrThrow                (SILENT RETURN-TYPE FLIP: pre-1.21.11
+#                                                                  getOrThrow returns T, not a Holder --
+#                                                                  a naive rename compiles and is wrong)
+#     BlockStateParser.parseForBlock takes a HolderLookup<Block> on EVERY version, but a Registry only IS
+#     one from 1.21.11; before that vanilla passes .asLookup().
+# The 2-arg LevelChunkSection(states, biomes) ctor is the ONE thing stable 1.20.1 -> 26, so every era is
+# funnelled into it and only the two container locals are emitted.
+# ---------------------------------------------------------------------------
+
+def palette_factory(mcver):
+    """True from 1.21.11 (incl. 26): PalettedContainerFactory exists and Strategy.SECTION_* does not."""
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return True
+    return v >= (1, 21, 11)
+
+
+def parse_id_expr(mcver, arg):
+    """Parse a one-part 'ns:path' string into a resource id.
+      < 1.21    : new ResourceLocation(s)          -- the String ctor; ResourceLocation.parse does not exist
+      1.21..1.21.10 : ResourceLocation.parse(s)
+      >= 1.21.11    : Identifier.parse(s)          -- the class was renamed at 1.21.11
+    """
+    v = _parse(mcver)
+    if palette_factory(mcver):
+        return "Identifier.parse(%s)" % arg
+    if v >= (1, 21, 0):
+        return "ResourceLocation.parse(%s)" % arg
+    return "new ResourceLocation(%s)" % arg
+
+
+def section_builder_imports(mcver):
+    """The drifting imports of CsLodSectionBuilder, as a list (order-stable)."""
+    lines = [identifier_import(mcver)]
+    if palette_factory(mcver):
+        lines.append("import net.minecraft.world.level.chunk.PalettedContainerFactory;")
+    else:
+        # Only the legacy era hand-builds the containers, so only it names the block-state IdMap
+        # (Block.BLOCK_STATE_REGISTRY) and the default biome (Biomes.PLAINS). Importing either on
+        # 1.21.11+ would compile, but they would be dead imports naming a path we do not use.
+        lines.append("import net.minecraft.world.level.biome.Biomes;")
+        lines.append("import net.minecraft.world.level.block.Block;")
+    return lines
+
+
+def palette_containers(mcver):
+    """The `states` and `biomes` locals that the 2-arg LevelChunkSection ctor takes."""
+    if palette_factory(mcver):
+        return [
+            "final PalettedContainerFactory factory = "
+            "PalettedContainerFactory.create(level.registryAccess());",
+            "final PalettedContainer<BlockState> states = factory.createForBlockStates();",
+            "final PalettedContainer<Holder<Biome>> biomes = factory.createForBiomes();",
+        ]
+    return [
+        "final Registry<Biome> biomeRegistry = "
+        "level.registryAccess().registryOrThrow(Registries.BIOME);",
+        "final PalettedContainer<BlockState> states = new PalettedContainer<>("
+        "Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), "
+        "PalettedContainer.Strategy.SECTION_STATES);",
+        "final PalettedContainer<Holder<Biome>> biomes = new PalettedContainer<>("
+        "biomeRegistry.asHolderIdMap(), biomeRegistry.getHolderOrThrow(Biomes.PLAINS), "
+        "PalettedContainer.Strategy.SECTION_BIOMES);",
+    ]
+
+
+def block_lookup_expr(mcver):
+    """BlockStateParser.parseForBlock's first argument: a Registry only IS a HolderLookup from 1.21.11."""
+    if palette_factory(mcver):
+        return ("return BlockStateParser.parseForBlock("
+                "level.registryAccess().lookupOrThrow(Registries.BLOCK), key, false).blockState();")
+    return ("return BlockStateParser.parseForBlock("
+            "level.registryAccess().registryOrThrow(Registries.BLOCK).asLookup(), key, false)"
+            ".blockState();")
+
+
+def biome_lookup_body(mcver):
+    """Biome id string -> Holder<Biome>, with plains as the fallback for an id we no longer know."""
+    if palette_factory(mcver):
+        return [
+            "final Registry<Biome> registry = level.registryAccess().lookupOrThrow(Registries.BIOME);",
+            "return registry.get(ResourceKey.create(Registries.BIOME, %s))" % parse_id_expr(mcver, "key"),
+            "        .orElseGet(() -> registry.get(ResourceKey.create(Registries.BIOME, %s))"
+            ".orElseThrow());" % parse_id_expr(mcver, '"minecraft:plains"'),
+        ]
+    return [
+        "final Registry<Biome> registry = level.registryAccess().registryOrThrow(Registries.BIOME);",
+        "return registry.getHolder(ResourceKey.create(Registries.BIOME, %s))"
+        % parse_id_expr(mcver, "key"),
+        "        .orElseGet(() -> registry.getHolderOrThrow("
+        "ResourceKey.create(Registries.BIOME, %s)));" % parse_id_expr(mcver, '"minecraft:plains"'),
+    ]
+
+
+def _is_forge_ancient(mcver, loader):
+    return loader == "Forge" and _parse(mcver) < (1, 21, 0)
+
+
+def deprecation_suppression(mcver, loader):
+    """Forge 47 marks the VANILLA registry fields (Block.BLOCK_STATE_REGISTRY and friends) @Deprecated --
+    it wants you on ForgeRegistries. They still work, and there is NO non-deprecated way to reach the
+    block-state IdMap that the pre-1.21.11 PalettedContainer ctor demands. Vanilla and Fabric do not
+    deprecate them (the identical call compiles warning-free on Fabric/1.20.1), so this is a Forge-only,
+    one-method suppression. [version-gates.md, MC 1.20.1 / Forge 47 lint traps]"""
+    return '@SuppressWarnings("deprecation")' if _is_forge_ancient(mcver, loader) else ""
+
+
+def removal_suppression(mcver, loader):
+    """Forge 47 PATCHES new ResourceLocation(..) to @Deprecated(forRemoval = true); vanilla/Fabric 1.20.1
+    does NOT, and MC 1.20.1 has no non-nullable replacement (fromNamespaceAndPath arrives at MC 1.21).
+    Under -Xlint:all + zero warnings that fails the Forge/1.20.1 cell and ONLY that cell. The lint
+    category is 'removal', NOT 'deprecation' -- suppressing "deprecation" does nothing here.
+    [version-gates.md, MC 1.20.1 / Forge 47 lint traps]"""
+    if loader == "Forge" and not palette_factory(mcver) and _parse(mcver) < (1, 21, 0):
+        return '@SuppressWarnings("removal")'
+    return ""
 
 
 def lod_net_era(mcver, loader):

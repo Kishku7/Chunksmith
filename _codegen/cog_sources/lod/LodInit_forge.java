@@ -3,6 +3,7 @@ package com.kishku7.chunksmith.lod;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -37,6 +38,37 @@ public final class LodInit {
     @SubscribeEvent
     public static void onRegisterCommands(final RegisterCommandsEvent event) {
         event.getDispatcher().register(CsLodCommand.build());
+    }
+
+    /**
+     * Bind Distant Horizons, at the last lifecycle point before it reports its levels.
+     *
+     * <p>{@code ServerAboutToStartEvent} fires BEFORE {@code initServer()} -- so before
+     * {@code createLevels()}, and therefore before DH's level-load event. {@code ServerStartedEvent} would
+     * already be too late to override its generator.
+     */
+    @SubscribeEvent
+    public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
+        //[[[cog
+        // import cog, compat
+        // if compat.has_dh(mcver, loader):
+        //     cog.outl("// CsLodDhSupport hard-references Distant Horizons types, so it must not be class-loaded")
+        //     cog.outl("// unless DH is actually installed. In SINGLEPLAYER the integrated server is in the client")
+        //     cog.outl("// JVM, so this is the whole LOD path: no Chunksmith-Client and no network -- we hand the")
+        //     cog.outl("// player's own DH its data directly. (DH ships a FORGE build on 1.20.1, not a NeoForge one.)")
+        //     cog.outl('if (LodPlatform.isModLoaded("distanthorizons")) {')
+        //     cog.outl("    try {")
+        //     cog.outl("        CsLodDhSupport.setServer(event.getServer());")
+        //     cog.outl("        CsLodDhSupport.register();")
+        //     cog.outl("    } catch (final LinkageError error) {")
+        //     cog.outl('        org.slf4j.LoggerFactory.getLogger("Chunksmith").warn(')
+        //     cog.outl('                "Chunksmith: Distant Horizons present but incompatible, skipping: {}", error.toString());')
+        //     cog.outl("    }")
+        //     cog.outl("}")
+        // else:
+        //     cog.outl("// No LOD renderer exists for this (loader, MC) at all, so there is nothing to bind.")
+        //]]]
+        //[[[end]]]
     }
 
     /** The HTTP backchannel binds once the server is up and its port is known. */

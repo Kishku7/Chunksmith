@@ -9,29 +9,36 @@ has something to draw it with.
 
 ### Added
 
-- **LOD generation (26.x Fabric).** Chunksmith can now emit level-of-detail data while it pregenerates,
-  in its own neutral format (CSLOD): full block states, per-voxel biomes, and separate sky/block light
-  carried even for air. ~5.8 KB per chunk, ~16% slower pregen, zero native dependencies. Off by default
-  (`lodEnabled`).
-- **Voxy support.** LODs are fed to voxy live during pregen, and an existing store can be replayed into
-  voxy at any time with `/cslod inject` -- so a world pregenerated before voxy was ever installed can be
-  given LODs after the fact, with no regeneration.
-- **Distant Horizons support.** Chunksmith registers as DH's world-generator override and serves it
-  straight from the CSLOD store, so DH's LODs appear for pregenerated area without DH generating
-  anything. Opt-in (`lodDhOverride`).
+- **LOD generation.** Chunksmith can now emit level-of-detail data while it pregenerates, in its own
+  neutral format (CSLOD): full block states, per-voxel biomes, and separate sky/block light carried even
+  for air. ~5.8 KB per chunk, ~16% slower pregen, zero native dependencies. Off by default (`lodEnabled`).
+- **Distant Horizons support -- on every LOD version, singleplayer included.** Chunksmith registers as
+  DH's world-generator override and serves it straight from the CSLOD store, so DH's LODs appear for
+  pregenerated area without DH generating anything (opt-in: `lodDhOverride`). `/cslod dhpush` replays an
+  existing store into DH on demand -- so a world pregenerated long before DH was installed gets its LODs
+  after the fact, with no regeneration. This ships on **all eight LOD cells**: Fabric 1.20.1 / 1.21.1 /
+  1.21.11 / 26.x, NeoForge 1.21.1 / 1.21.11 / 26.x, and Forge 1.20.1 -- DH publishes a build for every one
+  of them. We use DH's PUBLIC API only; no mixin into DH.
+- **Voxy support -- where voxy actually exists.** LODs are fed to voxy live during pregen, and an existing
+  store can be replayed into voxy at any time with `/cslod inject`. Ships on **Fabric 1.21.11 and Fabric
+  26.x**, and only there: voxy is Fabric-only and upstream has never published a 1.20.1 or a 1.21.1 build
+  on any loader. On every other cell the voxy seam is simply not compiled in -- Chunksmith never claims a
+  renderer it cannot feed.
+- **Singleplayer gets LODs with no client mod at all.** In singleplayer the integrated server runs inside
+  the client JVM, so Chunksmith hands the player's own DH (and voxy, where it exists) their data
+  DIRECTLY -- no Chunksmith-Client, no network. That used to work only on Fabric 26.x; it now works on
+  every version and loader where a renderer exists.
 - **The LOD server ports to the versions people actually play.** The whole server side -- the CSLOD store,
   the HTTP backchannel (game port + 1, zero config), the authenticated in-band handshake and tokens, the
   in-band fallback transfer, the worldgen hook, and `/cslod` -- now ships on **Fabric 1.20.1, 1.21.1,
   1.21.11 and 26.x**, **NeoForge 1.21.1, 1.21.11 and 26.x**, and **Forge 1.20.1** -- the versions people
-  actually run. Every one of them has a client-side LOD renderer to serve: Distant Horizons ships on all
-  of them (Forge, not NeoForge, on 1.20.1). Voxy is fed live only on Fabric 26.x, because upstream voxy is
-  Fabric-only and has never published a 1.20.1 or 1.21.1 build at all. The remaining versions (1.20.4,
-  1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10) can carry the feature and will get it -- they are simply not
-  in this release.
+  actually run. The remaining versions (1.20.4, 1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10) can carry the
+  feature and will get it -- they are simply not in this release.
 - The wire protocol is IDENTICAL on every one of them. The format is the disk format is the wire format,
   and it lives in one place -- so any Chunksmith-Client talks to any Chunksmith server.
-- `/cslod status` and `/cslod token <player>` on every LOD cell; `/cslod inject` and `/cslod dhpush` where
-  voxy and Distant Horizons can actually be linked against (Fabric 26.x).
+- `/cslod status` and `/cslod token <player>` on every LOD cell; `/cslod dhpush` on every LOD cell;
+  `/cslod inject` on the two cells where voxy exists. `/cslod status` reports only the renderers a cell can
+  actually feed -- it says "voxy: no build for this loader/MC" rather than pretending voxy is merely absent.
 
 ### Changed
 

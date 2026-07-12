@@ -62,6 +62,15 @@ sourceSets["main"].java.srcDir("gen/src/main/java")
 
 dependencies {
     compileOnly("org.spongepowered:mixin:$mixinVersion")
+    // Distant Horizons -- the LOD renderer this cell feeds in SINGLEPLAYER. OPTIONAL soft dependency:
+    // compiled against, NEVER shipped (LGPL-3; not ours to redistribute). The jar lives in the gitignored
+    // ../../libs/. Everything we touch is com.seibel.* and names no Minecraft type, so the same jar works
+    // on every loader and every runtime mapping -- nothing to remap, hence a plain file dependency. DH
+    // publishes one artifact per MC line and the 26.1.2 one carries the whole 26 line's API.
+    //
+    // No voxy here: voxy is FABRIC-ONLY, and NOT ONE voxy fork supports 26.x on NeoForge at all
+    // (lod-ecosystem.md). The voxy seam is compile-time absent on this cell.
+    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-26.1.2.jar"))
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }

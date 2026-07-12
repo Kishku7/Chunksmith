@@ -5,12 +5,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.storage.LevelResource;
-//[[[cog
-// import cog, compat
-// if compat.has_lod_renderer_integration(mcver, loader):
-//     cog.outl("import net.fabricmc.loader.api.FabricLoader;")
-//]]]
-//[[[end]]]
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,10 +26,14 @@ import org.slf4j.LoggerFactory;
  *       artifact: it outlives voxy's storage format, and it is what feeds Distant Horizons and
  *       remote clients.</li>
  *   <li><b>voxy</b> -- added only where a voxy jar exists to compile against AND voxy is actually
- *       installed. Fabric 26 only: voxy is Fabric-ONLY and was never published for 1.20.1 or 1.21.1,
- *       so every other cell carries the store path alone. That is exactly what a DEDICATED server
- *       needs -- voxy's engine is client-side and cannot run on one anyway.</li>
+ *       installed. Fabric 1.21.11 and Fabric 26 only: voxy is Fabric-ONLY and was never published for
+ *       1.20.1 or 1.21.1, so every other cell carries the store path alone. That is exactly what a
+ *       DEDICATED server needs -- voxy's engine is client-side and cannot run on one anyway.</li>
  * </ol>
+ *
+ * <p><b>Distant Horizons is not a sink.</b> DH PULLS (through the world-generator override) and is
+ * PUSHED to on demand ({@code /cslod dhpush}); it is never fed from this hot path. See
+ * {@link CsLodDhSupport}.
  *
  * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
@@ -118,8 +116,8 @@ public final class LodSupport {
 
         //[[[cog
         // import cog, compat
-        // if compat.has_lod_renderer_integration(mcver, loader):
-        //     cog.outl('if (FabricLoader.getInstance().isModLoaded("voxy")) {')
+        // if compat.has_voxy(mcver, loader):
+        //     cog.outl('if (LodPlatform.isModLoaded("voxy")) {')
         //     cog.outl('    try {')
         //     cog.outl('        sinks.add(new VoxyLodSink());')
         //     cog.outl('        LOGGER.info("Chunksmith: voxy detected -- feeding LODs to voxy as well");')
@@ -128,9 +126,10 @@ public final class LodSupport {
         //     cog.outl('    }')
         //     cog.outl('}')
         // else:
-        //     cog.outl("// No voxy sink on this cell: voxy has no build for this (loader, MC), and its engine is")
-        //     cog.outl("// client-side only -- a dedicated server could not run it regardless. The CSLOD store is")
-        //     cog.outl("// the whole server-side product here; Chunksmith-Client feeds the renderer.")
+        //     cog.outl("// No voxy sink on this cell: voxy is Fabric-only and upstream has never published a build")
+        //     cog.outl("// for this (loader, MC), so there is nothing to compile VoxyLodSink against -- the seam is")
+        //     cog.outl("// compile-time ABSENT, not stubbed. Distant Horizons still gets its LODs here (CsLodDhSupport),")
+        //     cog.outl("// and a dedicated server serves the CSLOD store to Chunksmith-Client over the backchannel.")
         //]]]
         //[[[end]]]
 

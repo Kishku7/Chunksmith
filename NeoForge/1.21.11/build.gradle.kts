@@ -55,6 +55,15 @@ dependencies {
     // Mixin annotations only (compile classpath). NO annotation processor - mojmap-native runtime.
     compileOnly("org.spongepowered:mixin:$mixinVersion")
 
+    // Distant Horizons -- the LOD renderer this cell feeds in SINGLEPLAYER. OPTIONAL soft dependency:
+    // compiled against, NEVER shipped (LGPL-3; not ours to redistribute). The jar lives in the gitignored
+    // ../../libs/. Everything we touch is com.seibel.* and names no Minecraft type, so the same jar works
+    // on every loader and every runtime mapping -- nothing to remap, hence a plain file dependency.
+    //
+    // No voxy here: voxy is FABRIC-ONLY, and not one of its NeoForge forks is published anywhere
+    // (lod-ecosystem.md). The voxy seam is compile-time absent on this cell.
+    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-1.21.11.jar"))
+
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }

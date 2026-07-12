@@ -201,16 +201,27 @@ $cogTargets += $entrypointDst
 # (CsLodProtocol/CsLodMessages/CsLodTokens/CsLodHttpServer/CsLodChunk/CsLodCodec/CsLodRegionStore) lives
 # in shared_common and is already on every cell's classpath.
 #
-# Two per-loader FILE choices (conditional presence, not markers -- the shapes are too different):
+# Three per-loader FILE choices (conditional presence, not markers -- the shapes are too different):
 #   LodInit_<loader>.java              -> lod/LodInit.java
+#   LodPlatform_<loader>.java          -> lod/LodPlatform.java
 #   CsLodChannel_<net era>.java        -> lod/net/CsLodChannel.java
-# The renderer-integration classes (VoxyLodSink / CsLodVoxyInjector / CsLodDhSupport / CsLodDhGenerator /
-# CsLodDhPusher / CsLodSectionBuilder) are NOT generated: they compile directly against the voxy + DH
-# jars and stay hand-maintained in Fabric/26/src, the only cell where both jars exist.
+#
+# The RENDERER ADAPTERS -- the SINGLEPLAYER injection path -- are materialised here too, each behind its
+# own gate, because each compiles directly against a third-party jar that only exists on some cells:
+#   compat.has_dh    (EVERY LOD cell -- DH ships one)  -> CsLodDhSupport + CsLodDhGenerator + CsLodDhPusher
+#   compat.has_voxy  (Fabric 1.21.11 + Fabric 26 only) -> VoxyLodSink + CsLodVoxyInjector
+#   either of those                                     -> CsLodSectionBuilder (the shared inverse of the
+#                                                          extractor; this is where the 1.21.11 palette /
+#                                                          registry drift is resolved)
+# Where a gate is false the class is NOT GENERATED AT ALL -- a compile-time-absent seam, not a stub. That
+# is what keeps the mod from ever claiming a renderer it cannot feed.
 Push-Location $codegen
 try {
     $hasLod = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_lod('$McVer','$Loader') else '0')")
     $lodNetEra = if ($hasLod -eq '1') { (& python -c "import compat,sys; sys.stdout.write(compat.lod_net_era('$McVer','$Loader'))") } else { '' }
+    $hasDh = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_dh('$McVer','$Loader') else '0')")
+    $hasVoxy = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_voxy('$McVer','$Loader') else '0')")
+    $hasSectionBuilder = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_section_builder('$McVer','$Loader') else '0')")
 } finally {
     Pop-Location
 }
@@ -234,10 +245,14 @@ if ($hasLod -eq '1') {
         Copy-Item -Force $src (Join-Path $lodDir $lodMap[$name])
     }
 
-    # Per-loader entrypoint + per-era channel seam (conditional file presence).
+    # Per-loader entrypoint + loader seam + per-era channel seam (conditional file presence).
     $lodInitSrc = Join-Path $lodSrc ("LodInit_{0}.java" -f $Loader.ToLower())
     if (-not (Test-Path $lodInitSrc)) { throw "lod entrypoint cog_source missing: $lodInitSrc" }
     Copy-Item -Force $lodInitSrc (Join-Path $lodDir 'LodInit.java')
+
+    $lodPlatSrc = Join-Path $lodSrc ("LodPlatform_{0}.java" -f $Loader.ToLower())
+    if (-not (Test-Path $lodPlatSrc)) { throw "lod platform cog_source missing: $lodPlatSrc" }
+    Copy-Item -Force $lodPlatSrc (Join-Path $lodDir 'LodPlatform.java')
 
     $lodChanSrc = Join-Path $lodSrc ("CsLodChannel_{0}.java" -f $lodNetEra)
     if (-not (Test-Path $lodChanSrc)) { throw "lod channel cog_source missing: $lodChanSrc" }
@@ -249,6 +264,32 @@ if ($hasLod -eq '1') {
     $cogTargets += (Join-Path $lodDir 'LodInit.java')
     $cogTargets += (Join-Path $lodDir 'net/CsLodServerNet.java')
     $cogTargets += (Join-Path $lodDir 'net/CsLodChannel.java')
+
+    # --- Renderer adapters (the SINGLEPLAYER injection path). Each behind its own gate. ---
+    if ($hasSectionBuilder -eq '1') {
+        Copy-Item -Force (Join-Path $lodSrc 'CsLodSectionBuilder.java') (Join-Path $lodDir 'CsLodSectionBuilder.java')
+        $cogTargets += (Join-Path $lodDir 'CsLodSectionBuilder.java')
+    }
+    if ($hasDh -eq '1') {
+        foreach ($f in @('CsLodDhSupport.java', 'CsLodDhGenerator.java', 'CsLodDhPusher.java')) {
+            $src = Join-Path $lodSrc $f
+            if (-not (Test-Path $src)) { throw "lod DH cog_source missing: $src" }
+            Copy-Item -Force $src (Join-Path $lodDir $f)
+        }
+        Write-Host "[cog-gen] + Distant Horizons adapter (DH ships a build for $Loader/$McVer)"
+    } else {
+        Write-Host "[cog-gen] - Distant Horizons adapter (no DH build for $Loader/$McVer)"
+    }
+    if ($hasVoxy -eq '1') {
+        foreach ($f in @('VoxyLodSink.java', 'CsLodVoxyInjector.java')) {
+            $src = Join-Path $lodSrc $f
+            if (-not (Test-Path $src)) { throw "lod voxy cog_source missing: $src" }
+            Copy-Item -Force $src (Join-Path $lodDir $f)
+        }
+        Write-Host "[cog-gen] + voxy adapter (voxy ships a build for $Loader/$McVer)"
+    } else {
+        Write-Host "[cog-gen] - voxy adapter (voxy is Fabric-only and has no build for $Loader/$McVer)"
+    }
 
     Write-Host "[cog-gen] + LOD feature (net era = $lodNetEra)"
 } else {

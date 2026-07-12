@@ -13,9 +13,10 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * SPIKE: PUSH a CSLOD record into Distant Horizons, instead of waiting to be pulled.
+ * PUSH a CSLOD record into Distant Horizons, instead of waiting to be pulled. Drives {@code /cslod
+ * dhpush}: the backfill for a world that was pregenerated before DH was ever installed.
  *
- * <p><b>Why this exists.</b> The world-generator override (P3) only ever fires on a level that has a
+ * <p><b>Why this exists.</b> The world-generator override only ever fires on a level that has a
  * server: DH's {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a
  * MULTIPLAYER CLIENT gets a {@code RemoteWorldRetrievalQueue} instead -- so {@code generateApiChunk} is
  * never called there. The whole pull design is inapplicable to Chunksmith-Client. The client must PUSH.
@@ -33,8 +34,18 @@ import java.util.function.Consumer;
  * <p>Known gate, and the reason this may report success and do nothing on a real server:
  * {@code DhClientLevel.shouldProcessChunkUpdate} silently DISCARDS an update for any position seen in the
  * last 10 minutes when connected to a DH server with real-time updates on -- while still returning
- * {@code createSuccess()}. Chunksmith-Client will mixin that gate off. Singleplayer is not affected, which
- * is why the spike runs here.
+ * {@code createSuccess()}. Chunksmith-Client mixins that gate off. Singleplayer -- which is the only place
+ * this class runs -- is not affected, so Chunksmith itself never needs to touch DH's internals: PUBLIC API
+ * only, no mixin into DH from this mod.
+ *
+ * <p><b>A {@code DhApiResult.success} means QUEUED, not WRITTEN.</b> The counters below cannot prove
+ * retention. Verify it by counting rows in DH's SQLite, and by LOOKING at the terrain.
+ *
+ * <p>Version-blind: the only Minecraft symbols are {@code LevelChunk(Level, ChunkPos)} and
+ * {@code getSections()}, both stable 1.20.1 -&gt; 26. All the drift is inside {@link CsLodSectionBuilder}.
+ *
+ * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
+ * under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodDhPusher {
 

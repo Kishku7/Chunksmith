@@ -62,6 +62,15 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     modCompileOnly("me.lucko:fabric-permissions-api:0.3.1")
 
+    // Distant Horizons -- the LOD renderer this cell feeds in SINGLEPLAYER. OPTIONAL soft dependency:
+    // compiled against, NEVER shipped (LGPL-3; not ours to redistribute). The jar lives in the
+    // gitignored ../../libs/. A PLAIN compileOnly: the whole surface we touch (DhApi.Delayed.terrainRepo,
+    // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult) is com.seibel.* and names no
+    // Minecraft type at all, so there is nothing for loom to remap.
+    //
+    // No voxy here: voxy has NEVER published a 1.20.1 build on any loader (lod-ecosystem.md).
+    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-1.20.1.jar"))
+
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }

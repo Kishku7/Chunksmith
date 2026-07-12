@@ -73,6 +73,15 @@ dependencies {
     minecraft "net.minecraftforge:forge:${project.findProperty('forge_version')}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
+    // Distant Horizons -- the LOD renderer this cell feeds in SINGLEPLAYER. OPTIONAL soft dependency:
+    // compiled against, NEVER shipped (LGPL-3; not ours to redistribute). The jar lives in the gitignored
+    // ../../libs/. Everything we touch is com.seibel.* and names no Minecraft type, so the jar needs no
+    // remap/reobf -- a plain compileOnly file dependency, which FG6 never touches.
+    //
+    // DH ships FORGE on the 1.20.1 line (there is no NeoForge 1.20.1 DH). No voxy here: voxy is
+    // Fabric-only and has never published a 1.20.1 build (lod-ecosystem.md).
+    compileOnly files('../../libs/DistantHorizons-3.2.0-b-1.20.1.jar')
+
     implementation project(':chunksmith-common')
     shade project(':chunksmith-common')
 }

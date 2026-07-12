@@ -55,6 +55,23 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     modCompileOnly("me.lucko:fabric-permissions-api:0.3.1")
 
+    // The LOD renderers this cell can feed in SINGLEPLAYER. OPTIONAL soft dependencies: compiled
+    // against, NEVER shipped. voxy is All-Rights-Reserved and Distant Horizons is LGPL -- neither is
+    // ours to redistribute. Both jars live in the gitignored ../../libs/.
+    //
+    // Distant Horizons is a PLAIN compileOnly: the whole surface we touch (DhApi.Delayed.terrainRepo,
+    // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult) is com.seibel.* and names no
+    // Minecraft type at all, so there is nothing for loom to remap.
+    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-1.21.11.jar"))
+    // voxy, via the -loomcompat copy that scripts/prep-libs.py produces. TWO separate traps here:
+    //   1. modCompileOnly, NOT compileOnly: the published voxy jar for this MC line is INTERMEDIARY-mapped
+    //      (WorldIdentifier.of(net.minecraft.class_1937), rawIngest(..., class_2826, ..., class_2804)),
+    //      unlike the 26.x jar which is mojmap-native. Loom must remap it or the adapter does not compile.
+    //   2. that jar is stamped Fabric-Loom-Version: 1.16.2, and this cell's Loom (1.13.x -- a hard floor
+    //      AND ceiling for 1.21.11) refuses any mod dep built with a newer Loom, at CONFIGURE time.
+    //      prep-libs.py strips that one provenance line; run it once before building this cell.
+    modCompileOnly(files("../../libs/voxy-0.2.16-beta+1.21.11-loomcompat.jar"))
+
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }
