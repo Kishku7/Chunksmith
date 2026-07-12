@@ -1,8 +1,9 @@
-# Chunksmith - Build Guide (minecraft-1.20-26.3 branch)
+# Chunksmith - Build Guide (CSv3 branch)
 
-This branch is the unified Chunksmith source tree. One codebase builds every supported
+`CSv3` is the unified Chunksmith source tree for the 3.x line - the branch all current work
+happens on (renamed from `dev`, 2026-07-12). One codebase builds every supported
 target - the Fabric, Forge, and NeoForge mods plus the Bukkit/Paper/Folia plugin - across Minecraft
-1.20.1 through 26.3.
+1.20.1 through 26.3. The frozen 2.x line lives on `CSv2_archive` (formerly `minecraft-1.20-26.3`).
 
 For what Chunksmith is and how to use it, see the [landing page](https://github.com/Kishku7/Chunksmith).
 
@@ -107,7 +108,7 @@ The cell's Gradle build compiles `<Cell>/gen/`, not `shared_minecraft` directly 
 why Cog must be installed before building. The unified 26 cells do not use cog-gen; they
 build from a `-P` version matrix supplied by the build script.
 
-## LOD generation (26.x Fabric, in development on `dev`)
+## LOD generation (shipped in 3.0.0-beta-2)
 
 Chunksmith can emit **level-of-detail data while it pregenerates** - so the same pass that builds your
 world also builds the LODs for it. No second scan, no re-reading region files, no separate LOD pregen.
@@ -119,7 +120,12 @@ any one LOD mod's private shape. From that single store we can serve **every** L
 |----------|---------------|
 | [Voxy](https://modrinth.com/mod/voxy) | Fed live during pregen, **and** replayable afterwards (`/cslod inject`) |
 | [Distant Horizons](https://modrinth.com/mod/distanthorizons) | Chunksmith registers as DH's world-generator override and answers straight from the store |
-| Remote clients | Planned - the same bytes are already the wire format |
+| Remote clients | [Chunksmith-Client](https://github.com/Kishku7/chunksmith-client) streams the store over the wire and feeds the player's own voxy / DH |
+
+LOD ships on the cells where a renderer actually exists: Fabric 1.20.1 / 1.21.1 / 1.21.11 / 26.x,
+NeoForge 1.21.1 / 1.21.11 / 26.1 / 26.2, Forge 1.20.1 (DH everywhere on that list, needs >= 2.3.0-b;
+voxy only on Fabric 1.21.11 + 26.x). The Bukkit/Paper/Folia plugin has no LOD code at all - there is
+no plugin-side renderer. Gates: `_codegen/compat.py` (`has_lod` / `has_dh` / `has_voxy`).
 
 ### Why a neutral format
 
@@ -183,8 +189,9 @@ Notes:
   instantly, everything else returns empty. That is right for a world you have pregenerated and wrong
   for one you have not - which is why it is opt-in.
 - Neither mod is bundled. Voxy is All-Rights-Reserved and DH is LGPL; both are optional soft
-  dependencies, compiled against and never shipped. To build the LOD code, drop the jars in
-  `Fabric/26/libs/` (gitignored).
+  dependencies, compiled against and never shipped. DH is compiled against its published API
+  artifact (`maven.modrinth:distanthorizonsapi`); the voxy soft-dep jars go in the repo-root
+  `libs/` (gitignored) - run `python scripts/prep-libs.py` to stage them.
 
 ## Credits / License
 
