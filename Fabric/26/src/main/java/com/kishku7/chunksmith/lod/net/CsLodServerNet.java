@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,9 @@ public final class CsLodServerNet {
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private static final CsLodTokens TOKENS = new CsLodTokens();
+
+    /** The radius each client's renderer is actually configured to draw, in blocks. */
+    private static final Map<UUID, Integer> RADIUS = new java.util.concurrent.ConcurrentHashMap<>();
     private static CsLodHttpServer http;
     private static MinecraftServer server;
 
@@ -53,6 +57,7 @@ public final class CsLodServerNet {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, ignored) -> {
             TOKENS.revoke(handler.getPlayer().getUUID());
             CsLodInBandSender.forget(handler.getPlayer().getUUID());
+            RADIUS.remove(handler.getPlayer().getUUID());
         });
     }
 
@@ -174,6 +179,8 @@ public final class CsLodServerNet {
         send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                 CsLodProtocol.VERSION, available, port, token, dimensions())));
 
+        RADIUS.put(player.getUUID(), Math.max(16, hello.radiusBlocks()));
+
         LOGGER.info("Chunksmith: LOD hello from " + player.getGameProfile().name()
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
                 + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port));
@@ -230,9 +237,13 @@ public final class CsLodServerNet {
                         continue;
                     }
                     try {
+                        final int regionX = Integer.parseInt(parts[1]);
+                        final int regionZ = Integer.parseInt(parts[2]);
+                        if (!inRange(player, regionX, regionZ)) {
+                            continue;
+                        }
                         regions.add(new CsLodMessages.RegionEntry(
-                                Integer.parseInt(parts[1]), Integer.parseInt(parts[2]),
-                                hash(file), Files.size(file)));
+                                regionX, regionZ, hash(file), Files.size(file)));
                     } catch (final NumberFormatException ignored) {
                         // not one of ours
                     }
@@ -240,6 +251,33 @@ public final class CsLodServerNet {
             }
         }
         send(player, CsLodMessages.encode(new CsLodMessages.RegionIndex(dimension, regions)));
+    }
+
+    /**
+     * Is this region within the radius the client's renderer can actually DRAW, measured from the player?
+     *
+     * <p>The client tells us its configured LOD distance in the handshake, and we follow it -- lower or
+     * higher. Sending beyond it is bandwidth spent on terrain the player will never see; sending less leaves
+     * visible holes. A store can be hundreds of megabytes, and shipping all of it to someone whose renderer
+     * draws 256 blocks would be indefensible.
+     *
+     * <p>A region is 32 chunks = 512 blocks square, so we test the region's BOX against the radius, not its
+     * corner -- a region only partly inside the radius still contains terrain the player can see.
+     */
+    private static boolean inRange(final ServerPlayer player, final int regionX, final int regionZ) {
+        final int radius = RADIUS.getOrDefault(player.getUUID(), CsLodProtocol.DEFAULT_RADIUS_BLOCKS);
+        final int minX = regionX * 512;
+        final int minZ = regionZ * 512;
+        final int maxX = minX + 511;
+        final int maxZ = minZ + 511;
+
+        final int px = (int) player.getX();
+        final int pz = (int) player.getZ();
+
+        // Distance from the player to the nearest point of the region box.
+        final int dx = Math.max(0, Math.max(minX - px, px - maxX));
+        final int dz = Math.max(0, Math.max(minZ - pz, pz - maxZ));
+        return (long) dx * dx + (long) dz * dz <= (long) radius * radius;
     }
 
     /**
