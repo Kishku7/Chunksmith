@@ -86,7 +86,7 @@ public final class CsLodServerNet {
      */
     public static void onServerStarted(final MinecraftServer current) {
         server = current;
-        if (!lodEnabled()) {
+        if (!LodSupport.lodEnabled(current)) {
             LOGGER.info("Chunksmith: LOD is disabled; not serving LODs");
             return;
         }
@@ -101,11 +101,6 @@ public final class CsLodServerNet {
         // Same interface the game is bound to, game port + 1. Nothing for an operator to configure.
         // A bind failure is a log line, not an error: the client falls back to the in-band channel.
         http.start(current.getLocalIp(), current.getPort());
-    }
-
-    private static boolean lodEnabled() {
-        return com.kishku7.chunksmith.ChunksmithProvider.isLoaded()
-                && com.kishku7.chunksmith.ChunksmithProvider.get().getConfig().isLodEnabled();
     }
 
     public static void onServerStopped() {

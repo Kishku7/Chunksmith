@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [3.0.0-beta-2] - 2026-07-12
+
+LOD generation turns itself on. Install Chunksmith next to Distant Horizons or Voxy, pregenerate, and
+the LODs are there -- no config file to find first.
+
+### Changed
+
+- **`lodEnabled` is now a TRISTATE, `auto` by default** (it was a boolean defaulting to `false`).
+  - `auto` -- Chunksmith decides. LOD generation is **ON** when an LOD renderer is present in the JVM
+    (Distant Horizons, Voxy, or a Voxy fork), **ON** on a dedicated server, and off otherwise. A
+    dedicated server runs no renderer of its own, but its CSLOD store is exactly what Chunksmith-Client
+    downloads, so the store is what it is *for*.
+  - `true` / `false` -- an explicit operator decision, and it is **never** overridden. `lodEnabled: false`
+    keeps LOD off even with Distant Horizons installed.
+  - An existing config that already says `"lodEnabled": true` or `"lodEnabled": false` keeps working and
+    keeps meaning exactly what it said. Nothing is rewritten behind you.
+- **The decision is logged, once, at server start** -- which way it went and why
+  (`LOD generation auto-enabled -- detected distanthorizons ...`, or `no LOD renderer detected; LOD
+  generation off`). `/cslod status` reports it too. A default nobody can see is a default nobody uses.
+- Renderer detection covers Distant Horizons (`distanthorizons`), Voxy (`voxy`) and the Voxy forks -- five
+  of the six known forks keep the upstream `voxy` id; `neovoxy` is detected as well. A fork under an id we
+  have never seen simply does not trip the auto-on, and `lodEnabled: true` still forces it.
+
 ## [3.0.0-beta-1] - 2026-07-12
 
 The LOD feature leaves the 26.x-Fabric prototype and ships on every MC line where a player actually

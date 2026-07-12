@@ -93,12 +93,14 @@ public final class BukkitConfig implements Config {
     }
 
     /**
-     * LOD generation is a client/integrated-server feature (voxy is a Fabric client mod), so it is
-     * permanently off on the Bukkit platform. The governor is disabled to match.
+     * The Bukkit platform carries no LOD code at all -- there is no client-side renderer to hand data
+     * to on Paper / Spigot / Folia, so there is nothing to auto-detect and nothing to enable. Hard
+     * {@link LodMode#OFF}, not {@code AUTO}: {@code AUTO} would be a lie on a platform where the
+     * feature is not compiled in. The governor is disabled to match.
      */
     @Override
-    public boolean isLodEnabled() {
-        return false;
+    public LodMode getLodMode() {
+        return LodMode.OFF;
     }
 
     @Override

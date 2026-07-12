@@ -68,6 +68,8 @@ public final class LodInit {
     /** The HTTP backchannel binds once the server is up and its port is known. */
     @SubscribeEvent
     public static void onServerStarted(final ServerStartedEvent event) {
+        // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
+        LodSupport.announce(event.getServer());
         com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(event.getServer());
     }
 

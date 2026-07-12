@@ -202,7 +202,9 @@ public final class CsLodDhSupport {
             return false;
         }
         final Config config = config();
-        return config != null && config.isLodEnabled() && config.isLodDhOverrideEnabled();
+        // DH is installed (dhPresent() above), so lodEnabled=auto resolves to ON here by definition;
+        // an explicit lodEnabled=false still wins, which is the whole point of the tristate.
+        return config != null && LodSupport.decide(config, server) && config.isLodDhOverrideEnabled();
     }
 
     /**

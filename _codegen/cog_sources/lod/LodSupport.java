@@ -19,9 +19,11 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Gates, in order:
  * <ol>
- *   <li><b>Opt-in.</b> {@code lodEnabled} in the config, default FALSE. LOD generation costs real
- *       pregen throughput (~2.4x slower in the 26.1.2 spike), so it is never switched on behind the
- *       operator's back.</li>
+ *   <li><b>{@code lodEnabled} -- a TRISTATE, default {@code auto}.</b> {@code auto} means Chunksmith
+ *       decides: ON when an LOD renderer is in the JVM (Distant Horizons, voxy, or a voxy fork), ON on
+ *       a DEDICATED server, OFF otherwise. An explicit {@code true}/{@code false} is an operator
+ *       decision and is never overridden. The decision is LOGGED, once, at server start -- see
+ *       {@link #announce(MinecraftServer)}.</li>
  *   <li><b>CSLOD store</b> -- always on when LOD is enabled. This is the durable, mod-independent
  *       artifact: it outlives voxy's storage format, and it is what feeds Distant Horizons and
  *       remote clients.</li>
@@ -58,7 +60,7 @@ public final class LodSupport {
      * is released. Everything downstream of extraction is asynchronous.
      */
     public static void offer(final ServerLevel level, final LevelChunk chunk) {
-        if (!lodEnabled()) {
+        if (!lodEnabled(level.getServer())) {
             return;
         }
         final LodSink sink = sinkFor(level);
@@ -178,8 +180,152 @@ public final class LodSupport {
         return List.of(sink);
     }
 
-    private static boolean lodEnabled() {
+    // ---------------------------------------------------------------------------------------------
+    // The lodEnabled TRISTATE.
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Mod ids that mean "something in this JVM can draw an LOD".
+     *
+     * <p>Read out of the actual published jars / fork sources on 2026-07-12 (see
+     * {@code Memory\minecraft\lod-ecosystem.md}):
+     * <ul>
+     *   <li>{@code distanthorizons} -- Distant Horizons, all loaders, every MC line we ship LOD on.</li>
+     *   <li>{@code voxy} -- upstream voxy AND five of the six known forks (m3t4f1v3, j-shelfwood,
+     *       realBritakee, JustinTHChapman, NHblock714), every one of which keeps the upstream mod id.</li>
+     *   <li>{@code neovoxy} -- the ONE fork that renamed itself (meansabine/neo-voxy).</li>
+     * </ul>
+     *
+     * <p>A fork we have never heard of simply does not trip the auto-on. That is a missed convenience,
+     * not a fault: the operator sets {@code lodEnabled: true} and everything works. Nothing here can
+     * crash -- these are strings handed to the loader's own registry lookup.
+     */
+    private static final String[] RENDERER_IDS = {"distanthorizons", "voxy", "neovoxy"};
+
+    /** Resolved once: a mod cannot appear in the JVM halfway through a run. Null = none present. */
+    private static volatile String renderer;
+    private static volatile boolean rendererResolved;
+
+    private static final java.util.concurrent.atomic.AtomicBoolean ANNOUNCED =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    /** The first renderer mod id found in this JVM, or null if there is none. */
+    private static String detectRenderer() {
+        if (!rendererResolved) {
+            synchronized (LodSupport.class) {
+                if (!rendererResolved) {
+                    String found = null;
+                    for (final String id : RENDERER_IDS) {
+                        if (LodPlatform.isModLoaded(id)) {
+                            found = id;
+                            break;
+                        }
+                    }
+                    renderer = found;
+                    rendererResolved = true;
+                }
+            }
+        }
+        return renderer;
+    }
+
+    /**
+     * Resolve the tristate. PURE -- it decides, it does not log; {@link #announce(MinecraftServer)}
+     * owns the one log line.
+     *
+     * <p>{@code auto} is ON on a DEDICATED server even with no renderer installed, and that is
+     * deliberate: a dedicated server cannot run voxy (client-only) and does not need DH, yet it is
+     * precisely where the CSLOD store has to exist -- it is the thing Chunksmith-Client downloads.
+     * Left OFF, the multiplayer half of the feature does nothing until an operator finds a config key,
+     * which is the bug we are fixing. The cost is bounded and only ever paid during a pregen the
+     * operator explicitly started (~16% wall clock, ~5.8 KB per chunk on disk), it is stated in the
+     * startup log, and one line of config turns it off.
+     */
+    public static boolean decide(final com.kishku7.chunksmith.platform.Config config,
+                                 final MinecraftServer server) {
+        if (config == null) {
+            return false;
+        }
+        switch (config.getLodMode()) {
+            case ON:
+                return true;
+            case OFF:
+                return false;
+            default:
+                return detectRenderer() != null || (server != null && server.isDedicatedServer());
+        }
+    }
+
+    /** The live decision, or false when Chunksmith is not up yet. */
+    public static boolean lodEnabled(final MinecraftServer server) {
         // ChunksmithProvider.get() THROWS when unloaded, so gate on isLoaded() first.
-        return ChunksmithProvider.isLoaded() && ChunksmithProvider.get().getConfig().isLodEnabled();
+        return ChunksmithProvider.isLoaded()
+                && decide(ChunksmithProvider.get().getConfig(), server);
+    }
+
+    /**
+     * Say, once, out loud, what was decided and why. Wired to server-started by {@code LodInit}.
+     *
+     * <p>A silent default is how you ship a feature nobody can find. There is exactly one of these
+     * lines per server run and it always says which way it went.
+     */
+    public static void announce(final MinecraftServer server) {
+        if (!ANNOUNCED.compareAndSet(false, true)) {
+            return;
+        }
+        if (!ChunksmithProvider.isLoaded()) {
+            return;
+        }
+        final com.kishku7.chunksmith.platform.Config config = ChunksmithProvider.get().getConfig();
+        final com.kishku7.chunksmith.platform.LodMode mode = config.getLodMode();
+        final String found = detectRenderer();
+        final boolean on = decide(config, server);
+
+        if (mode != com.kishku7.chunksmith.platform.LodMode.AUTO) {
+            LOGGER.info("Chunksmith: LOD generation {} (lodEnabled={} set explicitly in the config{})",
+                    on ? "ON" : "off", mode == com.kishku7.chunksmith.platform.LodMode.ON ? "true" : "false",
+                    found == null ? "" : "; " + found + " is installed");
+            return;
+        }
+        if (found != null) {
+            LOGGER.info("Chunksmith: LOD generation auto-enabled -- detected {}. "
+                            + "Pregen will build the CSLOD store (~5.8 KB/chunk, ~16% slower). "
+                            + "Set lodEnabled=false in config/chunksmith.json to turn it off.",
+                    found);
+        } else if (server != null && server.isDedicatedServer()) {
+            LOGGER.info("Chunksmith: LOD generation auto-enabled -- dedicated server. No renderer runs "
+                    + "here, but the CSLOD store is what Chunksmith-Client downloads, so the store is "
+                    + "built (~5.8 KB/chunk, ~16% slower pregen). "
+                    + "Set lodEnabled=false in config/chunksmith.json to turn it off.");
+        } else {
+            LOGGER.info("Chunksmith: no LOD renderer detected (looked for {}); LOD generation off. "
+                    + "Install Distant Horizons or voxy, or set lodEnabled=true to force it on.",
+                    String.join(", ", RENDERER_IDS));
+        }
+    }
+
+    /** One-line summary for {@code /cslod status}. */
+    public static String describeDecision(final MinecraftServer server) {
+        if (!ChunksmithProvider.isLoaded()) {
+            return "lod: unknown (chunksmith not loaded)";
+        }
+        final com.kishku7.chunksmith.platform.Config config = ChunksmithProvider.get().getConfig();
+        final String found = detectRenderer();
+        final String why;
+        switch (config.getLodMode()) {
+            case ON:
+                why = "forced on";
+                break;
+            case OFF:
+                why = "forced off";
+                break;
+            default:
+                why = found != null ? "auto: " + found + " detected"
+                        : (server != null && server.isDedicatedServer())
+                                ? "auto: dedicated server"
+                                : "auto: no renderer";
+                break;
+        }
+        return "lod: " + (decide(config, server) ? "ON" : "off") + " (" + why + ")";
     }
 }

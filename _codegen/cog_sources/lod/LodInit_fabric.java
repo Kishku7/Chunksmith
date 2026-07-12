@@ -28,8 +28,11 @@ public final class LodInit implements ModInitializer {
         // The LOD protocol: the channel is registered at init; the HTTP backchannel binds
         // once the server is up and its port is known, and unbinds when it stops.
         com.kishku7.chunksmith.lod.net.CsLodServerNet.register();
-        ServerLifecycleEvents.SERVER_STARTED.register(
-                com.kishku7.chunksmith.lod.net.CsLodServerNet::onServerStarted);
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
+            LodSupport.announce(server);
+            com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(server);
+        });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped();
             // Flush the writer queue and close the region files -- otherwise a pregen that ends at

@@ -3,6 +3,7 @@ package com.kishku7.chunksmith.platform.impl;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kishku7.chunksmith.platform.Config;
+import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.util.Translator;
 
@@ -137,8 +138,15 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public boolean isLodEnabled() {
-        return Optional.ofNullable(configModel.lodEnabled).orElse(false);
+    public LodMode getLodMode() {
+        final String raw = configModel.lodEnabled;
+        final LodMode mode = LodMode.parse(raw);
+        if (mode == null) {
+            LOGGER.warning("Chunksmith: lodEnabled '" + raw
+                    + "' is not one of auto/true/false, using auto");
+            return LodMode.AUTO;
+        }
+        return mode;
     }
 
     @Override
@@ -194,7 +202,11 @@ public final class GsonConfig implements Config {
         private Double throttleTargetMspt = TARGET_MSPT_DEFAULT;
         private Long throttleMaxChunkMillis = MAX_CHUNK_MILLIS_DEFAULT;
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
-        private Boolean lodEnabled = false;
+        // TRISTATE, written as the string "auto" by default. Declared String, not Boolean, ON PURPOSE:
+        // Gson's String adapter coerces a JSON boolean to "true"/"false", so a config that already says
+        // `"lodEnabled": false` (or true) from an older Chunksmith still parses, still means exactly what
+        // it said, and is never rewritten behind the operator's back.
+        private String lodEnabled = "auto";
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
         private Boolean lodDhOverride = false;
         private Map<String, TaskModel> tasks;

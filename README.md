@@ -6,9 +6,10 @@ target - the Fabric, Forge, and NeoForge mods plus the Bukkit/Paper/Folia plugin
 
 For what Chunksmith is and how to use it, see the [landing page](https://github.com/Kishku7/Chunksmith).
 
-**`readme-main_dev.md`** in this repo root is the landing-page README **in waiting**: it holds the
-user-facing pitch for everything on this branch that has not shipped to `main` yet. When this branch
-goes live, its contents replace `main`'s README and the staging file is deleted.
+The landing-page README lives on `main` and IS the Modrinth description (`publish.py --sync-desc`
+pushes it). The 3.0 LOD pitch went live there with the beta, so the old `readme-main_dev.md` staging
+file has been deleted, per the convention: once the staging copy replaces `main`'s README, it goes.
+Edit `main`'s `README.md` directly for user-facing wording.
 Questions or bug reports: https://github.com/Kishku7/mod_support/issues
 
 ## What you need installed
@@ -159,10 +160,16 @@ touched again.
 
 ### Usage
 
-Off by default. In `config/chunksmith.json`:
+`lodEnabled` is a TRISTATE, default `auto`. In `config/chunksmith.json`:
 
-    "lodEnabled": true,        // write the CSLOD store during pregen (and feed voxy if installed)
+    "lodEnabled": "auto",      // ON if a renderer (distanthorizons / voxy / a voxy fork) is loaded,
+                               //   ON on a dedicated server (its store is what Chunksmith-Client pulls),
+                               //   off otherwise. `true` / `false` force it and are never overridden.
     "lodDhOverride": true      // additionally serve Distant Horizons from the store
+
+The resolution happens in `LodSupport.decide(Config, MinecraftServer)` and is logged, once, at server
+start; `/cslod status` repeats it. A plain JSON boolean still parses (Gson coerces it to `"true"` /
+`"false"`), so an existing config is never rewritten.
 
 Commands (op):
 

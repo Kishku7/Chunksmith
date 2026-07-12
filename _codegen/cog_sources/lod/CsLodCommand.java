@@ -65,7 +65,8 @@ public final class CsLodCommand {
             final long bytes = sizeOf(store);
             // One line: chat renders a literal \n rather than breaking the line.
             context.getSource().sendSuccess(() -> Component.literal(
-                    "[chunksmith] LOD store: " + store
+                    "[chunksmith] " + LodSupport.describeDecision(level.getServer())
+                            + " | store: " + store
                             + " | exists: " + Files.isDirectory(store)
                             + " | size: " + (bytes / 1024) + " KB"
                             + renderers()

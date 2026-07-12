@@ -76,6 +76,8 @@ public final class LodInit {
     public static void onServerStarted(final ServerStartedEvent event) {
         warnOnConflicts();
         server = event.getServer();
+        // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
+        LodSupport.announce(event.getServer());
         com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(event.getServer());
     }
 

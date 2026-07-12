@@ -45,11 +45,17 @@ public interface Config {
     long getThrottleMaxQueuedWrites();
 
     /**
-     * Whether ChunkSmith emits LOD data for the chunks it generates (currently: into voxy, when voxy
-     * is installed). OPT-IN, default false: LOD ingestion measurably slows a pregen (~2.4x in the
-     * 26.1.2 spike), so it must never be switched on behind the operator's back.
+     * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean.
+     *
+     * <p>Default {@link LodMode#AUTO}: LOD generation turns itself ON when an LOD renderer (Distant
+     * Horizons, voxy, or a voxy fork) is present in the JVM, and ON on a dedicated server, which
+     * exists to serve the store to Chunksmith-Client players. An explicit {@code true} or
+     * {@code false} in the config is an operator decision and is NEVER overridden.
+     *
+     * <p>The resolution itself lives in {@code LodSupport} -- it needs the loader's mod-loaded check
+     * and the running server, neither of which the config layer has.
      */
-    boolean isLodEnabled();
+    LodMode getLodMode();
 
     /**
      * Maximum items allowed to queue in the LOD sink before the throttle backs off dispatch.
