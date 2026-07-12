@@ -2,6 +2,7 @@ package com.kishku7.chunksmith.lod;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
@@ -25,6 +26,8 @@ public final class LodInit implements ModInitializer {
                 com.kishku7.chunksmith.lod.net.CsLodServerNet::onServerStarted);
         ServerLifecycleEvents.SERVER_STOPPED.register(
                 server -> com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped());
+        // Drip-feed the in-band fallback. A few slices per tick, never a burst.
+        ServerTickEvents.END_SERVER_TICK.register(com.kishku7.chunksmith.lod.net.CsLodServerNet::tick);
 
         // CsLodDhSupport hard-references Distant Horizons types, so it must not be class-loaded
         // unless DH is actually installed.

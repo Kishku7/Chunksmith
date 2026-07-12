@@ -50,8 +50,10 @@ public final class CsLodServerNet {
                 context.server().execute(() -> handle(context.player(), payload.data())));
 
         // A token must never outlive the session that earned it.
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, ignored) ->
-                TOKENS.revoke(handler.getPlayer().getUUID()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, ignored) -> {
+            TOKENS.revoke(handler.getPlayer().getUUID());
+            CsLodInBandSender.forget(handler.getPlayer().getUUID());
+        });
     }
 
     /**
@@ -97,7 +99,10 @@ public final class CsLodServerNet {
 
     /** For the status command. */
     public static String describe() {
-        return http == null ? "LOD serving: off" : "LOD serving: " + http.describe();
+        final String inBand = CsLodInBandSender.pending() > 0
+                ? " | in-band backlog: " + CsLodInBandSender.pending() + " slices" : "";
+        return (http == null ? "LOD serving: in-band only (no backchannel)" : "LOD serving: " + http.describe())
+                + inBand;
     }
 
     /**
@@ -130,10 +135,11 @@ public final class CsLodServerNet {
             switch (id) {
                 case CsLodProtocol.C2S_HELLO -> hello(player, CsLodMessages.decodeClientHello(in));
                 case CsLodProtocol.C2S_REQUEST_INDEX -> index(player, in.readUTF());
-                case CsLodProtocol.C2S_REQUEST_REGIONS -> LOGGER.info(
-                        "Chunksmith: in-band region fetch requested by " + player.getGameProfile().name()
-                                + " -- not implemented yet (backchannel is the fast path)");
-                case CsLodProtocol.C2S_CANCEL -> LOGGER.debug("Chunksmith: LOD transfer cancelled by client");
+                case CsLodProtocol.C2S_REQUEST_REGIONS -> inBand(player, in);
+                case CsLodProtocol.C2S_CANCEL -> {
+                    CsLodInBandSender.cancel(player);
+                    LOGGER.debug("Chunksmith: LOD transfer cancelled by client");
+                }
                 default -> LOGGER.warn("Chunksmith: unknown LOD message id " + id);
             }
         } catch (final IOException e) {
@@ -171,6 +177,38 @@ public final class CsLodServerNet {
         LOGGER.info("Chunksmith: LOD hello from " + player.getGameProfile().name()
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
                 + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port));
+    }
+
+    /**
+     * The fallback: the operator has no backchannel port open, so we drip the regions down the game
+     * connection instead. Slow on purpose -- gameplay wins, LOD fills the gaps.
+     */
+    private static void inBand(final ServerPlayer player, final DataInputStream in) throws IOException {
+        final String dimension = in.readUTF();
+        final int count = in.readInt();
+        final List<CsLodMessages.RegionEntry> wanted = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            wanted.add(new CsLodMessages.RegionEntry(in.readInt(), in.readInt(), 0L, 0L));
+        }
+        final Path root = storeBase();
+        if (root == null) {
+            return;
+        }
+        CsLodInBandSender.queue(player, root, dimension, wanted);
+        LOGGER.info("Chunksmith: in-band LOD fetch for {} -- {} regions (no backchannel; this is the slow path)",
+                player.getGameProfile().name(), wanted.size());
+    }
+
+    /** Drip-feed the in-band queues. Wired to the server tick. */
+    public static void tick(final MinecraftServer current) {
+        for (final ServerPlayer player : current.getPlayerList().getPlayers()) {
+            CsLodInBandSender.tick(player);
+        }
+    }
+
+    /** Send raw protocol bytes to a player. */
+    public static void sendTo(final ServerPlayer player, final byte[] data) {
+        send(player, data);
     }
 
     private static void index(final ServerPlayer player, final String dimension) throws IOException {
