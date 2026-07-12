@@ -23,13 +23,28 @@ derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 - **Multi-world**, with live progress, rate, ETA, and an optional boss bar.
 - **Resumable.** Pause, continue, cancel, and continue-on-restart - progress is saved.
 - **World trimming.** Delete chunks outside a selected region.
-- **LOD generation.** Turn a pregenerated world into a distant-horizon view - see below.
+- **LOD generation, on by default.** Install Distant Horizons or Voxy and Chunksmith builds their
+  distant-horizon data while it pregenerates. No config file to find first - see below.
 - **Developer API** for generation progress and completion events.
 
 ## LOD: see what you pregenerated
 
-Chunksmith can emit level-of-detail data while it pregenerates, in its own neutral format
-(CSLOD), and hand it straight to a LOD renderer. Off by default (`lodEnabled`).
+Chunksmith emits level-of-detail data while it pregenerates, in its own neutral format (CSLOD), and
+hands it straight to a LOD renderer.
+
+### It turns itself on
+
+**If a LOD renderer is installed, LOD generation is ON.** Chunksmith looks for **Distant Horizons**,
+**Voxy**, or a **Voxy fork** in the game when the server starts, and if one is there it builds the LOD
+data as it pregenerates. There is no config key to find, nothing to switch on, and no "why are there no
+LODs?" - install the renderer, install Chunksmith, pregenerate, and the distant terrain is there.
+
+It is **also on for a dedicated server**, which is the one case where nothing local can draw an LOD:
+a dedicated server runs no renderer of its own, but the store it builds is exactly what it serves to
+its players (see multiplayer, below). Building it is the whole reason it is there.
+
+If nothing in the game can use LOD data - no renderer, and not a dedicated server - Chunksmith does
+not generate any, and **says so in the log** rather than leaving you guessing.
 
 **In singleplayer, Chunksmith is the only mod you need.** The integrated server runs inside your
 own game, so Chunksmith injects the LODs *directly* into your renderer - no companion mod, no
@@ -41,6 +56,22 @@ after the fact, with no regeneration. Where **voxy** exists, `/cslod inject` doe
 **In multiplayer, players install [Chunksmith-Client](https://modrinth.com/mod/chunksmith-client).**
 The server keeps the CSLOD store; the client downloads what it needs and feeds it to that player's
 Distant Horizons or voxy. Nothing else on the server is required.
+
+### Forcing it on, or off
+
+`lodEnabled` in `config/chunksmith.json` is a **tristate**, not a switch:
+
+| `lodEnabled` | What happens |
+|---|---|
+| `"auto"` *(default)* | **ON** if Distant Horizons, Voxy, or a Voxy fork is loaded. **ON** on a dedicated server. Off otherwise. |
+| `true` | Always on, renderer or not. Useful to build the store now and install the renderer later. |
+| `false` | Always off - **even with a renderer installed**. |
+
+An explicit `true` or `false` is your decision and Chunksmith never overrides it. Whichever way it
+goes, it is stated once in the server log at startup, and `/cslod status` will tell you again.
+
+What it costs when it is on: **~5.8 KB per chunk** on disk and a **~16% slower** pre-generation. Plain
+region files - no native database, nothing extra to install.
 
 ### Where LOD is available
 
