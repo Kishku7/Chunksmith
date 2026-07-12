@@ -117,21 +117,46 @@ public final class CsLodRegionStore {
                     .sorted()
                     .toList();
             for (final Path region : regions) {
-                try (RandomAccessFile file = new RandomAccessFile(region.toFile(), "r")) {
-                    for (int slot = 0; slot < SLOTS; slot++) {
-                        file.seek((long) slot * SLOT_BYTES);
-                        final int offset = file.readInt();
-                        final int length = file.readInt();
-                        if (offset <= 0 || length <= 0) {
-                            continue;
-                        }
-                        final byte[] payload = new byte[length];
-                        file.seek(offset);
-                        file.readFully(payload);
-                        visitor.visit(CsLodCodec.decode(payload));
-                        visited++;
-                    }
+                visited += forEachChunkIn(region, visitor);
+            }
+        }
+        return visited;
+    }
+
+    /**
+     * Walk ONE region's records.
+     *
+     * <p>Why this exists: a client that keeps pulling as the player travels must inject only the regions it
+     * just received. Re-walking the whole tree on every refresh would re-decode and re-push terrain the
+     * renderer already has -- on a big store that is minutes of wasted work per move, and with voxy it means
+     * re-ingesting hundreds of thousands of sections. Scope the walk to what actually arrived.
+     *
+     * @return the number of records visited (0 if the region file does not exist)
+     */
+    public static int forEachChunkInRegion(final Path root, final int regionX, final int regionZ,
+                                           final ChunkVisitor visitor) throws IOException {
+        final Path region = root.resolve("r." + regionX + "." + regionZ + ".cslod");
+        if (!Files.isRegularFile(region)) {
+            return 0;
+        }
+        return forEachChunkIn(region, visitor);
+    }
+
+    private static int forEachChunkIn(final Path region, final ChunkVisitor visitor) throws IOException {
+        int visited = 0;
+        try (RandomAccessFile file = new RandomAccessFile(region.toFile(), "r")) {
+            for (int slot = 0; slot < SLOTS; slot++) {
+                file.seek((long) slot * SLOT_BYTES);
+                final int offset = file.readInt();
+                final int length = file.readInt();
+                if (offset <= 0 || length <= 0) {
+                    continue;
                 }
+                final byte[] payload = new byte[length];
+                file.seek(offset);
+                file.readFully(payload);
+                visitor.visit(CsLodCodec.decode(payload));
+                visited++;
             }
         }
         return visited;
