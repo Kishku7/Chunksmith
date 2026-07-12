@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [3.0.0-beta-1] - 2026-07-12
+
+The LOD feature leaves the 26.x-Fabric prototype and ships on every MC line where a player actually
+has something to draw it with.
+
 ### Added
 
 - **LOD generation (26.x Fabric).** Chunksmith can now emit level-of-detail data while it pregenerates,
@@ -14,7 +19,26 @@
 - **Distant Horizons support.** Chunksmith registers as DH's world-generator override and serves it
   straight from the CSLOD store, so DH's LODs appear for pregenerated area without DH generating
   anything. Opt-in (`lodDhOverride`).
-- `/cslod status` and `/cslod inject` commands.
+- **The LOD server ports to the versions people actually play.** The whole server side -- the CSLOD store,
+  the HTTP backchannel (game port + 1, zero config), the authenticated in-band handshake and tokens, the
+  in-band fallback transfer, the worldgen hook, and `/cslod` -- now ships on **Fabric 1.20.1, 1.21.1,
+  1.21.11 and 26.x**, **NeoForge 1.21.1, 1.21.11 and 26.x**, and **Forge 1.20.1**. That is exactly the set
+  of (loader, version) pairs where a client-side LOD renderer exists to serve: Distant Horizons ships on
+  all of them (Forge, not NeoForge, on 1.20.1), and upstream voxy has never published a 1.20.1 or 1.21.1
+  build at all.
+- The wire protocol is IDENTICAL on every one of them. The format is the disk format is the wire format,
+  and it lives in one place -- so any Chunksmith-Client talks to any Chunksmith server.
+- `/cslod status` and `/cslod token <player>` on every LOD cell; `/cslod inject` and `/cslod dhpush` where
+  voxy and Distant Horizons can actually be linked against (Fabric 26.x).
+
+### Changed
+
+- **Declared conflicts.** Chunksmith's LOD cells now hard-conflict with the other mods that stream LOD
+  data into a client's renderer -- `lss` (LOD Server Support), `voxyserver` (Voxy Server), and `lodserver`
+  (our own predecessor). Two uncoordinated writers into one LOD database means duplicated downloads and a
+  real risk of racing voxy's database-local id allocation. Distant Horizons is deliberately NOT a
+  conflict: it is a renderer we feed. (Forge 1.20.1's `mods.toml` has no incompatible-dependency type, so
+  there the clash is reported loudly in the log instead.)
 
 ### Fixed
 

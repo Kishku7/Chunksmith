@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 //     cog.outl("import net.minecraft.server.permissions.Permissions;")
 //]]]
 //[[[end]]]
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
@@ -71,12 +72,25 @@ public class ChunksmithNeoForge {
     // NeoForge.EVENT_BUS.register(this) is the documented FML registration pattern; the bus stores
     // the fully-constructed handler and does not call back during construction, so the this-escape
     // is benign here. (26/JDK25 does not flag it; pre-26/JDK21 does.)
+    //
+    // The MOD bus is injected here because it is the ONLY place NeoForge hands it out, and
+    // @EventBusSubscriber(bus = MOD) is deprecated-for-removal from NeoForge 21.1. Chunksmith itself
+    // registers nothing on the mod bus (no registries, no DeferredRegisters) -- but the LOD feature's
+    // payload registration is a mod-bus event, so LOD cells forward the bus to CsLodChannel.
     @SuppressWarnings("this-escape")
-    public ChunksmithNeoForge() {
+    public ChunksmithNeoForge(final IEventBus modBus) {
         if (ModList.get().isLoaded("chunky")) {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
         NeoForge.EVENT_BUS.register(this);
+        //[[[cog
+        // import cog, compat
+        // if compat.has_lod(mcver, loader):
+        //     cog.outl("com.kishku7.chunksmith.lod.net.CsLodChannel.registerPayloads(modBus);")
+        // else:
+        //     cog.outl("// No LOD on this cell -- nothing to register on the mod bus.")
+        //]]]
+        //[[[end]]]
     }
 
     @SubscribeEvent

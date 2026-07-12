@@ -1,11 +1,16 @@
 package com.kishku7.chunksmith.lod;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.storage.LevelResource;
+//[[[cog
+// import cog, compat
+// if compat.has_lod_renderer_integration(mcver, loader):
+//     cog.outl("import net.fabricmc.loader.api.FabricLoader;")
+//]]]
+//[[[end]]]
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -22,12 +27,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *       pregen throughput (~2.4x slower in the 26.1.2 spike), so it is never switched on behind the
  *       operator's back.</li>
  *   <li><b>CSLOD store</b> -- always on when LOD is enabled. This is the durable, mod-independent
- *       artifact: it outlives voxy's storage format, and it is what will feed Distant Horizons and
+ *       artifact: it outlives voxy's storage format, and it is what feeds Distant Horizons and
  *       remote clients.</li>
- *   <li><b>voxy</b> -- added only when voxy is actually installed. {@link VoxyLodSink} hard-references
- *       voxy types, so it is not class-loaded until {@code isModLoaded("voxy")} has passed; a
- *       {@link LinkageError} degrades to no voxy sink rather than killing the pregen.</li>
+ *   <li><b>voxy</b> -- added only where a voxy jar exists to compile against AND voxy is actually
+ *       installed. Fabric 26 only: voxy is Fabric-ONLY and was never published for 1.20.1 or 1.21.1,
+ *       so every other cell carries the store path alone. That is exactly what a DEDICATED server
+ *       needs -- voxy's engine is client-side and cannot run on one anyway.</li>
  * </ol>
+ *
+ * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
+ * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class LodSupport {
 
@@ -35,7 +44,6 @@ public final class LodSupport {
     private static final int WRITE_QUEUE_CAPACITY = 2048;
 
     private static final Map<String, LodSink> SINKS = new ConcurrentHashMap<>();
-    private static volatile boolean shutdownHooked;
 
     private LodSupport() {
     }
@@ -70,11 +78,15 @@ public final class LodSupport {
 
     /** The active sink for a world, resolved once. Never null. */
     public static LodSink sinkFor(final ServerLevel level) {
-        final String key = level.dimension().identifier().toString();
+        final String key = dimensionId(level);
         return SINKS.computeIfAbsent(key, ignored -> create(level));
     }
 
-    /** Flush and close every sink. Call at server stop. */
+    /**
+     * Flush and close every sink. Wired to the server-stopped lifecycle event by {@code LodInit} (the
+     * per-loader entrypoint) -- otherwise a pregen that ends at shutdown would lose whatever was still
+     * queued.
+     */
     public static void shutdown() {
         for (final LodSink sink : SINKS.values()) {
             for (final LodSink leaf : leaves(sink)) {
@@ -94,27 +106,29 @@ public final class LodSupport {
     }
 
     private static LodSink create(final ServerLevel level) {
-        // Flush the writer queue and close the region files when the server stops -- otherwise a
-        // pregen that ends at shutdown would lose whatever was still queued.
-        if (!shutdownHooked) {
-            shutdownHooked = true;
-            ServerLifecycleEvents.SERVER_STOPPED.register(server -> shutdown());
-        }
-
         final List<LodSink> sinks = new ArrayList<>(2);
 
         final Path root = storeRoot(level);
         sinks.add(new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY));
         System.out.println("[chunksmith] LOD store enabled -> " + root);
 
-        if (FabricLoader.getInstance().isModLoaded("voxy")) {
-            try {
-                sinks.add(new VoxyLodSink());
-                System.out.println("[chunksmith] voxy detected -- feeding LODs to voxy as well");
-            } catch (final LinkageError error) {
-                System.out.println("[chunksmith] voxy present but incompatible, skipping voxy sink: " + error);
-            }
-        }
+        //[[[cog
+        // import cog, compat
+        // if compat.has_lod_renderer_integration(mcver, loader):
+        //     cog.outl('if (FabricLoader.getInstance().isModLoaded("voxy")) {')
+        //     cog.outl('    try {')
+        //     cog.outl('        sinks.add(new VoxyLodSink());')
+        //     cog.outl('        System.out.println("[chunksmith] voxy detected -- feeding LODs to voxy as well");')
+        //     cog.outl('    } catch (final LinkageError error) {')
+        //     cog.outl('        System.out.println("[chunksmith] voxy present but incompatible, skipping voxy sink: " + error);')
+        //     cog.outl('    }')
+        //     cog.outl('}')
+        // else:
+        //     cog.outl("// No voxy sink on this cell: voxy has no build for this (loader, MC), and its engine is")
+        //     cog.outl("// client-side only -- a dedicated server could not run it regardless. The CSLOD store is")
+        //     cog.outl("// the whole server-side product here; Chunksmith-Client feeds the renderer.")
+        //]]]
+        //[[[end]]]
 
         final LodSink sink = sinks.size() == 1 ? sinks.get(0) : new CompositeLodSink(sinks);
         LodSinks.set(sink);
@@ -125,15 +139,24 @@ public final class LodSupport {
      * {@code <world>/chunksmith/lod} -- the store ROOT. This is the ONLY tree the backchannel ever serves,
      * so it is the boundary every request path is canonicalized against.
      */
-    public static Path storeRootBase(final net.minecraft.server.MinecraftServer server) {
+    public static Path storeRootBase(final MinecraftServer server) {
         return server.getWorldPath(LevelResource.ROOT).resolve("chunksmith").resolve("lod").normalize();
     }
 
     /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; we never touch voxy's or DH's store. */
     public static Path storeRoot(final ServerLevel level) {
         final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
-        final String dim = level.dimension().identifier().toString().replace(':', '_').replace('/', '_');
+        final String dim = dimensionId(level).replace(':', '_').replace('/', '_');
         return worldRoot.resolve("chunksmith").resolve("lod").resolve(dim).normalize();
+    }
+
+    /** The dimension's resource id as a string. */
+    private static String dimensionId(final ServerLevel level) {
+        //[[[cog
+        // import cog, compat
+        // cog.outl("return level.dimension().%s().toString();" % compat.dimension_identifier_call(mcver))
+        //]]]
+        //[[[end]]]
     }
 
     private static boolean hasStore(final LodSink sink) {

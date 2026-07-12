@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith.platform;
 
+import com.kishku7.chunksmith.lod.LodSupport;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -111,7 +113,17 @@ public class NeoForgeWorld implements World {
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
-                    .whenCompleteAsync((ignored, throwable) -> {
+                    .whenCompleteAsync((result, throwable) -> {
+                        // The only moment a live chunk at FULL status exists on the main thread while it
+                        // is still ticket-pinned. Offer it to the LOD sink BEFORE the ticket is released.
+                        // FULL is downstream of the LIGHT status, so the light engine has already run.
+                        if (throwable == null && result != null) {
+                            result.ifSuccess(chunkAccess -> {
+                                if (chunkAccess instanceof final LevelChunk levelChunk) {
+                                    LodSupport.offer(world, levelChunk);
+                                }
+                            });
+                        }
                         serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
                     }, world.getServer())

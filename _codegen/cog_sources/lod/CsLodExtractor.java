@@ -35,6 +35,9 @@ import java.util.Map;
  * waterlogging, snow layers and stair shapes all change what a LOD should look like. We serialize
  * the full state via {@link BlockStateParser#serialize(BlockState)}, which is exactly the string form
  * DH's wrapper factory consumes.
+ *
+ * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
+ * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodExtractor {
 
@@ -48,10 +51,15 @@ public final class CsLodExtractor {
             return null;
         }
 
-        final String dimension = chunk.getLevel().dimension().identifier().toString();
-        final int chunkX = chunk.getPos().x();
-        final int chunkZ = chunk.getPos().z();
-        final int minSectionY = chunk.getMinSectionY();
+        //[[[cog
+        // import cog, compat
+        // dim = compat.dimension_identifier_call(mcver)
+        // cog.outl("final String dimension = chunk.getLevel().dimension().%s().toString();" % dim)
+        // cog.outl("final int chunkX = chunk.getPos().%s;" % compat.chunkpos_x(mcver))
+        // cog.outl("final int chunkZ = chunk.getPos().%s;" % compat.chunkpos_z(mcver))
+        // cog.outl("final int minSectionY = chunk.%s();" % compat.chunk_min_section_call(mcver))
+        //]]]
+        //[[[end]]]
         final LevelLightEngine light = chunk.getLevel().getLightEngine();
 
         final Palette blocks = new Palette();
@@ -113,9 +121,13 @@ public final class CsLodExtractor {
             for (int z = 0; z < 4; z++) {
                 for (int x = 0; x < 4; x++) {
                     final Holder<Biome> holder = section.getNoiseBiome(x, y, z);
-                    final int id = biomes.id(holder.unwrapKey()
-                            .map(key -> key.identifier().toString())
-                            .orElse("minecraft:plains"));
+                    //[[[cog
+                    // import cog, compat
+                    // cog.outl("final int id = biomes.id(holder.unwrapKey()")
+                    // cog.outl("        .map(key -> key.%s().toString())" % compat.dimension_identifier_call(mcver))
+                    // cog.outl("        .orElse(\"minecraft:plains\"));")
+                    //]]]
+                    //[[[end]]]
                     biomeIndices[b++] = id;
                     if (firstBiome < 0) {
                         firstBiome = id;

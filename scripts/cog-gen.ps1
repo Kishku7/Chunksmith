@@ -193,10 +193,73 @@ foreach ($name in $driftMap.Keys) {
     $cogTargets += (Join-Path $genJava $driftMap[$name])
 }
 $cogTargets += $entrypointDst
+
+# --- Step 4b: the LOD feature (3.0.0-beta-1). Server-side LOD is carried ONLY by the cells that have a
+# real client-side renderer to serve (compat.has_lod). The whole cell-side surface -- LodSupport,
+# CsLodExtractor, CsLodCommand, LodInit, CsLodServerNet, CsLodInBandSender, CsLodChannel -- is
+# single-sourced in _codegen/cog_sources/lod and materialised here; the MC-agnostic protocol/store
+# (CsLodProtocol/CsLodMessages/CsLodTokens/CsLodHttpServer/CsLodChunk/CsLodCodec/CsLodRegionStore) lives
+# in shared_common and is already on every cell's classpath.
+#
+# Two per-loader FILE choices (conditional presence, not markers -- the shapes are too different):
+#   LodInit_<loader>.java              -> lod/LodInit.java
+#   CsLodChannel_<net era>.java        -> lod/net/CsLodChannel.java
+# The renderer-integration classes (VoxyLodSink / CsLodVoxyInjector / CsLodDhSupport / CsLodDhGenerator /
+# CsLodDhPusher / CsLodSectionBuilder) are NOT generated: they compile directly against the voxy + DH
+# jars and stay hand-maintained in Fabric/26/src, the only cell where both jars exist.
+Push-Location $codegen
+try {
+    $hasLod = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_lod('$McVer','$Loader') else '0')")
+    $lodNetEra = if ($hasLod -eq '1') { (& python -c "import compat,sys; sys.stdout.write(compat.lod_net_era('$McVer','$Loader'))") } else { '' }
+} finally {
+    Pop-Location
+}
+
+$lodDir = Join-Path $genJava 'com/kishku7/chunksmith/lod'
+if ($hasLod -eq '1') {
+    $lodSrc = Join-Path $cogSrc 'lod'
+    New-Item -ItemType Directory -Force -Path (Join-Path $lodDir 'net') | Out-Null
+
+    # Plain (name-stable) LOD sources.
+    $lodMap = [ordered]@{
+        'LodSupport.java'          = 'LodSupport.java'
+        'CsLodExtractor.java'      = 'CsLodExtractor.java'
+        'CsLodCommand.java'        = 'CsLodCommand.java'
+        'net/CsLodServerNet.java'  = 'net/CsLodServerNet.java'
+        'net/CsLodInBandSender.java' = 'net/CsLodInBandSender.java'
+    }
+    foreach ($name in $lodMap.Keys) {
+        $src = Join-Path $lodSrc $name
+        if (-not (Test-Path $src)) { throw "lod cog_source missing: $src" }
+        Copy-Item -Force $src (Join-Path $lodDir $lodMap[$name])
+    }
+
+    # Per-loader entrypoint + per-era channel seam (conditional file presence).
+    $lodInitSrc = Join-Path $lodSrc ("LodInit_{0}.java" -f $Loader.ToLower())
+    if (-not (Test-Path $lodInitSrc)) { throw "lod entrypoint cog_source missing: $lodInitSrc" }
+    Copy-Item -Force $lodInitSrc (Join-Path $lodDir 'LodInit.java')
+
+    $lodChanSrc = Join-Path $lodSrc ("CsLodChannel_{0}.java" -f $lodNetEra)
+    if (-not (Test-Path $lodChanSrc)) { throw "lod channel cog_source missing: $lodChanSrc" }
+    Copy-Item -Force $lodChanSrc (Join-Path $lodDir 'net/CsLodChannel.java')
+
+    $cogTargets += (Join-Path $lodDir 'LodSupport.java')
+    $cogTargets += (Join-Path $lodDir 'CsLodExtractor.java')
+    $cogTargets += (Join-Path $lodDir 'CsLodCommand.java')
+    $cogTargets += (Join-Path $lodDir 'LodInit.java')
+    $cogTargets += (Join-Path $lodDir 'net/CsLodServerNet.java')
+    $cogTargets += (Join-Path $lodDir 'net/CsLodChannel.java')
+
+    Write-Host "[cog-gen] + LOD feature (net era = $lodNetEra)"
+} else {
+    if (Test-Path $lodDir) { Remove-Item -Recurse -Force $lodDir }
+    Write-Host "[cog-gen] - LOD feature (no client-side renderer exists for $Loader/$McVer)"
+}
+
 Push-Location $codegen
 try {
     $env:PYTHONPATH = $codegen
-    & cog -r -D "mcver=$McVer" @cogTargets
+    & cog -r -D "mcver=$McVer" -D "loader=$Loader" @cogTargets
     if ($LASTEXITCODE -ne 0) { throw "cog failed (exit $LASTEXITCODE)" }
 } finally {
     Pop-Location

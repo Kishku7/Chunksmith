@@ -22,7 +22,8 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.kishku7.chunksmith.ChunksmithFabric"
+      "com.kishku7.chunksmith.ChunksmithFabric",
+      "com.kishku7.chunksmith.lod.LodInit"
     ]
   },
   "mixins": [
@@ -33,5 +34,10 @@
     "fabric-api": "*",
     "minecraft": ">=1.21 <1.21.2",
     "java": ">=21"
+  },
+  "breaks": {
+    "lss": "*",
+    "voxyserver": "*",
+    "lodserver": "*"
   }
 }

@@ -1,9 +1,6 @@
 package com.kishku7.chunksmith.lod.net;
 
 import com.kishku7.chunksmith.lod.LodSupport;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,6 +27,14 @@ import java.util.zip.CRC32;
  *
  * <p>Refuses a client with no renderer: there is no point burning a server's bandwidth on a player who
  * cannot draw the result.
+ *
+ * <p>Loader-blind: every wire call goes through {@link CsLodChannel}, the one per-loader/per-era seam
+ * (Fabric raw channel &lt;1.20.2, Fabric payload registry, NeoForge PayloadRegistrar, Forge
+ * SimpleChannel). The PROTOCOL itself is identical on every cell -- CsLodProtocol / CsLodMessages /
+ * CsLodTokens / CsLodHttpServer all live in shared_common and never see a Minecraft type.
+ *
+ * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
+ * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodServerNet {
 
@@ -47,18 +52,14 @@ public final class CsLodServerNet {
 
     /** Register the channel. Called at mod init, before any server exists. */
     public static void register() {
-        PayloadTypeRegistry.serverboundPlay().register(CsLodPayload.TYPE, CsLodPayload.CODEC);
-        PayloadTypeRegistry.clientboundPlay().register(CsLodPayload.TYPE, CsLodPayload.CODEC);
+        CsLodChannel.register();
+    }
 
-        ServerPlayNetworking.registerGlobalReceiver(CsLodPayload.TYPE, (payload, context) ->
-                context.server().execute(() -> handle(context.player(), payload.data())));
-
-        // A token must never outlive the session that earned it.
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, ignored) -> {
-            TOKENS.revoke(handler.getPlayer().getUUID());
-            CsLodInBandSender.forget(handler.getPlayer().getUUID());
-            RADIUS.remove(handler.getPlayer().getUUID());
-        });
+    /** A token must never outlive the session that earned it. Called from the disconnect hook. */
+    public static void onDisconnect(final UUID player) {
+        TOKENS.revoke(player);
+        CsLodInBandSender.forget(player);
+        RADIUS.remove(player);
     }
 
     /**
@@ -131,7 +132,8 @@ public final class CsLodServerNet {
         return current != null && current.getPlayerList().getPlayer(player) != null;
     }
 
-    private static void handle(final ServerPlayer player, final byte[] data) {
+    /** One inbound protocol message. Always called on the server main thread by {@link CsLodChannel}. */
+    public static void receive(final ServerPlayer player, final byte[] data) {
         if (data.length == 0) {
             return;
         }
@@ -148,13 +150,13 @@ public final class CsLodServerNet {
                 default -> LOGGER.warn("Chunksmith: unknown LOD message id " + id);
             }
         } catch (final IOException e) {
-            LOGGER.warn("Chunksmith: malformed LOD message from " + player.getGameProfile().name() + ": " + e);
+            LOGGER.warn("Chunksmith: malformed LOD message from " + nameOf(player) + ": " + e);
         }
     }
 
     private static void hello(final ServerPlayer player, final CsLodMessages.ClientHello hello) throws IOException {
         if (hello.protocolVersion() != CsLodProtocol.VERSION) {
-            LOGGER.info("Chunksmith: " + player.getGameProfile().name() + " speaks LOD protocol v"
+            LOGGER.info("Chunksmith: " + nameOf(player) + " speaks LOD protocol v"
                     + hello.protocolVersion() + ", we speak v" + CsLodProtocol.VERSION + " -- not serving");
             return;
         }
@@ -181,7 +183,7 @@ public final class CsLodServerNet {
 
         RADIUS.put(player.getUUID(), Math.max(16, hello.radiusBlocks()));
 
-        LOGGER.info("Chunksmith: LOD hello from " + player.getGameProfile().name()
+        LOGGER.info("Chunksmith: LOD hello from " + nameOf(player)
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
                 + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port));
     }
@@ -203,7 +205,7 @@ public final class CsLodServerNet {
         }
         CsLodInBandSender.queue(player, root, dimension, wanted);
         LOGGER.info("Chunksmith: in-band LOD fetch for {} -- {} regions (no backchannel; this is the slow path)",
-                player.getGameProfile().name(), wanted.size());
+                nameOf(player), wanted.size());
     }
 
     /** Drip-feed the in-band queues. Wired to the server tick. */
@@ -317,6 +319,15 @@ public final class CsLodServerNet {
         return current == null ? null : LodSupport.storeRootBase(current);
     }
 
+    /** The player's display name. authlib renamed GameProfile.getName() to name() at MC 1.21.9. */
+    private static String nameOf(final ServerPlayer player) {
+        //[[[cog
+        // import cog, compat
+        // cog.outl("return player.getGameProfile().%s();" % compat.profile_name_call(mcver))
+        //]]]
+        //[[[end]]]
+    }
+
     private static String addressOf(final ServerPlayer player) {
         final var address = player.connection.getRemoteAddress();
         if (address instanceof final InetSocketAddress inet && inet.getAddress() != null) {
@@ -326,6 +337,6 @@ public final class CsLodServerNet {
     }
 
     private static void send(final ServerPlayer player, final byte[] data) {
-        ServerPlayNetworking.send(player, new CsLodPayload(data));
+        CsLodChannel.send(player, data);
     }
 }

@@ -34,5 +34,10 @@
     "fabric-api": "*",
     "minecraft": "${mcDep}",
     "java": ">=25"
+  },
+  "breaks": {
+    "lss": "*",
+    "voxyserver": "*",
+    "lodserver": "*"
   }
 }

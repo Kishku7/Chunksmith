@@ -613,3 +613,173 @@ def forge_new_eventbus(mcver):
     (Forge only) -- Fabric/NeoForge never call this.
     """
     return _parse(mcver)[:3] >= (1, 21, 8)
+
+
+# ===========================================================================
+# LOD FEATURE AXIS (3.0.0-beta-1, 2026-07-12)
+#
+# The server-side LOD feature (CSLOD store + codec + region store + the HTTP backchannel + tokens +
+# the in-band channel + /cslod + the worldgen LodSink hook) is ported to exactly the cells that have
+# a REAL client-side renderer to serve. Bounds come from Temp\lod-load\lod-ecosystem.md (Modrinth
+# API + jar manifests, 2026-07-12):
+#   Distant Horizons 3.2.0-b : 1.20.1 (fabric + FORGE, no neoforge), 1.21.1 (fabric + neoforge),
+#                              1.21.11 (fabric + neoforge), 26.1.2 / 26.2 (fabric + neoforge)
+#   voxy (upstream)          : NEVER published for 1.20.1 or 1.21.1; 1.21.11 + 26.x, FABRIC only
+# Plugin (Bukkit/Paper/Folia) is PERMANENTLY out of scope: there is no plugin-side renderer.
+# ===========================================================================
+
+# The (loader, MC) cells that carry the LOD feature. Exact tuples -- no ranges, because this is a
+# renderer-availability fact, not an API fact, and a range would silently pick up a cell whose
+# renderer does not exist.
+_LOD_CELLS = {
+    "Fabric": ((1, 20, 1), (1, 21, 1), (1, 21, 11)),   # + every 26.x (handled below)
+    "NeoForge": ((1, 21, 1), (1, 21, 11)),             # + every 26.x
+    "Forge": ((1, 20, 1),),                            # DH ships Forge on 1.20.1; no 26 Forge at all
+}
+
+
+def has_lod(mcver, loader):
+    """Does this (loader, MC) cell carry the server-side LOD feature?
+
+    True only where a client-side LOD renderer actually exists for that (loader, MC) -- otherwise the
+    server would be generating and serving data nothing can draw. 26.x is LOD-capable on Fabric and
+    NeoForge (DH ships both); Forge has no 26 line at all (FG6 cannot build it), and Forge's only DH
+    line is 1.20.1.
+    """
+    v = _parse(mcver)
+    if loader not in _LOD_CELLS:
+        return False
+    if v[0] >= 26:
+        return loader in ("Fabric", "NeoForge")
+    return v[:3] in _LOD_CELLS[loader]
+
+
+def has_lod_renderer_integration(mcver, loader):
+    """Does this cell carry the DIRECT renderer-integration classes (VoxyLodSink, CsLodVoxyInjector,
+    CsLodDhSupport/Generator/Pusher) and the /cslod inject + /cslod dhpush subcommands?
+
+    These are the SINGLEPLAYER / integrated-server path: they compile DIRECTLY against the voxy and
+    Distant Horizons jars, so a cell can only carry them where BOTH third-party jars exist for that
+    (loader, MC). Today that is Fabric 26 only:
+      - voxy is Fabric-ONLY and was NEVER published for 1.20.1 or 1.21.1, so those cells have nothing
+        to compile VoxyLodSink/CsLodVoxyInjector against.
+      - the DH API jar we link (distanthorizonsapi 6.0.0) is the 26-line API.
+    Every other LOD cell carries the SERVER core only (store + backchannel + in-band + /cslod status
+    + /cslod token), which is exactly what a DEDICATED server needs to feed Chunksmith-Client.
+    """
+    return loader == "Fabric" and _parse(mcver)[0] >= 26
+
+
+def lod_net_era(mcver, loader):
+    """Which in-band custom-payload implementation CsLodChannel emits.
+
+    'fabric_legacy'        Fabric < 1.20.2 -- CustomPacketPayload does not exist yet, so the channel is
+                           the raw (ResourceLocation, FriendlyByteBuf) form:
+                           ServerPlayNetworking.registerGlobalReceiver(id, PlayChannelHandler) and
+                           ServerPlayNetworking.send(player, id, buf) with PacketByteBufs.create().
+    'fabric_payload'       Fabric >= 1.20.5 -- PayloadTypeRegistry + StreamCodec + Type<>.
+    'neoforge_payload'     NeoForge >= 1.21 -- RegisterPayloadHandlersEvent + PayloadRegistrar on the
+                           MOD bus, PacketDistributor.sendToPlayer to send.
+    'forge_simplechannel'  Forge 1.20.1 (Forge 47) -- NetworkRegistry.newSimpleChannel + messageBuilder.
+    """
+    v = _parse(mcver)
+    if loader == "Fabric":
+        return "fabric_legacy" if v[:3] < (1, 20, 2) else "fabric_payload"
+    if loader == "NeoForge":
+        return "neoforge_payload"
+    if loader == "Forge":
+        return "forge_simplechannel"
+    raise NotImplementedError("lod_net_era: unknown loader %s" % loader)
+
+
+def fabric_payload_registry_call(mcver, direction):
+    """Fabric API `PayloadTypeRegistry` static accessor name.
+
+    DISCOVERED 2026-07-12 (chunksmith 3.0.0-beta-1 LOD port). The fabric-networking-api-v1 module
+    RENAMED both accessors between module v5.1.x and v6.3.x -- i.e. at the MC 26 fabric-api line:
+        playC2S()  -> serverboundPlay()
+        playS2C()  -> clientboundPlay()
+    VERIFIED by javap of the cached module jars: 4.x (MC 1.21.1) and 5.1.x (MC 1.21.11) expose
+    playC2S/playS2C/configurationC2S/configurationS2C; 6.3.x (MC 26.x) exposes
+    serverboundPlay/clientboundPlay/serverboundConfiguration/clientboundConfiguration.
+    Everything ELSE in the payload path is stable across 4.x/5.x/6.x -- ServerPlayNetworking
+    .registerGlobalReceiver(Type, handler), .send(player, payload), and Context.server()/.player()
+    are byte-for-byte the same signatures -- so this ONE pair of names is the whole drift.
+
+    This is a fabric-API axis, not an MC axis: it happens to coincide with MC 26 only because that is
+    when fabric-api cut the new module major.
+    """
+    if _parse(mcver)[0] >= 26:
+        return "serverboundPlay" if direction == "serverbound" else "clientboundPlay"
+    return "playC2S" if direction == "serverbound" else "playS2C"
+
+
+def make_id_expr(mcver, ns_expr, path_expr):
+    """Construct a resource id. `ResourceLocation(String,String)` was PRIVATIZED at 1.21 in favour of
+    the `fromNamespaceAndPath` factory, and the class itself was renamed `Identifier` at 1.21.11.
+    So three forms:
+      < 1.21    : new ResourceLocation(ns, path)
+      1.21..1.21.10 : ResourceLocation.fromNamespaceAndPath(ns, path)
+      >= 1.21.11    : Identifier.fromNamespaceAndPath(ns, path)
+    """
+    v = _parse(mcver)
+    if v[0] == 1 and v[:2] < (1, 21):
+        return "new ResourceLocation(%s, %s)" % (ns_expr, path_expr)
+    return "%s.fromNamespaceAndPath(%s, %s)" % (identifier_type(mcver), ns_expr, path_expr)
+
+
+def profile_name_call(mcver):
+    """authlib GameProfile display-name accessor: getName() (<=1.21.8) vs the record-style name()
+    (1.21.9+, inherited by 1.21.11 and 26). [version-gates.md: '1.21.9 - GameProfile.name() accessor']"""
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return "name"
+    return "name" if v >= (1, 21, 9) else "getName"
+
+
+def command_permission_gate(mcver, source_expr):
+    """The /cslod root permission gate, keyed on a CommandSourceStack expression. Three eras:
+      26+      : Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)  -- a Predicate, so it REPLACES the
+                 whole .requires(..) argument rather than testing a source (see lod_requires_expr).
+      1.21.11  : source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
+      < 1.21.11: source.hasPermission(2)
+    """
+    if _parse(mcver)[0] >= 26:
+        return "Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)"
+    if era(mcver) == "modern_11plus":
+        return "%s -> %s.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)" % (source_expr, source_expr)
+    return "%s -> %s.hasPermission(2)" % (source_expr, source_expr)
+
+
+def chunk_min_section_call(mcver):
+    """LevelHeightAccessor bottom-section-index accessor: getMinSection() (<1.21.2) vs getMinSectionY()
+    (1.21.2+, incl. 26).
+
+    DISCOVERED 2026-07-12 porting the LOD extractor (chunksmith 3.0.0-beta-1). Boundary PINNED from the
+    MC source diff (mc-java diffs/family-1.21/1.21.1_vs_1.21.2.diff L64064-65):
+        - for (int $$6 = this.level.getMinSection(); $$6 < this.level.getMaxSection(); $$6++)
+        + for (int $$6 = this.level.getMinSectionY(); $$6 <= this.level.getMaxSectionY(); $$6++)
+    Compile-verified both sides: Fabric 1.20.1 + 1.21.1 (getMinSection), Fabric 1.21.11 + 26
+    (getMinSectionY).
+
+    CAUTION for any future caller: the MAX accessor changed SEMANTICS in the same rename --
+    getMaxSection() was EXCLUSIVE, getMaxSectionY() is INCLUSIVE (note the `<` -> `<=` above). The LOD
+    extractor only uses the MIN accessor, so it is unaffected, but a naive rename of a max call is an
+    off-by-one.
+    """
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return "getMinSectionY"
+    return "getMinSectionY" if v >= (1, 21, 2) else "getMinSection"
+
+
+def chunk_result_success_block(mcver, result_var, chunk_var, body):
+    """The 'if the chunk future succeeded, hand me the ChunkAccess' idiom in the World LOD hook.
+
+    transitional+ : ChunkResult<ChunkAccess>            -> result.ifSuccess(c -> ...)
+    ancient       : Either<ChunkAccess, ChunkLoadingFailure> -> result.left().ifPresent(c -> ...)
+    (Same boundary as chunk_future_result_type: ChunkResult replaced the Either result at 1.20.5.)
+    """
+    if era(mcver) == "ancient":
+        return "%s.left().ifPresent(%s -> { %s });" % (result_var, chunk_var, body)
+    return "%s.ifSuccess(%s -> { %s });" % (result_var, chunk_var, body)
