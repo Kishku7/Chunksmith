@@ -31,6 +31,9 @@ public final class LodInit implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
             LodSupport.announce(server);
+            // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
+            // instead of skipping every already-generated chunk (and so never building their LODs).
+            LodSupport.install(server);
             com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(server);
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {

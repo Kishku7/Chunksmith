@@ -63,11 +63,23 @@ public final class CsLodCommand {
             final ServerLevel level = context.getSource().getLevel();
             final Path store = LodSupport.storeRoot(level);
             final long bytes = sizeOf(store);
+            // The record COUNT, not just the byte size. This is the number an operator compares against
+            // their chunk count to answer "does my store actually cover my world?" -- and, since a
+            // re-run now backfills LOD holes, the number that should climb to match after one. Header
+            // reads only (8 KB per region, no record decode), so it is safe to run from a command.
+            long records;
+            try {
+                records = CsLodPresenceIndex.countRecords(store);
+            } catch (final java.io.IOException e) {
+                records = -1L;
+            }
+            final long recordCount = records;
             // One line: chat renders a literal \n rather than breaking the line.
             context.getSource().sendSuccess(() -> Component.literal(
                     "[chunksmith] " + LodSupport.describeDecision(level.getServer())
                             + " | store: " + store
                             + " | exists: " + Files.isDirectory(store)
+                            + " | records: " + (recordCount < 0 ? "unreadable" : Long.toString(recordCount))
                             + " | size: " + (bytes / 1024) + " KB"
                             + renderers()
                             + " | " + com.kishku7.chunksmith.lod.net.CsLodServerNet.describe()), false);

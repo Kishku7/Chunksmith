@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith;
 
+import com.kishku7.chunksmith.lod.CsLodPresenceIndex;
+import com.kishku7.chunksmith.lod.LodPresence;
 import com.kishku7.chunksmith.lod.LodSinks;
 
 import com.kishku7.chunksmith.api.event.task.GenerationCompleteEvent;
@@ -29,6 +31,8 @@ public class GenerationTask implements Runnable {
     private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunksmith.sampleInterval")).orElse(30), 30);
     private static final double SAMPLE_SUB_INTERVAL = SAMPLE_INTERVAL / 30;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
+    // How long the LOD summary waits for the last in-flight chunks to land before reporting.
+    private static final long DRAIN_TIMEOUT_MS = 60_000L;
     // Adaptive concurrency uses asymmetric AIMD-style timing: back off quickly under load,
     // ramp back up slowly. Tick health is sampled on a fixed cadence so the limit can fall
     // even when chunk completions have stalled entirely (disk blocked, no callbacks firing).
@@ -50,6 +54,12 @@ public class GenerationTask implements Runnable {
     private final AtomicLong startTime = new AtomicLong();
     private final AtomicLong updateTime = new AtomicLong();
     private final AtomicLong finishedChunks = new AtomicLong();
+    // Outcome counters, reported at the end of a LOD-active run. A pregen that silently does nothing
+    // (or silently skips the work you asked for) is the failure mode this feature exists to kill, so a
+    // run that fills LOD holes has to SAY how many it filled, and a run that does nothing has to say so.
+    private final AtomicLong generatedChunks = new AtomicLong();  // chunk was absent -> generated (LOD built on the way past)
+    private final AtomicLong lodOnlyChunks = new AtomicLong();    // chunk existed, LOD did not -> loaded purely to build the LOD
+    private final AtomicLong skippedChunks = new AtomicLong();    // chunk + LOD both present -> no load, no write
     private final Deque<Pair<Long, AtomicLong>> updateSamples = new ConcurrentLinkedDeque<>();
     private final Progress progress;
     private final RegionCache.WorldState worldState;
@@ -326,6 +336,22 @@ public class GenerationTask implements Runnable {
             stop(true);
         }
         final boolean forceLoadExistingChunks = chunky.getConfig().isForceLoadExistingChunks();
+        // The CSLOD store is a first-class part of the skip decision, but ONLY when LOD generation is
+        // actually active for this world. Null means it is not, and null takes the original code path
+        // untouched. Null happens in two ways, both of which must behave exactly as they did before:
+        //   - a plugin cell (Bukkit/Paper/Folia): there is no LOD pipeline there at all, so nothing
+        //     ever publishes a provider and this is unconditionally null;
+        //   - a loader cell whose lodEnabled tristate resolved to OFF.
+        // forceLoadExistingChunks keeps its old meaning as the explicit override -- reprocess every
+        // chunk in the selection regardless, LOD present or not -- so there is nothing for the index
+        // to decide and we do not even build one.
+        final CsLodPresenceIndex lodIndex = forceLoadExistingChunks
+                ? null
+                : LodPresence.indexFor(selection.world().getName());
+        // The index outlives the task (it is cached per dimension for the server's lifetime), so its
+        // counters are cumulative. Snapshot them here and report the DELTA, or the summary would bill
+        // this run for every earlier run's work too.
+        final CsLodPresenceIndex.Cost lodCostBefore = lodIndex == null ? null : lodIndex.cost();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunk = chunkIterator.next();
@@ -335,10 +361,26 @@ public class GenerationTask implements Runnable {
                 update(chunk.x(), chunk.z(), false);
                 continue;
             }
+            // The rule, in order:
+            //   no chunk       -> generate it; the load hook builds the LOD on the way past
+            //   chunk, no LOD  -> LOAD it (no worldgen) purely so the load hook builds the LOD
+            //   chunk + LOD    -> nothing, next
+            boolean lodBackfill = false;
             if (!forceLoadExistingChunks && worldState.isGenerated(chunk.x(), chunk.z())) {
-                update(chunk.x(), chunk.z(), false);
-                continue;
+                if (lodIndex == null || lodIndex.hasLod(chunk.x(), chunk.z())) {
+                    skippedChunks.incrementAndGet();
+                    update(chunk.x(), chunk.z(), false);
+                    continue;
+                }
+                // Chunk on disk, no CSLOD record. Fall through to the dispatch below with the
+                // generated-check FORCED to "not generated". That sends it down getChunkAtAsync, where
+                // the chunk system reads the existing FULL chunk off disk -- no worldgen runs for a
+                // chunk that is already complete -- and the platform's load hook offers the live chunk
+                // to LodSupport, which extracts and writes the LOD. This is the hole-filling path, and
+                // it reuses the existing hook exactly: no worldgen behaviour is touched.
+                lodBackfill = true;
             }
+            final boolean lodOnly = lodBackfill;
             // Wait for a dispatch slot -- park 1ms at a time so stop() is responsive.
             // Re-evaluate tick health each pass so the limit can drop even while saturated
             // (no slot free) and chunk-completion callbacks have stopped firing.
@@ -363,16 +405,46 @@ public class GenerationTask implements Runnable {
             }
             inFlight.incrementAndGet();
             final long dispatchTime = System.currentTimeMillis();
-            final CompletableFuture<Boolean> isChunkGenerated = forceLoadExistingChunks ?
+            // A LOD backfill forces the load: the chunk IS generated, and saying so here would send it
+            // straight back down the skip branch -- which is precisely the bug (an already-generated
+            // chunk was never loaded, so the LOD hook never saw it).
+            final CompletableFuture<Boolean> isChunkGenerated = (forceLoadExistingChunks || lodOnly) ?
                     CompletableFuture.completedFuture(false) :
                     selection.world().isChunkGenerated(chunk.x(), chunk.z());
             isChunkGenerated
                     .thenCompose(generated -> {
                         if (Boolean.TRUE.equals(generated)) {
+                            // The chunk IS on disk. This is the gate that actually decides on a freshly
+                            // booted server: worldState above is an in-memory RegionCache that starts
+                            // COLD, so on the re-run that matters -- server restarted, world already
+                            // pregenerated -- every chunk arrives here, not at the cache check. The LOD
+                            // decision therefore has to be made HERE too. Making it only against the
+                            // cache is the bug: it silently skips the entire selection and builds no
+                            // LODs at all.
+                            if (lodIndex != null && !lodIndex.hasLod(chunk.x(), chunk.z())) {
+                                // Chunk, no LOD -> load it (no worldgen: it is already complete) purely
+                                // so the platform's load hook extracts and writes the LOD.
+                                lodIndex.markLod(chunk.x(), chunk.z());
+                                lodOnlyChunks.incrementAndGet();
+                                return selection.world().getChunkAtAsync(chunk.x(), chunk.z());
+                            }
+                            // Chunk + LOD (or LOD off): nothing to do, and nothing gets loaded.
+                            skippedChunks.incrementAndGet();
                             return CompletableFuture.completedFuture(null);
-                        } else {
-                            return selection.world().getChunkAtAsync(chunk.x(), chunk.z());
                         }
+                        // We are about to load the chunk, which is what fires the LOD hook. Claim it
+                        // NOW rather than when the store's writer thread lands it: the write is async,
+                        // so the on-disk header lags dispatch, and only the in-memory bitmap can stop
+                        // this same run from re-processing the chunk.
+                        if (lodIndex != null) {
+                            lodIndex.markLod(chunk.x(), chunk.z());
+                        }
+                        if (lodOnly) {
+                            lodOnlyChunks.incrementAndGet();
+                        } else {
+                            generatedChunks.incrementAndGet();
+                        }
+                        return selection.world().getChunkAtAsync(chunk.x(), chunk.z());
                     }).whenComplete((ignored, throwable) -> {
                         final long elapsed = System.currentTimeMillis() - dispatchTime;
                         inFlight.decrementAndGet();
@@ -382,6 +454,24 @@ public class GenerationTask implements Runnable {
                         LockSupport.unpark(dispatchThread);
                         update(chunk.x(), chunk.z(), true);
                     });
+        }
+        // Say what actually happened. A run that filled LOD holes must report how many it filled, and a
+        // run that found nothing to do must say so rather than just going quiet -- the counts are the
+        // whole point. Only emitted when LOD was active, so a non-LOD run's output is unchanged.
+        if (lodIndex != null) {
+            // The final dispatches are still in flight here, and their outcomes are not counted until
+            // they land -- without this wait the summary silently under-reports by up to the dispatch
+            // limit. Bounded, so a wedged chunk can never hang the task's completion.
+            final long drainDeadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS;
+            while (inFlight.get() > 0 && System.currentTimeMillis() < drainDeadline) {
+                LockSupport.parkNanos(1_000_000L);
+            }
+            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_LOD_SUMMARY,
+                    selection.world().getName(),
+                    generatedChunks.get(),
+                    lodOnlyChunks.get(),
+                    skippedChunks.get(),
+                    lodIndex.describeCostSince(lodCostBefore));
         }
         if (stopped) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_STOPPED, selection.world().getName());
@@ -410,6 +500,21 @@ public class GenerationTask implements Runnable {
 
     public long getCount() {
         return finishedChunks.get();
+    }
+
+    /** Chunks that did not exist and were generated (their LOD is built by the load hook on the way past). */
+    public long getGeneratedChunks() {
+        return generatedChunks.get();
+    }
+
+    /** Chunks that already existed but had no CSLOD record, so were loaded purely to build the LOD. */
+    public long getLodOnlyChunks() {
+        return lodOnlyChunks.get();
+    }
+
+    /** Chunks skipped outright -- already generated, and (when LOD is on) already carrying a LOD. */
+    public long getSkippedChunks() {
+        return skippedChunks.get();
     }
 
     public ChunkIterator getChunkIterator() {

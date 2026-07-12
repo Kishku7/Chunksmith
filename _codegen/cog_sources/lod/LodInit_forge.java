@@ -78,6 +78,9 @@ public final class LodInit {
         server = event.getServer();
         // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
         LodSupport.announce(event.getServer());
+        // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
+        // instead of skipping every already-generated chunk (and so never building their LODs).
+        LodSupport.install(event.getServer());
         com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(event.getServer());
     }
 

@@ -49,7 +49,51 @@ public final class LodSupport {
 
     private static final Map<String, LodSink> SINKS = new ConcurrentHashMap<>();
 
+    /** Presence index per dimension id. Keyed exactly as SINKS is, and as {@code World.getName()} reports. */
+    private static final Map<String, CsLodPresenceIndex> PRESENCE = new ConcurrentHashMap<>();
+
     private LodSupport() {
+    }
+
+    /**
+     * Publish the CSLOD presence provider, so the pregen's skip decision can see the store.
+     *
+     * <p>This is the whole wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in
+     * shared_common and cannot see this class; it asks {@link LodPresence}, and this is what answers.
+     * Wired to server-started by {@code LodInit}, torn down in {@link #shutdown()}.
+     *
+     * <p>Nothing calls this on a plugin cell -- there is no LOD pipeline there -- so the provider stays
+     * null and the pregen behaves exactly as it did before LOD existed.
+     */
+    public static void install(final MinecraftServer server) {
+        LodPresence.setProvider(worldName -> presenceIndexFor(server, worldName));
+    }
+
+    /**
+     * The presence index for a world, or null when LOD generation is off.
+     *
+     * <p>Null is load-bearing: it is how {@code GenerationTask} is told "do not do any of this", which
+     * is what makes {@code lodEnabled: false} restore the old skip behaviour byte for byte.
+     */
+    public static CsLodPresenceIndex presenceIndexFor(final MinecraftServer server, final String worldName) {
+        if (server == null || !lodEnabled(server)) {
+            return null;
+        }
+        final ServerLevel level = levelByName(server, worldName);
+        if (level == null) {
+            return null;
+        }
+        return PRESENCE.computeIfAbsent(worldName, ignored -> new CsLodPresenceIndex(storeRoot(level)));
+    }
+
+    /** The level whose dimension id matches -- the same string {@code World.getName()} returns. */
+    private static ServerLevel levelByName(final MinecraftServer server, final String worldName) {
+        for (final ServerLevel level : server.getAllLevels()) {
+            if (dimensionId(level).equals(worldName)) {
+                return level;
+            }
+        }
+        return null;
     }
 
     /**
@@ -107,6 +151,10 @@ public final class LodSupport {
         }
         SINKS.clear();
         LodSinks.set(LodSink.NOOP);
+        // Unpublish the presence provider with the sinks: a stale provider would hand a later run an
+        // index pointing at a dead server's store root.
+        LodPresence.setProvider(null);
+        PRESENCE.clear();
     }
 
     private static LodSink create(final ServerLevel level) {

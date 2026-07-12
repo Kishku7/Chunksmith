@@ -97,6 +97,7 @@ public final class TranslationKey {
     public static final String TASK_TRIM = "task_trim";
     public static final String TASK_TRIM_UPDATE = "task_trim_update";
     public static final String TASK_DONE = "task_done";
+    public static final String TASK_LOD_SUMMARY = "task_lod_summary";
     public static final String TASK_STOPPED = "task_stopped";
     public static final String TASK_UPDATE = "task_update";
     public static final String WRAP_BOTH = "wrap_both";

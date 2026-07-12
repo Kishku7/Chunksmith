@@ -113,6 +113,21 @@ build from a `-P` version matrix supplied by the build script.
 Chunksmith can emit **level-of-detail data while it pregenerates** - so the same pass that builds your
 world also builds the LODs for it. No second scan, no re-reading region files, no separate LOD pregen.
 
+**A re-run fills LOD holes automatically (3.0.0-beta-3).** Already pregenerated a world before you
+installed an LOD renderer? Just run the same pregen again. Chunksmith checks the CSLOD store as well as
+the world, per chunk:
+
+| On disk | What Chunksmith does |
+|---------|----------------------|
+| No chunk | Generate it - the LOD is built on the way past |
+| Chunk, no LOD | **Load the chunk (no worldgen) and build the LOD from it** |
+| Chunk + LOD | Skip entirely - no load, no write |
+
+So the second run builds only what is missing, and a third run does nothing at all. Delete part of the
+store and only those records come back. The presence check is a single 8 KB header read per region file,
+so it costs nothing worth measuring. (`forceLoadExistingChunks: true` still means what it always did:
+reprocess everything regardless. With LOD off, the skip behaviour is exactly as it was.)
+
 The point is that the LOD data is written in **Chunksmith's own neutral format (CSLOD)** rather than in
 any one LOD mod's private shape. From that single store we can serve **every** LOD consumer:
 

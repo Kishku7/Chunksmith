@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [3.0.0-beta-3] - 2026-07-12
+
+Re-run a pregen and it fills in the missing LODs. Generate a world first and turn LOD on later, and the
+LODs are no longer stranded -- you do not have to regenerate anything, and you do not have to reprocess
+what is already done.
+
+### Changed
+
+- **The CSLOD store is now part of the chunk-skip decision.** When LOD generation is active, Chunksmith
+  checks the store as well as the world, per chunk:
+  - no chunk -> generate it (the LOD is built on the way past, as before);
+  - **chunk on disk but no LOD -> load the chunk (no worldgen) and build the LOD from it**;
+  - chunk *and* LOD both present -> skip entirely; no load, no write.
+
+  Previously an already-generated chunk was skipped and never loaded, so the LOD hook never saw it: a
+  world pregenerated before LOD was switched on could never get its LODs without regenerating from
+  scratch or setting `forceLoadExistingChunks`. Now a plain re-run of the same selection fills the holes.
+- **Only the holes are filled.** Deleting part of the CSLOD store and re-running rebuilds exactly the
+  missing records and leaves the rest untouched -- the store is not rewritten wholesale.
+- `forceLoadExistingChunks: true` is unchanged, and keeps its meaning as the explicit override: reprocess
+  every chunk in the selection regardless, even where a LOD already exists.
+- **With LOD off, nothing changes.** The skip behaviour is exactly what it has always been.
+
+### Added
+
+- The pregen now reports what it actually did: `generated`, `LOD-only (built from existing chunks)`, and
+  `skipped (chunk + LOD present)`, plus the measured cost of the store check.
+- `/cslod status` reports the store's **record count**, so it can be compared against the chunk count.
+
+### Performance
+
+- The presence check reads each region file's 8 KB header **once** and holds a 1024-bit bitmap, so a whole
+  region's presence costs one sequential read. No records are decoded, and no file is re-opened or
+  re-stat-ed per chunk.
+
 ## [3.0.0-beta-2] - 2026-07-12
 
 LOD generation turns itself on. Install Chunksmith next to Distant Horizons or Voxy, pregenerate, and
