@@ -35,6 +35,9 @@
     "minecraft": "${mcDep}",
     "java": ">=25"
   },
+  "suggests": {
+    "distanthorizons": ">=2.3.0-b"
+  },
   "breaks": {
     "lss": "*",
     "voxyserver": "*",

@@ -30,6 +30,19 @@ config="chunksmith.mixins.json"
 # coordination: duplicated download, duplicated ingest, and a real risk of racing voxy's DB-local id
 # allocation. Ids CONFIRMED from the published jars (docs/lod ecosystem survey, 2026-07-12).
 # distanthorizons is deliberately NOT here -- it is a renderer we FEED, not a competitor.
+# Distant Horizons -- OPTIONAL, and a renderer we FEED (see the incompatible list below for the mods we
+# actually conflict with). Chunksmith works perfectly well without it. The floor is the oldest DH whose
+# public API carries everything we call; there is NO upper bound, because DH's core/ + api/ trees are
+# byte-identical across MC lines and every API method we use has been signature-stable since DH 2.0.0-a.
+# A DH outside that range degrades -- CsLodDhSupport catches the LinkageError, disables DH for the session
+# and says so in the log -- it does not crash the server.
+[[dependencies.chunksmith]]
+   modId="distanthorizons"
+   type="optional"
+   versionRange="[2.3.0-b,)"
+   ordering="AFTER"
+   side="BOTH"
+
 [[dependencies.chunksmith]]
    modId="lss"
    type="incompatible"

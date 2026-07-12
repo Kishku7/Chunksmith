@@ -727,13 +727,19 @@ def has_section_builder(mcver, loader):
     return has_dh(mcver, loader) or has_voxy(mcver, loader)
 
 
-def dh_jar(mcver):
-    """The DH soft-dep jar for this MC line, in libs/. DH publishes one artifact per MC line; the whole
-    26.x line takes the 26.1.2 artifact (the API is identical, and it is what the 26 cell already used).
-    """
-    v = _parse(mcver)
-    key = "26.1.2" if v[0] >= 26 else str(mcver)
-    return "DistantHorizons-3.2.0-b-%s.jar" % key
+# Distant Horizons is NOT a per-MC-line jar pin any more, so there is deliberately no dh_jar(mcver).
+#
+# Chunksmith uses DH's PUBLIC API only -- no mixin into DH from this mod -- so it compiles against DH's
+# standalone API artifact and needs NO full DH mod jar at compile time at all:
+#
+#     maven.modrinth:distanthorizonsapi:7.0.0     (Modrinth maven, group maven.modrinth)
+#
+# That artifact is MINECRAFT-AGNOSTIC: ONE 344 KB jar for every MC version and every loader, in place of
+# four 28 MB mod jars. DH's own DhApi.READ_ME tells integrators to do exactly this -- compile against the
+# API jar, use the full mod jar only at runtime -- and every API method Chunksmith calls has been
+# signature-stable since DH 2.0.0-a across six API-major bumps. The old per-line pin implied a coupling to
+# a specific DH build that never actually existed.
+DH_API_ARTIFACT = "maven.modrinth:distanthorizonsapi:7.0.0"
 
 
 def voxy_jar(mcver):

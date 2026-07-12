@@ -61,25 +61,44 @@ public final class CsLodDhPusher {
                            final IDhApiLevelWrapper wrapper,
                            final Path storeRoot,
                            final Consumer<String> progress) throws IOException {
+        if (CsLodDhSupport.isDisabled()) {
+            progress.accept("Distant Horizons was ruled out earlier this session; not pushing");
+            return 0;
+        }
+
         final int[] pushed = {0};
         final int[] failed = {0};
 
-        CsLodRegionStore.forEachChunk(storeRoot, record -> {
-            final LevelChunk chunk = synthesize(level, record);
-            final DhApiResult<Void> result =
-                    DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(wrapper, new Object[]{chunk, level});
-            if (result.success) {
-                pushed[0]++;
-            } else {
-                failed[0]++;
-                if (failed[0] == 1) {
-                    progress.accept("first failure: " + result.message);
+        // LinkageError, not Exception. overwriteChunkDataAsync is our FIRST and only call into DH's
+        // terrain repo, so it is where a DH that does not match the API we compiled against actually
+        // blows up -- and it blows up as an Error (NoSuchMethodError / NoClassDefFoundError /
+        // AbstractMethodError), which `catch (Exception)` does NOT catch. Chunksmith claims a wide DH
+        // range on the evidence that this signature has been stable since DH 2.0.0-a; this catch is what
+        // makes being WRONG about that a logged, contained degradation instead of a dead server thread.
+        try {
+            CsLodRegionStore.forEachChunk(storeRoot, record -> {
+                final LevelChunk chunk = synthesize(level, record);
+                final DhApiResult<Void> result =
+                        DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(wrapper, new Object[]{chunk, level});
+                if (result.success) {
+                    pushed[0]++;
+                } else {
+                    failed[0]++;
+                    if (failed[0] == 1) {
+                        progress.accept("first failure: " + result.message);
+                    }
                 }
-            }
-            if ((pushed[0] + failed[0]) % 250 == 0) {
-                progress.accept("pushed " + pushed[0] + ", failed " + failed[0]);
-            }
-        });
+                if ((pushed[0] + failed[0]) % 250 == 0) {
+                    progress.accept("pushed " + pushed[0] + ", failed " + failed[0]);
+                }
+            });
+        } catch (final LinkageError e) {
+            CsLodDhSupport.disable(e);
+            progress.accept("stopped after " + pushed[0] + " chunks -- this Distant Horizons does not have"
+                    + " the API Chunksmith was built against (" + CsLodDhSupport.version() + ")."
+                    + " DH is disabled for this session; nothing else is affected.");
+            return pushed[0];
+        }
 
         progress.accept("done: pushed " + pushed[0] + ", failed " + failed[0]
                 + " -- NOTE a 'success' here does NOT prove DH kept it; check the DB and LOOK at the terrain");

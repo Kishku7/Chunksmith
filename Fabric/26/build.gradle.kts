@@ -28,7 +28,12 @@ allprojects {
         withType<JavaCompile> {
             options.encoding = "UTF-8"
             options.release = 25
-            options.compilerArgs.add("-Xlint:all")
+            // DH's standalone API artifact is JvmDowngrader-processed: its class files carry
+        // xyz.wagyourtail.jvmdg NestHost/NestMembers annotations, and the artifact does not ship those
+        // annotation types. javac's `classfile` lint reports that while READING the dependency -- it says
+        // nothing about our code. Disable that ONE category so the zero-warning gate still means
+        // something for our own source. It is ONE -Xlint token (a lint-category disable), not a flag.
+        options.compilerArgs.add("-Xlint:all,-classfile")
         }
         jar {
             archiveClassifier.set("noshade")
@@ -59,6 +64,15 @@ val packFormat = (System.getenv("PACK_FORMAT") ?: "91")
 
 sourceSets["main"].java.srcDir("gen/src/main/java")
 
+repositories {
+    // The Modrinth maven -- the ONLY place DH's standalone API artifact is published.
+    maven("https://api.modrinth.com/maven") {
+        content {
+            includeGroup("maven.modrinth")
+        }
+    }
+}
+
 dependencies {
     minecraft(group = "com.mojang", name = "minecraft", version = mcVersion)
     implementation(group = "net.fabricmc", name = "fabric-loader", version = "0.19.3")
@@ -75,7 +89,22 @@ dependencies {
     compileOnly(files("../../libs/voxy-0.2.16-beta+26.1.2.jar"))
     // Distant Horizons: everything we touch is com.seibel.* and names no Minecraft type, so this same jar
     // works on every loader and every runtime mapping.
-    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-26.1.2.jar"))
+    // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
+    //
+    // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB
+    // jar covers every MC version and every loader, replacing the four 28 MB per-MC-line mod jars this
+    // build used to pin. DH's own DhApi.READ_ME says to do exactly this -- "use the API jar in your build
+    // script as a compile time dependency and the full DH jar as a runtime dependency".
+    //
+    // Chunksmith uses DH's PUBLIC API only (no mixin into DH -- that lives in Chunksmith-Client), so it
+    // needs NO full DH mod jar at compile time AT ALL. Everything we touch (DhApi.Delayed.terrainRepo,
+    // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult, IDhApiWorldGenerator) is in the
+    // API artifact and names no Minecraft type, so there is nothing to remap on any loader.
+    //
+    // Every API method we call has been signature-stable since DH 2.0.0-a across six API-major bumps, so
+    // this ONE artifact honestly covers the whole wide DH range we claim. compileOnly and never shipped:
+    // DH is an optional soft dependency and is LGPL.
+    compileOnly("maven.modrinth:distanthorizonsapi:7.0.0")
     implementation(project(":chunksmith-common"))
     shade(project(":chunksmith-common"))
 }

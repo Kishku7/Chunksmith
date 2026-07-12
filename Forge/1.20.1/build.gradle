@@ -69,6 +69,17 @@ configurations {
 // Cog-generated shared_minecraft source (produced by cog-gen.ps1 for this MC version).
 sourceSets.main.java.srcDir 'gen/src/main/java'
 
+repositories {
+    // The Modrinth maven -- the ONLY place DH's standalone API artifact is published.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${project.findProperty('forge_version')}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
@@ -80,7 +91,22 @@ dependencies {
     //
     // DH ships FORGE on the 1.20.1 line (there is no NeoForge 1.20.1 DH). No voxy here: voxy is
     // Fabric-only and has never published a 1.20.1 build (lod-ecosystem.md).
-    compileOnly files('../../libs/DistantHorizons-3.2.0-b-1.20.1.jar')
+    // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
+    //
+    // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB
+    // jar covers every MC version and every loader, replacing the four 28 MB per-MC-line mod jars this
+    // build used to pin. DH's own DhApi.READ_ME says to do exactly this -- "use the API jar in your build
+    // script as a compile time dependency and the full DH jar as a runtime dependency".
+    //
+    // Chunksmith uses DH's PUBLIC API only (no mixin into DH -- that lives in Chunksmith-Client), so it
+    // needs NO full DH mod jar at compile time AT ALL. Everything we touch (DhApi.Delayed.terrainRepo,
+    // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult, IDhApiWorldGenerator) is in the
+    // API artifact and names no Minecraft type, so there is nothing to remap on any loader.
+    //
+    // Every API method we call has been signature-stable since DH 2.0.0-a across six API-major bumps, so
+    // this ONE artifact honestly covers the whole wide DH range we claim. compileOnly and never shipped:
+    // DH is an optional soft dependency and is LGPL.
+    compileOnly 'maven.modrinth:distanthorizonsapi:7.0.0'
 
     implementation project(':chunksmith-common')
     shade project(':chunksmith-common')
@@ -93,7 +119,7 @@ tasks.withType(JavaCompile).configureEach {
     // the mixin AP does not claim javac lint categories, so the ,-processing token suppresses the
     // spurious "No processor claimed any of these annotations" warning while every other lint stays on.
     // It is ONE -Xlint token (a lint-category disable), not a separate flag.
-    options.compilerArgs.add('-Xlint:all,-processing')
+    options.compilerArgs.add('-Xlint:all,-processing,-classfile')
 }
 
 processResources {

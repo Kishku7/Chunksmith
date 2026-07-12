@@ -52,6 +52,12 @@ public final class CsLodDhSupport {
     private static volatile boolean bound;
 
     /**
+     * Set when the DH that is actually installed turns out not to have the API we compiled against.
+     * See {@link #disable(Throwable)}.
+     */
+    private static volatile boolean disabled;
+
+    /**
      * Every level wrapper DH has reported, keyed by identity of the vanilla level object it wraps.
      *
      * <p>DH loads EVERY dimension at server start -- overworld, then the nether, then the end -- firing one
@@ -75,10 +81,65 @@ public final class CsLodDhSupport {
     public static void register() {
         // Bind the level-load event even when the OVERRIDE is disabled: it is also how we learn the level
         // wrappers, which the PUSH path (/cslod dhpush) needs.
-        if (bound || !dhPresent()) {
+        if (bound || disabled || !dhPresent()) {
             return;
         }
         bound = true;
+        // Name the DH that is actually installed, in OUR log, before we touch it. We compile against the
+        // standalone distanthorizonsapi artifact and support a wide DH range, so "which DH was it" is the
+        // first question any bug report has to answer.
+        System.out.println("[chunksmith] " + version());
+        try {
+            bind();
+        } catch (final LinkageError e) {
+            // This DH does not have the event API we compiled against. Not a crash: LOD simply does not
+            // serve DH this session. Everything else in Chunksmith (including voxy) is untouched.
+            disable(e);
+        }
+    }
+
+    /**
+     * Distant Horizons' own version, plus the API version it implements.
+     *
+     * <p>Read through the API surface only, and never allowed to throw: a version string is diagnostics,
+     * and diagnostics must not be the thing that takes the server down.
+     */
+    public static String version() {
+        try {
+            return "Distant Horizons " + DhApi.getModVersion()
+                    + " (API " + DhApi.getApiMajorVersion() + "." + DhApi.getApiMinorVersion()
+                    + "." + DhApi.getApiPatchVersion() + ")";
+        } catch (final RuntimeException | LinkageError e) {
+            return "Distant Horizons (version unreadable: " + e + ")";
+        }
+    }
+
+    /** True once DH has been ruled out for this session. */
+    public static boolean isDisabled() {
+        return disabled;
+    }
+
+    /**
+     * Give up on DH for the rest of the session, loudly and exactly once -- but keep Chunksmith running.
+     *
+     * <p>A {@link LinkageError} (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError -- all
+     * Errors, so {@code catch (Exception)} would MISS them) means the installed DH does not match the API
+     * we built against. We claim a wide DH range on the evidence that the methods we call have been
+     * signature-stable since DH 2.0.0-a; this is what makes being wrong about that a logged degradation
+     * rather than a crashed server.
+     */
+    static void disable(final Throwable cause) {
+        if (disabled) {
+            return;
+        }
+        disabled = true;
+        System.out.println("[chunksmith] this Distant Horizons is not compatible with the DH API Chunksmith"
+                + " was built against, so LOD will not serve DH this session -- " + cause
+                + ". Everything else keeps working. Please report this along with the DH version logged"
+                + " above.");
+    }
+
+    private static void bind() {
         final boolean override = enabled();
 
         DhApi.events.bind(DhApiLevelLoadEvent.class, new DhApiLevelLoadEvent() {
