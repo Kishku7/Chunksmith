@@ -38,6 +38,9 @@ public final class CsLodVoxyInjector {
     /** Pause the backfill while voxy's ingest backlog is above this. */
     private static final int VOXY_QUEUE_LIMIT = 512;
 
+    /** Warn key: voxy is here, but it is not the voxy we were built against. */
+    private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
+
     private CsLodVoxyInjector() {
     }
 
@@ -46,8 +49,29 @@ public final class CsLodVoxyInjector {
         try {
             return VoxyCommon.getInstance() != null;
         } catch (final LinkageError error) {
+            // voxy is INSTALLED but we cannot even reach its engine. Returning a bare false here used to
+            // make `/cslod inject` say "voxy is not running" -- which is a lie, and sends the player
+            // looking for the wrong problem. Say what actually happened.
+            warnIncompatible(error);
             return false;
         }
+    }
+
+    /**
+     * Announce -- once -- that the installed voxy does not match the one we compiled against.
+     *
+     * <p>A {@link LinkageError} (NoSuchMethodError / NoSuchFieldError / NoClassDefFoundError) out of a voxy
+     * call is not a transient condition: it means the jar that is loaded does not contain the member we
+     * compiled against, which is what a drifting fork looks like from the inside. It is also an Error, so a
+     * {@code catch (Exception)} would never see it. Swallowing it silently is how a player ends up with an
+     * empty horizon and a log full of success.
+     */
+    private static void warnIncompatible(final LinkageError error) {
+        LodWarnings.once(CAUSE_INCOMPATIBLE,
+                "voxy is installed, but this build of it does not match the voxy Chunksmith was built"
+                        + " against (" + error + "). Chunksmith cannot feed LODs into it. This normally"
+                        + " means a voxy fork that changed a method or a field. Please report it, with your"
+                        + " voxy version.");
     }
 
     /**
@@ -64,14 +88,25 @@ public final class CsLodVoxyInjector {
         final int[] chunks = {0};
         final int[] sections = {0};
 
-        final int visited = CsLodRegionStore.forEachChunk(storeRoot, record -> {
-            awaitVoxyCapacity();
-            sections[0] += injectChunk(level, world, record);
-            chunks[0]++;
-            if (chunks[0] % 500 == 0) {
-                progress.accept("injected " + chunks[0] + " chunks (" + sections[0] + " sections)");
-            }
-        });
+        final int visited;
+        try {
+            visited = CsLodRegionStore.forEachChunk(storeRoot, record -> {
+                awaitVoxyCapacity();
+                sections[0] += injectChunk(level, world, record);
+                chunks[0]++;
+                if (chunks[0] % 500 == 0) {
+                    progress.accept("injected " + chunks[0] + " chunks (" + sections[0] + " sections)");
+                }
+            });
+        } catch (final LinkageError error) {
+            // rawIngest is our first and only call into voxy's ingest path, so a fork with a different
+            // signature surfaces HERE, as an Error -- which would otherwise unwind straight past the
+            // command's catch(Exception) and end the backfill in total silence.
+            warnIncompatible(error);
+            progress.accept("ABORTED after " + chunks[0] + " chunks: this voxy will not accept our data ("
+                    + error + ")");
+            return chunks[0];
+        }
 
         progress.accept("done: " + chunks[0] + " chunks, " + sections[0] + " sections injected into voxy"
                 + (visited == chunks[0] ? "" : " (" + visited + " visited)"));

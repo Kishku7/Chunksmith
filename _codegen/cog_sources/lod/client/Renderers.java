@@ -1,5 +1,6 @@
 package com.kishku7.chunksmith.lod.client;
 
+import com.kishku7.chunksmith.lod.LodWarnings;
 import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
 
@@ -8,10 +9,12 @@ import com.kishku7.chunksmith.lod.client.ClientPlatform;
  *
  * <p>The mod ids we look for:
  * <ul>
- *   <li>{@code voxy} -- upstream, and every fork. All five known forks are byte-identical to upstream on
- *       the voxel layout, the mapper scheme, the section key, the storage version, the package root and
- *       the ingest signatures, so ONE adapter covers them all -- no per-fork class-name table. (None
- *       support 26.1.2 yet; the id is checked anyway so a fork "just works" the day it does.)</li>
+ *   <li>{@code voxy} -- upstream, and every fork. Every fork we could reach keeps the id {@code voxy} and
+ *       is identical to upstream on the voxel layout, the mapper scheme, the section key, the storage
+ *       version, the package root and the ingest signatures, so ONE adapter covers them all -- no per-fork
+ *       class-name table. Verified by running the real fork jars (upstream, ggonzaDNG mia-edition,
+ *       NHblock714, Paulem79, srjefers, Vulkan-Voxy), 2026-07-13. The one place they DID drift -- the type
+ *       of voxy's render-distance config field -- is now read type-tolerantly; see {@code VoxyConfigReader}.</li>
  *   <li>{@code distanthorizons} -- Fabric and NeoForge, ships for 26.1.2 and 26.2.</li>
  * </ul>
  *
@@ -26,6 +29,11 @@ import com.kishku7.chunksmith.lod.client.ClientPlatform;
  * we compile against them and never ship them.
  */
 public final class Renderers {
+
+    /** Warn keys -- one per cause, per session. See {@link LodWarnings}. */
+    private static final String CAUSE_VOXY_SEAM = "voxy-seam-unloadable";
+
+    private static final String CAUSE_DH_SEAM = "dh-seam-unloadable";
 
     private Renderers() {
     }
@@ -62,21 +70,37 @@ public final class Renderers {
      * default was previously used for EVERY voxy player, because voxy's distance was thought to be
      * unreadable -- and at 256 blocks (barely past vanilla view distance) it meant a voxy client was sent
      * one region and drew almost nothing. Read the real number; never invent one.
+     *
+     * <p><b>And when the number cannot be read, SAY SO.</b> The {@code LinkageError} catches below used to
+     * be silent {@code ignored} blocks. A voxy fork that re-typed one config field therefore collapsed a
+     * player's radius from 8192 blocks to 256 with nothing in the log -- 32x less terrain, reported as
+     * success. Both radius readers now announce their own failures (see {@code VoxyRadius} / {@code
+     * DhTarget.disable}); these catches are the last net, for the case where our own seam class cannot even
+     * be loaded, and they are loud too.
      */
     public static int configuredRadiusBlocks() {
         int blocks = 0;
         if (hasDh()) {
             try {
                 blocks = Math.max(blocks, com.kishku7.chunksmith.lod.client.render.DhRadius.blocks());
-            } catch (final LinkageError ignored) {
-                // DH present but incompatible -- ignore it and try the other renderer.
+            } catch (final LinkageError error) {
+                // Not "DH is incompatible" -- DhRadius already reports that itself. This is OUR class
+                // failing to load, which should be impossible. Never silent.
+                LodWarnings.once(CAUSE_DH_SEAM,
+                        "Distant Horizons is installed but Chunksmith could not load its own DH"
+                                + " radius reader (" + error + "). Falling back to a LOD radius of "
+                                + CsLodProtocol.DEFAULT_RADIUS_BLOCKS + " blocks. Please report this.");
             }
         }
         if (hasVoxy()) {
             try {
                 blocks = Math.max(blocks, com.kishku7.chunksmith.lod.client.render.VoxyRadius.blocks());
-            } catch (final LinkageError ignored) {
-                // voxy present but incompatible -- ignore it.
+            } catch (final LinkageError error) {
+                LodWarnings.once(CAUSE_VOXY_SEAM,
+                        "voxy is installed but Chunksmith could not load its own voxy radius reader ("
+                                + error + "). Falling back to a LOD radius of "
+                                + CsLodProtocol.DEFAULT_RADIUS_BLOCKS + " blocks, which is far less distant"
+                                + " terrain than voxy can draw. Please report this, with your voxy version.");
             }
         }
         return blocks > 0 ? blocks : CsLodProtocol.DEFAULT_RADIUS_BLOCKS;
