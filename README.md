@@ -135,7 +135,7 @@ any one LOD mod's private shape. From that single store we can serve **every** L
 |----------|---------------|
 | [Voxy](https://modrinth.com/mod/voxy) | Fed live during pregen, **and** replayable afterwards (`/cslod inject`) |
 | [Distant Horizons](https://modrinth.com/mod/distanthorizons) | Chunksmith registers as DH's world-generator override and answers straight from the store |
-| Remote clients | The store is streamed over the wire and feeds the player's own voxy / DH. Today that is done by the standalone **Chunksmith-Client** mod, which is now **discontinued** - this delivery path is being **merged into Chunksmith** and will ship in an upcoming release. |
+| Remote clients | The store is streamed over the wire and feeds the player's own voxy / DH. **Chunksmith does this itself** as of 3.1.0 - install the same jar on the client and it is both halves. (This used to need a separate **Chunksmith-Client** mod; that mod is **discontinued** and is declared incompatible with 3.1.0+, since both would register the same chunksmith:lod channel.) |
 
 LOD ships on the cells where a renderer actually exists: Fabric 1.20.1 / 1.21.1 / 1.21.11 / 26.x,
 NeoForge 1.21.1 / 1.21.11 / 26.1 / 26.2, Forge 1.20.1 (DH everywhere on that list, needs >= 2.3.0-b;
