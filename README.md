@@ -30,6 +30,9 @@ current development happens. The 2.x line is frozen on
 - **A re-run fills LOD holes automatically.** Pregenerated the world before you installed the renderer?
   Run the same pregen again and Chunksmith builds the LODs from the chunks it already has - it does not
   regenerate them, and it skips everything that is already done.
+- **Multiplayer LOD, built in.** Players joining your server download the pregenerated LOD data and see
+  the whole world at distance, without ever having walked it. **No companion mod** - the same Chunksmith
+  jar does it, on the server and on the client.
 - **Developer API** for generation progress and completion events.
 
 ## LOD: see what you pregenerated
@@ -58,20 +61,35 @@ shows your pregenerated area without generating anything itself, and `/cslod dhp
 existing store into DH on demand - a world pregenerated long before you installed DH gets its LODs
 after the fact, with no regeneration. Where **voxy** exists, `/cslod inject` does the same for voxy.
 
-**In multiplayer, the LOD data has to reach the player.** The server keeps the CSLOD store; the client
-downloads what it needs and feeds it to that player's Distant Horizons or voxy. Nothing else on the
-server is required.
+**In multiplayer, the LOD data has to reach the player - and as of `3.1.0-beta-1`, Chunksmith does that
+itself.** Put the same jar on the server and on the client. The server keeps the CSLOD store; the client
+downloads what it needs and feeds it to that player's Distant Horizons or voxy. **There is no companion
+mod any more.**
 
-> **Multiplayer LOD delivery is being merged into Chunksmith itself.** It will ship in an upcoming
-> release, and from then on players will need nothing but Chunksmith - no companion mod.
->
-> That merged build is **not out yet**. The currently listed release (`3.0.0-beta-4`) still needs a
-> separate client mod on each player's machine for multiplayer LOD. The standalone **Chunksmith-Client**
-> mod has been **discontinued** - it is no longer developed and gets no new versions - but its existing
-> builds still work with `3.0.0-beta-4` and remain downloadable
-> [on Modrinth](https://modrinth.com/mod/chunksmith-client) for anyone who needs multiplayer LOD today.
->
-> **Singleplayer is unaffected and never needed a companion mod.**
+It arrives at network speed. The store is already plain region files, so the server does not stream them
+- it **serves** them, over an HTTP backchannel on the game port + 1, opened automatically with nothing for
+you to configure. If that port cannot be bound or cannot be reached, Chunksmith says so and drips the same
+bytes down the game connection instead: slower, but it always works, and it never breaks the session.
+
+- **The store is the cache.** Re-join and nothing is downloaded twice.
+- **It follows you.** Walk toward terrain the server pregenerated but had not sent, and it is fetched on
+  the way - the pull is not a one-shot at join.
+- **It only sends what you can draw.** The client tells the server its renderer's actual LOD distance, and
+  the server ships the regions inside it and no more.
+
+### One mod, all of it
+
+| What you are doing | What you install |
+|---|---|
+| Singleplayer | **Chunksmith.** That is all - it always was. |
+| Playing on a server | **Chunksmith, on the server and on the client.** Same jar. |
+| Running a server, pre-generation only | **Chunksmith on the server.** Nothing new loads; a dedicated server never touches the client half. |
+
+> **The standalone Chunksmith-Client mod is discontinued.** Its job is now part of Chunksmith. Your
+> existing copy still works - the wire format is unchanged, so an old client still talks to a `3.1` server
+> - but there is no reason to keep it, and **you cannot run both**: they register the same network channel,
+> and the loader will refuse to start and tell you to remove one. Delete Chunksmith-Client; Chunksmith does
+> the job alone.
 
 ### A re-run fills in the missing LODs
 
