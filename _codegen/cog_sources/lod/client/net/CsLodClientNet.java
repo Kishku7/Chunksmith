@@ -6,6 +6,7 @@ import com.kishku7.chunksmith.lod.client.CsLodStore;
 import com.kishku7.chunksmith.lod.client.Renderers;
 import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import com.kishku7.chunksmith.lod.net.CsLodProtocol;
+import com.kishku7.chunksmith.lod.net.CsLodRetry;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -34,6 +35,15 @@ import org.slf4j.LoggerFactory;
  *   <li>hand the new regions to whichever renderer is installed;</li>
  *   <li><b>keep doing 3-4 as the player travels</b> -- see {@link #travelTick}.</li>
  * </ol>
+ *
+ * <p><b>An empty store at join is not the end of the session.</b> It used to be: the client asked once, got
+ * "nothing here", logged a line and stood down -- {@code activeDimension} was never set, so even the travel
+ * loop never armed, and the player got nothing for the rest of the session however long they played. But an
+ * empty store at join is the NORMAL case, not an edge one: operators start hours-long pregens with players
+ * already connected, and the store fills up behind them. So we do not stand down. We arm a backed-off retry
+ * clock ({@link CsLodRetry}) and keep asking, and a Chunksmith server ALSO tells us, unprompted, the moment
+ * its store becomes servable -- it re-sends its hello, which is the same message we already handle. Either
+ * way the data arrives and the travel loop arms itself, with no relog.
  *
  * <p>Nothing happens on a server that is not running Chunksmith: it will not answer this channel, and we
  * simply stay quiet. Nothing happens if the player has no LOD renderer either -- the server refuses to
@@ -65,13 +75,46 @@ public final class CsLodClientNet {
     /** Never re-ask faster than this, however fast the player is moving (elytra, /tp, boats on ice). */
     private static final long MIN_REFRESH_MILLIS = 5_000L;
 
+    /**
+     * Re-handshake before the backchannel token can go stale.
+     *
+     * <p>A token lives ten minutes. A session lives hours. The join token is fine for the join fetch, but a
+     * travel refresh an hour later would present an expired one, every fetch would 403, and the client would
+     * silently drop to the in-band fallback for the rest of the session. So when a refresh is due and the
+     * token is getting on, we say hello again first: the server answers with a fresh one and the refresh
+     * rides on from there. Three quarters of the lifetime, so it is always replaced well before it dies.
+     */
+    private static final long TOKEN_REFRESH_MILLIS = CsLodProtocol.TOKEN_TTL_MILLIS / 4L * 3L;
+
     private static volatile CsLodDownloader downloader;
     private static volatile String token = "";
+    private static volatile long tokenIssuedMillis;
     private static volatile int backchannelPort;
     private static volatile String host = "";
 
     /** The dimension we are pulling for -- set from the server's hello, and re-used by every refresh. */
     private static volatile String activeDimension = "";
+
+    /**
+     * The server answered, and had nothing to give us -- yet.
+     *
+     * <p>This is the state the old client had no name for, and so could not leave.
+     */
+    private static volatile boolean awaitingStore;
+
+    /** How long to wait before asking an empty-store server again. Backs off; reset on disconnect. */
+    private static final CsLodRetry RETRY = new CsLodRetry();
+
+    /**
+     * What we told the server we can draw. Cached from the FIRST hello and re-used by every later one.
+     *
+     * <p>Not just an optimization: {@code Renderers.configuredRadiusBlocks()} reaches into voxy's config,
+     * and the one place it is safe to do that is the join handshake (see the note in {@link #hello}). A
+     * retry must not go back and ask voxy again.
+     */
+    private static volatile boolean capsVoxy;
+    private static volatile boolean capsDh;
+    private static volatile int capsRadius;
 
     /** One fetch at a time. A travel refresh must never race the join fetch, or itself. */
     private static final AtomicBoolean busy = new AtomicBoolean();
@@ -108,7 +151,13 @@ public final class CsLodClientNet {
      * each region exactly once per session. Standing still costs nothing at all.
      */
     private static void travelTick() {
-        if (activeDimension.isEmpty() || busy.get()) {
+        if (busy.get()) {
+            return;
+        }
+        if (activeDimension.isEmpty()) {
+            // Nothing to refresh yet -- but that no longer means nothing to do. If the server told us its
+            // store was empty, keep asking; it may not be empty any more.
+            retryTick();
             return;
         }
         final LocalPlayer player = Minecraft.getInstance().player;
@@ -124,10 +173,54 @@ public final class CsLodClientNet {
         if (dx * dx + dz * dz < REFRESH_MOVE_BLOCKS * REFRESH_MOVE_BLOCKS) {
             return;
         }
+        // A refresh is due. If our token is getting old, renew it FIRST -- say hello again, and let the
+        // server's answer drive this refresh. Stamp the clock before we send, or we would re-send on every
+        // tick until the answer lands.
+        if (backchannelPort != 0 && !token.isEmpty() && now - tokenIssuedMillis >= TOKEN_REFRESH_MILLIS) {
+            lastIndexMillis = now;
+            lastIndexX = player.getX();
+            lastIndexZ = player.getZ();
+            LOGGER.debug("Chunksmith: renewing the backchannel token before this travel refresh");
+            sendHello(false);
+            return;
+        }
         requestIndex(activeDimension);
     }
 
-    /** Tell the server what we can render, and how far. */
+    /**
+     * The server had nothing for us. Ask it again, on a backing-off clock.
+     *
+     * <p>Costs one ~10-byte packet at 15s, 30s, 60s, then every two minutes for as long as the player stays.
+     * That is the entire price of never again losing a session to "you joined before the pregen".
+     */
+    private static void retryTick() {
+        if (!awaitingStore) {
+            return;
+        }
+        // Singleplayer. The world's own injector already draws these LODs directly -- this multiplayer path
+        // runs against the integrated server too, harmlessly, but it is a DUPLICATE, and a duplicate is the
+        // last thing that should be put on a timer.
+        if (host.isEmpty()) {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        if (!RETRY.due(now)) {
+            return;
+        }
+        RETRY.attempted(now);
+        // Loud for the first couple of minutes, so anyone reading the log can SEE we are still trying; quiet
+        // after that, so a server that will never have LOD data costs nothing to sit on.
+        final String line = "Chunksmith: the server still has no LOD data (asked " + RETRY.attempts()
+                + " more time(s)); asking again in " + RETRY.delayMillis() / 1000L + "s";
+        if (RETRY.attempts() <= 3) {
+            LOGGER.info(line);
+        } else {
+            LOGGER.debug(line);
+        }
+        sendHello(false);
+    }
+
+    /** Tell the server what we can render, and how far. The join handshake. */
     private static void hello() {
         final boolean voxy = Renderers.hasVoxy();
         final boolean dh = Renderers.hasDh();
@@ -146,8 +239,12 @@ public final class CsLodClientNet {
         // Read the renderers' radius HERE and nowhere earlier. This is the first moment both renderers are
         // fully up, and asking voxy any sooner (e.g. from the init status line) class-loads its config
         // before voxy initializes and leaves voxy inert for the whole session -- silently. See VoxyRadius.
-        final int radius = Renderers.configuredRadiusBlocks();
-        LOGGER.info("Chunksmith: hello -- voxy={} dh={} radius={} blocks", voxy, dh, radius);
+        // Cache what we find: every later hello (a retry, a token renewal) re-uses these numbers rather than
+        // going back to voxy's config, which is exactly what that note forbids.
+        capsVoxy = voxy;
+        capsDh = dh;
+        capsRadius = Renderers.configuredRadiusBlocks();
+        LOGGER.info("Chunksmith: hello -- voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
         // Name the DH the player ACTUALLY has, at join, in our own log. We compile against the standalone
         // distanthorizonsapi artifact and support a wide range of DH releases, so the single most useful
         // fact in any bug report is which one was installed -- record it before anything can go wrong.
@@ -155,9 +252,24 @@ public final class CsLodClientNet {
         if (dh) {
             LOGGER.info("Chunksmith: feeding {}", com.kishku7.chunksmith.lod.client.render.DhTarget.version());
         }
+        sendHello(true);
+    }
+
+    /**
+     * Put a hello on the wire.
+     *
+     * <p>One message, three callers: the join handshake, an empty-store retry, and a token renewal. The
+     * server treats every one of them identically -- it answers with its current hello -- which is precisely
+     * why none of this needed a new packet id. An older server, which knows nothing about retries, answers a
+     * repeat hello exactly as it answered the first: correctly.
+     */
+    private static void sendHello(final boolean first) {
         try {
             send(CsLodMessages.encode(new CsLodMessages.ClientHello(
-                    CsLodProtocol.VERSION, voxy, dh, radius)));
+                    CsLodProtocol.VERSION, capsVoxy, capsDh, capsRadius)));
+            if (first) {
+                RETRY.started(System.currentTimeMillis());
+            }
         } catch (final IOException e) {
             LOGGER.warn("Chunksmith: failed to say hello: " + e);
         }
@@ -195,19 +307,44 @@ public final class CsLodClientNet {
             return;
         }
         if (!hello.storeAvailable() || hello.dimensions().isEmpty()) {
-            LOGGER.info("Chunksmith: server has no pregenerated LOD data");
+            // NOT the end of the session. Say so once, in plain words, and keep asking -- the operator has
+            // almost certainly not run the pregen yet, and when they do we want the player to see it without
+            // being told to relog. (In singleplayer this is the normal pre-pregen state and the world's own
+            // injector covers it, so retryTick stays out of it.)
+            if (!awaitingStore) {
+                awaitingStore = true;
+                LOGGER.info("Chunksmith: the server has no pregenerated LOD data yet."
+                        + " Staying connected and checking again (every {}s at first, then every {}s)"
+                        + " -- it will arrive on its own if the operator pregenerates, and you do NOT"
+                        + " need to relog.",
+                        CsLodRetry.FIRST_DELAY_MILLIS / 1000L, CsLodRetry.MAX_DELAY_MILLIS / 1000L);
+            }
             return;
         }
         token = hello.token();
+        tokenIssuedMillis = System.currentTimeMillis();
         backchannelPort = hello.backchannelPort();
 
+        if (awaitingStore) {
+            // The transition this whole retry machinery exists for. Name it.
+            LOGGER.info("Chunksmith: the server NOW has LOD data for {} -- fetching it (after {} check(s),"
+                            + " with no relog)", hello.dimensions(), RETRY.attempts());
+            awaitingStore = false;
+            RETRY.reset();
+        }
+
+        // Only ANNOUNCE on the hello that arms us. The later ones are token renewals, and a renewal every
+        // few minutes of travel must not re-narrate the connection.
+        final boolean arming = activeDimension.isEmpty();
         if (backchannelPort == 0) {
             // The operator has not opened the port. Not an error, and not the end: we ask for the data
             // in-band instead. It is much slower -- it rides the gameplay connection -- but it works
             // everywhere, which is the whole point of having a floor.
-            LOGGER.info("Chunksmith: server has LOD data but no backchannel; using the in-band"
-                    + " fallback (slower)");
-        } else {
+            if (arming) {
+                LOGGER.info("Chunksmith: server has LOD data but no backchannel; using the in-band"
+                        + " fallback (slower)");
+            }
+        } else if (arming) {
             LOGGER.info("Chunksmith: server has LOD data for {}; backchannel on port {}",
                     hello.dimensions(), backchannelPort);
         }
@@ -412,9 +549,15 @@ public final class CsLodClientNet {
         cancel();
         downloader = null;
         token = "";
+        tokenIssuedMillis = 0L;
         backchannelPort = 0;
         host = "";
         activeDimension = "";
+        awaitingStore = false;
+        RETRY.reset();
+        capsVoxy = false;
+        capsDh = false;
+        capsRadius = 0;
         busy.set(false);
         lastIndexMillis = 0L;
         inBandRoot = null;

@@ -69,6 +69,36 @@ public final class CsLodServerNet {
 
     /** The radius each client's renderer is actually configured to draw, in blocks. */
     private static final Map<UUID, Integer> RADIUS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Players who asked, can draw, and were told we had nothing -- yet.
+     *
+     * <p>This set is the whole fix. A player who joins before the operator runs the pregen used to be told
+     * "no data" once and then left to rot: the client stood down, and no amount of playing or travelling
+     * brought it back. Since a pregen takes hours and players sit on the server THROUGH it, that was the
+     * normal case, not an edge one. Now we remember them, and when the store becomes servable we tell them.
+     */
+    private static final java.util.Set<UUID> WAITING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** Dimensions each player has already been told about. Nobody is ever notified about the same one twice. */
+    private static final Map<UUID, java.util.Set<String>> ANNOUNCED =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Players whose hello we have already narrated. The retries and token renewals are not news. */
+    private static final java.util.Set<UUID> GREETED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * How often the store watch looks at the disk -- and it looks ONLY while somebody is waiting on it.
+     *
+     * <p>100 ticks is five seconds. The check itself is one directory open per loaded dimension, stopping at
+     * the first region file it sees ({@link CsLodStoreScan}), so even mid-pregen it is a readdir and nothing
+     * more. On a server whose store was already there at join -- every normal server -- {@link #WAITING} is
+     * empty and this costs a single {@code isEmpty()} per tick and never touches the filesystem at all.
+     */
+    private static final int STORE_WATCH_TICKS = 100;
+
+    private static int sinceStoreWatch;
+
     private static CsLodHttpServer http;
     private static MinecraftServer server;
 
@@ -85,6 +115,9 @@ public final class CsLodServerNet {
         TOKENS.revoke(player);
         CsLodInBandSender.forget(player);
         RADIUS.remove(player);
+        WAITING.remove(player);
+        ANNOUNCED.remove(player);
+        GREETED.remove(player);
     }
 
     /**
@@ -120,6 +153,10 @@ public final class CsLodServerNet {
             http = null;
         }
         TOKENS.clear();
+        WAITING.clear();
+        ANNOUNCED.clear();
+        GREETED.clear();
+        sinceStoreWatch = 0;
         server = null;
     }
 
@@ -187,26 +224,50 @@ public final class CsLodServerNet {
             return;
         }
 
-        final Path root = storeBase();
-        final boolean available = root != null && Files.isDirectory(root);
+        final List<String> dims = dimensions();
+        final boolean available = !dims.isEmpty();
         final int port = http == null ? 0 : http.getPort();
 
         // The token is issued HERE, over a connection Mojang has already authenticated. That is the whole
         // point: a UUID or a name proves nothing (both are public), but only a genuinely joined player can
         // ever receive this.
+        //
+        // And ONLY when there is something to serve. "The store DIRECTORY exists" used to be enough, so a
+        // server minted a token the instant a pregen created the folder and before it had written a single
+        // region -- a credential to download nothing, which is how an operator ends up reading "1 live
+        // token, 0 files" and rightly wondering what it means. No data, no token.
         final String token = (available && port != 0)
                 ? TOKENS.issue(player.getUUID(), addressOf(player))
                 : "";
 
         send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                CsLodProtocol.VERSION, available, port, token, dimensions())));
+                CsLodProtocol.VERSION, available, port, token, dims)));
 
         RADIUS.put(player.getUUID(),
                 Math.min(MAX_RADIUS_BLOCKS, Math.max(16, hello.radiusBlocks())));
 
-        LOGGER.info("Chunksmith: LOD hello from " + nameOf(player)
+        if (available) {
+            WAITING.remove(player.getUUID());
+            ANNOUNCED.computeIfAbsent(player.getUUID(),
+                    ignored -> java.util.concurrent.ConcurrentHashMap.newKeySet()).addAll(dims);
+        } else {
+            // Nothing for them yet. REMEMBER them. The store almost certainly fills up later in this very
+            // session -- that is what a pregen is -- and when it does, storeWatchTick tells them.
+            WAITING.add(player.getUUID());
+        }
+
+        // The client now re-asks on a backed-off clock while it waits, and again to renew its token as it
+        // travels. Narrate the FIRST hello of a session; the repeats are bookkeeping, not news, and a log
+        // line every fifteen seconds per waiting player is exactly the sort of noise that gets a feature
+        // turned off.
+        final String line = "Chunksmith: LOD hello from " + nameOf(player)
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
-                + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port));
+                + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port);
+        if (GREETED.add(player.getUUID())) {
+            LOGGER.info(line);
+        } else {
+            LOGGER.debug(line);
+        }
     }
 
     /**
@@ -243,10 +304,74 @@ public final class CsLodServerNet {
                 nameOf(player), wanted.size());
     }
 
-    /** Drip-feed the in-band queues. Wired to the server tick. */
+    /** Drip-feed the in-band queues, and watch for the store coming to life. Wired to the server tick. */
     public static void tick(final MinecraftServer current) {
         for (final ServerPlayer player : current.getPlayerList().getPlayers()) {
             CsLodInBandSender.tick(player);
+        }
+        storeWatchTick(current);
+    }
+
+    /**
+     * Tell the players who joined before the store existed, once it does.
+     *
+     * <p>The client PULLS -- that is the design, and this does not change it. We do not push data at anybody:
+     * we re-send the HELLO, the same message we already answer a hello with, and the client decides for
+     * itself whether to ask for an index. It can still refuse; it can still cancel. All we are doing is
+     * finishing the answer to a question they already asked, instead of leaving them with a stale "no".
+     *
+     * <p>Deliberately cheap and deliberately quiet:
+     * <ul>
+     *   <li>No watcher thread, no {@code WatchService}, no filesystem poll of any kind unless a player is
+     *       actually waiting -- so a normally-provisioned server pays one {@code isEmpty()} per tick;</li>
+     *   <li>at most one notice per player per dimension per session ({@link #ANNOUNCED}), so a pregen
+     *       writing thousands of regions produces exactly one message, not thousands;</li>
+     *   <li>the player is dropped from {@link #WAITING} the moment they are told, so the loop empties
+     *       itself and the watch goes back to sleep.</li>
+     * </ul>
+     */
+    private static void storeWatchTick(final MinecraftServer current) {
+        if (WAITING.isEmpty()) {
+            sinceStoreWatch = 0;
+            return;
+        }
+        if (++sinceStoreWatch < STORE_WATCH_TICKS) {
+            return;
+        }
+        sinceStoreWatch = 0;
+
+        final List<String> dims = dimensions();
+        if (dims.isEmpty()) {
+            return;
+        }
+        final int port = http == null ? 0 : http.getPort();
+
+        for (final UUID uuid : List.copyOf(WAITING)) {
+            final ServerPlayer player = current.getPlayerList().getPlayer(uuid);
+            if (player == null) {
+                WAITING.remove(uuid);
+                continue;
+            }
+            final java.util.Set<String> told = ANNOUNCED.computeIfAbsent(uuid,
+                    ignored -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+            if (!told.addAll(dims)) {
+                // They already know about every dimension we can serve. Never say it twice.
+                WAITING.remove(uuid);
+                continue;
+            }
+            WAITING.remove(uuid);
+
+            final String token = port != 0 ? TOKENS.issue(uuid, addressOf(player)) : "";
+            try {
+                send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
+                        CsLodProtocol.VERSION, true, port, token, dims)));
+            } catch (final IOException e) {
+                LOGGER.warn("Chunksmith: could not tell {} that the LOD store is ready: {}",
+                        nameOf(player), e.toString());
+                continue;
+            }
+            LOGGER.info("Chunksmith: the LOD store now has data for {} -- telling {}, who joined before it"
+                    + " existed. No relog needed.", dims, nameOf(player));
         }
     }
 
@@ -268,11 +393,21 @@ public final class CsLodServerNet {
             return;
         }
         final List<CsLodMessages.RegionEntry> regions = new ArrayList<>();
+        final long now = System.currentTimeMillis();
         if (Files.isDirectory(dir)) {
             try (var files = Files.list(dir)) {
                 for (final Path file : files.toList()) {
                     final String name = file.getFileName().toString();
                     if (!name.endsWith(".cslod")) {
+                        continue;
+                    }
+                    // Never index a region the pregen is still appending to. The store keeps the file open
+                    // and rewrites header slots as chunks land, so a client that downloads it mid-write gets
+                    // slots pointing past the end of what it received -- it recovers, but it eats an EOF and
+                    // takes home a fraction of the region. Let the writer finish (CsLodStoreScan.SETTLE_MILLIS)
+                    // and the client will pick it up on its next index; the content hash is what tells it the
+                    // region has moved on.
+                    if (!CsLodStoreScan.isSettled(file, now)) {
                         continue;
                     }
                     final String[] parts = name.split("\\.");
@@ -361,23 +496,25 @@ public final class CsLodServerNet {
         return crc.getValue();
     }
 
+    /**
+     * The dimensions we can actually SERVE, right now.
+     *
+     * <p>A dimension DIRECTORY is not LOD data. A pregen creates {@code chunksmith/lod/<dim>/} the instant it
+     * starts and does not write a region into it for some time after -- and this method used to advertise it
+     * the moment it appeared. So the server told clients it had a dimension it could not serve one byte of,
+     * and (see {@link #hello}) minted a backchannel token to go with it. A dimension counts once there is
+     * something in it. {@link CsLodStoreScan} answers that, and stops at the first region file it finds.
+     */
     private static List<String> dimensions() {
-        final List<String> names = new ArrayList<>();
         final MinecraftServer current = server;
         if (current == null) {
-            return names;
+            return List.of();
         }
-        final Path root = storeBase();
-        if (root == null) {
-            return names;
-        }
+        final List<Path> dirs = new ArrayList<>();
         for (final ServerLevel level : current.getAllLevels()) {
-            final Path dir = LodSupport.storeRoot(level);
-            if (Files.isDirectory(dir)) {
-                names.add(dir.getFileName().toString());
-            }
+            dirs.add(LodSupport.storeRoot(level));
         }
-        return names;
+        return CsLodStoreScan.servable(dirs, System.currentTimeMillis());
     }
 
     private static Path storeBase() {

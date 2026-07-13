@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+## [3.1.0-beta-2] - 2026-07-13
+
+**If you were already on the server when the pre-generation started, you now get the LOD data anyway.**
+Until this build you did not, and nothing you could do in-game would fix it -- only leaving and re-joining.
+Since a pre-generation takes hours, and people stay on the server while it runs, that was the normal case.
+
+### Fixed
+
+- **Joining before the server has any LOD data no longer costs you the whole session.** The client asked the
+  server once, on join. If the store was empty -- which it always is until someone runs a pre-generation --
+  the client logged one line and stood down for good: it never asked again, and the travel refresh never
+  armed either, so no amount of playing or exploring brought the data in. Meanwhile the operator would start
+  a pre-generation, the store would fill up over the next few hours, and every player already connected
+  stayed blind to it until they thought to re-log. Now the client keeps asking (after 15s, 30s, a minute,
+  then every two minutes -- a few bytes each time), **and** the server volunteers the news the moment its
+  store has something to serve, so in practice the terrain simply appears. No re-log, no command, nothing to
+  configure. The log says what is happening in both directions: *"the server has no pre-generated LOD data
+  yet ... you do NOT need to re-log"*, and later *"the server NOW has LOD data for [...] -- fetching it"*.
+- **The server no longer claims to have LOD data for a dimension it cannot serve a single region of.** A
+  pre-generation creates its folder the moment it starts and only writes into it some time later, and the
+  server was advertising that empty folder as data -- and issuing a download credential to go with it, which
+  is how an operator could see one live token and zero files served. A dimension now counts when there is
+  actually something in it.
+- **A long session no longer quietly loses the fast download path.** Download credentials expire after ten
+  minutes; a session lasts hours. Travelling far enough to pull in new terrain an hour after joining used to
+  present an expired one, fail every fetch, and drop to the slow path for the rest of the session without
+  ever saying so. The client now renews it before it can go stale.
+- **The server no longer hands out a region it is still writing.** Pre-generation keeps each region file open
+  and appends to it as chunks complete, so a copy taken mid-write is short: the client got part of a region
+  and an error in its log. It always recovered on the next fetch, so this was invisible until now -- but now
+  that players are told the moment the store comes to life, the very first region they ask for is one the
+  server is in the middle of writing. A region is offered once the generator has finished with it.
+
+### Notes
+
+- **No protocol change.** The wire format and the protocol version are untouched. A 3.1.0-beta-2 client and
+  a 3.1.0-beta-1 server work together, and so do a 3.1.0-beta-1 client and a 3.1.0-beta-2 server -- in fact
+  an old client talking to a new server picks up a late pre-generation too, because the server's notice is
+  simply its ordinary hello, sent again.
+
 ## [3.1.0-beta-1] - 2026-07-13
 
 **One mod does everything now.** Chunksmith-Client -- the separate client mod that multiplayer LOD used to
