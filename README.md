@@ -58,17 +58,20 @@ shows your pregenerated area without generating anything itself, and `/cslod dhp
 existing store into DH on demand - a world pregenerated long before you installed DH gets its LODs
 after the fact, with no regeneration. Where **voxy** exists, `/cslod inject` does the same for voxy.
 
-**In multiplayer, players install Chunksmith-Client.** The server keeps the CSLOD store; the client
+**In multiplayer, the LOD data has to reach the player.** The server keeps the CSLOD store; the client
 downloads what it needs and feeds it to that player's Distant Horizons or voxy. Nothing else on the
 server is required.
 
-> **Chunksmith-Client is awaiting Modrinth approval.** Until it clears review, download it from the
-> GitHub release:
-> **[Chunksmith-Client 1.0-beta-3](https://github.com/Kishku7/chunksmith-client/releases/tag/1.0-beta-3)**
-> - jars for Fabric (1.20.1, 1.21.1, 1.21.11, 26.1, 26.2, 26.3), NeoForge (1.21.1, 1.21.11, 26.1, 26.2)
-> and Forge (1.20.1). The Modrinth page is
-> [modrinth.com/mod/chunksmith-client](https://modrinth.com/mod/chunksmith-client) and will go live once
-> it is approved.
+> **Multiplayer LOD delivery is being merged into Chunksmith itself.** It will ship in an upcoming
+> release, and from then on players will need nothing but Chunksmith - no companion mod.
+>
+> That merged build is **not out yet**. The currently listed release (`3.0.0-beta-4`) still needs a
+> separate client mod on each player's machine for multiplayer LOD. The standalone **Chunksmith-Client**
+> mod has been **discontinued** - it is no longer developed and gets no new versions - but its existing
+> builds still work with `3.0.0-beta-4` and remain downloadable
+> [on Modrinth](https://modrinth.com/mod/chunksmith-client) for anyone who needs multiplayer LOD today.
+>
+> **Singleplayer is unaffected and never needed a companion mod.**
 
 ### A re-run fills in the missing LODs
 
