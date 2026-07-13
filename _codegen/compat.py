@@ -742,6 +742,103 @@ def has_section_builder(mcver, loader):
 DH_API_ARTIFACT = "maven.modrinth:distanthorizonsapi:7.0.0"
 
 
+# ---------------------------------------------------------------------------
+# LOD -- the CLIENT half (merged in from Chunksmith-Client at 3.1.0)
+# ---------------------------------------------------------------------------
+
+
+def has_lod_client(mcver, loader):
+    """Does this cell carry the MULTIPLAYER LOD CLIENT (the download client, the renderer injectors,
+    the DH dedupe-gate mixin)?
+
+    Exactly the LOD cells -- the client half is only useful where a renderer exists to feed, which is
+    the same condition has_lod() already encodes. Kept as its own name because it gates a DIFFERENT
+    set of files and a DIFFERENT side, and conflating the two is how a cell ends up claiming a
+    renderer it cannot feed.
+
+    Before 3.1.0 this half was a SEPARATE MOD (Chunksmith-Client). Both mods registered the
+    chunksmith:lod payload id, so a player who had both -- a self-hoster who plays singleplayer AND
+    joins a friend's Chunksmith server -- crashed on startup with
+    "Packet type [id=chunksmith:lod] is already registered!". One mod, one registration.
+    """
+    return has_lod(mcver, loader)
+
+
+# The FULL DH mod jar, needed at COMPILE time only by the LOD client's dedupe-gate mixin, which targets
+# DH's INTERNAL com.seibel.distanthorizons.core.level.DhClientLevel -- a class the standalone
+# distanthorizonsapi artifact does not carry. DH is a plain library (com.seibel.*, names no Minecraft
+# type, remap = false), so ONE jar serves every cell and every runtime mapping. compileOnly, never
+# shipped: DH is LGPL and not ours to redistribute. Lives in the gitignored repo-root libs/.
+DH_MIXIN_JAR = "DistantHorizons-3.2.0-b-1.21.1.jar"
+
+
+def neo_client_send_import(mcver):
+    """NeoForge moved the CLIENT's send off PacketDistributor between 21.1 and 21.11: on 21.1 the method
+    is PacketDistributor.sendToServer and ClientPacketDistributor DOES NOT EXIST; by 21.11 it is
+    ClientPacketDistributor.sendToServer and PacketDistributor.sendToServer is GONE. A hard either/or,
+    not a deprecation. javap-proven against neoforge-21.1.233 and neoforge-21.11.42 universal jars."""
+    if _parse(mcver) >= (1, 21, 11):
+        return "import net.neoforged.neoforge.client.network.ClientPacketDistributor;"
+    return "import net.neoforged.neoforge.network.PacketDistributor;"
+
+
+def neo_client_send_call(mcver, arg):
+    cls = "ClientPacketDistributor" if _parse(mcver) >= (1, 21, 11) else "PacketDistributor"
+    return "%s.sendToServer(%s);" % (cls, arg)
+
+
+def neo_lod_registration(mcver):
+    """The ONE registration of chunksmith:lod on NeoForge -- now that the jar is BOTH sides.
+
+    PayloadRegistrar.playBidirectional overloads, javap-proven:
+
+      neoforge 21.1.233  (MC 1.21.1) : ONLY the 3-arg (type, codec, handler) form exists.
+      neoforge 21.11.42+ (1.21.11/26): BOTH the 3-arg AND a 4-arg (type, codec, SERVERbound,
+                                       CLIENTbound) form -- serverbound FIRST.
+
+    While Chunksmith was SERVER-only the 3-arg form was right everywhere: a dedicated server only ever
+    receives serverbound, so the single handler landing in the serverbound slot was correct, and the
+    form exists on both -- no branch. The merge changed that. On 21.11+ a CLIENT whose clientbound slot
+    is null does not warn and does not degrade: NeoForge refuses to load the mod ("Some clientbound
+    payloads are missing client-side handlers") and drops to the loading-error screen. So:
+      21.1   -> 3-arg, one handler, branch on the player inside it.
+      21.11+ -> 4-arg, both slots named.
+
+    NEVER a playToServer plus a playToClient: NeoForge keys its payload registry on the payload ID, so
+    registering chunksmith:lod twice is a hard load failure ("Cannot register payload chunksmith:lod as
+    it is already registered"). That is exactly the crash a player got with Chunksmith + the standalone
+    Chunksmith-Client installed together, and it is now impossible by construction.
+
+    The clientbound side names NO client class -- it drains into CsLodChannel's static sink, which is
+    null unless the Dist.CLIENT entrypoint installed it. That is what keeps lod.client.* off a
+    dedicated server.
+    """
+    # The serverbound branch, minus its closing brace -- the two forms close it differently.
+    server_body = [
+        "        (payload, context) -> context.enqueueWork(() -> {",
+        "            if (context.player() instanceof final ServerPlayer player) {",
+        "                CsLodServerNet.receive(player, payload.data());",
+    ]
+    if _parse(mcver) >= (1, 21, 11):
+        # 4-arg: serverbound FIRST, then clientbound. Both slots named on both sides.
+        return [
+            "registrar.playBidirectional(Payload.TYPE, Payload.CODEC,",
+        ] + server_body + [
+            "            }",
+            "        }),",
+            "        (payload, context) -> context.enqueueWork(() -> dispatchClient(payload.data())));",
+        ]
+    # 21.1: the 3-arg form is the ONLY form. One handler serves both directions -- branch on the player.
+    return [
+        "registrar.playBidirectional(Payload.TYPE, Payload.CODEC,",
+    ] + server_body + [
+        "            } else {",
+        "                dispatchClient(payload.data());",
+        "            }",
+        "        }));",
+    ]
+
+
 def voxy_jar(mcver):
     """The voxy soft-dep jar for this MC line, in libs/. Only called where has_voxy() is true."""
     v = _parse(mcver)

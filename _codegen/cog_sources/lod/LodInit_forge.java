@@ -101,6 +101,18 @@ public final class LodInit {
                                 + "database: duplicated downloads and corrupted renderer state. Remove one.");
             }
         }
+        // The standalone Chunksmith-Client, DISCONTINUED at 3.1.0 -- its multiplayer LOD half IS this jar
+        // now. Both register the chunksmith:lod channel, so having both is a duplicate registration. Every
+        // other LOD cell declares this as a hard incompatibility in its manifest (Fabric `breaks`, NeoForge
+        // type="incompatible"); Forge 47's mods.toml has no incompatible dependency type at all -- only
+        // mandatory=true|false -- so on this one cell it can only be said out loud.
+        if (net.minecraftforge.fml.ModList.get().isLoaded("chunksmithclient")) {
+            org.slf4j.LoggerFactory.getLogger("Chunksmith").error(
+                    "Chunksmith-Client is installed alongside Chunksmith 3.1.0+. It is DISCONTINUED: its "
+                            + "multiplayer LOD feature is now built into Chunksmith itself, and running both "
+                            + "means two mods registering the same 'chunksmith:lod' channel. Remove the "
+                            + "Chunksmith-Client jar -- you lose nothing.");
+        }
     }
 
     @SubscribeEvent

@@ -31,7 +31,32 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  */
 public final class CsLodChannel {
 
+    /**
+     * Where an inbound CLIENTBOUND payload goes -- set by the client half at client setup, {@code null}
+     * everywhere else.
+     *
+     * <p>This field is the side-guard. The clientbound handler below is registered on BOTH sides (it must
+     * be: see the 4-arg note), but its body names NO client class -- it drains into this
+     * {@code Consumer<byte[]>}. On a dedicated server nothing ever sets it, the branch is dead, and
+     * {@code lod.client.*} is never class-loaded. Route the client through a static sink and a
+     * {@code NoClassDefFoundError} on a headless box stops being possible rather than merely unlikely.
+     */
+    private static volatile java.util.function.Consumer<byte[]> clientSink;
+
     private CsLodChannel() {
+    }
+
+    /** Called by the {@code Dist.CLIENT} entrypoint only. */
+    public static void setClientSink(final java.util.function.Consumer<byte[]> sink) {
+        clientSink = sink;
+    }
+
+    /** Drain a clientbound payload. A no-op on a dedicated server, where the sink is never installed. */
+    private static void dispatchClient(final byte[] data) {
+        final java.util.function.Consumer<byte[]> sink = clientSink;
+        if (sink != null) {
+            sink.accept(data);
+        }
     }
 
     /**
@@ -49,7 +74,13 @@ public final class CsLodChannel {
     }
 
     private static void onRegisterPayloads(final RegisterPayloadHandlersEvent event) {
-        final PayloadRegistrar registrar = event.registrar("1");
+        // optional() is not decoration. Without it the channel is REQUIRED, and NeoForge enforces that at
+        // the handshake in BOTH directions: a server would reject every client that does not have
+        // Chunksmith, and -- now that this jar is a client mod too -- a client would refuse to connect to
+        // any server that does not. Chunksmith is client-optional AND server-optional by design: a
+        // singleplayer user needs only the one jar, a joining player needs it client-side, an operator
+        // needs it server-side, and nobody should be locked out for the other side not having it.
+        final PayloadRegistrar registrar = event.registrar("1").optional();
 
         // BIDIRECTIONAL, in ONE call, with ONE handler.
         //
@@ -70,16 +101,36 @@ public final class CsLodChannel {
         //     (client, server) overload. The 3-arg overload exists on both -- so using it means no Cog
         //     branch here at all.
         //
-        // One handler serves both sides; the ServerPlayer guard is what makes that safe. On a dedicated
-        // server context.player() is always a ServerPlayer. On a CLIENT it is the LocalPlayer, so the
-        // guard turns this into a no-op -- exactly right, because there Chunksmith-Client owns the
-        // receive side and Chunksmith itself does nothing with an inbound LOD payload.
-        registrar.playBidirectional(Payload.TYPE, Payload.CODEC,
-                (payload, context) -> context.enqueueWork(() -> {
-                    if (context.player() instanceof final ServerPlayer player) {
-                        CsLodServerNet.receive(player, payload.data());
-                    }
-                }));
+        // 3-ARG vs 4-ARG -- and why the MERGE changed the answer.
+        //
+        // While Chunksmith was a SERVER-only mod, the 3-arg form was correct on every NeoForge we ship: a
+        // dedicated server only ever receives serverbound, so the 3-arg form's single handler landing in the
+        // serverbound slot was exactly right, and it exists on both 21.1 and 21.11+ -- no Cog branch.
+        //
+        // 3.1.0 merged the LOD client IN. This jar is now a CLIENT mod too, and on 21.11+/26 a client whose
+        // clientbound slot is NULL does not warn and does not degrade: NeoForge refuses to load the mod at
+        // all ("Some clientbound payloads are missing client-side handlers") and drops to the loading-error
+        // screen. So the form is now version-gated:
+        //   21.1   -- ONLY the 3-arg overload exists. One handler, both directions; branch on the player.
+        //   21.11+ -- use the 4-arg (Type, Codec, SERVERbound, CLIENTbound) -- serverbound FIRST -- so both
+        //             slots are filled on both sides.
+        // Either way it is ONE playBidirectional call and NEVER a playToServer plus a playToClient: NeoForge
+        // keys its payload registry on the payload id, so registering chunksmith:lod twice is a hard load
+        // failure ("Cannot register payload chunksmith:lod as it is already registered"). That failure is
+        // precisely what a player got when Chunksmith and the standalone Chunksmith-Client were both
+        // installed -- and it is now impossible by construction, because this is the only registration of
+        // this id in the mod.
+        //
+        // The serverbound handler's ServerPlayer guard: on a dedicated server context.player() is always a
+        // ServerPlayer; on an integrated (singleplayer/LAN-host) server it is too. The clientbound handler
+        // names no client class -- it drains into the static sink, which is null unless the client half
+        // installed it.
+        //[[[cog
+        // import cog, compat
+        // for line in compat.neo_lod_registration(mcver):
+        //     cog.outl(line)
+        //]]]
+        //[[[end]]]
     }
 
     /** Send raw protocol bytes to a player. */

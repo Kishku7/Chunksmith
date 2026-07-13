@@ -64,21 +64,47 @@ public final class CsLodChannel {
                 .add();
     }
 
+    /**
+     * Where an inbound message goes when it came FROM a server -- set by the client half at client setup,
+     * {@code null} everywhere else.
+     *
+     * <p>This field is the side-guard. {@code Message.handle} runs on both sides, but its body names NO
+     * client class: a message with a sender is a player's request (server path); a message with no sender
+     * arrived from a server, and is drained into this {@code Consumer<byte[]>}. On a dedicated server
+     * nothing ever sets it, that branch is dead, and {@code lod.client.*} is never class-loaded.
+     */
+    private static volatile java.util.function.Consumer<byte[]> clientSink;
+
     private CsLodChannel() {
     }
 
     /**
      * No-op: the channel is built by the static initializer above, which runs when FML class-loads this
      * {@code @EventBusSubscriber} during mod construction -- the only window in which the Forge network
-     * registry accepts a new channel. Kept so the loader-blind {@code CsLodServerNet.register()} call
-     * site is identical on every cell.
+     * registry accepts a new channel. ONE channel, ONE messageBuilder, both sides. Kept so the
+     * loader-blind {@code CsLodServerNet.register()} call site is identical on every cell.
      */
     public static void register() {
+    }
+
+    /** Called by the CLIENT bootstrap only (guarded on {@code FMLEnvironment.dist == Dist.CLIENT}). */
+    public static void setClientSink(final java.util.function.Consumer<byte[]> sink) {
+        clientSink = sink;
     }
 
     /** Send raw protocol bytes to a player. */
     public static void send(final ServerPlayer player, final byte[] data) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new Message(data));
+    }
+
+    /** Does the connected server speak our channel? Client-side use only. */
+    public static boolean isRemotePresent(final net.minecraft.network.Connection connection) {
+        return CHANNEL.isRemotePresent(connection);
+    }
+
+    /** Send raw protocol bytes to the connected server. Client-side use only. */
+    public static void sendToServer(final byte[] data) {
+        CHANNEL.sendToServer(new Message(data));
     }
 
     /** The one and only in-band message: a raw byte block. */
@@ -103,7 +129,16 @@ public final class CsLodChannel {
             context.enqueueWork(() -> {
                 final ServerPlayer sender = context.getSender();
                 if (sender != null) {
+                    // A player asked us for something -- the server path.
                     CsLodServerNet.receive(sender, this.data);
+                    return;
+                }
+                // No sender: this message came FROM a server, so we are the client. Drain it into the sink
+                // the client half installed. Null on a dedicated server, where this branch cannot be
+                // reached anyway -- no client class is named either way.
+                final java.util.function.Consumer<byte[]> sink = clientSink;
+                if (sink != null) {
+                    sink.accept(this.data);
                 }
             });
             context.setPacketHandled(true);

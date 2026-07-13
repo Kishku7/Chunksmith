@@ -12,6 +12,8 @@ authors="${author}, pop4959"
 description="${description}"
 [[mixins]]
 config="chunksmith.mixins.json"
+[[mixins]]
+config="chunksmith_lodclient.mixins.json"
 [[dependencies.chunksmith]]
    modId="neoforge"
    type="required"
@@ -57,6 +59,17 @@ config="chunksmith.mixins.json"
    side="BOTH"
 [[dependencies.chunksmith]]
    modId="lodserver"
+   type="incompatible"
+   versionRange="[0,)"
+   ordering="NONE"
+   side="BOTH"
+
+# The standalone Chunksmith-Client mod (DISCONTINUED at 3.1.0 -- its multiplayer LOD half
+# IS this jar now). Both register the chunksmith:lod payload id; NeoForge keys its payload
+# registry on the id, so the two together are a hard load failure. Declared, so the loader
+# refuses clearly instead of crashing mid-init.
+[[dependencies.chunksmith]]
+   modId="chunksmithclient"
    type="incompatible"
    versionRange="[0,)"
    ordering="NONE"

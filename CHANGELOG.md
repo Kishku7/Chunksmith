@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## [3.1.0-beta-1] - 2026-07-13
+
+**One mod does everything now.** Chunksmith-Client -- the separate client mod that multiplayer LOD used to
+require -- has been merged into Chunksmith and is discontinued. There is nothing else to install.
+
+- **Singleplayer:** just Chunksmith. (Unchanged; this already worked.)
+- **Multiplayer:** Chunksmith on the server *and* on the client. Same jar, both sides.
+- **A server that only wants pre-generation:** just Chunksmith, exactly as before. Nothing new loads.
+
+### Added
+
+- **Multiplayer LOD is now built in.** Joining a Chunksmith server that has pre-generated LOD data, your
+  client downloads it -- over the server's HTTP backchannel at network speed, or down the game connection
+  if that port is not reachable -- and feeds it to whichever LOD renderer you have (Distant Horizons, or
+  voxy on the cells where voxy exists). You see the whole pre-generated world at distance without ever
+  having walked it. Everything the standalone client did, it still does: the store is the cache, so a
+  re-join re-downloads nothing; the fetch repeats as you travel, so walking toward new terrain brings it in.
+
+### Fixed
+
+- **Installing Chunksmith and Chunksmith-Client together no longer crashes the game.** Both mods registered
+  the same `chunksmith:lod` channel, and the second one to start died with
+  `Packet type [id=chunksmith:lod] is already registered!` -- a hard crash on startup, with no explanation,
+  for anyone who ran their own server and also joined someone else's. There is now exactly one registration
+  of that channel, in one mod, so the collision cannot happen. If you still have the old client mod
+  installed, the loader will tell you to remove it instead of crashing.
+
+### Changed
+
+- Chunksmith is now listed as **client-optional and server-optional**. It is genuinely both: an operator
+  needs it server-side, a player joining that server needs it client-side, and a singleplayer user needs
+  only the one jar.
+- **Chunksmith-Client is discontinued.** Its existing builds keep working against this release -- the CSLOD
+  wire format is unchanged and the protocol version is still **1**, so a 3.1 client talks to a 3.0.0-beta-4
+  server and a 3.1 server serves a 1.0-beta-3 client. Nothing you have installed breaks. But there is no
+  reason to keep it: remove it and Chunksmith does the job alone.
+
+Bukkit/Paper/Folia are unaffected -- LOD is a Fabric/NeoForge/Forge feature and the plugin never carried it.
+
 ## [3.0.0-beta-4] - 2026-07-12
 
 Security release. A full audit of the CSLOD network path found two flaws, both fixed here. Upgrading is

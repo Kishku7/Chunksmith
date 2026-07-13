@@ -24,7 +24,14 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public final class CsLodChannel {
 
-    private static final ResourceLocation ID =
+    /**
+     * {@code chunksmith:lod} -- the ONE channel id, named in exactly one place.
+     *
+     * <p>Public because the CLIENT half of the mod ({@code lod.client.ClientPlatform}) attaches its
+     * receiver to the same id. Before 3.1.0 the client was a SEPARATE mod carrying its own copy of this
+     * constant; one mod, one constant, is the point of the merge.
+     */
+    public static final ResourceLocation ID =
             new ResourceLocation(CsLodProtocol.NAMESPACE, CsLodProtocol.CHANNEL);
 
     private CsLodChannel() {

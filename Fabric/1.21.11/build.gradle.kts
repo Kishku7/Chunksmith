@@ -87,6 +87,11 @@ dependencies {
     // this ONE artifact honestly covers the whole wide DH range we claim. compileOnly and never shipped:
     // DH is an optional soft dependency and is LGPL.
     compileOnly("maven.modrinth:distanthorizonsapi:7.0.0")
+    // The FULL DH jar -- COMPILE-TIME ONLY, and needed for exactly one thing: the LOD client's
+    // dedupe-gate mixin targets DH's INTERNAL DhClientLevel, which the API artifact above does not
+    // carry. Never shipped (DH is LGPL); DH stays an OPTIONAL soft dep at runtime. DH names no
+    // Minecraft type, so this one jar serves every cell -- nothing to remap, no per-MC pin.
+    compileOnly(files("../../libs/DistantHorizons-3.2.0-b-1.21.1.jar"))
     // voxy, via the -loomcompat copy that scripts/prep-libs.py produces. TWO separate traps here:
     //   1. modCompileOnly, NOT compileOnly: the published voxy jar for this MC line is INTERMEDIARY-mapped
     //      (WorldIdentifier.of(net.minecraft.class_1937), rawIngest(..., class_2826, ..., class_2804)),

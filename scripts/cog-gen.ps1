@@ -222,6 +222,7 @@ try {
     $hasDh = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_dh('$McVer','$Loader') else '0')")
     $hasVoxy = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_voxy('$McVer','$Loader') else '0')")
     $hasSectionBuilder = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_section_builder('$McVer','$Loader') else '0')")
+    $hasLodClient = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_lod_client('$McVer','$Loader') else '0')")
 } finally {
     Pop-Location
 }
@@ -291,6 +292,90 @@ if ($hasLod -eq '1') {
         Write-Host "[cog-gen] - voxy adapter (voxy is Fabric-only and has no build for $Loader/$McVer)"
     }
 
+    # --- Step 4c: the LOD CLIENT half -- MERGED IN FROM CHUNKSMITH-CLIENT AT 3.1.0 (compat.has_lod_client).
+    #
+    # This is the MULTIPLAYER path: on a Chunksmith server the player's own client downloads the
+    # pregenerated store (HTTP backchannel, or the in-band fallback) and injects it into whichever renderer
+    # they have. Until 3.1.0 it was a SEPARATE MOD, and the two mods BOTH registered the chunksmith:lod
+    # payload id -- so a player with both installed crashed on startup with "Packet type
+    # [id=chunksmith:lod] is already registered!". There is now ONE registration, in CsLodChannel, made from
+    # the COMMON init that runs on both sides. Everything below is RECEIVER-side only.
+    #
+    # SIDE GUARDING -- none of these classes may EVER load on a dedicated server. The guard is the LOADER's,
+    # not a runtime if:
+    #   Fabric   -- LodClientInit is a "client" entrypoint in fabric.mod.json. Fabric Loader does not
+    #               construct client entrypoints on a server.
+    #   NeoForge -- LodClientInit is a SECOND @Mod class, dist = Dist.CLIENT. FML only constructs a @Mod
+    #               class whose dist matches the running distribution.
+    #   Forge 47 -- @Mod has no dist there, so LodClientInit is a MOD-bus @EventBusSubscriber with
+    #               value = Dist.CLIENT. FML filters subscribers by dist BEFORE class-loading them.
+    # Proven at the gate by booting a dedicated server per loader with -verbose:class and asserting that no
+    # com.kishku7.chunksmith.lod.client class is ever loaded.
+    if ($hasLodClient -eq '1') {
+        $lodCliSrc = Join-Path $lodSrc 'client'
+        $lodCliDir = Join-Path $lodDir 'client'
+        New-Item -ItemType Directory -Force -Path (Join-Path $lodCliDir 'net') | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $lodCliDir 'render') | Out-Null
+
+        # Name-stable client sources.
+        $cliMap = [ordered]@{
+            'CsLodClientBoot.java'       = 'CsLodClientBoot.java'
+            'Renderers.java'             = 'Renderers.java'
+            'net/CsLodClientNet.java'    = 'net/CsLodClientNet.java'
+            'render/DhPushGuard.java'    = 'render/DhPushGuard.java'
+            'render/DhRadius.java'       = 'render/DhRadius.java'
+            'render/DhTarget.java'       = 'render/DhTarget.java'
+            'render/LodInjector.java'    = 'render/LodInjector.java'
+        }
+        foreach ($name in $cliMap.Keys) {
+            $src = Join-Path $lodCliSrc $name
+            if (-not (Test-Path $src)) { throw "lod client cog_source missing: $src" }
+            $dst = Join-Path $lodCliDir $cliMap[$name]
+            Copy-Item -Force $src $dst
+            $cogTargets += $dst
+        }
+
+        # Per-era client platform facade + per-loader client entrypoint (conditional file presence).
+        $cliPlatSrc = Join-Path $lodCliSrc ("ClientPlatform_{0}.java" -f $lodNetEra)
+        if (-not (Test-Path $cliPlatSrc)) { throw "client platform cog_source missing: $cliPlatSrc" }
+        Copy-Item -Force $cliPlatSrc (Join-Path $lodCliDir 'ClientPlatform.java')
+        $cogTargets += (Join-Path $lodCliDir 'ClientPlatform.java')
+
+        $cliInitSrc = Join-Path $lodCliSrc ("LodClientInit_{0}.java" -f $Loader.ToLower())
+        if (-not (Test-Path $cliInitSrc)) { throw "client entrypoint cog_source missing: $cliInitSrc" }
+        Copy-Item -Force $cliInitSrc (Join-Path $lodCliDir 'LodClientInit.java')
+        $cogTargets += (Join-Path $lodCliDir 'LodClientInit.java')
+
+        # voxy seam: the REAL adapter only where voxy actually ships (Fabric 1.21.11 + 26.x); a documented
+        # no-op stub everywhere else, so hasVoxy() returns false and the cell never announces a renderer it
+        # cannot feed. Unlike the SERVER-side voxy adapter (absent entirely off those cells), the client
+        # seam must exist on every LOD cell because Renderers references it unconditionally.
+        $voxySuffix = if ($hasVoxy -eq '1') { 'real' } else { 'stub' }
+        foreach ($base in @('VoxyTarget', 'VoxyRadius')) {
+            $src = Join-Path $lodCliSrc ("render/{0}_{1}.java" -f $base, $voxySuffix)
+            if (-not (Test-Path $src)) { throw "voxy seam cog_source missing: $src" }
+            $dst = Join-Path $lodCliDir ("render/{0}.java" -f $base)
+            Copy-Item -Force $src $dst
+            $cogTargets += $dst
+        }
+        Write-Host "[cog-gen] + LOD client voxy seam ($voxySuffix)"
+
+        # The DH dedupe-gate mixin. Only where DH exists -- and it must NOT go in chunksmith.mixins.json,
+        # which is "required": true. D18: Mixin resolves target classes at PREPARE time, and DH is an
+        # OPTIONAL soft dep, so a missing target in a REQUIRED config is a FATAL bootstrap error -- it would
+        # crash every voxy-only and every no-renderer player. Its own config, "required": false.
+        if ($hasDh -eq '1') {
+            New-Item -ItemType Directory -Force -Path (Join-Path $lodCliDir 'mixin') | Out-Null
+            $dst = Join-Path $lodCliDir 'mixin/DhClientLevelMixin.java'
+            Copy-Item -Force (Join-Path $lodCliSrc 'mixin/DhClientLevelMixin.java') $dst
+            $cogTargets += $dst
+        }
+
+        Write-Host "[cog-gen] + LOD CLIENT half (multiplayer download + inject)"
+    } else {
+        Write-Host "[cog-gen] - LOD CLIENT half (no LOD on this cell)"
+    }
+
     Write-Host "[cog-gen] + LOD feature (net era = $lodNetEra)"
 } else {
     if (Test-Path $lodDir) { Remove-Item -Recurse -Force $lodDir }
@@ -352,4 +437,41 @@ $jsonText = $jsonText -replace "`r`n", "`n"
 [System.IO.File]::WriteAllText($mixinsJsonPath, $jsonText, (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host "[cog-gen] wrote $($presentMixins.Count) server mixins + client -> chunksmith.mixins.json (compat=$compatLevel)"
+
+# --- Step 7: the LOD-CLIENT mixin config -- a SEPARATE file, and it MUST stay "required": false (D18).
+#
+# Its one mixin targets Distant Horizons' internal DhClientLevel. DH is an OPTIONAL soft dependency.
+# Mixin resolves a config's target classes at PREPARE time, so on a client with no DH installed that
+# target does not exist -- and in a config marked "required": true a missing target is a FATAL bootstrap
+# error. It would take the game down for every voxy-only player and every player with no renderer at all,
+# both fully supported configurations. chunksmith.mixins.json is required:true (its targets are vanilla
+# and always present), so this mixin cannot live there. Hence a second config.
+#
+# The INJECTOR stays at defaultRequire 1: if DH IS present and shouldProcessChunkUpdate has moved, that is
+# a real breakage and it must be loud, not a silent no-op.
+$lodClientMixins = Join-Path $cellPath 'src/main/resources/chunksmith_lodclient.mixins.json'
+if ($hasLod -eq '1' -and $hasDh -eq '1') {
+    $lodClientJson = @"
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.kishku7.chunksmith.lod.client.mixin",
+  "compatibilityLevel": "$compatLevel",
+$($refmapLine)  "mixins": [],
+  "client": [
+    "DhClientLevelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+"@
+    $lodClientJson = $lodClientJson -replace "`r`n", "`n"
+    [System.IO.File]::WriteAllText($lodClientMixins, $lodClientJson, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "[cog-gen] + chunksmith_lodclient.mixins.json (required=false, DH dedupe gate)"
+} else {
+    if (Test-Path $lodClientMixins) { Remove-Item -Force $lodClientMixins }
+    Write-Host "[cog-gen] - chunksmith_lodclient.mixins.json (no DH on this cell)"
+}
+
 Write-Host "[cog-gen] done: $genJava"

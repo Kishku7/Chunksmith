@@ -24,10 +24,17 @@
     "main": [
       "com.kishku7.chunksmith.ChunksmithFabric",
       "com.kishku7.chunksmith.lod.LodInit"
+    ],
+    "client": [
+      "com.kishku7.chunksmith.lod.client.LodClientInit"
     ]
   },
   "mixins": [
-    "chunksmith.mixins.json"
+    "chunksmith.mixins.json",
+    {
+      "config": "chunksmith_lodclient.mixins.json",
+      "environment": "client"
+    }
   ],
   "depends": {
     "fabricloader": ">=0.18.1",
@@ -41,6 +48,7 @@
   "breaks": {
     "lss": "*",
     "voxyserver": "*",
-    "lodserver": "*"
+    "lodserver": "*",
+    "chunksmithclient": "*"
   }
 }

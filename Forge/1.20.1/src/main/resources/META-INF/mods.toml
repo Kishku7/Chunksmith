@@ -12,6 +12,8 @@ authors="${author}, pop4959"
 description="${description}"
 [[mixins]]
 config="chunksmith.mixins.json"
+[[mixins]]
+config="chunksmith_lodclient.mixins.json"
 [[dependencies.${id}]]
     modId="forge"
     mandatory=true
