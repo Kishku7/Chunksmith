@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## [3.0.0-beta-4] - 2026-07-12
+
+Security release. A full audit of the CSLOD network path found two flaws, both fixed here. Upgrading is
+recommended for anyone running Chunksmith with LOD generation enabled, and especially on a server that
+accepts connections from players you do not control.
+
+### Security
+
+- **A dimension name that arrived over the network was used to build a file path without being checked.**
+  The CSLOD store turns a dimension id into a directory, and the value coming from the peer was trusted as
+  written, so a malformed one could refer to a location outside the store. Every place that turns a
+  dimension into a path now runs it through one shared validator that accepts only a well-formed dimension
+  id and rejects everything else.
+- **The CSLOD packet decoders allocated buffers from counts and lengths supplied by the sender, without
+  bounding them.** A very small hostile packet could therefore ask the receiver to reserve an enormous
+  amount of memory. Every count and length is now checked against a derived ceiling before anything is
+  allocated, at the canonical source (`shared_common`), so the server and the client share one set of
+  limits.
+
+The wire format is **unchanged** and the CSLOD protocol version is still **1** -- a 3.0.0-beta-4 server and
+an older Chunksmith-Client (or the reverse) still talk to each other.
+
+### Added
+
+- `CsLodBoundsTest` -- unit coverage for the new decode-time bounds.
+
 ## [3.0.0-beta-3] - 2026-07-12
 
 Re-run a pregen and it fills in the missing LODs. Generate a world first and turn LOD on later, and the
