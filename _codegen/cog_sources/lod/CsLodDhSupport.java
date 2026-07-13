@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Registers ChunkSmith as Distant Horizons' world-generator override, so DH is served straight from the
@@ -45,6 +47,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodDhSupport {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private static volatile MinecraftServer server;
     private static volatile CsLodDhGenerator lastGenerator;
@@ -88,7 +92,7 @@ public final class CsLodDhSupport {
         // Name the DH that is actually installed, in OUR log, before we touch it. We compile against the
         // standalone distanthorizonsapi artifact and support a wide DH range, so "which DH was it" is the
         // first question any bug report has to answer.
-        System.out.println("[chunksmith] " + version());
+        LOGGER.info("Chunksmith: {}", version());
         try {
             bind();
         } catch (final LinkageError e) {
@@ -133,10 +137,10 @@ public final class CsLodDhSupport {
             return;
         }
         disabled = true;
-        System.out.println("[chunksmith] this Distant Horizons is not compatible with the DH API Chunksmith"
-                + " was built against, so LOD will not serve DH this session -- " + cause
+        LOGGER.warn("Chunksmith: this Distant Horizons is not compatible with the DH API Chunksmith"
+                + " was built against, so LOD will not serve DH this session -- {}"
                 + ". Everything else keeps working. Please report this along with the DH version logged"
-                + " above.");
+                + " above.", cause.toString());
     }
 
     private static void bind() {
@@ -156,16 +160,16 @@ public final class CsLodDhSupport {
                     return;
                 }
                 if (store == null || !Files.isDirectory(store)) {
-                    System.out.println("[chunksmith] DH loaded a level with no CSLOD store; not overriding its generator");
+                    LOGGER.info("Chunksmith: DH loaded a level with no CSLOD store; not overriding its generator");
                     return;
                 }
                 final CsLodDhGenerator generator = new CsLodDhGenerator(level, store);
                 lastGenerator = generator;
                 DhApi.worldGenOverrides.registerWorldGeneratorOverride(level, generator);
-                System.out.println("[chunksmith] serving Distant Horizons from the CSLOD store -> " + store);
+                LOGGER.info("Chunksmith: serving Distant Horizons from the CSLOD store -> {}", store);
             }
         });
-        System.out.println("[chunksmith] Distant Horizons detected -- CSLOD level events bound");
+        LOGGER.info("Chunksmith: Distant Horizons detected -- CSLOD level events bound");
     }
 
     /**

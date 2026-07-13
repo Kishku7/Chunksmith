@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.zip.CRC32;
@@ -55,6 +56,16 @@ public final class CsLodServerNet {
 
     /** ~16k blocks: further than any LOD renderer draws, and it bounds the index we build. */
     private static final int MAX_RADIUS_BLOCKS = 16384;
+
+    /**
+     * A wire dimension id is a single store SUBDIRECTORY name and nothing else. It arrives from the
+     * network, so it is validated exactly the way the HTTP backchannel validates its own path component:
+     * the shape must match, AND the resolved directory must still live inside the store. The store writes
+     * dimension dirs as {@code minecraft_overworld} (see LodSupport.storeRoot), so this pattern is what an
+     * honest client always sends -- and a "." or ".." that slips the pattern is still caught by the
+     * containment check below (belt and suspenders, matching CsLodHttpServer.resolve).
+     */
+    private static final Pattern DIM_DIR = Pattern.compile("[a-z0-9_.-]{1,64}");
 
     /** The radius each client's renderer is actually configured to draw, in blocks. */
     private static final Map<UUID, Integer> RADIUS = new java.util.concurrent.ConcurrentHashMap<>();
@@ -220,6 +231,13 @@ public final class CsLodServerNet {
         if (root == null) {
             return;
         }
+        // The dimension came off the wire and is about to build filesystem paths -- validate it the same
+        // way the backchannel does, so a "../.." cannot walk the in-band sender out of the store.
+        if (safeDimensionDir(root, dimension) == null) {
+            LOGGER.warn("Chunksmith: ignoring an in-band LOD request from {} for a malformed dimension id",
+                    nameOf(player));
+            return;
+        }
         CsLodInBandSender.queue(player, root, dimension, wanted);
         LOGGER.info("Chunksmith: in-band LOD fetch for {} -- {} regions (no backchannel; this is the slow path)",
                 nameOf(player), wanted.size());
@@ -242,7 +260,13 @@ public final class CsLodServerNet {
         if (root == null) {
             return;
         }
-        final Path dir = root.resolve(dimension);
+        // The dimension came off the wire and is used to build a filesystem path -- validate + contain it.
+        final Path dir = safeDimensionDir(root, dimension);
+        if (dir == null) {
+            LOGGER.warn("Chunksmith: ignoring a LOD index request from {} for a malformed dimension id",
+                    nameOf(player));
+            return;
+        }
         final List<CsLodMessages.RegionEntry> regions = new ArrayList<>();
         if (Files.isDirectory(dir)) {
             try (var files = Files.list(dir)) {
@@ -261,6 +285,17 @@ public final class CsLodServerNet {
                         if (!inRange(player, regionX, regionZ)) {
                             continue;
                         }
+                        // hash() reads the whole region file, and index() runs on the SERVER THREAD, so the
+                        // work is bounded by the client-declared (clamped) radius. Cap it: a hostile radius
+                        // against a large store would otherwise read thousands of files on the tick thread.
+                        // The client re-requests as the player moves, so a capped index is never lossy.
+                        if (regions.size() >= MAX_REGIONS_PER_REQUEST) {
+                            LOGGER.warn("Chunksmith: LOD index for {} capped at {} regions (radius {}); "
+                                            + "the client re-requests as the player moves",
+                                    nameOf(player), MAX_REGIONS_PER_REQUEST,
+                                    RADIUS.getOrDefault(player.getUUID(), CsLodProtocol.DEFAULT_RADIUS_BLOCKS));
+                            break;
+                        }
                         regions.add(new CsLodMessages.RegionEntry(
                                 regionX, regionZ, hash(file), Files.size(file)));
                     } catch (final NumberFormatException ignored) {
@@ -270,6 +305,20 @@ public final class CsLodServerNet {
             }
         }
         send(player, CsLodMessages.encode(new CsLodMessages.RegionIndex(dimension, regions)));
+    }
+
+    /**
+     * Resolve a wire dimension id to a directory INSIDE the store, or null if it is malformed or tries to
+     * escape. Two gates, same as {@code CsLodHttpServer.resolve}: the shape must match {@link #DIM_DIR},
+     * AND the normalized result must still start with the store root (which catches a "." / ".." that the
+     * pattern would otherwise admit).
+     */
+    private static Path safeDimensionDir(final Path root, final String dimension) {
+        if (dimension == null || dimension.isEmpty() || !DIM_DIR.matcher(dimension).matches()) {
+            return null;
+        }
+        final Path dir = root.resolve(dimension).normalize();
+        return dir.startsWith(root) ? dir : null;
     }
 
     /**

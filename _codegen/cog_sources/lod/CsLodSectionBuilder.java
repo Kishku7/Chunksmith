@@ -19,8 +19,8 @@ import net.minecraft.world.level.chunk.PalettedContainer;
 //]]]
 //[[[end]]]
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rebuilds a vanilla {@link LevelChunkSection} from a stored CSLOD section -- the inverse of
@@ -55,8 +55,11 @@ import java.util.Map;
  */
 public final class CsLodSectionBuilder {
 
-    private static final Map<String, BlockState> BLOCK_CACHE = new HashMap<>();
-    private static final Map<String, Holder<Biome>> BIOME_CACHE = new HashMap<>();
+    // Static + shared by both callers (the voxy injector and the DH pusher), which each run on their own
+    // background thread -- and a user can start /cslod inject and /cslod dhpush at once. ConcurrentHashMap,
+    // not HashMap, or two concurrent computeIfAbsent resolves can corrupt the map.
+    private static final Map<String, BlockState> BLOCK_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, Holder<Biome>> BIOME_CACHE = new ConcurrentHashMap<>();
 
     private CsLodSectionBuilder() {
     }

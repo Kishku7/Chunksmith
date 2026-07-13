@@ -13,10 +13,12 @@ import com.seibel.distanthorizons.api.DhApi;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Serves Distant Horizons straight out of the CSLOD store.
@@ -49,14 +51,22 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
+
     private final IDhApiLevelWrapper level;
     private final CsLodRegionStore store;
     private final AtomicLong served = new AtomicLong();
     private final AtomicLong missed = new AtomicLong();
 
-    /** Wrapper caches: resolve each distinct palette string once, not once per data point. */
-    private final Map<String, IDhApiBlockStateWrapper> blockWrappers = new HashMap<>();
-    private final Map<String, IDhApiBiomeWrapper> biomeWrappers = new HashMap<>();
+    /**
+     * Wrapper caches: resolve each distinct palette string once, not once per data point. DH drives its
+     * world-generator override from its OWN thread pool, so {@code generateApiChunk} (and therefore
+     * {@code computeIfAbsent} on these maps) can run on several threads at once -- ConcurrentHashMap, not
+     * HashMap, or a concurrent resolve corrupts the map (a HashMap resize under two threads can spin
+     * forever).
+     */
+    private final Map<String, IDhApiBlockStateWrapper> blockWrappers = new ConcurrentHashMap<>();
+    private final Map<String, IDhApiBiomeWrapper> biomeWrappers = new ConcurrentHashMap<>();
 
     public CsLodDhGenerator(final IDhApiLevelWrapper level, final Path storeRoot) {
         this.level = level;
@@ -242,7 +252,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
         try {
             store.close();
         } catch (final IOException e) {
-            System.out.println("[chunksmith] failed to close the LOD store for DH: " + e);
+            LOGGER.warn("Chunksmith: failed to close the LOD store for DH: {}", e.toString());
         }
     }
 }
