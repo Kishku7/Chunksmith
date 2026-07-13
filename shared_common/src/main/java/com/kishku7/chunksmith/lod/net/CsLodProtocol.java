@@ -45,6 +45,65 @@ public final class CsLodProtocol {
     /** Default LOD radius, in BLOCKS, when the client cannot tell us what its renderer is set to. */
     public static final int DEFAULT_RADIUS_BLOCKS = 256;
 
+    // ---- decode-time input ceilings (DoS guard) ----
+    //
+    // Every count/length below is read straight off the wire (or off a region file whose bytes may have
+    // arrived over the wire) from a peer we do NOT trust: a hostile or simply buggy server can send a
+    // client packet, and a hostile client can send a server packet. A decoder MUST refuse an
+    // out-of-range count BEFORE it allocates anything -- otherwise one tiny packet claiming a huge count
+    // OOM-kills the receiver (or throws NegativeArraySize/IllegalArgument out of a tick task) before a
+    // single byte of real data arrives. These are validation ONLY: an honest peer's messages are all far
+    // under these caps, so the wire/disk format is byte-for-byte unchanged and VERSION does NOT move.
+    // Each ceiling is derived below from what a LEGITIMATE message can actually contain, with generous
+    // headroom so no honest message is ever refused.
+
+    /**
+     * Max dimensions listed in an {@code S2C_HELLO}. Vanilla has 3 (overworld/nether/end); datapacks and
+     * mods add more, but even a heavily-modded server lists at most a few dozen. 4096 is orders of
+     * magnitude above any real dimension count.
+     */
+    public static final int MAX_HELLO_DIMENSIONS = 4096;
+
+    /**
+     * Max region entries in a single {@code S2C_INDEX}. The server only indexes regions inside the
+     * client's clamped LOD radius (server MAX_RADIUS_BLOCKS 16384 -> ceil(16384/512)*2+1 = 65 regions per
+     * side -> ~4225 regions), and a per-request fetch is itself capped at 4096. 65536 (a 256-region-per-
+     * side grid == a 128k-block-wide world) is ~15x headroom over the largest honest index.
+     */
+    public static final int MAX_INDEX_REGIONS = 65536;
+
+    /**
+     * Max byte length of one in-band {@code S2C_CHUNK} slice. The sender drips fixed 24 KiB slices
+     * (CsLodInBandSender.SLICE_BYTES = 24 * 1024). 1 MiB is ~42x headroom -- it absorbs any future
+     * slice-size change while still refusing the multi-GB length that would OOM the receiver.
+     */
+    public static final int MAX_SLICE_BYTES = 1 << 20;
+
+    /**
+     * Max entries in one CSLOD palette (block or biome). Palette indices are serialized as 1 byte
+     * (palette &lt;= 256) or 2 bytes ({@code CsLodCodec.indexWidth}), so at most 65536 entries are ever
+     * addressable -- a larger palette is unreadable by definition. This is the exact ceiling, not an
+     * estimate.
+     */
+    public static final int MAX_PALETTE_SIZE = 65536;
+
+    /**
+     * Max sections in one CSLOD record. Section count rides a single unsigned byte on the wire, so it is
+     * already bounded to 255; the engine's own hard height limit (world height &lt;= 4064 blocks -> 254
+     * sections) sits just under that. 256 documents the ceiling and guards a future width change; it can
+     * never refuse an honest record.
+     */
+    public static final int MAX_SECTIONS = 256;
+
+    /**
+     * Max byte length of one stored CSLOD record (a compressed chunk). The uncompressed worst case is
+     * ~254 sections x ~12.4 KiB + palettes (~6 MiB); the stored payload is Deflate-compressed and so
+     * smaller. 32 MiB is ~5x headroom over that worst case. This bounds the {@code new byte[length]} in
+     * the region store, where {@code length} comes from a region-file header whose bytes may have been
+     * streamed in-band from an untrusted server.
+     */
+    public static final int MAX_RECORD_BYTES = 32 << 20;
+
     // ---- packet ids (first byte of every in-band payload) ----
 
     /** C2S: client hello -- protocol version + which renderers it has. */

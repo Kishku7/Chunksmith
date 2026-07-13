@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.lod.net.CsLodProtocol;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -41,6 +43,10 @@ import java.util.zip.InflaterInputStream;
  * The whole record is then Deflate-compressed. Uniform sections (everything above the terrain:
  * air with uniform sky light) collapse to a handful of bytes, which is what makes carrying light to
  * the build ceiling -- a hard Distant Horizons requirement -- affordable.
+ *
+ * <p>Every count read during {@link #decode} is validated against the ceilings in {@link CsLodProtocol}
+ * BEFORE any collection or array is sized, so a hostile or corrupt record cannot OOM the reader on a
+ * bogus palette or section count (the same bytes may have arrived over the wire in-band).
  */
 public final class CsLodCodec {
 
@@ -134,6 +140,12 @@ public final class CsLodCodec {
             final int chunkZ = in.readInt();
             final int minSectionY = in.readInt();
             final int sectionCount = in.readUnsignedByte();
+            // sectionCount rides a u8 so it is inherently bounded to 255; the check documents the ceiling
+            // and guards a future width change. Validate BEFORE sizing the section list.
+            if (sectionCount > CsLodProtocol.MAX_SECTIONS) {
+                throw new IOException("CSLOD record: section count " + sectionCount + " exceeds "
+                        + CsLodProtocol.MAX_SECTIONS);
+            }
 
             final List<String> blockPalette = readPalette(in);
             final List<String> biomePalette = readPalette(in);
@@ -222,7 +234,15 @@ public final class CsLodCodec {
 
     private static List<String> readPalette(final DataInputStream in) throws IOException {
         final int size = readVarInt(in);
-        final List<String> palette = new ArrayList<>(size);
+        // Bound BEFORE allocating: size is off the wire/disk. At most 65536 entries are ever addressable
+        // (indices are 1 or 2 bytes wide), so a larger count is malformed, not merely large.
+        if (size < 0 || size > CsLodProtocol.MAX_PALETTE_SIZE) {
+            throw new IOException("CSLOD record: palette size " + size + " out of range [0, "
+                    + CsLodProtocol.MAX_PALETTE_SIZE + "]");
+        }
+        // Do not presize from the count -- each entry is a further readUTF that hits EOF if the record is
+        // short, so a lie is caught without pre-allocating.
+        final List<String> palette = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             palette.add(in.readUTF());
         }

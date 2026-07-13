@@ -1,5 +1,7 @@
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.lod.net.CsLodProtocol;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -29,6 +31,10 @@ import java.util.Map;
  * <p>Rewriting a chunk appends a new record and re-points the slot; the old bytes are left behind as
  * garbage. Pregen writes each chunk once, so in the normal case there is nothing to reclaim. A
  * compaction pass can come later if a use case ever needs it.
+ *
+ * <p>A record {@code length} read from a header slot is validated against {@link CsLodProtocol#MAX_RECORD_BYTES}
+ * before {@code new byte[length]}: on the in-band path a region file's bytes are streamed from a server we
+ * do not trust, so a bogus slot length must not OOM the reader.
  */
 public final class CsLodRegionStore {
 
@@ -91,6 +97,12 @@ public final class CsLodRegionStore {
         if (offset <= 0 || length <= 0) {
             return null;
         }
+        // Bound BEFORE allocating: length comes from a header slot whose bytes may have been streamed
+        // in-band from an untrusted server (see MAX_RECORD_BYTES).
+        if (length > CsLodProtocol.MAX_RECORD_BYTES) {
+            throw new IOException("CSLOD region " + path.getFileName() + " slot " + slot
+                    + ": record length " + length + " exceeds " + CsLodProtocol.MAX_RECORD_BYTES);
+        }
         final byte[] payload = new byte[length];
         file.seek(offset);
         file.readFully(payload);
@@ -151,6 +163,12 @@ public final class CsLodRegionStore {
                 final int length = file.readInt();
                 if (offset <= 0 || length <= 0) {
                     continue;
+                }
+                // Bound BEFORE allocating: length comes from a header slot whose bytes may have been
+                // streamed in-band from an untrusted server (see MAX_RECORD_BYTES).
+                if (length > CsLodProtocol.MAX_RECORD_BYTES) {
+                    throw new IOException("CSLOD region " + region.getFileName() + " slot " + slot
+                            + ": record length " + length + " exceeds " + CsLodProtocol.MAX_RECORD_BYTES);
                 }
                 final byte[] payload = new byte[length];
                 file.seek(offset);

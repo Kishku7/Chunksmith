@@ -15,6 +15,12 @@ import java.util.List;
  * {@code byte[]}, and ALL the protocol lives here. That is what lets the Chunksmith server and
  * Chunksmith-Client -- two different mods, in two different repos -- share one implementation without
  * sharing a loader.
+ *
+ * <p>Every decoder below validates each count/length it reads off the wire against the ceilings in
+ * {@link CsLodProtocol} BEFORE allocating anything (see the "decode-time input ceilings" block there). A
+ * peer is not trusted: a tiny hostile or buggy packet claiming a huge count would otherwise OOM the
+ * receiver on the very first allocation. On a violation the decoder throws {@link IOException}, which the
+ * callers already log-and-drop as a malformed message.
  */
 public final class CsLodMessages {
 
@@ -83,7 +89,14 @@ public final class CsLodMessages {
         final int port = in.readInt();
         final String token = in.readUTF();
         final int count = in.readInt();
-        final List<String> dimensions = new ArrayList<>(count);
+        // Bound BEFORE allocating: count is off the wire from an untrusted server.
+        if (count < 0 || count > CsLodProtocol.MAX_HELLO_DIMENSIONS) {
+            throw new IOException("CSLOD hello: dimension count " + count + " out of range [0, "
+                    + CsLodProtocol.MAX_HELLO_DIMENSIONS + "]");
+        }
+        // Do not presize from the wire count -- grow as entries actually arrive, so a short packet that
+        // over-claims hits EOF harmlessly instead of pre-allocating a large backing array.
+        final List<String> dimensions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             dimensions.add(in.readUTF());
         }
@@ -123,7 +136,14 @@ public final class CsLodMessages {
     public static RegionIndex decodeRegionIndex(final DataInputStream in) throws IOException {
         final String dimension = in.readUTF();
         final int count = in.readInt();
-        final List<RegionEntry> regions = new ArrayList<>(count);
+        // Bound BEFORE allocating: count is off the wire from an untrusted server.
+        if (count < 0 || count > CsLodProtocol.MAX_INDEX_REGIONS) {
+            throw new IOException("CSLOD index: region count " + count + " out of range [0, "
+                    + CsLodProtocol.MAX_INDEX_REGIONS + "]");
+        }
+        // Do not presize from the wire count -- each entry is four further reads that hit EOF if the
+        // packet is short, so a lie is caught without pre-allocating.
+        final List<RegionEntry> regions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             regions.add(new RegionEntry(in.readInt(), in.readInt(), in.readLong(), in.readLong()));
         }
@@ -191,7 +211,14 @@ public final class CsLodMessages {
         final int x = in.readInt();
         final int z = in.readInt();
         final boolean last = in.readBoolean();
-        final byte[] data = new byte[in.readInt()];
+        final int length = in.readInt();
+        // Bound BEFORE allocating: length is off the wire from an untrusted server. An honest slice is at
+        // most the 24 KiB drip (see MAX_SLICE_BYTES); do not new byte[length] on a hostile huge value.
+        if (length < 0 || length > CsLodProtocol.MAX_SLICE_BYTES) {
+            throw new IOException("CSLOD slice: payload length " + length + " out of range [0, "
+                    + CsLodProtocol.MAX_SLICE_BYTES + "]");
+        }
+        final byte[] data = new byte[length];
         in.readFully(data);
         return new RegionSlice(dimension, x, z, last, data);
     }
