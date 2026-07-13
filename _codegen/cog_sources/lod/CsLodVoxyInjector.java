@@ -46,6 +46,18 @@ public final class CsLodVoxyInjector {
 
     /** True when there is a voxy engine to inject into (i.e. singleplayer / a client instance). */
     public static boolean voxyAvailable() {
+        // Ask the LOADER first. voxy is a client-side mod, so the overwhelmingly common case -- every
+        // dedicated server there is -- is that it is simply not installed, and then the VoxyCommon
+        // reference below is an unresolvable class: a NoClassDefFoundError, which is a LinkageError, which
+        // the catch beneath would dutifully report as "voxy is installed, but this build of it does not
+        // match ... please report it". It is not installed. Nothing is wrong. Telling every server operator
+        // to file a bug about a voxy fork they do not have is worse than the silence it replaced.
+        //
+        // Past this gate a LinkageError means what the catch says it means: voxy IS here, and it is not the
+        // voxy we compiled against.
+        if (!LodPlatform.isModLoaded("voxy")) {
+            return false;
+        }
         try {
             return VoxyCommon.getInstance() != null;
         } catch (final LinkageError error) {
