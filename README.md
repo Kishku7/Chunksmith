@@ -64,7 +64,7 @@ server is required.
 
 > **Chunksmith-Client is awaiting Modrinth approval.** Until it clears review, download it from the
 > GitHub release:
-> **[Chunksmith-Client 1.0-beta-2](https://github.com/Kishku7/chunksmith-client/releases/tag/1.0-beta-2)**
+> **[Chunksmith-Client 1.0-beta-3](https://github.com/Kishku7/chunksmith-client/releases/tag/1.0-beta-3)**
 > - jars for Fabric (1.20.1, 1.21.1, 1.21.11, 26.1, 26.2, 26.3), NeoForge (1.21.1, 1.21.11, 26.1, 26.2)
 > and Forge (1.20.1). The Modrinth page is
 > [modrinth.com/mod/chunksmith-client](https://modrinth.com/mod/chunksmith-client) and will go live once
