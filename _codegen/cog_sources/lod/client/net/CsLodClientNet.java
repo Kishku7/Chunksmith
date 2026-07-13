@@ -1,6 +1,7 @@
 package com.kishku7.chunksmith.lod.client.net;
 
 import com.kishku7.chunksmith.lod.client.CsLodCache;
+import com.kishku7.chunksmith.lod.client.CsLodDimension;
 import com.kishku7.chunksmith.lod.client.CsLodDownloader;
 import com.kishku7.chunksmith.lod.client.CsLodStore;
 import com.kishku7.chunksmith.lod.client.Renderers;
@@ -92,8 +93,33 @@ public final class CsLodClientNet {
     private static volatile int backchannelPort;
     private static volatile String host = "";
 
-    /** The dimension we are pulling for -- set from the server's hello, and re-used by every refresh. */
+    /**
+     * The dimension we are currently pulling for. ALWAYS the one the player is actually in.
+     *
+     * <p><b>This was the bug in 3.1.0-beta-2, and it is worth naming precisely.</b> It used to be set to
+     * {@code hello.dimensions().get(0)} -- the FIRST dimension the server happened to list, which on every
+     * normal server is the overworld -- and then never changed for the rest of the session. Walk through a
+     * Nether portal and the client kept asking for the OVERWORLD's region index, kept reading the
+     * OVERWORLD's store directory, and handed those records to the injector, which pushed them into the
+     * level the player was now in. The player stood in the Nether looking at grass, oceans and beaches
+     * hanging in the sky, while every counter and every log line reported success.
+     *
+     * <p>So it is no longer a remembered answer. It is re-derived from the LEVEL (see
+     * {@link #dimensionTick}), and the moment the player changes dimension it is cleared and the whole
+     * exchange is re-armed for the level they are actually standing in. Empty means "not pulling for
+     * anything" -- either we have not been armed yet, or the server has nothing for the dimension we are in.
+     */
     private static volatile String activeDimension = "";
+
+    /**
+     * The dimension the player was in when we last looked. Compared against the level every tick; a
+     * difference IS the dimension change (there is no reliable cross-loader, cross-version dimension-change
+     * event, and there does not need to be -- the level is the truth).
+     */
+    private static volatile String playerDimension = "";
+
+    /** What the server told us it can serve. Re-read on every hello, so a later pregen shows up here. */
+    private static volatile List<String> serverDimensions = List.of();
 
     /**
      * The server answered, and had nothing to give us -- yet.
@@ -151,17 +177,25 @@ public final class CsLodClientNet {
      * each region exactly once per session. Standing still costs nothing at all.
      */
     private static void travelTick() {
+        final LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        // BEFORE anything else: are we even still in the dimension we think we are? A portal changes the
+        // answer to every question below it -- which store to read, which index to ask for, and which level
+        // the records belong in. Checked on every tick, and checked even while a fetch is in flight, because
+        // a fetch in flight for the dimension the player has just LEFT is exactly what must be stopped.
+        if (dimensionTick()) {
+            return;
+        }
         if (busy.get()) {
             return;
         }
         if (activeDimension.isEmpty()) {
             // Nothing to refresh yet -- but that no longer means nothing to do. If the server told us its
-            // store was empty, keep asking; it may not be empty any more.
+            // store was empty (or had nothing for the dimension we are standing in), keep asking; that may
+            // not be true any more.
             retryTick();
-            return;
-        }
-        final LocalPlayer player = Minecraft.getInstance().player;
-        if (player == null) {
             return;
         }
         final long now = System.currentTimeMillis();
@@ -185,6 +219,71 @@ public final class CsLodClientNet {
             return;
         }
         requestIndex(activeDimension);
+    }
+
+    /**
+     * Did the player just change dimension? If so, re-arm the whole exchange for the level they are now in.
+     *
+     * @return true if the dimension changed (the caller must do nothing else this tick)
+     */
+    private static boolean dimensionTick() {
+        final String now = CsLodDimension.current();
+        if (now.isEmpty()) {
+            // Mid-change: the old level is gone and the new one is not up. Not a dimension, and not a
+            // reason to forget the one we are in -- just wait for the next tick.
+            return false;
+        }
+        if (now.equals(playerDimension)) {
+            return false;
+        }
+
+        final String from = playerDimension;
+        playerDimension = now;
+
+        // Whatever we were pulling was for the level the player has just LEFT. Drop it on the floor: an
+        // index or a download that lands after this point describes somewhere the player no longer is, and
+        // the injector will refuse it (it checks the level's own dimension). Cancel the in-flight fetch so
+        // we are not holding the busy latch against the dimension we are about to ask for.
+        activeDimension = "";
+        inBandRoot = null;
+        inBandDimension = "";
+        inBandRegions = List.of();
+        PARTIAL.clear();
+        final CsLodDownloader current = downloader;
+        if (current != null) {
+            current.cancel();
+        }
+        if (busy.get()) {
+            // Tell the server to stop too. Both transports: an in-band drip-feed has no downloader to
+            // cancel, and left running it would keep spending the gameplay connection on a dimension the
+            // player has walked out of.
+            send(CsLodMessages.cancel());
+        }
+        downloader = null;
+        busy.set(false);
+        lastIndexMillis = 0L;
+
+        if (!capsVoxy && !capsDh) {
+            // No renderer. hello() already said so; do not narrate a dimension change we will do nothing about.
+            return true;
+        }
+        if (from.isEmpty()) {
+            // First level of the session. hello() is already on its way (or has been answered) -- this is
+            // not a CHANGE, it is us learning where we started. Do not re-hello; just record it and let the
+            // normal handshake arm us.
+            return true;
+        }
+
+        LOGGER.info("Chunksmith: the player moved from {} to {} -- the LOD data for {} is a DIFFERENT world,"
+                + " so asking the server what it has for {}", from, now, from, now);
+
+        // Ask again. The hello is the same message the server answers on join, so this needs no new packet
+        // and works against any Chunksmith server: it comes back with the dimensions it can serve and a
+        // fresh token, and serverHello() arms us for the dimension we are NOW in.
+        awaitingStore = false;
+        RETRY.reset();
+        sendHello(true);
+        return true;
     }
 
     /**
@@ -324,32 +423,63 @@ public final class CsLodClientNet {
         token = hello.token();
         tokenIssuedMillis = System.currentTimeMillis();
         backchannelPort = hello.backchannelPort();
+        serverDimensions = hello.dimensions();
+
+        // WHICH dimension do we want? The one the player is standing in -- NEVER the first one the server
+        // happened to list. That single line (`activeDimension = hello.dimensions().get(0)`) is what put
+        // overworld terrain in players' Nether skies in 3.1.0-beta-2: the server lists its levels in
+        // getAllLevels() order, the overworld comes first, and the client then pulled the overworld's store
+        // for the whole session no matter where the player went.
+        final String mine = CsLodDimension.current();
+        if (mine.isEmpty()) {
+            // No level yet -- we are still loading in. dimensionTick() will pick this up and re-hello the
+            // moment there is a level to name.
+            return;
+        }
+        playerDimension = mine;
+
+        if (!serverDimensions.contains(mine)) {
+            // The server HAS data -- just not for the dimension we are in. That is entirely normal (most
+            // operators pregen the overworld and nothing else), and it is emphatically NOT a reason to
+            // render some other dimension's terrain here. Say so once, and keep asking: the operator may
+            // pregen this dimension later, and the player may walk back out of it.
+            if (!awaitingStore) {
+                awaitingStore = true;
+                LOGGER.info("Chunksmith: the server has LOD data for {}, but nothing for {} -- the"
+                                + " dimension you are in. Nothing will be drawn here (data from another"
+                                + " dimension is NOT a substitute). Checking again as you play.",
+                        serverDimensions, mine);
+            }
+            activeDimension = "";
+            return;
+        }
 
         if (awaitingStore) {
             // The transition this whole retry machinery exists for. Name it.
             LOGGER.info("Chunksmith: the server NOW has LOD data for {} -- fetching it (after {} check(s),"
-                            + " with no relog)", hello.dimensions(), RETRY.attempts());
+                            + " with no relog)", mine, RETRY.attempts());
             awaitingStore = false;
             RETRY.reset();
         }
 
-        // Only ANNOUNCE on the hello that arms us. The later ones are token renewals, and a renewal every
-        // few minutes of travel must not re-narrate the connection.
+        // Only ANNOUNCE on the hello that arms us -- for THIS dimension. The later ones are token renewals,
+        // and a renewal every few minutes of travel must not re-narrate the connection. A dimension change
+        // DOES re-announce, because it is genuinely a different world and a different store.
         final boolean arming = activeDimension.isEmpty();
         if (backchannelPort == 0) {
             // The operator has not opened the port. Not an error, and not the end: we ask for the data
             // in-band instead. It is much slower -- it rides the gameplay connection -- but it works
             // everywhere, which is the whole point of having a floor.
             if (arming) {
-                LOGGER.info("Chunksmith: server has LOD data but no backchannel; using the in-band"
-                        + " fallback (slower)");
+                LOGGER.info("Chunksmith: server has LOD data for {} but no backchannel; using the in-band"
+                        + " fallback (slower)", mine);
             }
         } else if (arming) {
             LOGGER.info("Chunksmith: server has LOD data for {}; backchannel on port {}",
-                    hello.dimensions(), backchannelPort);
+                    mine, backchannelPort);
         }
-        activeDimension = hello.dimensions().get(0);
-        requestIndex(activeDimension);
+        activeDimension = mine;
+        requestIndex(mine);
     }
 
     /** Ask what is in range right now, and remember where we asked from. */
@@ -553,6 +683,8 @@ public final class CsLodClientNet {
         backchannelPort = 0;
         host = "";
         activeDimension = "";
+        playerDimension = "";
+        serverDimensions = List.of();
         awaitingStore = false;
         RETRY.reset();
         capsVoxy = false;

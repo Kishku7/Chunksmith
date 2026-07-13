@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+## [3.1.0-beta-3] - 2026-07-13
+
+**The Overworld was showing up in the Nether. It is not any more.** If you went through a Nether portal on a
+Chunksmith server, the distant terrain you saw there was not the Nether -- it was the Overworld's, pushed
+into the Nether's sky. Grass, oceans and beaches, floating over the lava. Everything reported success while
+it happened. This release fixes it, on both sides.
+
+### Fixed
+
+- **Distant terrain from one dimension no longer appears in another.** The client picked which dimension's
+  LOD data to download from the FIRST dimension the server happened to list when you joined -- on any normal
+  server, the Overworld -- and then never revisited that choice for the rest of the session. Walk through a
+  portal and it kept downloading the Overworld's terrain and handing it to your LOD renderer, which drew it
+  around you in the Nether. Neither Distant Horizons nor voxy checks that the terrain it is given belongs to
+  the world you are in; they accepted it, saved it, and drew it. The client now tracks the dimension you are
+  actually standing in, re-asks the server the moment you change dimension, and **refuses to inject any
+  record that does not belong to the level in front of it.** Terrain from another dimension is never a
+  substitute for this one's, and it is no longer treated as one.
+- **The Nether's own LOD data is no longer silently skipped.** A second, independent bug, which would have
+  kept the Nether empty even after the fix above. The client remembers which regions it has already drawn so
+  a travel refresh does not re-push terrain you can already see -- but it remembered them by region
+  coordinates ALONE. Region (0,0) is a different place in every dimension, so the moment the Overworld's
+  (0,0) had been drawn, the Nether's (0,0) counted as "already done" and was dropped on the floor, for the
+  whole session, without a word. Regions are now remembered per dimension, which is the only way a region
+  coordinate means anything.
+- **The server no longer serves an index for a dimension you are not in.** The list of regions near you is
+  filtered by your renderer's range measured from YOUR position -- and a position only means something in a
+  particular world. The server now answers with the dimension you are actually standing in, whatever was
+  asked for, and says so in the log when the two differ. **This alone stops an already-installed
+  3.1.0-beta-2 client from putting Overworld terrain in your Nether sky**, since the client files and draws
+  the data under the dimension the server names.
+- **Changing dimension mid-download no longer wastes the transfer.** A download in flight when you step
+  through a portal is now cancelled -- on both ends -- instead of continuing to spend your connection on a
+  world you have left, and the regions it had not reached are re-fetched for the dimension you are in.
+
+### Notes
+
+- The wire protocol is UNCHANGED (`CsLodProtocol.VERSION` is still 1). A beta-2 client and a beta-3 server
+  interoperate, and the server-side correction above means such a client is partly fixed without updating --
+  but only partly (it will still skip a region whose coordinates it drew in another dimension), so please
+  update.
+- Single-dimension play -- the overwhelmingly normal case, an Overworld-only pregen and a player who never
+  leaves it -- behaves exactly as before.
+
 ## [3.1.0-beta-2] - 2026-07-13
 
 **If you were already on the server when the pre-generation started, you now get the LOD data anyway.**

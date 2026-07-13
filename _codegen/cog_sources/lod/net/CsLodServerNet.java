@@ -275,7 +275,7 @@ public final class CsLodServerNet {
      * connection instead. Slow on purpose -- gameplay wins, LOD fills the gaps.
      */
     private static void inBand(final ServerPlayer player, final DataInputStream in) throws IOException {
-        final String dimension = in.readUTF();
+        final String requested = in.readUTF();
         final int count = in.readInt();
         // Bound BEFORE sizing anything: count came off the wire (see MAX_REGIONS_PER_REQUEST). A client
         // with more than this left to fetch simply asks again -- the index tells it what it is missing.
@@ -294,14 +294,28 @@ public final class CsLodServerNet {
         }
         // The dimension came off the wire and is about to build filesystem paths -- validate it the same
         // way the backchannel does, so a "../.." cannot walk the in-band sender out of the store.
-        if (safeDimensionDir(root, dimension) == null) {
+        if (safeDimensionDir(root, requested) == null) {
             LOGGER.warn("Chunksmith: ignoring an in-band LOD request from {} for a malformed dimension id",
                     nameOf(player));
             return;
         }
+        // Same rule as the index (see index()): we serve the dimension the player is IN, whatever they
+        // asked for. The in-band sender stamps this dimension on every slice, and the client stores under
+        // the dimension it is told -- so an old client that asks for the overworld from inside the Nether
+        // gets the Nether's regions, filed under the Nether.
+        final String dimension = dimensionOf(player);
+        if (dimension.isEmpty()) {
+            return;
+        }
+        if (!dimension.equals(requested)) {
+            LOGGER.info("Chunksmith: {} asked in-band for {} while standing in {} -- serving {} instead."
+                            + " (A client older than 3.1.0-beta-3 asks for the wrong dimension after going"
+                            + " through a portal; please update it.)",
+                    nameOf(player), requested, dimension, dimension);
+        }
         CsLodInBandSender.queue(player, root, dimension, wanted);
-        LOGGER.info("Chunksmith: in-band LOD fetch for {} -- {} regions (no backchannel; this is the slow path)",
-                nameOf(player), wanted.size());
+        LOGGER.info("Chunksmith: in-band LOD fetch for {} -- {} regions of {} (no backchannel; this is the"
+                + " slow path)", nameOf(player), wanted.size(), dimension);
     }
 
     /** Drip-feed the in-band queues, and watch for the store coming to life. Wired to the server tick. */
@@ -380,16 +394,41 @@ public final class CsLodServerNet {
         send(player, data);
     }
 
-    private static void index(final ServerPlayer player, final String dimension) throws IOException {
+    private static void index(final ServerPlayer player, final String requested) throws IOException {
         final Path root = storeBase();
         if (root == null) {
             return;
         }
         // The dimension came off the wire and is used to build a filesystem path -- validate + contain it.
-        final Path dir = safeDimensionDir(root, dimension);
-        if (dir == null) {
+        if (safeDimensionDir(root, requested) == null) {
             LOGGER.warn("Chunksmith: ignoring a LOD index request from {} for a malformed dimension id",
                     nameOf(player));
+            return;
+        }
+
+        // AN INDEX IS ONLY MEANINGFUL FOR THE DIMENSION THE PLAYER IS STANDING IN. It is filtered by the
+        // radius of their renderer measured from THEIR position (see inRange) -- and a position is a
+        // position in a particular world. Asking for the overworld's index while standing in the Nether
+        // returns overworld regions selected by Nether coordinates: nonsense, and worse than nonsense
+        // because the client will then draw them.
+        //
+        // A 3.1.0-beta-2 client does exactly that: it latched onto the first dimension we listed at join and
+        // never asked for another. We cannot patch a jar that is already in a player's mods folder -- but we
+        // do not have to honour a request we know is wrong. Serve the dimension they are ACTUALLY in, and
+        // say which one it is: the client stores and injects under the dimension WE echo back, so this alone
+        // stops an old client putting overworld terrain in the Nether sky.
+        final String dimension = dimensionOf(player);
+        if (dimension.isEmpty()) {
+            return;
+        }
+        if (!dimension.equals(requested)) {
+            LOGGER.info("Chunksmith: {} asked for the LOD index of {} while standing in {} -- serving {}"
+                            + " instead. (A client older than 3.1.0-beta-3 asks for the wrong dimension after"
+                            + " going through a portal; please update it.)",
+                    nameOf(player), requested, dimension, dimension);
+        }
+        final Path dir = safeDimensionDir(root, dimension);
+        if (dir == null) {
             return;
         }
         final List<CsLodMessages.RegionEntry> regions = new ArrayList<>();
@@ -515,6 +554,27 @@ public final class CsLodServerNet {
             dirs.add(LodSupport.storeRoot(level));
         }
         return CsLodStoreScan.servable(dirs, System.currentTimeMillis());
+    }
+
+    /**
+     * The store key of the dimension the player is ACTUALLY in -- the authority for everything we serve them.
+     *
+     * <p>Resolved by identity against the server's own levels, so it is the same string
+     * {@link LodSupport#storeRoot} named that dimension's directory with. A player is always in one of the
+     * server's levels, so the empty return is unreachable in practice; it exists so a caller can never get a
+     * plausible-looking wrong answer.
+     */
+    private static String dimensionOf(final ServerPlayer player) {
+        final MinecraftServer current = server;
+        if (current == null) {
+            return "";
+        }
+        for (final ServerLevel level : current.getAllLevels()) {
+            if (level == player.level()) {
+                return LodSupport.dimensionKey(level);
+            }
+        }
+        return "";
     }
 
     private static Path storeBase() {

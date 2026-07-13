@@ -199,8 +199,19 @@ public final class LodSupport {
     /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; we never touch voxy's or DH's store. */
     public static Path storeRoot(final ServerLevel level) {
         final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
-        final String dim = dimensionId(level).replace(':', '_').replace('/', '_');
-        return worldRoot.resolve("chunksmith").resolve("lod").resolve(dim).normalize();
+        return worldRoot.resolve("chunksmith").resolve("lod").resolve(dimensionKey(level)).normalize();
+    }
+
+    /**
+     * The store DIRECTORY NAME for a level -- and the name that goes on the wire.
+     *
+     * <p>The one string that addresses a dimension's LOD data end to end: this server's store directory, the
+     * dimension field of the region index, the client's own store directory, and the key the client's
+     * injector checks the level against. Derived in ONE place so the two sides cannot disagree; the client's
+     * {@code CsLodDimension} is the mirror of exactly this.
+     */
+    public static String dimensionKey(final ServerLevel level) {
+        return dimensionId(level).replace(':', '_').replace('/', '_');
     }
 
     /** The dimension's resource id as a string. */

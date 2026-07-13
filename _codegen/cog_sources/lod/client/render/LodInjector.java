@@ -1,6 +1,8 @@
 package com.kishku7.chunksmith.lod.client.render;
 
+import com.kishku7.chunksmith.lod.client.CsLodDimension;
 import com.kishku7.chunksmith.lod.client.CsLodStore;
+import com.kishku7.chunksmith.lod.client.InjectedRegions;
 import com.kishku7.chunksmith.lod.client.Renderers;
 import com.kishku7.chunksmith.lod.CsLodRegionStore;
 import net.minecraft.client.Minecraft;
@@ -39,24 +41,32 @@ public final class LodInjector {
     }
 
     /**
-     * Region keys ({@code x,z}) already injected THIS SESSION.
+     * Regions already injected THIS SESSION -- keyed by ({@code dimension}, x, z), never by x/z alone.
      *
-     * <p>The client keeps pulling as the player travels, and every pull returns the whole set of regions
-     * within the renderer's radius -- most of which are already in the renderer. Injecting them again would
-     * re-decode and re-push terrain that is already drawn: with voxy that is hundreds of thousands of
-     * sections re-ingested per move. So a region is injected exactly once per session.
+     * <p>See {@link InjectedRegions}. The short version: region (0,0) is a different place in every
+     * dimension, and keying this set on coordinates alone meant the Nether's (0,0) was skipped forever the
+     * moment the overworld's (0,0) had been drawn.
      *
-     * <p>Cleared on disconnect, not on world change: the store is keyed by server, and so is this.
+     * <p>Cleared on disconnect: the store is keyed by server, and so is this.
      */
-    private static final java.util.Set<Long> INJECTED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final InjectedRegions INJECTED = new InjectedRegions();
 
     /**
      * Inject specific regions of a downloaded store into every renderer that is present.
      *
      * <p>Skips any region already injected this session, so this is safe to call on every travel refresh.
      *
+     * <p><b>The records must belong to the level they are being pushed into.</b> Both renderer adapters
+     * resolve their target from the level we hand them -- DH looks up the wrapper for THIS level, voxy calls
+     * {@code WorldIdentifier.of(level)} -- so if the CALLER hands us the wrong dimension's records, they are
+     * faithfully written into the right renderer for the wrong world, and neither DH nor voxy validates it.
+     * DH will accept, persist, downsample and report success for every single one. (It has: 1089 overworld
+     * chunks into the End's database, and in 3.1.0-beta-2 the overworld's whole store into the Nether.)
+     * So the level is the authority, and this is the gate: if the dimension of these records is not the
+     * dimension of the level in front of us, we do not inject. There is no "close enough" here.
+     *
      * @param storeRoot the client's store for this server ({@code .../chunksmith/lod/<server>})
-     * @param dimension the dimension directory inside it
+     * @param dimension the dimension these records belong to -- MUST be the level's own dimension
      * @param regions   the regions to inject -- typically everything the server just told us is in range
      */
     public static void injectRegions(final Path storeRoot, final String dimension,
@@ -68,9 +78,20 @@ public final class LodInjector {
             return;
         }
 
+        // THE GATE. A download that was in flight when the player stepped through a portal lands here with
+        // the dimension it was fetched for, and the level is now somewhere else entirely.
+        final String levelDimension = CsLodDimension.of(level);
+        if (!levelDimension.equals(dimension)) {
+            LOGGER.info("Chunksmith: not injecting {} LOD data -- the player is now in {}. (Terrain from"
+                            + " another dimension is not a substitute for this one's; the data for {} will"
+                            + " be fetched for the level the player is actually in.)",
+                    dimension, levelDimension, levelDimension);
+            return;
+        }
+
         final java.util.List<int[]> fresh = new java.util.ArrayList<>();
         for (final int[] region : regions) {
-            if (INJECTED.add(key(region[0], region[1]))) {
+            if (INJECTED.claim(dimension, region[0], region[1])) {
                 fresh.add(region);
             }
         }
@@ -86,7 +107,7 @@ public final class LodInjector {
         if (!awaitRenderer(level)) {
             // Un-mark them: a renderer that shows up later must still get this data.
             for (final int[] region : fresh) {
-                INJECTED.remove(key(region[0], region[1]));
+                INJECTED.release(dimension, region[0], region[1]);
             }
             LOGGER.info("Chunksmith: no renderer became ready within {}s (voxy={} dh={}); "
                             + "downloaded LODs are cached and will be injected on the next join",
@@ -97,7 +118,9 @@ public final class LodInjector {
         final boolean voxy = Renderers.hasVoxy() && VoxyTarget.available();
         final boolean dh = Renderers.hasDh() && DhTarget.available(level);
 
-        progress.accept("injecting " + fresh.size() + " new region(s) into "
+        // Name the dimension. It is the one fact that made the difference between "it works" and "there is
+        // an ocean in the Nether", and it costs nothing to print.
+        progress.accept("injecting " + fresh.size() + " new region(s) of " + dimension + " into "
                 + (voxy ? "voxy " : "") + (dh ? "distant-horizons" : ""));
 
         final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
@@ -105,7 +128,24 @@ public final class LodInjector {
             LOGGER.warn("Chunksmith: refusing to inject a malformed dimension id");
             return;
         }
-        for (final int[] region : fresh) {
+        for (int i = 0; i < fresh.size(); i++) {
+            final int[] region = fresh.get(i);
+
+            // A large store is minutes of work on this thread, and the player keeps playing throughout --
+            // they can walk into a portal half way through. The level we were handed is then no longer the
+            // level on screen, and DH/voxy would take the rest of this dimension's records straight into the
+            // new one. Stop, and give the untouched regions back so the re-armed pull injects them into the
+            // level they belong to.
+            if (Minecraft.getInstance().level != level) {
+                for (int j = i; j < fresh.size(); j++) {
+                    INJECTED.release(dimension, fresh.get(j)[0], fresh.get(j)[1]);
+                }
+                LOGGER.info("Chunksmith: the player left {} while its LOD data was still being injected;"
+                                + " stopping here. {} region(s) were not injected and will be re-fetched if"
+                                + " the player returns.", dimension, fresh.size() - i);
+                return;
+            }
+
             try {
                 CsLodRegionStore.forEachChunkInRegion(dir, region[0], region[1], record -> {
                     if (voxy) {
@@ -121,7 +161,7 @@ public final class LodInjector {
                 });
             } catch (final IOException e) {
                 // Un-mark it so a later refresh retries this region rather than skipping it forever.
-                INJECTED.remove(key(region[0], region[1]));
+                INJECTED.release(dimension, region[0], region[1]);
                 LOGGER.warn("Chunksmith: failed to read region {}.{}: {}",
                         region[0], region[1], e.toString());
             }
@@ -167,10 +207,6 @@ public final class LodInjector {
     /** Forget what we have injected. Call on disconnect. */
     public static void reset() {
         INJECTED.clear();
-    }
-
-    private static long key(final int regionX, final int regionZ) {
-        return ((long) regionX << 32) | (regionZ & 0xFFFFFFFFL);
     }
 
     /**

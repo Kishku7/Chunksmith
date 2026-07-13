@@ -320,6 +320,7 @@ if ($hasLod -eq '1') {
         # Name-stable client sources.
         $cliMap = [ordered]@{
             'CsLodClientBoot.java'       = 'CsLodClientBoot.java'
+            'CsLodDimension.java'        = 'CsLodDimension.java'
             'Renderers.java'             = 'Renderers.java'
             'net/CsLodClientNet.java'    = 'net/CsLodClientNet.java'
             'render/DhPushGuard.java'    = 'render/DhPushGuard.java'
