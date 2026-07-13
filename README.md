@@ -141,6 +141,36 @@ cannot feed. **voxy is Fabric-only** (upstream builds no NeoForge or Forge jar) 
 client-side renderer to hand data to on that platform. The remaining mod versions (1.20.4, 1.20.6,
 1.21.4, 1.21.5, 1.21.8, 1.21.10) carry everything except LOD.
 
+### voxy forks
+
+voxy gets forked a lot, so Chunksmith feeds **upstream voxy and its forks through one adapter**: it looks
+for the mod id `voxy` (every fork keeps it), reads the fork's own render-distance setting, and hands data
+to voxy's own ingest API. There is no per-fork code and no fork-specific list to maintain.
+
+Forks are third-party builds of an All-Rights-Reserved mod. **Chunksmith does not ship, mirror, endorse or
+link any of them** - the table below is a test record, nothing more. We ran the real jars on 2026-07-13 and
+looked at the screen:
+
+| voxy build | MC | Result |
+|---|---|---|
+| **voxy** (upstream, MCRcortex) | 1.21.11, 26.1.2, 26.2 | **Works.** Detected, render distance read (8192 blocks), distant terrain drawn in singleplayer and in multiplayer. |
+| **mia-edition** (ggonzaDNG) | 1.21.11 | **Works.** Same, singleplayer and multiplayer. |
+| **voxy 26.2 branch** (NHblock714) | 26.2 | **Works.** Singleplayer verified. |
+| **voxy-26.2** (Paulem79) | 26.2 | **Works.** Detected, distance read, LODs ingested. |
+| **Vulkan-Voxy** (SpinGiantCRM) | 26.1.2 | **Chunksmith's side works** - detected, distance read, LODs ingested into its database - but its Vulkan renderer drew no distant terrain on either machine we could test it on. That is between you and the fork; Chunksmith hands it the data. |
+| **m-series support** (srjefers) | 1.21.11 | **Chunksmith reads it correctly, but the fork does not work.** Its renderer is based on an old voxy that predates MC 1.21.9's render rework, and it throws `IllegalStateException: Cannot use the default framebuffer` the moment it has anything to draw - **with Chunksmith removed as well**. Nothing we can fix from here. |
+
+If a fork ever changes something Chunksmith depends on, **Chunksmith says so in the log** - once, in plain
+words, naming what it could not read and what it fell back to. It will never quietly send you less terrain.
+
+### NeoForge and Forge: Distant Horizons only
+
+There is no voxy for NeoForge or Forge on the modern versions - not from upstream, and not from a fork.
+Every "NeoForge voxy" out there is a Fabric jar loaded through **Sinytra Connector**, and Connector only
+supports **1.20.1 / 1.21 / 1.21.1**. There is no Connector for 1.21.11 or 26.x, so there is nothing to
+repackage and nothing for Chunksmith to feed. On NeoForge and Forge, Chunksmith's LOD is **Distant
+Horizons only** - a limit of the ecosystem, not of Chunksmith.
+
 ### Conflicts
 
 Do not run Chunksmith's LOD alongside another server-side LOD provider - `lss`, `voxyserver`, or
