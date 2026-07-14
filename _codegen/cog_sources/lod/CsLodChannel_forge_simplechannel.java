@@ -26,6 +26,15 @@ import java.util.function.Supplier;
  * StreamCodec emits). One protocol, four registration APIs. NOTE: Forge's own channel handshake adds a
  * protocol-version check on top of ours, which is harmless -- both ends run the same jar's channel.
  *
+ * <p>The channel is OPTIONAL. Chunksmith is a server-side pre-generator with a client-side LOD renderer
+ * bolted on; a player who does NOT run Chunksmith must still be able to join a Chunksmith server. Both
+ * accepted-version predicates are wrapped in {@link NetworkRegistry#acceptMissingOr(String)}, which also
+ * accepts the {@code ABSENT}/{@code ACCEPTVANILLA} sentinels the FML login handshake passes for a peer
+ * that lacks the channel. A BARE {@code PROTOCOL::equals} returns false for those sentinels, which marks
+ * the channel REQUIRED and makes the server REFUSE any client without Chunksmith (the client-forcing bug
+ * fixed in 3.1.0-beta-5). This mirrors the NeoForge cell's {@code registrar(..).optional()} and Fabric's
+ * inherently permissive play payloads -- every loader must declare the channel optional in its own API.
+ *
  * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
@@ -37,8 +46,8 @@ public final class CsLodChannel {
     private static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
             .named(channelId())
             .networkProtocolVersion(() -> PROTOCOL)
-            .clientAcceptedVersions(PROTOCOL::equals)
-            .serverAcceptedVersions(PROTOCOL::equals)
+            .clientAcceptedVersions(NetworkRegistry.acceptMissingOr(PROTOCOL))
+            .serverAcceptedVersions(NetworkRegistry.acceptMissingOr(PROTOCOL))
             .simpleChannel();
 
     /**

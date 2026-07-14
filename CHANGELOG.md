@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [3.1.0-beta-5] - 2026-07-14
+
+**On Forge 1.20.1, a player who did not have Chunksmith could no longer join a server that did.** The mod
+is meant to be optional on the client -- it is a server-side pre-generator, and the client half only adds
+distant terrain for players who want it. But since 3.x the server registered its `chunksmith:lod` network
+channel as *required*, so Forge's login handshake refused any client that lacked it: the player was kicked
+at join with "Connection closed - mismatched mod channel list". This build makes the channel optional
+again, so a vanilla-Forge client joins a Chunksmith Forge server exactly as it did on 2.2.3. The server is
+unchanged for players who do have Chunksmith -- the channel simply is not negotiated to those who do not.
+
+This was a regression from the 3.x LOD channel and it affected **Forge only**. NeoForge was already correct
+(its channel was marked optional during the 3.1.0-beta-1 client merge) and Fabric never forced the client
+(its play channels are inherently permissive). Only the Forge cell was missed.
+
+Only the **Forge 1.20.1** jar changed. Every other cell is byte-for-byte identical to 3.1.0-beta-4 and is
+unaffected.
+
+### Fixed
+
+- **Forge 1.20.1: the LOD network channel is now optional.** Both accepted-version predicates on the
+  `chunksmith:lod` `SimpleChannel` are wrapped in `NetworkRegistry.acceptMissingOr(...)`, which accepts the
+  "channel absent" sentinel the FML login handshake sends for a client that does not have the channel. A
+  bare version-equality predicate rejected that sentinel, which marked the channel required and made the
+  server refuse the client. Mirrors the NeoForge cell's `.optional()`.
+
 ## [3.1.0-beta-4] - 2026-07-13
 
 **Every time a player asked "what LOD terrain is near me?", the server read every region file in the store
