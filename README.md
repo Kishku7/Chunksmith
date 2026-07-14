@@ -76,6 +76,39 @@ bytes down the game connection instead: slower, but it always works, and it neve
   the way - the pull is not a one-shot at join.
 - **It only sends what you can draw.** The client tells the server its renderer's actual LOD distance, and
   the server ships the regions inside it and no more.
+- **It keeps itself in step.** While you play, the client and the server compare a small checksum every few
+  minutes; if they differ, the client fetches only what changed. Terrain that a running pre-generation just
+  finished shows up **without a relog and without moving** (see below).
+
+### Server and client must be on the same version
+
+**From `3.1.0-beta-4` on, the server and every client must be on `3.1.0-beta-4` or later.** That release
+changed the LOD network protocol (v1 -> v2), and there is no compatibility path: the number the two sides
+compare to decide "do I already have this region?" is exactly what had to change to fix a bug that could
+take a server down.
+
+A mismatched pair does not crash and does not hang. Both sides notice, both refuse, and **both say so in
+the log** - the distant terrain is simply not delivered. If you update the server, update the clients;
+if you update your client, the server has to come with you.
+
+### It keeps up while you play
+
+The client asks the server for a one-line summary of the LOD regions in your view - a count and a single
+folded checksum - and compares it with its own. If they match, nothing happens at all. If they do not, it
+pulls the region list and downloads **only the difference**.
+
+That one mechanism covers all three ways the two sides can drift apart: the server generated more terrain,
+a region you already have changed, or you lost region files off your own disk. It costs 22 bytes out and
+34 bytes back, and the server answers it without reading a single byte of the store.
+
+| Key | Where | Default |
+|---|---|---|
+| `sync-interval-seconds` | `config/chunksmith-lod.properties` (client) | **300** |
+
+The file is written with defaults and comments the first time the client runs. **Anything below 30 is
+clamped to 30**, deliberately: a config value is a suggestion, and a one-second poll must not turn into a
+denial of service against a server that is already busy pre-generating. There is no settings screen for it
+yet.
 
 ### One mod, all of it
 
@@ -85,11 +118,11 @@ bytes down the game connection instead: slower, but it always works, and it neve
 | Playing on a server | **Chunksmith, on the server and on the client.** Same jar. |
 | Running a server, pre-generation only | **Chunksmith on the server.** Nothing new loads; a dedicated server never touches the client half. |
 
-> **The standalone Chunksmith-Client mod is discontinued.** Its job is now part of Chunksmith. Your
-> existing copy still works - the wire format is unchanged, so an old client still talks to a `3.1` server
-> - but there is no reason to keep it, and **you cannot run both**: they register the same network channel,
-> and the loader will refuse to start and tell you to remove one. Delete Chunksmith-Client; Chunksmith does
-> the job alone.
+> **The standalone Chunksmith-Client mod is discontinued.** Its job is now part of Chunksmith, and as of
+> `3.1.0-beta-4` an old copy of it **no longer works** - it speaks the v1 LOD protocol, and a `3.1.0-beta-4`
+> server will refuse it and tell it so. There is no reason to keep it in any case, and **you cannot run
+> both**: they register the same network channel, and the loader will refuse to start and tell you to remove
+> one. Delete Chunksmith-Client; Chunksmith does the job alone.
 
 ### A re-run fills in the missing LODs
 
