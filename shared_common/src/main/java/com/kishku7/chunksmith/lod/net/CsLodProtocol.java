@@ -30,8 +30,49 @@ public final class CsLodProtocol {
     /** Path component of the plugin channel. */
     public static final String CHANNEL = "lod";
 
-    /** Bump on ANY wire change. Both ends refuse a mismatch rather than guessing. */
-    public static final int VERSION = 1;
+    /**
+     * Bump on ANY wire change. Both ends refuse a mismatch rather than guessing.
+     *
+     * <p><b>v2 (3.1.0-beta-4) -- and this one had to move, even though the LAYOUT did not.</b>
+     *
+     * <p>The bytes of {@code S2C_INDEX} are identical to v1: a dimension, a count, and per region an x, a z,
+     * a {@code long} hash and a {@code long} size. What changed is what that {@code long} hash MEANS. In v1
+     * it was a CRC32 of the region file's contents, and BOTH ends computed it independently -- which is
+     * precisely what made the server read every region file in a client's radius, on the tick thread, on
+     * every index request, and is what took a live production server to 100% RAM (see {@link CsLodRegionHash}).
+     * In v2 it is an opaque freshness token derived from the server's (mtime, size). The server no longer
+     * reads the bytes; the client no longer recomputes the token, it REMEMBERS the one it was given.
+     *
+     * <p>A silent semantic change to a field both ends compute is the worst kind, and leaving VERSION at 1
+     * would have shipped exactly that. A v1 client talking to a v2 server would CRC its local copy, compare
+     * it against a number that is not a CRC of anything, and conclude -- correctly, by its own rules, and
+     * every single time -- that every region it holds is stale. It would then re-download the entire
+     * in-radius store on every travel refresh, i.e. every five seconds while the player moves. We would have
+     * fixed a memory storm by shipping a bandwidth storm, and the v1 client would have no way of knowing.
+     *
+     * <p>There is no compatibility trick that avoids this: the v1 client's cache check IS "CRC32 of my bytes
+     * == the server's number", and the only number that can satisfy it is the content CRC we are refusing to
+     * compute. So the two protocols genuinely cannot interoperate, and the honest thing -- the thing this
+     * field exists for -- is to say so. A refused handshake is a player who is told, in one log line, to
+     * update their mod. A silently churning one is a server that gets a bandwidth bill nobody can explain.
+     *
+     * <p>Both directions are clean, and both are explicit rather than accidental:
+     * <ul>
+     *   <li><b>v1 client -> v2 server:</b> the server refuses in {@code hello()} AND answers with a v2
+     *       {@code S2C_HELLO} carrying {@code storeAvailable=false}, so the old client's own version check
+     *       fires and it can NAME the mismatch in its log instead of sitting in silence wondering why no
+     *       terrain ever arrived. No token is minted, no store is scanned, nothing is served.</li>
+     *   <li><b>v2 client -> v1 server:</b> the old server's {@code hello()} sees v2, logs "not serving", and
+     *       sends nothing at all. The new client hears nothing back, and after
+     *       {@code CsLodClientNet.HELLO_TIMEOUT_MILLIS} says so once, in plain words, rather than staying
+     *       mute forever.</li>
+     * </ul>
+     *
+     * <p>v2 also ADDS two packet ids ({@link #C2S_REQUEST_SUMMARY} / {@link #S2C_SUMMARY}) for the periodic
+     * sync. Those alone would not have forced a bump -- an unknown id is already logged and dropped by both
+     * ends -- but they are part of the same release and are covered by the same number.
+     */
+    public static final int VERSION = 2;
 
     /** HTTP path prefix for a region file: {@code /lod/<dim>/r.<x>.<z>.cslod}. */
     public static final String HTTP_PREFIX = "/lod/";
@@ -117,6 +158,25 @@ public final class CsLodProtocol {
 
     /** C2S: stop -- the client can always stop the flow. */
     public static final byte C2S_CANCEL = 4;
+
+    /**
+     * C2S: has anything changed? -- the periodic sync (v2).
+     *
+     * <p>The whole message is an id and a dimension name: 22 bytes for {@code minecraft_overworld}. It is
+     * deliberately NOT "send me the index", because an index is the expensive thing and asking for one every
+     * few minutes, from every client, is how you rebuild the problem you just fixed. The server answers with
+     * {@link #S2C_SUMMARY} -- two numbers -- and the client pays for a real index only when those two numbers
+     * disagree with what it holds.
+     */
+    public static final byte C2S_REQUEST_SUMMARY = 5;
+
+    /**
+     * S2C: the region index, folded to (count, aggregate) -- the answer to {@link #C2S_REQUEST_SUMMARY} (v2).
+     *
+     * <p>34 bytes. See {@link CsLodSummary} for why the aggregate is an order-independent XOR of avalanched
+     * per-region tokens rather than a running checksum.
+     */
+    public static final byte S2C_SUMMARY = 105;
 
     /** S2C: server hello -- store availability, backchannel port (0 = none), token. */
     public static final byte S2C_HELLO = 101;

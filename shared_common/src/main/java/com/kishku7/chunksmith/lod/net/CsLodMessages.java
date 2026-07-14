@@ -150,6 +150,58 @@ public final class CsLodMessages {
         return new RegionIndex(dimension, regions);
     }
 
+    // ------------------------------------------------------------------ the periodic sync (v2)
+
+    /**
+     * The server's whole in-range index, folded to two numbers.
+     *
+     * <p>This is what a sync poll costs. On the wire: the id (1) + the dimension as a UTF string (2 + 19 for
+     * {@code minecraft_overworld}) + the count (4) + the aggregate (8) = <b>34 bytes</b>. The request that
+     * asks for it is <b>22 bytes</b>. Nothing changed -> that is the entire exchange, and neither side opens
+     * a region file.
+     */
+    public record RegionSummary(String dimension, int count, long aggregate) {
+    }
+
+    /** Ask the server whether anything has changed. 22 bytes for a normal dimension id. */
+    public static byte[] requestSummary(final String dimension) throws IOException {
+        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(raw)) {
+            out.writeByte(CsLodProtocol.C2S_REQUEST_SUMMARY);
+            out.writeUTF(dimension);
+        }
+        return raw.toByteArray();
+    }
+
+    public static byte[] encode(final RegionSummary summary) throws IOException {
+        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(raw)) {
+            out.writeByte(CsLodProtocol.S2C_SUMMARY);
+            out.writeUTF(summary.dimension());
+            out.writeInt(summary.count());
+            out.writeLong(summary.aggregate());
+        }
+        return raw.toByteArray();
+    }
+
+    /**
+     * Decode a summary.
+     *
+     * <p>Nothing here is allocated FROM the wire -- the count is a number we compare, never a size we
+     * allocate -- so unlike the index there is no ceiling to enforce. It is still range-checked, because a
+     * negative count is not a thing an honest server sends and we would rather refuse it than reason about
+     * what it might mean.
+     */
+    public static RegionSummary decodeRegionSummary(final DataInputStream in) throws IOException {
+        final String dimension = in.readUTF();
+        final int count = in.readInt();
+        if (count < 0 || count > CsLodProtocol.MAX_INDEX_REGIONS) {
+            throw new IOException("CSLOD summary: region count " + count + " out of range [0, "
+                    + CsLodProtocol.MAX_INDEX_REGIONS + "]");
+        }
+        return new RegionSummary(dimension, count, in.readLong());
+    }
+
     // ------------------------------------------------------------------ simple requests
 
     /** Ask for a dimension's index. */

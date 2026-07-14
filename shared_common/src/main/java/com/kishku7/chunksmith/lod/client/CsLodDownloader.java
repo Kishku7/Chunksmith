@@ -20,15 +20,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.zip.CRC32;
 
 /**
  * Pulls CSLOD region files from a Chunksmith server's HTTP backchannel into the local store.
  *
  * <p>MC-agnostic on purpose: this is plain HTTP and plain files, so it can be tested without a game.
  *
- * <p><b>The local store IS the cache.</b> The server sends a region index with a content hash per region;
- * we hash what we already have and download only what is missing or changed. A re-join downloads nothing.
+ * <p><b>The local store IS the cache.</b> The server sends a region index with a freshness token per region;
+ * we compare each against the token we RECORDED when we stored our copy ({@link CsLodManifest}) and download
+ * only what is missing or has changed. A re-join downloads nothing. We do not re-hash our own files to find
+ * out -- that read the whole store on every index, and it was half of the bug that killed the server.
  *
  * <p><b>The client drives, and the client can stop.</b> {@link #cancel()} halts the flow immediately --
  * an operator-hostile download that cannot be stopped is a bug, not a feature.
@@ -55,6 +56,14 @@ public final class CsLodDownloader {
     private volatile ExecutorService pool;
 
     /**
+     * What the server said about each region we hold, for the dimension of the current download.
+     *
+     * <p>Opened at the top of {@link #download}, written by the four fetch threads as regions land, and
+     * saved once at the end -- one file write per download, not one per region.
+     */
+    private volatile CsLodManifest manifest;
+
+    /**
      * @param storeRoot the CLIENT's own store, e.g. {@code .minecraft/chunksmith/lod/<server>/<dim>}
      */
     public CsLodDownloader(final Path storeRoot) {
@@ -76,13 +85,20 @@ public final class CsLodDownloader {
         // The dimension came off the wire from a server we do not trust to be honest. Gate it BEFORE it
         // becomes a path, exactly as the in-band and cache consumers do -- a "../.." here would write
         // region files outside the client's store. If it is malformed we refuse the whole transfer.
-        if (CsLodStore.dimensionDir(storeRoot, index.dimension()) == null) {
+        final Path dimDir = CsLodStore.dimensionDir(storeRoot, index.dimension());
+        if (dimDir == null) {
             progress.accept("LOD: refusing a malformed dimension id from the server");
             return;
         }
+        // What the server told us about the regions we already hold. This -- not a CRC of our own bytes --
+        // is the cache check now. See CsLodManifest: the old check read every region file in the radius off
+        // the client's disk, on every index, which was the client-side half of the same bug that killed the
+        // server.
+        this.manifest = CsLodManifest.open(storeRoot, index.dimension());
+
         final List<CsLodMessages.RegionEntry> wanted = index.regions().stream()
                 .filter(entry -> {
-                    if (haveAlready(index.dimension(), entry)) {
+                    if (haveAlready(dimDir, entry)) {
                         skipped.incrementAndGet();
                         return false;
                     }
@@ -132,6 +148,14 @@ public final class CsLodDownloader {
             }
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        // Record what we now hold, ONCE, after the transfer -- not once per region. A manifest we fail to
+        // write costs us a re-download next session and nothing else, so it is reported and not thrown.
+        try {
+            this.manifest.save();
+        } catch (final IOException e) {
+            progress.accept("LOD: could not write the region manifest (" + e + "); these regions will be"
+                    + " re-fetched next session");
         }
         progress.accept("LOD: done -- " + downloaded.get() + " fetched, " + skipped.get() + " cached, "
                 + failed.get() + " failed, " + (bytes.get() / 1024 / 1024) + " MB");
@@ -212,28 +236,23 @@ public final class CsLodDownloader {
             Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
         }
         Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-        bytes.addAndGet(Files.size(target));
+        final long stored = Files.size(target);
+        bytes.addAndGet(stored);
+
+        // The region is on disk. Record what the SERVER said about it -- its freshness token and the length
+        // it claimed -- because that is the only thing we can compare against the next index. We record the
+        // size we ACTUALLY received rather than the advertised one, so a short or padded transfer shows up as
+        // a mismatch on the next check instead of being cached as good.
+        this.manifest.put(entry.regionX(), entry.regionZ(), entry.hash(), stored);
     }
 
-    /** Content-hash check against the server's index -- this is what makes a re-join free. */
-    private boolean haveAlready(final String dimension, final CsLodMessages.RegionEntry entry) {
-        final Path dimDir = CsLodStore.dimensionDir(storeRoot, dimension);
-        if (dimDir == null) {
-            return false;
-        }
-        final Path file = dimDir.resolve("r." + entry.regionX() + "." + entry.regionZ() + ".cslod");
-        if (!Files.isRegularFile(file)) {
-            return false;
-        }
-        try {
-            if (Files.size(file) != entry.sizeBytes()) {
-                return false;
-            }
-            final CRC32 crc = new CRC32();
-            crc.update(Files.readAllBytes(file));
-            return crc.getValue() == entry.hash();
-        } catch (final IOException e) {
-            return false;
-        }
+    /**
+     * Do we already hold exactly what the server is advertising? A manifest lookup and one stat -- see
+     * {@link CsLodManifest}. This is what makes a re-join free, and (since beta-4) what stops the client
+     * reading its own store to find out.
+     */
+    private boolean haveAlready(final Path dimDir, final CsLodMessages.RegionEntry entry) {
+        final CsLodManifest current = this.manifest;
+        return current != null && current.holds(dimDir, entry);
     }
 }

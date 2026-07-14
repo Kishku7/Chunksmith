@@ -5,6 +5,7 @@ import com.kishku7.chunksmith.lod.client.CsLodStore;
 import com.kishku7.chunksmith.lod.client.InjectedRegions;
 import com.kishku7.chunksmith.lod.client.Renderers;
 import com.kishku7.chunksmith.lod.CsLodRegionStore;
+import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
@@ -70,7 +71,8 @@ public final class LodInjector {
      * @param regions   the regions to inject -- typically everything the server just told us is in range
      */
     public static void injectRegions(final Path storeRoot, final String dimension,
-                                     final java.util.List<int[]> regions, final Consumer<String> progress) {
+                                     final java.util.List<CsLodMessages.RegionEntry> regions,
+                                     final Consumer<String> progress) {
         final Minecraft client = Minecraft.getInstance();
         final Level level = client.level;
         if (level == null) {
@@ -89,9 +91,13 @@ public final class LodInjector {
             return;
         }
 
-        final java.util.List<int[]> fresh = new java.util.ArrayList<>();
-        for (final int[] region : regions) {
-            if (INJECTED.claim(dimension, region[0], region[1])) {
+        // Claim by (dimension, region, TOKEN). A region we have already drawn is skipped -- unless the
+        // server is now advertising a DIFFERENT version of it, which during a pregen is the NORMAL case for
+        // every region under the player's feet. See InjectedRegions: keying on coordinates alone meant a
+        // re-downloaded, grown region was silently thrown away by the very step that was meant to draw it.
+        final java.util.List<CsLodMessages.RegionEntry> fresh = new java.util.ArrayList<>();
+        for (final CsLodMessages.RegionEntry region : regions) {
+            if (INJECTED.claim(dimension, region.regionX(), region.regionZ(), region.hash())) {
                 fresh.add(region);
             }
         }
@@ -106,8 +112,8 @@ public final class LodInjector {
         // empty sky while every log line says success. The faster the network, the more reliably it fails.
         if (!awaitRenderer(level)) {
             // Un-mark them: a renderer that shows up later must still get this data.
-            for (final int[] region : fresh) {
-                INJECTED.release(dimension, region[0], region[1]);
+            for (final CsLodMessages.RegionEntry region : fresh) {
+                INJECTED.release(dimension, region.regionX(), region.regionZ());
             }
             LOGGER.info("Chunksmith: no renderer became ready within {}s (voxy={} dh={}); "
                             + "downloaded LODs are cached and will be injected on the next join",
@@ -129,7 +135,7 @@ public final class LodInjector {
             return;
         }
         for (int i = 0; i < fresh.size(); i++) {
-            final int[] region = fresh.get(i);
+            final CsLodMessages.RegionEntry region = fresh.get(i);
 
             // A large store is minutes of work on this thread, and the player keeps playing throughout --
             // they can walk into a portal half way through. The level we were handed is then no longer the
@@ -138,7 +144,7 @@ public final class LodInjector {
             // level they belong to.
             if (Minecraft.getInstance().level != level) {
                 for (int j = i; j < fresh.size(); j++) {
-                    INJECTED.release(dimension, fresh.get(j)[0], fresh.get(j)[1]);
+                    INJECTED.release(dimension, fresh.get(j).regionX(), fresh.get(j).regionZ());
                 }
                 LOGGER.info("Chunksmith: the player left {} while its LOD data was still being injected;"
                                 + " stopping here. {} region(s) were not injected and will be re-fetched if"
@@ -147,7 +153,8 @@ public final class LodInjector {
             }
 
             try {
-                CsLodRegionStore.forEachChunkInRegion(dir, region[0], region[1], record -> {
+                CsLodRegionStore.forEachChunkInRegion(dir, region.regionX(), region.regionZ(),
+                        record -> {
                     if (voxy) {
                         voxySections.addAndGet(VoxyTarget.inject(level, record));
                     }
@@ -161,9 +168,9 @@ public final class LodInjector {
                 });
             } catch (final IOException e) {
                 // Un-mark it so a later refresh retries this region rather than skipping it forever.
-                INJECTED.release(dimension, region[0], region[1]);
+                INJECTED.release(dimension, region.regionX(), region.regionZ());
                 LOGGER.warn("Chunksmith: failed to read region {}.{}: {}",
-                        region[0], region[1], e.toString());
+                        region.regionX(), region.regionZ(), e.toString());
             }
         }
 
