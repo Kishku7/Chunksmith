@@ -2,6 +2,110 @@
 
 ## [Unreleased]
 
+## [3.1.0-beta-4] - 2026-07-13
+
+**Every time a player asked "what LOD terrain is near me?", the server read every region file in the store
+and hashed its contents -- on the main server thread.** On a 340-region, 850 MB store that is **205 MB of
+memory allocated per request**, several times a second, in blocks big enough that the garbage collector has
+to handle each one as a special case. A live server ran out of memory doing it, and then took **67 minutes**
+to shut down. It is fixed: the answer is now built from each file's timestamp and size, off the main thread,
+and the same request allocates **18 KB** -- **11,808x less** -- with **zero** of those collector pauses where
+there used to be 38.
+
+**Also new: your client now notices new terrain on its own.** Every few minutes it and the server compare a
+single small checksum; if they differ, the client pulls only what changed. You no longer have to relog, or
+walk somewhere, to see terrain a running pre-generation has just finished.
+
+> ### Read this before you update
+>
+> **The LOD network protocol changed (v1 -> v2). Your server and every player's client must BOTH be on
+> `3.1.0-beta-4` or later.** A mismatched pair will not exchange LOD data -- both sides refuse it, both say
+> so in the log, and nothing else breaks (no crash, no hang, no stuck downloads) -- but the distant terrain
+> will simply not be there. There is no way around this: the number the two sides compare to decide "do I
+> already have this region?" is exactly the thing that had to change, and an old client asking the new
+> question would re-download your entire LOD store every five seconds, forever. We would have traded a memory
+> problem for a bandwidth one.
+>
+> **Update the server and the clients together.** On the first join after updating, each client re-downloads
+> the regions in its view radius once -- it has no record of what it can vouch for yet -- and then never
+> again.
+
+### Fixed
+
+- **The LOD index no longer reads the store to build itself, and no longer runs on the server thread.** To
+  tell a client which regions it should have, the server used to open every region file near that player,
+  read all of it, and CRC32 the bytes -- 205 MB of allocation per request on a real store, 74-173 ms of the
+  tick each time, and because the buffers are multi-megabyte the JVM allocates them out of a special
+  "humongous" path that forces a collection. Over five minutes of a player walking around, that was **38
+  garbage-collection pauses, all of them attributed to exactly this**. It is why one server climbed to 100%
+  memory during a pre-generation and could not save its worlds afterwards. The freshness marker for a region
+  is now derived from its **modification time and size** -- which is all the question ever needed, because
+  the question is only ever "is this the same file I already sent you?" -- and the scan runs on a background
+  thread, one outstanding scan per player, so the tick does no I/O at all. Same request: **18 KB, under a
+  millisecond, zero humongous allocations, zero GC pauses.**
+- **The client was doing the same thing to its own store, and nobody ever noticed.** On every index it read
+  and hashed every region file it had, for the same reason. A server dies loudly and gets reported; a client
+  with a big heap just stutters. It now records what the server told it about each region in a small manifest
+  file beside the store, so the "do I already have this?" check is a lookup and one file-size stat.
+- **The index can no longer be unbounded in size.** It was capped at 4,096 regions -- but a region can be
+  7 MB, so that cap permitted a ~28 GB answer. It is now capped in **bytes** (2 GiB), and the scan is sorted
+  nearest-first, so if a store is bigger than the cap what a client loses is the furthest terrain, and it
+  gets that as it walks toward it.
+- **A region that GREW is no longer downloaded and then thrown away.** The client remembered which regions it
+  had drawn by their coordinates alone -- which answers "have I ever drawn this?", not "have I drawn *this
+  version* of it?". A pre-generation does not only create new regions; it keeps growing the ones under you,
+  for hours. The client would notice the change, fetch the bigger file, hand it to the renderer -- and the
+  renderer's own bookkeeping would recognise the coordinates, drop the new data on the floor, and report
+  success. You would have watched the far ring of terrain fill in while the ground under you stayed frozen at
+  whatever it was when you joined. Regions are now remembered by coordinate *and* version.
+- **A client on a too-old server is no longer left staring at an empty horizon in silence.** If you update
+  your client before the server updates, the old server refuses your hello and answers nothing at all -- so
+  the client has nothing to check a version against, and it used to note the silence only at debug level.
+  You got no terrain and no explanation. It now says so plainly, once, in the log: no LOD data is on offer
+  here, either because this server does not run Chunksmith (perfectly normal) or because it runs a version
+  older than `3.1.0-beta-4`, and if you expected terrain then both ends need to be on the same version. It
+  cannot tell those two cases apart -- an old server tells it nothing to tell them apart *with* -- so it
+  names both instead of guessing. One line, once, and never silence.
+
+### Added
+
+- **Periodic checksum sync -- new terrain arrives while you stand still.** Every 300 seconds by default, the
+  client asks the server for a one-line summary of the LOD regions in its view (a count and a single folded
+  checksum) and compares it with its own. If they match, that is the end of it. If they do not, it pulls the
+  index and fetches **only the difference**. No relog. No walking. It costs **22 bytes out and 34 bytes back**
+  -- about 0.19 bytes per second per player -- and on the server it is roughly 86 syscalls and **not one byte
+  of file content read**. One mechanism covers all three of "the server generated more", "a region I hold
+  changed", and "I lost regions off my disk" (delete some and the next poll brings back exactly those).
+- **`sync-interval-seconds` in `config/chunksmith-lod.properties`** (client-side; the file is written with
+  defaults and comments on first run). Default **300**. **Values below 30 are clamped to 30** -- a config
+  value is a suggestion, and a one-second poll must not become a denial of service against a server that is
+  already busy pre-generating. No settings screen yet; that is `3.2`.
+
+### Changed
+
+- **`CsLodProtocol.VERSION` 1 -> 2.** Deliberate and unavoidable; see the notice above. The wire *layout* is
+  unchanged -- what changed is the *meaning* of the index's freshness field (a CRC32 of the file's contents
+  became an opaque timestamp+size token). Both ends check the version, both refuse a mismatch, and both name
+  it in the log rather than failing quietly.
+- **Moving a world between machines, or restoring it from a backup, now re-sends the LOD regions once.**
+  Copying files changes their modification times without changing their contents, so every freshness token
+  moves and connected clients re-fetch what is in their radius. That is the honest price of the fix, it is
+  bounded, and it is once. The alternative failure -- a marker that says "unchanged" about a region that did
+  change -- leaves a player looking at terrain that no longer exists with no mechanism that could ever
+  correct it. A redundant download is a bandwidth bill; a stale region that is trusted is a bug you cannot
+  see.
+
+### Notes
+
+- **This release rebuilds the eleven jars that carry the LOD feature** (Fabric 1.20.1 / 1.21.1 / 1.21.11 /
+  26.1 / 26.2 / 26.3, NeoForge 1.21.1 / 1.21.11 / 26.1 / 26.2, Forge 1.20.1). The Bukkit/Paper/Folia plugin
+  jars and the other mod jars have no LOD code path at all, so they are unchanged and remain at
+  `3.1.0-beta-3` -- there is nothing in this release for them to receive.
+- Everything above was measured on a real 340-region / 853 MB store with a real Distant Horizons client
+  connected and a pre-generation running: server heap 18% of an 8 GB maximum, zero full collections, zero
+  "Can't keep up" tick warnings, and a clean 22-second shutdown in the middle of the pre-generation -- the
+  exact situation that previously hung for over an hour.
+
 ## [3.1.0-beta-3] - 2026-07-13
 
 **The Overworld was showing up in the Nether. It is not any more.** If you went through a Nether portal on a

@@ -447,12 +447,30 @@ public final class CsLodClientNet {
     }
 
     /**
-     * We said hello and nothing came back. Say so once, quietly.
+     * We said hello and nothing came back. Say so ONCE, at INFO.
      *
-     * <p>Most servers do not run Chunksmith and this is simply what that looks like, so it is DEBUG. But it
-     * is also what a 3.1.0-beta-3 server looks like to us -- it sees our v2 hello, refuses it, and sends
-     * nothing -- and when someone is staring at an empty horizon wondering why, this is the line that tells
-     * them where to look.
+     * <p>Two different servers look exactly like this from here, and we cannot tell them apart -- because
+     * the thing that would tell us apart is an answer, and neither one sends one:
+     *
+     * <ol>
+     *   <li>a server that does not run Chunksmith at all. Normal. Nothing is wrong.</li>
+     *   <li>a server running 3.1.0-beta-3 or earlier: it sees our v2 hello, refuses it as a protocol it does
+     *       not know, and replies with nothing. (Our OWN v2 server deliberately answers an old client's v1
+     *       hello for exactly this reason -- so it can name the mismatch. An old server does us no such
+     *       favour.)</li>
+     * </ol>
+     *
+     * <p>This was DEBUG, on the reasoning that case 1 is common and a scary line on every vanilla server is
+     * noise. That trade is wrong: case 2 is a player who updated their client before the server updated,
+     * staring at an empty horizon with not one word of explanation anywhere in their log -- a silent
+     * failure, which is the one thing this mod refuses to ship. So it is INFO, and it is worded to be TRUE
+     * of both cases: it states what is (no LOD data is on offer), names both causes, and does not guess
+     * which one it is looking at. The price is one INFO line, once per connection, on any server without
+     * Chunksmith. That is a fair price for never leaving someone in the dark.
+     *
+     * <p>(The precise alternative -- ask the platform whether the server registered our channel, so only the
+     * genuine old-server case speaks -- needs a new client capability on all three loaders. It is a better
+     * message, not a more honest one, and it is not worth a new cross-loader surface at a publish gate.)
      */
     private static void silenceTick() {
         if (helloAnswered || silenceReported || helloSentMillis == 0L || host.isEmpty()) {
@@ -462,10 +480,11 @@ public final class CsLodClientNet {
             return;
         }
         silenceReported = true;
-        LOGGER.debug("Chunksmith: no answer to our LOD hello after {}s. Either this server does not run"
-                        + " Chunksmith (normal), or it runs one that speaks an older LOD protocol than v{}"
-                        + " (3.1.0-beta-3 and earlier) -- in which case the server and the client both need"
-                        + " to be on the same version.",
+        LOGGER.info("Chunksmith: no LOD data is being offered by this server (it did not answer our hello"
+                        + " within {}s). Either it does not run Chunksmith -- which is normal, and nothing is"
+                        + " wrong -- or it runs a version older than 3.1.0-beta-4, which speaks an LOD"
+                        + " protocol older than v{} and cannot serve this client. If you expected LOD terrain"
+                        + " here, the server and every client must be on 3.1.0-beta-4 or later.",
                 HELLO_TIMEOUT_MILLIS / 1000L, CsLodProtocol.VERSION);
     }
 
