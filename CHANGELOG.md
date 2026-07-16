@@ -1,6 +1,25 @@
-# Chunksmith Changelog
+﻿# Chunksmith Changelog
 
 ## [Unreleased]
+
+## [3.1] - 2026-07-16
+
+Stable plugin release (Paper / Spigot / Folia) of the 3.1 line. The Bukkit plugin is a server-side pre-generator only -- it has no LOD/distant-terrain code (there is no plugin-side renderer), so it is functionally unchanged from the 3.1.0 betas. Rebuilt at 3.1 for the stable line across the 1.20.x, 1.21.x, and 26.x families.
+
+## [3.1.1] - 2026-07-16
+
+Stable release. This promotes the entire 3.1.0-beta line to a stable build -- no issues were reported on the betas -- and adds Minecraft 26.3-snapshot-4 (Fabric). All 29 mod jars (Fabric, NeoForge, Forge across the 1.20.x / 1.21.x / 26.x families) are rebuilt at 3.1.1.
+
+Everything from the 3.1.0 betas is now stable:
+
+- One jar does everything: Chunksmith-Client is merged in, so a single mod handles both server-side chunk pre-generation and the multiplayer distant-terrain (LOD) delivery -- no separate client mod to install. (3.1.0-beta-1)
+- Fixed a main-thread memory blowup when serving LOD index requests, and added periodic client/server checksum sync. (3.1.0-beta-4)
+- Fixed cross-dimension LOD leakage and delivery to players who joined before pre-generation had data. (3.1.0-beta-2 / beta-3)
+- Forge 1.20.1: the LOD network channel is optional again, so a client without Chunksmith can join a Chunksmith Forge server. (3.1.0-beta-5)
+
+### New in 3.1.1
+
+- Minecraft 26.3-snapshot-4 support (Fabric); resource pack_format 92.
 
 ## [3.1.0-beta-5] - 2026-07-14
 
@@ -482,3 +501,4 @@ This fix is applied across every supported Minecraft version and loader.
 ---
 
 Earlier releases were published on Modrinth only; this is the first in-repo changelog entry.
+
