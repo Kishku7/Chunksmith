@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-07-21
+
+Adds Minecraft 26.3-snapshot-5 (Fabric). The 26.3 Fabric jar is rebuilt against 26.3-snapshot-5 (Fabric API 0.155.3+26.3, pack_format 93). The mod loads and renders in-world on the snapshot's reworked GPU/shader ("renderpearl") pipeline with no source changes -- the LOD mixins and the Distant Horizons / voxy adapters apply cleanly. Verified in-world on the headless client harness. The 26.3 Fabric jar's dependency is pinned to 26.3-snapshot-5 exclusively, per the per-snapshot compatibility policy for the rendering line.
+
 ## [3.1] - 2026-07-16
 
 Stable plugin release (Paper / Spigot / Folia) of the 3.1 line. The Bukkit plugin is a server-side pre-generator only -- it has no LOD/distant-terrain code (there is no plugin-side renderer), so it is functionally unchanged from the 3.1.0 betas. Rebuilt at 3.1 for the stable line across the 1.20.x, 1.21.x, and 26.x families.
