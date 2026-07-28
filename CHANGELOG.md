@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [3.1.3] - 2026-07-28
+
+### Changed
+- **Fabric 26.3 cell moved to MC 26.3-snapshot-6** (from snapshot-5): fabric-api
+  `0.155.3+26.3` -> `0.156.1+26.3`, `pack_format` `93` -> `94`, and the exclusive
+  snapshot pin `depends.minecraft` `26.3-alpha.5` -> `26.3-alpha.6` (Fabric normalizes
+  `26.3-snapshot-N` to `26.3-alpha.N`). The snapshot-5 build stays listed on Modrinth;
+  this jar does not claim it.
+
+### Notes
+- **No source change required.** Snapshot-6 is a large MC release -- it rewrote the
+  worldgen noise stack (`NormalNoise.NoiseParameters` deleted, `Registries.NOISE`
+  retyped, `DensityFunction` gained an abstract `domainAxes()`, `ImprovedNoise` /
+  `PerlinSimplexNoise` removed) and reworked the terrain render path
+  (`ChunkSectionLayer.pipeline(boolean)`, `LevelRenderer.prepareChunkRenders` gained a
+  flag, `DynamicUniforms` -> `DynamicGpuData`). Chunksmith references NONE of those
+  symbols: it drives pregeneration through the server-facing chunk APIs only, so the
+  overhaul does not reach it (verified by scanning all 346 source files).
+- The 26.3 LOD functional gate remains untestable: Distant Horizons still ships no
+  26.3 build upstream.
+
 ## [3.1.2] - 2026-07-21
 
 Adds Minecraft 26.3-snapshot-5 (Fabric). The 26.3 Fabric jar is rebuilt against 26.3-snapshot-5 (Fabric API 0.155.3+26.3, pack_format 93). The mod loads and renders in-world on the snapshot's reworked GPU/shader ("renderpearl") pipeline with no source changes -- the LOD mixins and the Distant Horizons / voxy adapters apply cleanly. Verified in-world on the headless client harness. The 26.3 Fabric jar's dependency is pinned to 26.3-snapshot-5 exclusively, per the per-snapshot compatibility policy for the rendering line.
