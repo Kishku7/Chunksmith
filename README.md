@@ -10,6 +10,13 @@ and worldgen diagnostics (overreach detection and structure-fault attribution).
 Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot / Folia plugin**. Originally
 derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 
+**Environment:** required on the server (or in singleplayer, where "server" is the integrated
+server running inside your own game); the client install is **optional**. Pre-generation alone
+needs nothing on the client. But if you want **multiplayer LOD** - players seeing pregenerated
+Distant Horizons / voxy terrain at a distance without having walked it - the same jar has to be
+installed on the client too, no separate mod. See [LOD: see what you pregenerated](#lod-see-what-you-pregenerated)
+below, especially [One mod, all of it](#one-mod-all-of-it).
+
 **Source code:** [`CSv3` branch](https://github.com/Kishku7/Chunksmith/tree/CSv3) - the 3.x line, where
 current development happens. The 2.x line is frozen on
 [`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
