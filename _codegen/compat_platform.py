@@ -2107,7 +2107,18 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // Vanilla only ever runs the distance manager's update pass once per tick, from one
+            // place, so ticket-map mutation and iteration are naturally serialized. Forcing it here
+            // (below) re-enters that code far more often and from more call sites than vanilla ever
+            // would - fine on vanilla's own ticket manager, but C2ME rewrites the ticket/distance
+            // manager onto its own concurrent scheduler, and this out-of-cadence forcing has been
+            // observed to trigger a race there (NPE in Long2ByteOpenHashMap iteration, "this.wrapped"
+            // null, while ticking chunk tickets - see PlatformCompat.ENABLE_C2ME_TICKET_COMPAT).
+            // When C2ME is present, skip the forced call and let its own scheduler pick up the
+            // ticket we just added instead of racing it.
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;

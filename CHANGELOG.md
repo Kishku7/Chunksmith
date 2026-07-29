@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [3.1.5] - 2026-07-29
+
+### Fixed
+- **Fabric 1.21.11: C2ME chunk-ticket race that could crash the server** (`FabricWorld.getChunkAtAsync`).
+  Every chunk request forced an immediate, synchronous `runDistanceManagerUpdates()` call right after
+  adding a ticket, instead of letting the distance manager process tickets on its own once-per-tick
+  cadence. Vanilla only ever runs that update once per tick from one place, so ticket-map mutation and
+  iteration stay serialized; forcing it here re-entered that code far more often than vanilla ever
+  would. C2ME rewrites the chunk ticket/distance manager onto its own concurrent scheduler, and this
+  out-of-cadence forcing could trigger a race there -- observed as a server crash, NPE in
+  `Long2ByteOpenHashMap` iteration ("this.wrapped" null) while ticking chunk tickets, reproduced on the
+  "Zion" world after starting a Chunksmith pregen with C2ME installed.
+- Chunksmith now detects C2ME at init (`PlatformCompat.ENABLE_C2ME_TICKET_COMPAT`, mod id `c2me`) and,
+  when present, skips the forced call -- the newly added ticket is picked up by C2ME's own scheduler on
+  its next pass instead of racing it. No behavior change when C2ME is absent. Scoped to the Fabric
+  1.21.11 platform-adapter variant (`compat_platform.py` "a2e3c49d5235"); the detection flag itself is
+  shared plumbing (harmless no-op on every other cell until wired into their variants too).
+
 ## [3.1.4] - 2026-07-28
 
 ### Changed

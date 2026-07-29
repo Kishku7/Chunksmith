@@ -48,7 +48,13 @@ import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
 
 public class ChunksmithFabric implements ModInitializer {
-    static { PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = FabricLoader.getInstance().isModLoaded("moonrise"); }
+    static {
+        PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS = FabricLoader.getInstance().isModLoaded("moonrise");
+        // C2ME rewrites the chunk ticket/distance manager onto its own concurrent scheduler;
+        // see PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why this changes how we
+        // drive the distance manager after adding a ticket.
+        PlatformCompat.ENABLE_C2ME_TICKET_COMPAT = FabricLoader.getInstance().isModLoaded("c2me");
+    }
     private Chunksmith chunky;
     //[[[cog
     // import cog, compat
