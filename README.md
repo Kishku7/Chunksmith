@@ -163,16 +163,18 @@ region files - no native database, nothing extra to install.
 
 | | Distant Horizons | voxy |
 |---|---|---|
-| **Fabric** | 1.20.1, 1.21.1, 1.21.11, 26.1, 26.2, 26.3 | 1.21.11, 26.1, 26.2, 26.3 |
+| **Fabric** | 1.20.1, 1.21.1, 1.21.11, 26.1, 26.2 | 1.21.11, 26.1, 26.2 |
 | **NeoForge** | 1.21.1, 1.21.11, 26.1, 26.2 | - |
 | **Forge** | 1.20.1 | - |
 
 Those are the versions the renderers themselves ship on - Chunksmith never claims a renderer it
 cannot feed. **voxy is Fabric-only** (upstream builds no NeoForge or Forge jar) and exists only on
-**1.21.11 and 26.x**. **Distant Horizons works everywhere** on the list - Chunksmith needs **DH
-2.3.0-b or newer**, with no upper bound. The Paper / Spigot / Folia plugin has **no LOD**: there is no
-client-side renderer to hand data to on that platform. The remaining mod versions (1.20.4, 1.20.6,
-1.21.4, 1.21.5, 1.21.8, 1.21.10) carry everything except LOD.
+**1.21.11, 26.1 and 26.2**. **Distant Horizons works everywhere** on the list - Chunksmith needs **DH
+2.3.0-b or newer**, with no upper bound. **Neither renderer has shipped a 26.3 build yet**, so the 26.3
+mod carries everything except LOD; it will start feeding them the day they release, with no change
+needed here. The Paper / Spigot / Folia plugin has **no LOD**: there is no client-side renderer to hand
+data to on that platform. The remaining mod versions (1.20.4, 1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10,
+26.3) carry everything except LOD.
 
 ### voxy forks
 
