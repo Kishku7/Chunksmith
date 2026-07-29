@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [3.1.4] - 2026-07-28
+
+### Changed
+- **D16: the platform adapters are single-sourced.** The 8 per-cell adapter classes
+  (`Fabric`/`NeoForge` x `Player`/`Sender`/`Server`/`World`) were the LAST hand-copied master in
+  the mod -- **104 files across the 26 build cells**. They now live in
+  `_codegen/compat_platform.py` and are materialised into each cell's `gen/` by `cog-gen.ps1`
+  (new Step 3d), exactly as `Border` was in Step 3c. **Every cell's `src/main/java` is now empty:
+  100% of Chunksmith's Java comes from the one cog source of truth.**
+- The adapters carry real MC-era drift, so they are stored as WHOLE-FILE era variants plus a
+  measured cell->variant map, which is the house pattern for this (cf. bank-vault's `compat_*.py`).
+  FabricWorld had 9 distinct bodies across 10 cells and NeoForgeWorld 11 across 16; on 26 the
+  `*World` classes are a structural fork (different interfaces implemented, extra fields, an extra
+  ticket block), not a rename set, so inline predicates would have been the wrong shape.
+- Exactly ONE genuine loader difference exists in the whole set -- `ChunksmithForge` vs
+  `ChunksmithNeoForge` in `NeoForgeServer`. Everything else is version drift.
+
+### Added
+- `scripts/verify-platform.py` -- the D16 hash oracle. Default mode checks what
+  `compat_platform.py` materialises against each cell's generated `gen/` tree; `--against-git <ref>`
+  checks it against the pre-migration committed copies. Non-zero exit on any mismatch, so it can
+  gate a build.
+
+### Verified
+- **Hash oracle, twice: 104/104 byte-identical** (line endings normalised -- git rewrites those on
+  checkout anyway) against the pre-migration copies at the previous commit, and again against the
+  freshly generated `gen/` trees after all 26 cells were regenerated.
+- **All 26 cells rebuilt: 26 OK, 0 failures, 0 javac warnings.**
+
+### Note
+- An analysis pass flagged the missing `LodSupport.offer` hook in 18 of 26 cells as unintended
+  drift, citing same-version Forge/NeoForge pairs that differ. **It is not drift.** Those 8 cells
+  are exactly `compat.has_lod()` -- verified by running the predicate across the cell list against
+  the hook's real locations, 8/8. Forge's only Distant Horizons line is 1.20.1, so Forge/1.21.1
+  correctly has no hook. Recorded so the next pass does not "fix" the LOD curation into cells that
+  cannot use it.
+
 ## [3.1.3] - 2026-07-28
 
 ### Changed

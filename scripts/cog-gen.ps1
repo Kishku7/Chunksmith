@@ -121,6 +121,32 @@ New-Item -ItemType Directory -Force -Path (Split-Path $borderDst) | Out-Null
 Copy-Item -Force $borderSrc $borderDst
 Write-Host "[cog-gen] + $borderName (single-sourced platform border)"
 
+# --- Step 3d: platform ADAPTERS, single-sourced (D16, 2026-07-28). The 8 per-cell adapter
+# classes (Fabric/NeoForge x Player/Sender/Server/World) were the LAST hand-copied master in the
+# mod -- 104 files across the 26 cells, carrying real MC-era drift (FabricWorld had 9 distinct
+# bodies across 10 cells, NeoForgeWorld 11 across 16, and on 26 the *World classes are a
+# structural fork, not a rename set). They now live in _codegen/compat_platform.py as whole-file
+# era variants plus a measured cell->variant map, and are materialised here -- same treatment
+# Border got in Step 3c. Verify with scripts/verify-platform.py (hash oracle). ---
+$platformDir = Join-Path $genJava 'com/kishku7/chunksmith/platform'
+New-Item -ItemType Directory -Force -Path $platformDir | Out-Null
+$cellName = ($Cell -replace '\\', '/').TrimStart('/').Split('/')[-1]
+Push-Location $codegen
+try {
+    $platformList = (& python -c "import compat_platform,sys; sys.stdout.write(','.join(sorted(compat_platform.platform_classes('$Loader','$cellName'))))")
+    if ($LASTEXITCODE -ne 0) { throw 'compat_platform query failed' }
+    if ($platformList) {
+        foreach ($cls in $platformList.Split(',')) {
+            $dst = Join-Path $platformDir "$cls.java"
+            & python -c "import compat_platform,io,sys; io.open(sys.argv[1],'w',encoding='utf-8',newline='\n').write(compat_platform.platform_source(sys.argv[2],sys.argv[3],sys.argv[4]))" $dst $cls $Loader $cellName
+            if ($LASTEXITCODE -ne 0) { throw "platform emit failed: $cls" }
+        }
+        Write-Host "[cog-gen] + platform adapters: $platformList"
+    } else {
+        throw "no platform adapters mapped for $Loader/$cellName -- add it to compat_platform.CELL_MAP"
+    }
+} finally { Pop-Location }
+
 # --- Step 4: presence-gated files (query compat.py so the rule lives in ONE place) ---
 Push-Location $codegen
 try {
