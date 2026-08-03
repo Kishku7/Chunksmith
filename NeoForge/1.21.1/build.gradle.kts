@@ -69,8 +69,19 @@ dependencies {
     // ../../libs/. Everything we touch is com.seibel.* and names no Minecraft type, so the same jar works
     // on every loader and every runtime mapping -- nothing to remap, hence a plain file dependency.
     //
-    // No voxy here: voxy is FABRIC-ONLY, and not one of its NeoForge forks is published anywhere
-    // (lod-ecosystem.md). The voxy seam is compile-time absent on this cell.
+    // voxy -- the m3t4f1v3 FORK (github.com/m3t4f1v3/voxy, `multiversion` branch). Verified
+    // 2026-08-03: its NeoForge cell is a GENUINE native NeoForge port (real
+    // net.neoforged.moddev/ModDevGradle build, its own src/neoforge/java entrypoint set) rather
+    // than a Sinytra Connector repackage of the Fabric jar, so it compiles mojmap-native --
+    // VoxelIngestService.rawIngest takes real LevelChunkSection/DataLayer, the exact types this
+    // cell already compiles against, not Fabric intermediary class_2826/class_2804. Nothing to
+    // remap, hence a plain file dependency, same shape as the DH jar above. NeoForgeVoxyCommon
+    // extends the shared VoxyCommon (same static INSTANCE/FACTORY), so VoxyCommon.getInstance()
+    // works unchanged on this loader -- no loader-specific adapter code needed. Self-built from
+    // source (not published anywhere), OPTIONAL soft dependency: compiled against, NEVER shipped
+    // (ARR-derived, same posture as every voxy fork). See _codegen/compat.py::has_voxy() and
+    // Memory/minecraft/lod-ecosystem.md sec. "NEOFORGE/FORGE VOXY: BLOCKER OR GAP".
+    compileOnly(files("../../libs/voxy-0.2.15-beta+1.21.1-m3t4f1v3-neoforge.jar"))
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //
     // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB

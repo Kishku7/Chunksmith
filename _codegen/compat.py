@@ -707,17 +707,35 @@ def has_dh(mcver, loader):
 def has_voxy(mcver, loader):
     """Does this cell carry the voxy adapter (VoxyLodSink + CsLodVoxyInjector, and /cslod inject)?
 
-    Fabric >= 1.21.11 ONLY. voxy is Fabric-only (its VoxyCommon implements net.fabricmc.api.
-    ModInitializer -- the adapter does not even COMPILE on another loader) and upstream has NEVER
+    Fabric >= 1.21.11: UPSTREAM voxy (Fabric-only; its VoxyCommon implements net.fabricmc.api.
+    ModInitializer -- the adapter does not even COMPILE on another loader). Upstream has NEVER
     published a 1.20.1 or a 1.21.1 build on any loader. Published lines: 1.21.11, 26.1.x, 26.2.
+
+    Fabric 1.21.1 and NeoForge 1.21.1: the m3t4f1v3 FORK (github.com/m3t4f1v3/voxy,
+    `multiversion` branch), not upstream -- upstream never published 1.21.1 on any loader.
+    Verified 2026-08-03 by building both cells from source: mod id is "voxy" on both loaders.
+    Its NeoForge cell is a genuine native NeoForge port (real net.neoforged.moddev/ModDevGradle
+    build, its own src/neoforge/java entrypoint set) rather than a Sinytra Connector repackage,
+    so it compiles mojmap-native (VoxelIngestService.rawIngest takes real LevelChunkSection/
+    DataLayer, not intermediary class_2826/class_2804) -- the same mapping Chunksmith's own
+    NeoForge cells already compile against. NeoForgeVoxyCommon extends the shared VoxyCommon
+    (same static INSTANCE/FACTORY), so VoxyCommon.getInstance() works unchanged on this loader.
+    ARR-derived like every voxy fork: compileOnly soft-dep, never vendored. See
+    Memory/minecraft/lod-ecosystem.md sec. "NEOFORGE/FORGE VOXY: BLOCKER OR GAP" for the recon
+    this rests on.
+
     Every other cell gets NO voxy class at all -- a compile-time-absent seam, not a stub.
     """
-    if loader != "Fabric":
-        return False
     v = _parse(mcver)
-    if v[0] >= 26:
-        return True
-    return v >= (1, 21, 11)
+    if loader == "Fabric":
+        if v == (1, 21, 1):
+            return True  # m3t4f1v3 fork
+        if v[0] >= 26:
+            return True
+        return v >= (1, 21, 11)
+    if loader == "NeoForge":
+        return v == (1, 21, 1)  # m3t4f1v3 fork, native port
+    return False
 
 
 def has_section_builder(mcver, loader):

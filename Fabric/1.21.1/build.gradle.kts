@@ -71,7 +71,19 @@ dependencies {
     // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult) is com.seibel.* and names no
     // Minecraft type at all, so there is nothing for loom to remap.
     //
-    // No voxy here: voxy has NEVER published a 1.21.1 build on any loader (lod-ecosystem.md).
+    // voxy -- the m3t4f1v3 FORK (github.com/m3t4f1v3/voxy, `multiversion` branch), NOT upstream.
+    // Upstream voxy has NEVER published a 1.21.1 build on any loader (lod-ecosystem.md); this cell
+    // was compile-time-absent for voxy until the fork was verified 2026-08-03 (see
+    // _codegen/compat.py::has_voxy()). Self-built from source (upstream publishes no 1.21.1 jar to
+    // pull from Modrinth/Maven), staged in the gitignored ../../libs/, OPTIONAL soft dependency:
+    // compiled against, NEVER shipped (voxy is All-Rights-Reserved, same as every fork).
+    //
+    // modCompileOnly, NOT compileOnly, via the -loomcompat copy scripts/prep-libs.py produces: the
+    // self-built jar is INTERMEDIARY-mapped (same as upstream on this MC family) and is stamped
+    // Fabric-Loom-Version: 1.16.2 while this cell runs Loom 1.12.7 -- Loom refuses a dependency
+    // stamped with a NEWER Loom than itself at configure time, so prep-libs.py strips that one
+    // manifest line (build-provenance only; does not affect the intermediary remap Loom performs).
+    modCompileOnly(files("../../libs/voxy-0.2.15-beta+1.21.1-m3t4f1v3-fabric-loomcompat.jar"))
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //
     // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB
