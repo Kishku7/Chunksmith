@@ -119,7 +119,18 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         if (this.chunksmith$needChunkSystemHousekeeping.compareAndSet(true, false)) {
             for (ServerLevel level : this.getAllLevels()) {
                 ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable
-                ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(() -> true); // push the vanilla chunk system to unload unneeded chunks ASAP
+                // FIX (2026-08-02, mod_support #11): was invokeTick(() -> true) -- "ASAP", ignoring the
+                // haveTime this method already receives. That told vanilla's unload pass it always has
+                // unlimited time, so ChunkMap.tick()/processUnloads() ran fully unbounded on the main
+                // thread every tick housekeeping fired. Harmless on a small backlog; on a large one
+                // (reported: ~13k+ queued unloads after a big pre-gen radius) it pinned the server
+                // thread near 100% CPU inside ChunkMap.scheduleUnload for 60+ minutes, starving command
+                // processing. haveTime is vanilla's own tickServer(BooleanSupplier hasTimeLeft) budget --
+                // the same signal vanilla's own unload processing respects everywhere else. Passing it
+                // through here (instead of a hardcoded true) makes the unload pass self-limit per tick
+                // and drain a large backlog incrementally across many ticks instead of forcing it all
+                // through in one synchronous call.
+                ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(haveTime); // bounded: respect the real per-tick time budget
                 //[[[cog
                 // import cog, compat
                 // cog.outl("                %s" % compat.broadcast_changed_chunks_call(mcver))

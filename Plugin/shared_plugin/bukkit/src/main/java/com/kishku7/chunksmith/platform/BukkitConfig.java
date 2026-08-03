@@ -93,19 +93,30 @@ public final class BukkitConfig implements Config {
     }
 
     /**
-     * The Bukkit platform carries no LOD code at all -- there is no client-side renderer to hand data
-     * to on Paper / Spigot / Folia, so there is nothing to auto-detect and nothing to enable. Hard
-     * {@link LodMode#OFF}, not {@code AUTO}: {@code AUTO} would be a lie on a platform where the
-     * feature is not compiled in. The governor is disabled to match.
+     * CHANGED (2026-08-03, mod_support #9 follow-up): this platform now carries a
+     * server-side CSLOD generator + store (see lod.CsLodExtractor / lod.LodSupport in this source
+     * tree) -- there is just no renderer feed / client-streaming channel wired up to it YET (that is
+     * a separate, later phase). So AUTO is no longer a lie here: a Bukkit / Paper / Folia process is
+     * ALWAYS the dedicated-server case (there is no Bukkit singleplayer / integrated-server concept),
+     * which is exactly the case the mod-loader decide() already treats as ON regardless of a local
+     * renderer. Default is ON; an operator sets lod-enabled: false in config.yml to turn it off.
+     * Accepts auto (default; behaves as ON on this platform), true, or false -- same tristate parsing
+     * as every other platform.
      */
     @Override
     public LodMode getLodMode() {
-        return LodMode.OFF;
+        final String raw = plugin.getConfig().getString("lod-enabled", "auto");
+        final LodMode mode = LodMode.parse(raw);
+        if (mode == null) {
+            plugin.getLogger().warning("Chunksmith: lod-enabled '" + raw + "' is not one of auto/true/false, using auto");
+            return LodMode.AUTO;
+        }
+        return mode;
     }
 
     @Override
     public long getThrottleMaxLodQueue() {
-        return 0L;
+        return plugin.getConfig().getLong("throttle-max-lod-queue", 512L);
     }
 
     @Override

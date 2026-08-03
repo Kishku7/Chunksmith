@@ -96,6 +96,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
             disablePauseWhenEmptySeconds();
         }
         installOverreachDiagnostic();
+        com.kishku7.chunksmith.lod.LodSupport.announce(chunky.getConfig());
     }
 
     @Override
@@ -106,6 +107,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
             overreachFilter = null;
         }
         if (chunky != null) {
+            com.kishku7.chunksmith.lod.LodSupport.shutdown();
             chunky.disable();
         }
     }

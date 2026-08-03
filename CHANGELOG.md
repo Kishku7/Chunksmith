@@ -2,6 +2,44 @@
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-08-03
+
+### Added
+- **Universal LOD generation on the Bukkit/Paper/Folia plugin.** The plugin line previously
+  shipped with LOD generation hardcoded off; it now generates LOD data by default, matching
+  the Fabric/Forge/NeoForge behavior, using the same pregen-time hook the mod side already
+  used. No configuration needed -- `lod-enabled: false` still turns it off for admins who
+  want pregen without LOD.
+
+### Fixed
+- **Housekeeping-hook stall under a large chunk-unload backlog (issue #11).** The shared
+  per-tick housekeeping mixin (every Fabric/Forge/NeoForge cell) called
+  `chunkMap.invokeTick(() -> true)`, discarding vanilla's real per-tick time budget
+  (`haveTime`, already passed in and unused) and letting the unload loop run with no time
+  limit every tick. A backlog of 13k+ chunks pinned the server thread for over 50 minutes
+  CPU time on one reported world. Fixed by passing the real `haveTime` through -- shared
+  plumbing, so every cell picks up the fix automatically. Load-tested 62.5 minutes
+  continuous on the exact reported configuration (144,433 chunks processed, zero stalls)
+  and boot-verified across the rest of the matrix.
+- **Plugin: `IncompatibleClassChangeError` extracting LOD biome data on some Paper builds.**
+  Bukkit's `Biome` type changed from a class to an interface across Paper API generations
+  within the same Minecraft version line; a plugin jar compiled against one shape could
+  throw at runtime against a server built against the other. Fixed by resolving the biome
+  through the stable `org.bukkit.Keyed` interface instead of the concrete `Biome` type, and
+  by making LOD extraction failures fail loud (logged) instead of silently doing nothing, so
+  a bug in this class can't hide again.
+- **C2ME compatibility guard was only wired into one Fabric cell.** A ticket-race workaround
+  for running alongside the C2ME concurrency mod (added for Fabric 1.21.11 in 3.1.5) is now
+  applied on every Fabric/Forge/NeoForge cell. No behavior change where C2ME is absent --
+  Forge and NeoForge never set the detection flag that arms it.
+
+### Changed
+- **Version numbering reconciled fleet-wide.** Every cell (Fabric, Forge, NeoForge, and the
+  plugin, across every supported Minecraft version) now reports `3.2.0`. Previously the
+  plugin tracked `3.1`, most mod cells tracked `3.1.1`, and two cells (Fabric 26 and Fabric
+  1.21.11) had drifted ahead to `3.1.4`/`3.1.5` on earlier fixes that never got a version
+  bump recorded here.
+
 ## [3.1.5] - 2026-07-29
 
 ### Fixed

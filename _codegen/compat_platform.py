@@ -984,7 +984,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -1205,7 +1210,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -1429,7 +1439,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -1661,7 +1676,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -1883,7 +1903,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -2355,7 +2380,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (TICKING_LOAD_DURATION > 0) {
                 serverChunkCache.addTicketWithRadius(CHUNKY_TICKING, chunkPos, 1);
             }
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -2588,7 +2618,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -2812,7 +2847,12 @@ public class FabricWorld implements World, ServerLevelHolder {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -4121,7 +4161,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -4345,7 +4390,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -4578,7 +4628,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -4799,7 +4854,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -5024,7 +5084,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -5256,7 +5321,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -5478,7 +5548,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -5705,7 +5780,12 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
             if (TICKING_LOAD_DURATION > 0) {
                 serverChunkCache.addTicketWithRadius(CHUNKY_TICKING, chunkPos, 1);
             }
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -5936,7 +6016,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -6158,7 +6243,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
@@ -6382,7 +6472,12 @@ public class NeoForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            // C2ME ticket-race guard: skip the forced call when C2ME is present (see
+            // PlatformCompat.ENABLE_C2ME_TICKET_COMPAT javadoc for why -- ported fleet-wide 2026-08-03,
+            // previously wired into only the Fabric/1.21.11 variant).
+            if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
+            }
             // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
             // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
             final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;

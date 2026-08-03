@@ -8,6 +8,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.kishku7.chunksmith.ChunksmithBukkit;
+import com.kishku7.chunksmith.Chunksmith;
+import com.kishku7.chunksmith.lod.LodSupport;
 import com.kishku7.chunksmith.platform.util.Location;
 import com.kishku7.chunksmith.util.Input;
 
@@ -77,14 +79,38 @@ public class BukkitWorld implements World {
     }
 
     private CompletableFuture<Void> getChunkFuture(final int x, final int z) {
-        final CompletableFuture<Void> chunkFuture;
+        final CompletableFuture<Chunk> rawFuture;
         if (Paper.isPaper()) {
-            chunkFuture = CompletableFuture.allOf(Paper.getChunkAtAsync(world, x, z));
+            rawFuture = Paper.getChunkAtAsync(world, x, z);
         } else {
-            chunkFuture = CompletableFuture.allOf(CompletableFuture.completedFuture(world.getChunkAt(x, z)));
+            rawFuture = CompletableFuture.completedFuture(world.getChunkAt(x, z));
         }
 
-        return chunkFuture;
+        // LOD (2026-08-03, mod_support #9 follow-up, server-side generation only -- see
+        // com.kishku7.chunksmith.lod.LodSupport / CsLodExtractor in this source tree): offer every
+        // chunk this method resolves to the CSLOD extractor. This IS the pregen chunk-dispatch path
+        // (GenerationTask calls getChunkAtAsync to fetch/generate each chunk), matching exactly where
+        // the mod-loader FabricWorld/NeoForgeWorld/ForgeWorld equivalents hook LodSupport.offer --
+        // same semantics, ported to the Bukkit chunk-fetch shape. thenAccept both supplies the
+        // CompletableFuture<Void> this method must return and runs the offer as its side effect.
+        return rawFuture.thenAccept(chunk -> {
+            final Chunksmith chunky = ((ChunksmithBukkit) plugin).getChunky();
+            if (chunky != null) {
+                // 2026-08-02: LOD extraction must never break pregen itself, and a failure here must
+                // never vanish silently -- this whole method returns a CompletableFuture<Void> that
+                // GenerationTask does not always .join()/.exceptionally() per chunk, so an uncaught
+                // throwable from offer() would otherwise complete this future exceptionally with no
+                // log line anywhere (classic CompletableFuture footgun). Caught, logged once with the
+                // offending chunk coords, and swallowed so the real generation result is unaffected.
+                try {
+                    LodSupport.offer(chunky.getConfig(), world, chunk);
+                } catch (final Throwable t) {
+                    plugin.getLogger().log(java.util.logging.Level.WARNING,
+                            "Chunksmith: LOD extraction failed for chunk " + chunk.getX() + "," + chunk.getZ()
+                                    + " in " + world.getName() + " -- LOD skipped for this chunk, generation unaffected", t);
+                }
+            }
+        });
     }
 
     @Override
