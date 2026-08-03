@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-08-03
+
+### Added
+- **Voxy LOD support on Fabric 1.21.1 and NeoForge 1.21.1**, via the `m3t4f1v3` fork of voxy
+  (github.com/m3t4f1v3/voxy, `multiversion` branch). Upstream voxy has never published a build
+  for either of these cells (Fabric 1.20.1/1.21.1, or any NeoForge line), so Chunksmith's voxy
+  adapter previously compiled out entirely on both. The fork's NeoForge cell is a genuine native
+  NeoForge port (its own mojmap-compiled entrypoints, not a Sinytra Connector repackage), which is
+  what makes it compatible with Chunksmith's own mojmap-native NeoForge build -- the same
+  Connector-repackage forks that were rejected before remain unusable, only this one fork's direct
+  compile target is viable. `_codegen/compat.py`'s `has_voxy()` now recognizes both cells; the
+  `_real` voxy adapter (`CsLodVoxyInjector`, `VoxyLodSink`, `VoxyTarget`, `VoxyRadius`) is compiled
+  in on both, and both were verified end-to-end on the LOD functional render gate (server pregen,
+  client join, region fetch + inject, EYEBALL-confirmed terrain render) before release.
+
+### Scope
+- **Only two jars change in this release**: `chunksmith-3.2.1+1.21.1.jar` (Fabric) and
+  `chunksmith-3.2.1+1.21.1-neoforge.jar` (NeoForge). Every other cell is unchanged and remains at
+  `3.2.0` -- there is nothing in this release for them to receive.
+
 ## [3.2.0] - 2026-08-03
 
 ### Added
