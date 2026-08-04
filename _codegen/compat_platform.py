@@ -990,9 +990,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -1216,9 +1224,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -1445,9 +1461,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -1682,9 +1706,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -1909,9 +1941,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -2144,9 +2184,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -2386,9 +2434,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -2624,9 +2680,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -2853,9 +2917,17 @@ public class FabricWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -4167,9 +4239,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -4396,9 +4476,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -4634,9 +4722,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -4860,9 +4956,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -5090,9 +5194,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -5327,9 +5439,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -5554,9 +5674,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -5786,9 +5914,17 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -6022,9 +6158,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -6249,9 +6393,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -6478,9 +6630,17 @@ public class NeoForgeWorld implements World {
             if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
                 ((ServerChunkCacheMixin) serverChunkCache).invokeRunDistanceManagerUpdates();
             }
-            // note: when Moonrise is present, holders do not get created most of the time even after explicit distance manager update
-            // so we force `create = true` *only if* Moonrise is present, as it breaks pausing for everyone else
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS;
+            // Holder-creation compat. Normally the distance-manager update above has already
+            // built the ChunkHolder by the time we ask for the future. Two replaced chunk systems
+            // break that, so each must be allowed to create the holder itself:
+            //   Moonrise - holders often are not created even after an explicit distance-manager update.
+            //   C2ME     - we deliberately SKIP that forced update (ticket race, see
+            //              PlatformCompat.ENABLE_C2ME_TICKET_COMPAT), so no holder exists at all.
+            // Without this, getChunkFutureMainThread returns an immediately-completed FAILED
+            // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
+            // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
+            // only: forcing create=true unconditionally breaks pausing for everyone else.
+            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {

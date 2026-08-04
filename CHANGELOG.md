@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## [3.2.2] - 2026-08-04
+
+### Fixed
+- **Pregeneration silently generated nothing when C2ME was installed (Fabric, all versions).**
+  Reported as mod_support #13 on Minecraft 1.21.1 Fabric: Chunksmith reported thousands of chunks
+  generated, in effectively zero seconds, and no terrain was written. Every Fabric build from 3.2.0
+  onward was affected on every Minecraft version, not only 1.21.1.
+
+  Root cause: 3.2.0 propagated the C2ME ticket-race guard fleet-wide, which correctly skips the
+  forced `runDistanceManagerUpdates()` call when C2ME is present. But that call is also what builds
+  the `ChunkHolder` for the chunk ticket Chunksmith had just added, and the follow-up
+  `getChunkFutureMainThread(x, z, FULL, create)` was still being passed `create = false`. With no
+  holder and no permission to create one, it returned an immediately-completed FAILED `ChunkResult`
+  ("unloaded chunk"). A failed `ChunkResult` is not an exception, so the completion callback saw a
+  null throwable, released the ticket, and counted the chunk as finished. The result was a pregen
+  that reported complete success at impossible speed while doing no work.
+
+  Fix: when either C2ME or Moonrise is present, `getChunkFutureMainThread` is now allowed to create
+  the holder itself (`create = true`). The forced distance-manager call stays skipped under C2ME, so
+  the 3.1.5 ticket-race crash fix is preserved. Moonrise already used this exact mechanism for the
+  same underlying reason.
+
+  Verified by disk state rather than by Chunksmith's own progress counter: a fixed 4225-chunk
+  selection now writes 4225 chunks at `minecraft:full` into the region files with C2ME installed,
+  matching the no-C2ME control exactly. Before the fix the same selection wrote 49.
+
 ## [3.2.1] - 2026-08-03
 
 ### Added
