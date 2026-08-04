@@ -19,9 +19,12 @@ import com.kishku7.chunksmith.util.Pair;
 import com.kishku7.chunksmith.util.RegionCache;
 import com.kishku7.chunksmith.util.TranslationKey;
 
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -33,6 +36,18 @@ public class GenerationTask implements Runnable {
     private static final long NOTICE_INTERVAL_MS = 10_000L;
     // How long the LOD summary waits for the last in-flight chunks to land before reporting.
     private static final long DRAIN_TIMEOUT_MS = 60_000L;
+    // Post-run proof that "generated" meant something -- see verifyGeneratedSample().
+    private static final int VERIFY_SAMPLE_MAX = 32;
+    private static final long VERIFY_TIMEOUT_MS = 15_000L;
+    // How long to let the chunk-write queue drain before believing "not on disk" means anything.
+    private static final long VERIFY_WRITE_DRAIN_MS = 30_000L;
+    // Only a DECISIVE result is worth reporting. A run that wrote nothing misses ~100% of the
+    // sample; a healthy run under a replaced chunk system can still miss a couple to ordinary
+    // write lag (measured: 2 of 31 on a run that put all 4225 chunks on disk correctly). Reporting
+    // on "any missing" turns the check into noise, and a check people learn to ignore is worse
+    // than no check at all.
+    private static final int VERIFY_MIN_MISSING = 4;
+    private static final double VERIFY_MISSING_FRACTION = 0.5d;
     // Adaptive concurrency uses asymmetric AIMD-style timing: back off quickly under load,
     // ramp back up slowly. Tick health is sampled on a fixed cadence so the limit can fall
     // even when chunk completions have stalled entirely (disk blocked, no callbacks firing).
@@ -60,6 +75,9 @@ public class GenerationTask implements Runnable {
     private final AtomicLong generatedChunks = new AtomicLong();  // chunk was absent -> generated (LOD built on the way past)
     private final AtomicLong lodOnlyChunks = new AtomicLong();    // chunk existed, LOD did not -> loaded purely to build the LOD
     private final AtomicLong skippedChunks = new AtomicLong();    // chunk + LOD both present -> no load, no write
+    private final Deque<ChunkCoordinate> verifySamples = new ConcurrentLinkedDeque<>();
+    private final AtomicInteger verifySampleCount = new AtomicInteger(0);
+    private final AtomicLong generatedSeen = new AtomicLong();
     private final Deque<Pair<Long, AtomicLong>> updateSamples = new ConcurrentLinkedDeque<>();
     private final Progress progress;
     private final RegionCache.WorldState worldState;
@@ -443,6 +461,7 @@ public class GenerationTask implements Runnable {
                             lodOnlyChunks.incrementAndGet();
                         } else {
                             generatedChunks.incrementAndGet();
+                            noteVerifySample(chunk.x(), chunk.z());
                         }
                         return selection.world().getChunkAtAsync(chunk.x(), chunk.z());
                     }).whenComplete((ignored, throwable) -> {
@@ -458,20 +477,25 @@ public class GenerationTask implements Runnable {
         // Say what actually happened. A run that filled LOD holes must report how many it filled, and a
         // run that found nothing to do must say so rather than just going quiet -- the counts are the
         // whole point. Only emitted when LOD was active, so a non-LOD run's output is unchanged.
+        // The final dispatches are still in flight here, and their outcomes are not counted until
+        // they land -- without this wait the summary silently under-reports by up to the dispatch
+        // limit, and the verification below would sample chunks that have not landed yet. Bounded,
+        // so a wedged chunk can never hang the task's completion. Runs for every task, not just LOD
+        // ones: a task should not declare itself finished while its own work is still outstanding.
+        final long drainDeadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS;
+        while (inFlight.get() > 0 && System.currentTimeMillis() < drainDeadline) {
+            LockSupport.parkNanos(1_000_000L);
+        }
         if (lodIndex != null) {
-            // The final dispatches are still in flight here, and their outcomes are not counted until
-            // they land -- without this wait the summary silently under-reports by up to the dispatch
-            // limit. Bounded, so a wedged chunk can never hang the task's completion.
-            final long drainDeadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS;
-            while (inFlight.get() > 0 && System.currentTimeMillis() < drainDeadline) {
-                LockSupport.parkNanos(1_000_000L);
-            }
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_LOD_SUMMARY,
                     selection.world().getName(),
                     generatedChunks.get(),
                     lodOnlyChunks.get(),
                     skippedChunks.get(),
                     lodIndex.describeCostSince(lodCostBefore));
+        }
+        if (!stopped) {
+            verifyGeneratedSample();
         }
         if (stopped) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_STOPPED, selection.world().getName());
@@ -483,6 +507,87 @@ public class GenerationTask implements Runnable {
         Thread.currentThread().setName(poolThreadName);
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
         chunky.getEventBus().call(new GenerationCompleteEvent(selection.world().getName()));
+    }
+
+    // A chunk counted as "generated" is only a CLAIM. The counter is incremented when the load
+    // future completes, and a future can complete having done nothing at all: mod_support #13 was
+    // exactly that -- getChunkFutureMainThread handed back an already-completed FAILED ChunkResult,
+    // which is not an exception, so the completion callback saw no error and counted the chunk.
+    // Every counter and log line reported success while the world stayed empty.
+    //
+    // So do not trust the counter: take a spread of the chunks this run says it generated and ask
+    // the world whether they are actually there. At most VERIFY_SAMPLE_MAX status reads, once, at
+    // the end of a run -- negligible next to the generation itself, and it makes this whole class
+    // of silent failure impossible to ship again.
+    private void noteVerifySample(final int x, final int z) {
+        if (verifySampleCount.get() >= VERIFY_SAMPLE_MAX) {
+            return;
+        }
+        final long seen = generatedSeen.incrementAndGet();
+        // Spread the sample across the selection rather than taking the first N, so a run that
+        // breaks partway through is still caught.
+        final long stride = Math.max(1L, chunkIterator.total() / VERIFY_SAMPLE_MAX);
+        if (seen % stride == 0L && verifySampleCount.incrementAndGet() <= VERIFY_SAMPLE_MAX) {
+            verifySamples.add(new ChunkCoordinate(x, z));
+        }
+    }
+
+    private void verifyGeneratedSample() {
+        if (verifySamples.isEmpty()) {
+            return;
+        }
+        // Let the writes land first. The chunk is generated the moment the load future completes,
+        // but it reaches DISK only when the write queue drains -- and asking the world whether a
+        // chunk is on disk while its write is still queued reports a perfectly good chunk as
+        // missing. Bounded, and skipped entirely where the gauge is unavailable (-1 on Bukkit and
+        // on replaced chunk systems we cannot read).
+        final long drainUntil = System.currentTimeMillis() + VERIFY_WRITE_DRAIN_MS;
+        while (System.currentTimeMillis() < drainUntil) {
+            final long queued = selection.world().getQueuedChunkWrites();
+            if (queued <= 0L) {
+                break;
+            }
+            LockSupport.parkNanos(50_000_000L);
+        }
+        final List<ChunkCoordinate> missing = new ArrayList<>();
+        final long deadline = System.currentTimeMillis() + VERIFY_TIMEOUT_MS;
+        int checked = 0;
+        for (final ChunkCoordinate coordinate : verifySamples) {
+            final long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0L) {
+                break;
+            }
+            try {
+                final Boolean present = selection.world()
+                        .isChunkGenerated(coordinate.x(), coordinate.z())
+                        .get(remaining, TimeUnit.MILLISECONDS);
+                checked++;
+                if (!Boolean.TRUE.equals(present)) {
+                    missing.add(coordinate);
+                }
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (final Exception e) {
+                // Timed out, or the world could not answer -- a busy or shutting-down server, not
+                // evidence of anything. Stay quiet: a check that cries wolf gets ignored, which is
+                // worse than no check at all. Only a definite "not on disk" is reported.
+                break;
+            }
+        }
+        // Decisive or silent.
+        if (missing.size() < VERIFY_MIN_MISSING || missing.size() < checked * VERIFY_MISSING_FRACTION) {
+            return;
+        }
+        final StringBuilder examples = new StringBuilder();
+        for (int i = 0; i < Math.min(3, missing.size()); i++) {
+            if (i > 0) {
+                examples.append("; ");
+            }
+            examples.append(missing.get(i).x()).append(",").append(missing.get(i).z());
+        }
+        chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_VERIFY_FAILED,
+                selection.world().getName(), missing.size(), checked, examples.toString());
     }
 
     public void stop(final boolean cancelled) {

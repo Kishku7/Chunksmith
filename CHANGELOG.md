@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [3.2.3] - 2026-08-04
+
+### Added
+- **Pregeneration now verifies its own work.** A chunk counted as "generated" was only ever a
+  claim: the counter is incremented when the load future completes, and a future can complete
+  having done nothing at all -- which is exactly how 3.2.2's C2ME bug went unnoticed for two
+  releases while every counter and log line reported success. At the end of a run Chunksmith now
+  takes a spread of up to 32 chunks it says it generated and asks the world whether they are
+  actually on disk. If any are missing it says so loudly, with the count and example coordinates,
+  instead of reporting a clean finish. Costs at most 32 status reads, once, per run.
+  - Deliberately quiet when it cannot get an answer (busy or shutting-down server): only a
+    definite "not on disk" is ever reported. A check that cries wolf gets ignored.
+- The end-of-run drain now happens for every task rather than only LOD-enabled ones, so a task no
+  longer declares itself finished while its own dispatches are still outstanding. Previously a
+  non-LOD run could under-report by up to the dispatch limit.
+
+### Changed
+- **MC 26.3 rebuilt onto `26.3-snapshot-7`** (was snapshot-6), Fabric API `0.156.2+26.3`,
+  `pack_format` **95** (was 94). Every 26.3 snapshot so far has bumped the resource pack format by
+  exactly one, so each build is snapshot-exclusive by design -- `3.2.2+26.3` remains available and
+  listed for snapshot-6.
+
 ## [3.2.2] - 2026-08-04
 
 ### Fixed

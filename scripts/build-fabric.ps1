@@ -31,11 +31,12 @@ try {
 
 
 # 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format per Memory/knowledge/pack-formats.md.
-# 26.3 pinned to snapshot-4 EXCLUSIVELY (2026-07-16): dep uses the Fabric-normalized alpha form; no lower-26.3 compat.
+# 26.3 pinned to snapshot-7 EXCLUSIVELY (bumped 2026-08-04; every 26.3 snapshot bumps
+#   resource pack_format by one -- 89,90,91,92,93,94,95 -- so a jar is snapshot-exclusive): dep uses the Fabric-normalized alpha form; no lower-26.3 compat.
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3-snapshot-6"; api = "0.156.1+26.3";   dep = "26.3-alpha.6"; packFormat = "94" }
+  "26.3" = @{ mc = "26.3-snapshot-7"; api = "0.156.2+26.3";   dep = "26.3-alpha.7"; packFormat = "95" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
