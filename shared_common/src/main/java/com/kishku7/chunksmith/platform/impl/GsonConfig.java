@@ -38,6 +38,10 @@ public final class GsonConfig implements Config {
     private static final long MAX_LOD_QUEUE_MIN = 16L;
     private static final long MAX_LOD_QUEUE_MAX = 100_000L;
     private static final long MAX_LOD_QUEUE_DEFAULT = 512L;
+    private static final long SETTLE_DELAY_DEFAULT = 40L;
+    private static final long SETTLE_DELAY_MAX = 600L;
+    private static final int SETTLE_RADIUS_DEFAULT = 7;
+    private static final int SETTLE_RADIUS_MAX = 16;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
@@ -164,6 +168,34 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isPregenSettleEnabled() {
+        return Optional.ofNullable(configModel.pregenSettle).orElse(true);
+    }
+
+    @Override
+    public long getPregenSettleDelayTicks() {
+        final long raw = Optional.ofNullable(configModel.pregenSettleDelayTicks)
+                .orElse(SETTLE_DELAY_DEFAULT);
+        final long clamped = Math.max(0L, Math.min(SETTLE_DELAY_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: pregenSettleDelayTicks %d is out of range [0, %d],"
+                    + " using %d", raw, SETTLE_DELAY_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
+    public int getPregenSettleRadius() {
+        final int raw = Optional.ofNullable(configModel.pregenSettleRadius).orElse(SETTLE_RADIUS_DEFAULT);
+        final int clamped = Math.max(1, Math.min(SETTLE_RADIUS_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: pregenSettleRadius %d is out of range [1, %d],"
+                    + " using %d", raw, SETTLE_RADIUS_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
     public boolean isLodDhOverrideEnabled() {
         return Optional.ofNullable(configModel.lodDhOverride).orElse(false);
     }
@@ -209,6 +241,11 @@ public final class GsonConfig implements Config {
         private String lodEnabled = "auto";
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
         private Boolean lodDhOverride = false;
+        // ON by default: dropping a chunk the instant it is generated silently breaks every mod that
+        // builds on newly generated land (mod_support #14). Off is for a pure terrain pregen.
+        private Boolean pregenSettle = true;
+        private Long pregenSettleDelayTicks = SETTLE_DELAY_DEFAULT;
+        private Integer pregenSettleRadius = SETTLE_RADIUS_DEFAULT;
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }

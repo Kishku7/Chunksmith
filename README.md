@@ -208,6 +208,42 @@ Notes:
   artifact (`maven.modrinth:distanthorizonsapi`); the voxy soft-dep jars go in the repo-root
   `libs/` (gitignored) - run `python scripts/prep-libs.py` to stage them.
 
+## Letting other mods build on freshly generated land
+
+A pregen normally drops a chunk's ticket the moment the chunk is generated. That is what keeps a run's
+memory flat, and for pure terrain it is exactly right.
+
+It is wrong as soon as another mod is listening. Mods that add their own structures often react to
+"a new chunk appeared" and then do the actual work on a later server tick, checking first that the
+footprint they want to build on is still loaded. Against a pregen that released each chunk instantly,
+that check never passed: the chunk and its neighbours were already gone, so the mod deferred, and it
+deferred for the entire run. Measured with Millenaire on a NeoForge 1.21.1 pregen before this was
+fixed: **309 placement attempts, 309 deferrals, zero villages** (mod_support #14).
+
+Chunksmith now holds each generated chunk until **all eight of its neighbours have been generated
+too**, plus a short delay, and then releases it. What is held at any moment is the frontier of the
+sweep and nothing else, so the cost is bounded by the shape of the pattern rather than by the size of
+the run, and it falls to zero as the run finishes.
+
+The rule is about chunks, not about any one mod -- Chunksmith contains no mod-specific compatibility
+code, and anything that builds on newly generated chunks benefits from it.
+
+```jsonc
+"pregenSettle": true,            // hold each chunk until its neighbours exist (default)
+"pregenSettleDelayTicks": 40,    // and for this long afterwards -- two seconds
+```
+
+**When to turn it off.** `"pregenSettle": false` restores the old behaviour exactly: the ticket is
+released inline, nothing is allocated, and there is no bookkeeping at all. That is the right setting
+if you are pregenerating pure terrain with no mods that build on new chunks, because holding the
+frontier costs memory proportional to the width of the sweep and gives up a little throughput for
+something nothing is going to use. If you are running a modpack, leave it on.
+
+**When to raise the delay.** If a mod's structures still fail to appear, it is probably acting more
+than two seconds after the chunk arrives -- its own queue may be backed up. Raise
+`pregenSettleDelayTicks` (20 ticks = 1 second, maximum 600). Higher values hold more chunks for
+longer, so raise it deliberately rather than by default.
+
 ## Credits / License
 
 Original Chunky by pop4959; the Paper/Folia chunk-system internals referenced in the code

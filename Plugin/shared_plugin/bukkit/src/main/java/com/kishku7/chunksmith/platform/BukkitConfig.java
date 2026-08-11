@@ -115,6 +115,23 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isPregenSettleEnabled() {
+        // The Bukkit platform does not manage chunk tickets itself, so there is nothing to hold open
+        // and nothing for a settle window to do. Reported honestly rather than defaulted to true.
+        return false;
+    }
+
+    @Override
+    public long getPregenSettleDelayTicks() {
+        return 0L;
+    }
+
+    @Override
+    public int getPregenSettleRadius() {
+        return 1;
+    }
+
+    @Override
     public long getThrottleMaxLodQueue() {
         return plugin.getConfig().getLong("throttle-max-lod-queue", 512L);
     }

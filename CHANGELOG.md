@@ -5,6 +5,26 @@
 ## [3.2.4] - 2026-08-11
 
 ### Fixed
+- **Other mods can build on freshly pregenerated land again.** A pregen added a chunk ticket,
+  generated the chunk and dropped the ticket the instant the future completed. For pure terrain that
+  is exactly right and it is what keeps a run's memory flat -- but a mod that reacts to "a new chunk
+  appeared" and does its work on a later server tick found the chunk, and everything around it,
+  already unloaded. It could not build, so it deferred, and it kept deferring for the whole run.
+  Reported against Millenaire (mod_support #14), whose villages simply never appeared in
+  pregenerated land: measured on a NeoForge 1.21.1 pregen, **309 spawn attempts and 309 deferrals,
+  zero villages**.
+  - A chunk's ticket is now held until **all eight of its neighbours have also been generated**,
+    plus a short delay. What is held is therefore the sweep frontier and nothing else -- it is
+    bounded by the shape of the pattern rather than by a guessed number, and it shrinks to nothing
+    as the run finishes.
+  - The rule is deliberately about chunks, not about any particular mod. Nothing in Chunksmith knows
+    Millenaire's name; anything that builds on newly generated chunks benefits, and anything that
+    does not is unaffected.
+  - **On by default.** `pregenSettle: false` in `config/chunksmith.json` restores the old behaviour
+    exactly -- release inline, allocate nothing -- which is the right setting for a pure terrain
+    pregen with no such mods installed, where holding the frontier costs memory and a little
+    throughput and buys nothing. `pregenSettleDelayTicks` (default 40, i.e. two seconds) tunes how
+    long a chunk lingers after its neighbourhood closes.
 - **LOD data is no longer re-injected into the renderer on every single world join.** Which
   regions had already been handed to voxy / Distant Horizons was remembered only in memory, and
   that memory was thrown away on disconnect -- so every join re-decoded and re-pushed the entire

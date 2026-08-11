@@ -20,6 +20,34 @@ public interface World {
 
     int getSeaLevel();
 
+    /**
+     * Release every chunk this world is still holding open for other mods to work in.
+     *
+     * <p>See {@code ChunkSettleWindow}: during a pregen a chunk's ticket is kept until its neighbours
+     * exist, so a mod that reacts to a new chunk on a later tick has somewhere to build. When the run
+     * ends, the chunks on the edge of it have no neighbours coming, and waiting for a neighbourhood that
+     * will never close would leave those tickets held forever.
+     *
+     * <p>Default no-op: platforms that do not manage tickets themselves (the Bukkit plugin) have nothing
+     * to release.
+     */
+    default void settleDrain() {
+    }
+
+    /**
+     * Briefly load a square of already-generated chunks so other mods can finish work on them.
+     *
+     * <p>The settle sweep's one primitive -- see {@code SettleSweep}. The caller guarantees every chunk in
+     * the square is already on disk, so this is a read, never a generation. Default no-op: platforms that
+     * do not manage tickets have nothing to load.
+     */
+    default void settleLoad(int chunkX, int chunkZ, int radius) {
+    }
+
+    /** Let go of a square taken by {@link #settleLoad}. */
+    default void settleRelease(int chunkX, int chunkZ, int radius) {
+    }
+
     Location getSpawn();
 
     Border getWorldBorder();

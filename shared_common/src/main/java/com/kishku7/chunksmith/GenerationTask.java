@@ -101,6 +101,21 @@ public class GenerationTask implements Runnable {
     private volatile Thread dispatchThread;
     private ChunkIterator chunkIterator;
     private boolean stopped, cancelled;
+
+    /**
+     * The trailing settle sweep, or null when settling is off.
+     *
+     * <p>Holds ONE window at a time, a few chunks behind the generation front, so mods that build on new
+     * land get a moment with their footprint loaded (mod_support #14). Driven from chunk completions
+     * rather than from a tick, because that is the clock this class already has; at typical pregen rates
+     * the hold below works out at roughly a second.
+     */
+    private final com.kishku7.chunksmith.util.SettleSweep settleSweep;
+    private int[] settleStop;
+    private int settleHeldFor;
+
+    /** Chunk completions to keep a settle window open before moving on. */
+    private static final int SETTLE_HOLD_COMPLETIONS = 60;
     private long prevTime;
 
     public GenerationTask(final Chunksmith chunky, final Selection selection, final long count, final long time, final boolean cancelled) {
@@ -123,6 +138,21 @@ public class GenerationTask implements Runnable {
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
+        // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
+        // instant generation finishes, so it is the only thing for which "hold it until the neighbours
+        // exist" means anything -- see ChunkSettleWindow (mod_support #14).
+        com.kishku7.chunksmith.util.ChunkSettleSupport.configure(
+                chunky.getConfig().isPregenSettleEnabled(),
+                chunky.getConfig().getPregenSettleDelayTicks());
+        if (chunky.getConfig().isPregenSettleEnabled()) {
+            final int radius = chunky.getConfig().getPregenSettleRadius();
+            this.settleSweep = new com.kishku7.chunksmith.util.SettleSweep(
+                    selection.centerChunkX() - selection.radiusChunksX(),
+                    selection.centerChunkZ() - selection.radiusChunksZ(),
+                    selection.diameterChunksX(), selection.diameterChunksZ(), radius);
+        } else {
+            this.settleSweep = null;
+        }
         this.resumeQueuedWrites = this.maxQueuedWrites > 0 ? Math.max(1L, this.maxQueuedWrites / 2L) : 0L;
     }
 
@@ -472,6 +502,7 @@ public class GenerationTask implements Runnable {
                         }
                         LockSupport.unpark(dispatchThread);
                         update(chunk.x(), chunk.z(), true);
+                        driveSettleSweep(chunk.x(), chunk.z());
                     });
         }
         // Say what actually happened. A run that filled LOD holes must report how many it filled, and a
@@ -505,6 +536,10 @@ public class GenerationTask implements Runnable {
         chunky.getTaskLoader().saveTask(this);
         chunky.getGenerationTasks().remove(selection.world().getName());
         Thread.currentThread().setName(poolThreadName);
+        // Nothing more is coming, so the chunks on the edge of the run will never have their
+        // neighbourhood completed. Hand every held ticket back before anyone is told the task is done.
+        finishSettleSweep();
+        selection.world().settleDrain();
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
         chunky.getEventBus().call(new GenerationCompleteEvent(selection.world().getName()));
     }
@@ -589,6 +624,61 @@ public class GenerationTask implements Runnable {
         chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_VERIFY_FAILED,
                 selection.world().getName(), missing.size(), checked, examples.toString());
     }
+
+    /**
+     * Advance the trailing settle window as chunks land.
+     *
+     * <p>One window at a time: hold it for a while so the server can tick with that ground loaded, then
+     * let it go and take the next eligible stop. Eligibility is the sweep's business -- it only offers a
+     * window whose chunks are all already generated, so nothing here can trigger worldgen.
+     */
+    private synchronized void driveSettleSweep(final int chunkX, final int chunkZ) {
+        if (settleSweep == null || stopped) {
+            return;
+        }
+        settleSweep.markGenerated(chunkX, chunkZ);
+        if (settleStop != null) {
+            if (++settleHeldFor < SETTLE_HOLD_COMPLETIONS) {
+                return;
+            }
+            selection.world().settleRelease(settleStop[0], settleStop[1], settleSweep.radius());
+            settleStop = null;
+        }
+        final int[] next = settleSweep.nextStop();
+        if (next != null) {
+            settleStop = next;
+            settleHeldFor = 0;
+            selection.world().settleLoad(next[0], next[1], settleSweep.radius());
+        }
+    }
+
+    /**
+     * Sweep whatever the trailing pass could not reach while generation was still running.
+     *
+     * <p>The last band is only eligible once the final chunks land, so it is necessarily swept here. It
+     * is bounded by the width of that band, not by the size of the run -- everything behind it was
+     * already settled on the way past.
+     */
+    private void finishSettleSweep() {
+        if (settleSweep == null) {
+            return;
+        }
+        synchronized (this) {
+            if (settleStop != null) {
+                selection.world().settleRelease(settleStop[0], settleStop[1], settleSweep.radius());
+                settleStop = null;
+            }
+        }
+        int[] stop;
+        while (!cancelled && (stop = settleSweep.nextStop()) != null) {
+            selection.world().settleLoad(stop[0], stop[1], settleSweep.radius());
+            LockSupport.parkNanos(SETTLE_TAIL_HOLD_NANOS);
+            selection.world().settleRelease(stop[0], stop[1], settleSweep.radius());
+        }
+    }
+
+    /** How long the tail pass keeps each window. A tick is 50 ms; this is about a second. */
+    private static final long SETTLE_TAIL_HOLD_NANOS = 1_000_000_000L;
 
     public void stop(final boolean cancelled) {
         this.stopped = true;

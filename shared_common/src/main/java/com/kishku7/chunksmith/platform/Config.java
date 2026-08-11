@@ -66,6 +66,30 @@ public interface Config {
     long getThrottleMaxLodQueue();
 
     /**
+     * Keep a generated chunk loaded until its neighbours exist, so other mods can act on it.
+     *
+     * <p>ON by default. Turn it OFF for a pure terrain pregen with no mods that build on newly generated
+     * chunks: holding the sweep frontier costs some memory and a little throughput, and buys nothing if
+     * nothing is listening. See {@code ChunkSettleWindow} for what "the frontier" means here.
+     */
+    boolean isPregenSettleEnabled();
+
+    /**
+     * Extra ticks to keep a chunk after its neighbourhood is complete, so a mod that acts a tick or two
+     * after the chunk appears still finds it. Only meaningful when {@link #isPregenSettleEnabled()}.
+     */
+    long getPregenSettleDelayTicks();
+
+    /**
+     * Window radius in CHUNKS for the settle sweep -- how much ground around a point is loaded together.
+     *
+     * <p>Sized to the biggest footprint another mod might want to build: a Millenaire village wants 90
+     * blocks, which is six chunks, so seven gives it room. Larger costs more memory per stop and more
+     * disk reads; smaller silently stops helping the bigger structures.
+     */
+    int getPregenSettleRadius();
+
+    /**
      * Whether ChunkSmith registers itself as Distant Horizons' world-generator override, serving DH
      * from the CSLOD store.
      *
