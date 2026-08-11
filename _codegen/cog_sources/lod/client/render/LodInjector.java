@@ -1,9 +1,12 @@
 package com.kishku7.chunksmith.lod.client.render;
 
+import com.kishku7.chunksmith.lod.client.CsLodClientConfig;
 import com.kishku7.chunksmith.lod.client.CsLodDimension;
 import com.kishku7.chunksmith.lod.client.CsLodStore;
+import com.kishku7.chunksmith.lod.client.InjectedIndex;
 import com.kishku7.chunksmith.lod.client.InjectedRegions;
 import com.kishku7.chunksmith.lod.client.Renderers;
+import com.kishku7.chunksmith.lod.CsLodCodec;
 import com.kishku7.chunksmith.lod.CsLodRegionStore;
 import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import net.minecraft.client.Minecraft;
@@ -53,6 +56,22 @@ public final class LodInjector {
     private static final InjectedRegions INJECTED = new InjectedRegions();
 
     /**
+     * The ON-DISK half of the same question, one per dimension we have injected into this session.
+     *
+     * <p>{@link #INJECTED} is emptied on disconnect, which meant a JOIN began believing the renderer held
+     * nothing -- so every region in range was decoded and pushed again, into a voxy database and a DH
+     * sqlite that had both persisted every one of them since the last session. That is minutes of CPU per
+     * join for terrain that is already on screen, and on a two-core machine it is the difference between
+     * playable and not (mod_support #15).
+     *
+     * <p>So each dimension's claims are written to a {@code .injected} sidecar and read back at the next
+     * join. This map is only a per-session handle cache -- the file is the record. Cleared on disconnect
+     * with everything else, because the next server gets its own store and its own sidecars.
+     */
+    private static final java.util.Map<String, InjectedIndex> PERSISTED =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
      * Inject specific regions of a downloaded store into every renderer that is present.
      *
      * <p>Skips any region already injected this session, so this is safe to call on every travel refresh.
@@ -91,6 +110,26 @@ public final class LodInjector {
             return;
         }
 
+        // What did the LAST session hand this renderer? Seeded before the first claim of this dimension,
+        // so the claims below start from the truth on disk rather than from an empty map. Without this the
+        // whole in-range store is "new" at every join. Null means a malformed dimension id -- the same
+        // condition the store gate below refuses on, so we simply do not persist for it.
+        final boolean voxyInstalled = Renderers.hasVoxy();
+        final boolean dhInstalled = Renderers.hasDh();
+        final InjectedIndex index = PERSISTED.computeIfAbsent(dimension, dim -> {
+            final InjectedIndex opened = InjectedIndex.open(storeRoot, dim,
+                    InjectedIndex.epochFor(voxyInstalled, dhInstalled, CsLodCodec.VERSION),
+                    CsLodClientConfig.reinjectOnJoin());
+            if (opened != null && opened.size() > 0) {
+                for (final long[] entry : opened.entries()) {
+                    INJECTED.seed(dim, (int) entry[0], (int) entry[1], entry[2]);
+                }
+                LOGGER.info("Chunksmith: {} region(s) of {} were already given to this renderer in an"
+                        + " earlier session; only what has changed will be injected", opened.size(), dim);
+            }
+            return opened;
+        });
+
         // Claim by (dimension, region, TOKEN). A region we have already drawn is skipped -- unless the
         // server is now advertising a DIFFERENT version of it, which during a pregen is the NORMAL case for
         // every region under the player's feet. See InjectedRegions: keying on coordinates alone meant a
@@ -114,6 +153,7 @@ public final class LodInjector {
             // Un-mark them: a renderer that shows up later must still get this data.
             for (final CsLodMessages.RegionEntry region : fresh) {
                 INJECTED.release(dimension, region.regionX(), region.regionZ());
+                forget(index, region);
             }
             LOGGER.info("Chunksmith: no renderer became ready within {}s (voxy={} dh={}); "
                             + "downloaded LODs are cached and will be injected on the next join",
@@ -121,8 +161,16 @@ public final class LodInjector {
             return;
         }
 
-        final boolean voxy = Renderers.hasVoxy() && VoxyTarget.available();
-        final boolean dh = Renderers.hasDh() && DhTarget.available(level);
+        final boolean voxy = voxyInstalled && VoxyTarget.available();
+        final boolean dh = dhInstalled && DhTarget.available(level);
+
+        // Only write a claim down when we are injecting into EVERY renderer the player has. If one is
+        // installed but not ready yet, this pass feeds the other one and the session-only claim still
+        // suppresses a pointless re-push during THIS session -- but nothing goes on disk, because a
+        // persisted claim would tell the next join that the renderer which never received the data
+        // already has it. A slow re-inject is the bug being fixed; a permanent hole in the horizon is
+        // worse than the bug.
+        final boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled;
 
         // Name the dimension. It is the one fact that made the difference between "it works" and "there is
         // an ocean in the Nether", and it costs nothing to print.
@@ -145,7 +193,9 @@ public final class LodInjector {
             if (Minecraft.getInstance().level != level) {
                 for (int j = i; j < fresh.size(); j++) {
                     INJECTED.release(dimension, fresh.get(j).regionX(), fresh.get(j).regionZ());
+                    forget(index, fresh.get(j));
                 }
+                flush(index, dimension);
                 LOGGER.info("Chunksmith: the player left {} while its LOD data was still being injected;"
                                 + " stopping here. {} region(s) were not injected and will be re-fetched if"
                                 + " the player returns.", dimension, fresh.size() - i);
@@ -166,13 +216,22 @@ public final class LodInjector {
                         progress.accept("injected " + done + " chunks");
                     }
                 });
+                // Recorded PER REGION, as it completes -- not in one write at the end. A session that is
+                // killed half way through a large store must not lose the regions it really did inject,
+                // and must not claim the ones it did not.
+                if (persist) {
+                    index.put(region.regionX(), region.regionZ(), region.hash());
+                }
             } catch (final IOException e) {
                 // Un-mark it so a later refresh retries this region rather than skipping it forever.
                 INJECTED.release(dimension, region.regionX(), region.regionZ());
+                forget(index, region);
                 LOGGER.warn("Chunksmith: failed to read region {}.{}: {}",
                         region.regionX(), region.regionZ(), e.toString());
             }
         }
+
+        flush(index, dimension);
 
         progress.accept("done -- " + chunks.get() + " chunks"
                 + (voxy ? ", " + voxySections.get() + " voxy sections" : "")
@@ -211,9 +270,38 @@ public final class LodInjector {
                 dhChunks.get(), DhTarget.version());
     }
 
+    /** Drop a region from the ON-DISK record. Null-safe: not every store has a writable sidecar. */
+    private static void forget(final InjectedIndex index, final CsLodMessages.RegionEntry region) {
+        if (index != null) {
+            index.remove(region.regionX(), region.regionZ());
+        }
+    }
+
+    /**
+     * Write the record out.
+     *
+     * <p>Failure is logged and survivable, and the direction it fails in is the safe one: a sidecar we
+     * could not write means the next join re-injects those regions, which is exactly the behaviour this
+     * whole mechanism replaces. Slow, not wrong.
+     */
+    private static void flush(final InjectedIndex index, final String dimension) {
+        if (index == null) {
+            return;
+        }
+        try {
+            index.save();
+        } catch (final IOException e) {
+            LOGGER.warn("Chunksmith: could not record which {} LOD regions were injected ({}); they will"
+                    + " be injected again on the next join", dimension, e.toString());
+        }
+    }
+
     /** Forget what we have injected. Call on disconnect. */
     public static void reset() {
         INJECTED.clear();
+        // The FILES are deliberately left alone -- they are the record the next join reads. Only the
+        // per-session handles go, because the next server has its own store and its own sidecars.
+        PERSISTED.clear();
     }
 
     /**

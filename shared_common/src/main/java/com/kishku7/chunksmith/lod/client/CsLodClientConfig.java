@@ -8,7 +8,8 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * The LOD client's own settings. One knob today: how often to ask the server whether anything changed.
+ * The LOD client's own settings: how often to ask the server whether anything changed, and whether to
+ * re-inject everything on the next join.
  *
  * <p><b>There is no settings SCREEN, and that is deliberate</b> -- a config UI is 3.2's problem. This is a
  * plain {@code config/chunksmith-lod.properties} that the client writes with its defaults and comments on
@@ -26,8 +27,24 @@ public final class CsLodClientConfig {
     /** The file, under the game's {@code config/} directory. */
     public static final String FILE_NAME = "chunksmith-lod.properties";
 
-    /** The one key. */
+    /** How often to ask the server whether anything changed. */
     public static final String KEY_SYNC_SECONDS = "sync-interval-seconds";
+
+    /**
+     * Throw away what we remember having injected, and inject it all again.
+     *
+     * <p>The escape hatch for the one case the injected-index cannot detect on its own. That index records
+     * which regions we handed to a renderer, and it survives across sessions -- which is what stops every
+     * world join re-pushing terrain the renderer already has. It notices a CHANGED region (the token moved)
+     * and it notices a changed RENDERER SET (the epoch moved). What it cannot notice is the player emptying
+     * the renderer's own database underneath it: voxy's storage and DH's sqlite are theirs, not ours, and
+     * nothing we can read says "this was reset". Our record would then honestly describe data that is gone,
+     * and we would skip it forever.
+     *
+     * <p>So: set this true, join once, set it back. Deleting the {@code .injected} files in the store does
+     * exactly the same thing for anyone who would rather do it that way.
+     */
+    public static final String KEY_REINJECT = "reinject-on-join";
 
     /**
      * How often the client asks "has anything changed?" by default.
@@ -59,9 +76,15 @@ public final class CsLodClientConfig {
             + " pregen that is still running, with no relog and no need to go for a walk.\n"
             + "\n"
             + " Default " + DEFAULT_SYNC_SECONDS + ". Values below " + MIN_SYNC_SECONDS
-            + " are clamped to " + MIN_SYNC_SECONDS + ".";
+            + " are clamped to " + MIN_SYNC_SECONDS + ".\n"
+            + "\n"
+            + " " + KEY_REINJECT + " -- normally Chunksmith remembers which LOD regions it has already\n"
+            + " given to your renderer, so joining a world does not re-send terrain voxy or Distant\n"
+            + " Horizons already has. Set this to true for ONE join if you have deleted or reset your\n"
+            + " renderer's own data and want everything sent again. Default false.";
 
     private static volatile int syncSeconds = DEFAULT_SYNC_SECONDS;
+    private static volatile boolean reinject;
     private static volatile boolean loaded;
 
     private CsLodClientConfig() {
@@ -87,9 +110,15 @@ public final class CsLodClientConfig {
             } catch (final IOException e) {
                 loaded = true;
                 syncSeconds = DEFAULT_SYNC_SECONDS;
+                reinject = false;
                 return "could not read " + FILE_NAME + " (" + e + "); using the defaults";
             }
         }
+
+        // Anything that is not literally "true" is false. A misspelt value must not silently turn a
+        // one-shot recovery switch into the permanent behaviour it exists to work around.
+        reinject = Boolean.parseBoolean(
+                properties.getProperty(KEY_REINJECT, "false").trim());
 
         final String raw = properties.getProperty(KEY_SYNC_SECONDS);
         int requested = DEFAULT_SYNC_SECONDS;
@@ -118,6 +147,11 @@ public final class CsLodClientConfig {
             return FILE_NAME + ": " + KEY_SYNC_SECONDS + "=" + requested + " is below the "
                     + MIN_SYNC_SECONDS + "s minimum; syncing every " + clamped + "s instead";
         }
+        if (reinject) {
+            return "syncing with the server every " + clamped + "s; " + KEY_REINJECT
+                    + " is ON, so every LOD region will be sent to your renderer again this session"
+                    + " (set it back to false once your terrain is back)";
+        }
         return "syncing with the server every " + clamped + "s";
     }
 
@@ -132,6 +166,11 @@ public final class CsLodClientConfig {
     /** The interval in seconds, already clamped. */
     public static int syncIntervalSeconds() {
         return syncSeconds;
+    }
+
+    /** True when the player has asked for one session of full re-injection. See {@link #KEY_REINJECT}. */
+    public static boolean reinjectOnJoin() {
+        return reinject;
     }
 
     /** Has {@link #load} run? Only used to keep the tick loop from polling before we know the interval. */
@@ -153,9 +192,15 @@ public final class CsLodClientConfig {
         loaded = true;
     }
 
+    /** Test seam: set the re-inject switch directly, as though it had been read from a file. */
+    static void setReinjectForTesting(final boolean value) {
+        reinject = value;
+    }
+
     private static void write(final Path file) {
         final Properties out = new Properties();
         out.setProperty(KEY_SYNC_SECONDS, Integer.toString(DEFAULT_SYNC_SECONDS));
+        out.setProperty(KEY_REINJECT, "false");
         try {
             Files.createDirectories(file.getParent());
             try (OutputStream stream = Files.newOutputStream(file)) {

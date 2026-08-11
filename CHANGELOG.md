@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## [3.2.4] - 2026-08-11
+
+### Fixed
+- **LOD data is no longer re-injected into the renderer on every single world join.** Which
+  regions had already been handed to voxy / Distant Horizons was remembered only in memory, and
+  that memory was thrown away on disconnect -- so every join re-decoded and re-pushed the entire
+  in-range store, whether or not the renderer already had every bit of it. On a large pregenerated
+  world that is minutes of CPU on a background thread at every single join, for terrain that was
+  already drawn. Reported by Maker261 (mod_support #15) on a two-core machine, where it is
+  impossible to miss.
+  - The claim set is now written to disk as `.injected`, one per dimension, next to the region
+    files it describes -- the same `x,z=token` line format and the same atomic `.part`+move
+    discipline the download manifest already uses. A join now starts from what the last session
+    actually injected instead of from nothing.
+  - A region whose token has MOVED is still re-injected. That is the whole point of tracking the
+    token rather than the coordinates, and it is what keeps a pregen that is still growing the
+    region under the player's feet from freezing at whatever it was when they first joined.
+  - The file records WHICH renderers it was written for. Install Distant Horizons alongside an
+    existing voxy setup and the epoch no longer matches, so everything is injected once into the
+    renderer that has never seen it, rather than being skipped forever.
+  - `reinject-on-join` (new, in `config/chunksmith-lod.properties`, default `false`) forces a full
+    re-injection for one session. It is the escape hatch for the case the epoch cannot see: a
+    player who deletes or resets their renderer's own database still holds a `.injected` that
+    honestly describes what we sent, and we would otherwise believe them. Deleting the `.injected`
+    files does the same thing.
+
 ## [3.2.3] - 2026-08-04
 
 ### Added

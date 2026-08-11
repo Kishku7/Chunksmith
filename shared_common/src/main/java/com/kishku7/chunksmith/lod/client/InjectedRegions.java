@@ -36,6 +36,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * sections. Re-injecting an UNCHANGED one is the waste this class exists to prevent, and it still cannot
  * happen.
  *
+ * <p><b>This is the SESSION half of a two-part mechanism.</b> It answers the question for the session it
+ * is in, and it is cleared on disconnect. What survives a disconnect is {@link InjectedIndex}, the on-disk
+ * record a join seeds this map from via {@link #seed} -- because a renderer does NOT forget between
+ * sessions, and starting empty meant re-drawing the entire in-range store at every single world join.
+ *
  * <p>Deliberately MC-free so it can be unit-tested. Thread-safe: the injector runs off the game thread and
  * the network handler releases regions from another.
  */
@@ -68,6 +73,23 @@ public final class InjectedRegions {
         }
         // Drawn, but the server has a different version now. Ours -- and `put` has already staked it.
         return true;
+    }
+
+    /**
+     * Pre-load a claim that a PREVIOUS session made and wrote down -- see {@link InjectedIndex}.
+     *
+     * <p>Seeding is not claiming: nothing is being injected at this moment and there is no winner to
+     * decide, so this deliberately has no return value and no atomicity story. It is the session starting
+     * from what the last one actually did instead of from nothing, which is the whole of the fix for a join
+     * that re-drew terrain the renderer had never forgotten.
+     *
+     * <p>It goes through the same map the live claims use, so everything downstream -- the token-moved
+     * case, {@link #release}, {@link #clear} -- behaves identically whether a claim came from disk or from
+     * this session. There is exactly one notion of "already drawn", and this is how last session's entries
+     * join it.
+     */
+    public void seed(final String dimension, final int regionX, final int regionZ, final long hash) {
+        this.injected.put(key(dimension, regionX, regionZ), hash);
     }
 
     /**
