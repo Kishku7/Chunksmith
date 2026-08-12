@@ -1036,10 +1036,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -1308,10 +1322,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -1593,10 +1621,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -1866,10 +1908,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -2139,10 +2195,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -2430,10 +2500,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -2724,10 +2808,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -2992,10 +3090,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -3278,10 +3390,24 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -4627,10 +4753,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -4913,10 +5053,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -5186,10 +5340,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -5458,10 +5626,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -5744,10 +5926,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -6017,10 +6213,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -6290,10 +6500,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -6582,10 +6806,24 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -6850,10 +7088,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -7123,10 +7375,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override
@@ -7408,10 +7674,24 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        if (this.settleWindow != null) {
-            this.settleWindow.drain();
-            this.settleWindow = null;
+        final ChunkSettleWindow window = this.settleWindow;
+        if (window == null) {
+            return;
         }
+        this.settleWindow = null;
+        // ON THE SERVER THREAD -- exactly like settleLoad/settleRelease directly below, and for the
+        // same reason. ChunkSettleWindow states the invariant in its own javadoc: "every call is
+        // made from the server thread, which is also the only thread allowed to touch a chunk
+        // ticket." This was the ONE call site that broke it. settleDrain runs from the
+        // GenerationTask WORKER thread (TaskScheduler) at the end of a run and, more violently, on
+        // CANCEL -- handing back every held ticket at once. Vanilla tolerated the off-thread
+        // mutation; C2ME, which rewrites the chunk ticket/distance manager onto its own concurrent
+        // scheduler, did not: it corrupted the fastutil ticket graph and took the server down with
+        // an ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap/LongLinkedOpenHashSet, then
+        // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
+        // tickets come back on the next tick, and blocking a worker on the server thread during a
+        // cancel is how deadlocks are made.
+        world.getServer().execute(window::drain);
     }
 
     @Override

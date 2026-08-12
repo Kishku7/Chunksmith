@@ -23,14 +23,15 @@
 ### Fixed
 
 - **Cancelling a pre-generation could crash the server when C2ME is installed** (mod_support #16).
-  Cancelling dumps thousands of chunk-ticket removals through one forced distance-manager update,
-  and under C2ME -- which rewrites that machinery onto its own concurrent scheduler -- that corrupted
-  its ticket map: `ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 513`, then a
-  second copy of the same failure while the server was saving worlds on the way down. The guard for
-  exactly this race already existed and was already applied when tickets are ADDED; the call that
-  propagates REMOVED tickets was missed, and it is the one a cancel hammers. Both sides are guarded
-  now. C2ME consolidates these updates itself, which is why skipping ours is correct rather than
-  merely quieter.
+  The settle window introduced in 3.2.4 holds a chunk ticket until a chunk's neighbours have caught
+  up, then hands it back. Handing them ALL back -- at the end of a run, and far more abruptly on a
+  cancel -- was done from Chunksmith's own worker thread, and a chunk ticket may only be touched on
+  the server thread. Vanilla tolerated it. C2ME, which moves that machinery onto its own concurrent
+  scheduler, did not: the ticket graph was corrupted mid-flight and the server came down with
+  `ArrayIndexOutOfBoundsException`, then failed a second time while saving worlds on the way out.
+  The release now runs on the server thread, like every other ticket operation beside it.
+  Reproduced on demand before the fix and confirmed gone after it, with a test that was shown to
+  FAIL on the previous release first -- an untested fix for a crash is a guess.
 - **The LOD injector kept running after the world had gone.** On a disconnect or a cancel it would
   carry on handing regions to your renderer -- observed still logging progress 45 seconds after the
   server had stopped. It is now told to stop, and stops at the next region.
