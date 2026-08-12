@@ -90,6 +90,36 @@ public interface Config {
     int getPregenSettleRadius();
 
     /**
+     * Turn the settle window on or off and PERSIST the change.
+     *
+     * <p>Persisted deliberately: settle is tuned for a pregen run that may outlive several restarts, and a
+     * setting you had to re-apply on every boot would be worse than no command at all.
+     */
+    void setPregenSettleEnabled(boolean enabled);
+
+    /**
+     * Set the post-neighbourhood delay in ticks and persist it. Clamped to the same range the getter
+     * enforces, so a command can never write a value the loader would reject.
+     */
+    void setPregenSettleDelayTicks(long ticks);
+
+    /**
+     * Set the settle sweep radius in chunks and persist it. Clamped like {@link #getPregenSettleDelayTicks()}.
+     */
+    void setPregenSettleRadius(int radius);
+
+    /**
+     * Whether this platform can honour the settle settings at all.
+     *
+     * <p>False on Bukkit, which does not manage chunk tickets itself -- there is nothing to hold open, so
+     * the setting would be a lie rather than a no-op. The command reports that instead of pretending to
+     * have set something.
+     */
+    default boolean isPregenSettleSupported() {
+        return true;
+    }
+
+    /**
      * Whether ChunkSmith registers itself as Distant Horizons' world-generator override, serving DH
      * from the CSLOD store.
      *
@@ -98,6 +128,26 @@ public interface Config {
      * That is right for a world you have pregenerated and wrong for one you have not.
      */
     boolean isLodDhOverrideEnabled();
+
+    void setLanguage(String language);
+
+    void setContinueOnRestart(boolean continueOnRestart);
+
+    void setForceLoadExistingChunks(boolean forceLoadExistingChunks);
+
+    void setIoThrottleEnabled(boolean enabled);
+
+    void setThrottleTargetMspt(double mspt);
+
+    void setThrottleMaxChunkMillis(long millis);
+
+    void setThrottleMaxQueuedWrites(long writes);
+
+    void setThrottleMaxLodQueue(long items);
+
+    void setLodMode(LodMode mode);
+
+    void setLodDhOverrideEnabled(boolean enabled);
 
     void reload();
 }

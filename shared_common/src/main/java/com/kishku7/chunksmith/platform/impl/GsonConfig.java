@@ -88,6 +88,7 @@ public final class GsonConfig implements Config {
     @Override
     public void setSilent(final boolean silent) {
         configModel.silent = silent;
+        saveConfig();
     }
 
     @Override
@@ -97,7 +98,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public void setUpdateInterval(final int updateInterval) {
-        configModel.updateInterval = updateInterval;
+        configModel.updateInterval = Math.max(0, updateInterval);
+        saveConfig();
     }
 
     @Override
@@ -196,8 +198,102 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setPregenSettleEnabled(final boolean enabled) {
+        configModel.pregenSettle = enabled;
+        saveConfig();
+    }
+
+    @Override
+    public void setPregenSettleDelayTicks(final long ticks) {
+        // Clamp on the WAY IN as well as the way out. The getter clamps because a hand-edited file can
+        // hold anything; doing it here too means the file never contains a value we would refuse to read
+        // back, so what /cs settle reports and what the file says can never disagree.
+        configModel.pregenSettleDelayTicks = Math.max(0L, Math.min(SETTLE_DELAY_MAX, ticks));
+        saveConfig();
+    }
+
+    @Override
+    public void setPregenSettleRadius(final int radius) {
+        configModel.pregenSettleRadius = Math.max(1, Math.min(SETTLE_RADIUS_MAX, radius));
+        saveConfig();
+    }
+
+    @Override
     public boolean isLodDhOverrideEnabled() {
         return Optional.ofNullable(configModel.lodDhOverride).orElse(false);
+    }
+
+    // Every setter below clamps to the SAME range its getter enforces, then saves. Clamping only on
+    // read would let the file hold a number the mod refuses to honour, so the file and `/cs set` would
+    // disagree about what is in force -- and the file is what an operator inspects when something is wrong.
+
+    @Override
+    public void setLanguage(final String language) {
+        configModel.language = Input.checkLanguage(language);
+        saveConfig();
+        Translator.setLanguage(getLanguage());
+    }
+
+    @Override
+    public void setContinueOnRestart(final boolean continueOnRestart) {
+        configModel.continueOnRestart = continueOnRestart;
+        saveConfig();
+    }
+
+    @Override
+    public void setForceLoadExistingChunks(final boolean forceLoadExistingChunks) {
+        configModel.forceLoadExistingChunks = forceLoadExistingChunks;
+        saveConfig();
+    }
+
+    @Override
+    public void setIoThrottleEnabled(final boolean enabled) {
+        configModel.ioThrottle = enabled;
+        saveConfig();
+    }
+
+    @Override
+    public void setThrottleTargetMspt(final double mspt) {
+        configModel.throttleTargetMspt = Math.max(TARGET_MSPT_MIN, Math.min(TARGET_MSPT_MAX, mspt));
+        saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxChunkMillis(final long millis) {
+        configModel.throttleMaxChunkMillis =
+                Math.max(MAX_CHUNK_MILLIS_MIN, Math.min(MAX_CHUNK_MILLIS_MAX, millis));
+        saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxQueuedWrites(final long writes) {
+        // 0 is not out of range -- it is the documented "disable the backlog bound" value, so it must
+        // survive the clamp rather than being pulled up to the minimum.
+        configModel.throttleMaxQueuedWrites = writes <= 0L
+                ? 0L
+                : Math.max(MAX_QUEUED_WRITES_MIN, Math.min(MAX_QUEUED_WRITES_MAX, writes));
+        saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxLodQueue(final long items) {
+        // 0 disables, as above.
+        configModel.throttleMaxLodQueue = items <= 0L
+                ? 0L
+                : Math.max(MAX_LOD_QUEUE_MIN, Math.min(MAX_LOD_QUEUE_MAX, items));
+        saveConfig();
+    }
+
+    @Override
+    public void setLodMode(final LodMode mode) {
+        configModel.lodEnabled = mode.name().toLowerCase(java.util.Locale.ROOT);
+        saveConfig();
+    }
+
+    @Override
+    public void setLodDhOverrideEnabled(final boolean enabled) {
+        configModel.lodDhOverride = enabled;
+        saveConfig();
     }
 
     @Override

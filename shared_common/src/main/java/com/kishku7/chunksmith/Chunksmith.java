@@ -19,6 +19,7 @@ import com.kishku7.chunksmith.command.RadiusCommand;
 import com.kishku7.chunksmith.command.ReloadCommand;
 import com.kishku7.chunksmith.command.SelectionCommand;
 import com.kishku7.chunksmith.command.ShapeCommand;
+import com.kishku7.chunksmith.command.SetCommand;
 import com.kishku7.chunksmith.command.SilentCommand;
 import com.kishku7.chunksmith.command.SpawnCommand;
 import com.kishku7.chunksmith.command.StartCommand;
@@ -121,6 +122,7 @@ public final class Chunksmith {
         commandMap.put(CommandLiteral.RELOAD, new ReloadCommand(this));
         commandMap.put(CommandLiteral.SELECTION, new SelectionCommand(this));
         commandMap.put(CommandLiteral.SHAPE, new ShapeCommand(this));
+        commandMap.put(CommandLiteral.SET, new SetCommand(this));
         commandMap.put(CommandLiteral.SILENT, new SilentCommand(this));
         commandMap.put(CommandLiteral.SPAWN, new SpawnCommand(this));
         commandMap.put(CommandLiteral.START, new StartCommand(this));

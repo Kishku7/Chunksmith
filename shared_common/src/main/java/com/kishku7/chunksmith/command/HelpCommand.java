@@ -27,6 +27,7 @@ public class HelpCommand implements ChunksmithCommand {
             CommandLiteral.PATTERN,
             CommandLiteral.SILENT,
             CommandLiteral.QUIET,
+            CommandLiteral.SET,
             CommandLiteral.TRIM,
             CommandLiteral.SELECTION,
             CommandLiteral.PROGRESS,

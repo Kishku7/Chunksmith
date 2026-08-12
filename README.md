@@ -181,7 +181,7 @@ touched again.
 
 ### Usage
 
-`lodEnabled` is a TRISTATE, default `auto`. In `config/chunksmith.json`:
+`lodEnabled` is a TRISTATE, default `auto`. In `config/chunksmith/config.json`:
 
     "lodEnabled": "auto",      // ON if a renderer (distanthorizons / voxy / a voxy fork) is loaded,
                                //   ON on a dedicated server (its store is what remote clients pull),
@@ -228,9 +228,13 @@ the run, and it falls to zero as the run finishes.
 The rule is about chunks, not about any one mod -- Chunksmith contains no mod-specific compatibility
 code, and anything that builds on newly generated chunks benefits from it.
 
+All three live in `config/chunksmith/config.json`, and like every other setting they can be read and
+changed in-game with `/cs set` (see [Settings](#settings)) instead of editing the file:
+
 ```jsonc
 "pregenSettle": true,            // hold each chunk until its neighbours exist (default)
 "pregenSettleDelayTicks": 40,    // and for this long afterwards -- two seconds
+"pregenSettleRadius": 7          // chunks of ground loaded together by the trailing sweep
 ```
 
 **When to turn it off.** `"pregenSettle": false` restores the old behaviour exactly: the ticket is
@@ -243,6 +247,38 @@ something nothing is going to use. If you are running a modpack, leave it on.
 than two seconds after the chunk arrives -- its own queue may be backed up. Raise
 `pregenSettleDelayTicks` (20 ticks = 1 second, maximum 600). Higher values hold more chunks for
 longer, so raise it deliberately rather than by default.
+
+**When to raise the radius.** `pregenSettleRadius` (default 7 chunks, maximum 16) is how much ground
+the trailing sweep loads together at one stop. It is sized to the largest footprint a mod is likely
+to want at once: a Millenaire village reaches about 90 blocks, which is six chunks, so seven leaves
+room. A mod that places something bigger than that may still find the far edge of its own structure
+unloaded -- raise the radius for it. Each increment costs memory per stop and more disk reads, so
+this is the last dial to touch, not the first.
+
+**Note on upgrading.** Chunksmith never rewrites a config that already exists, so these three keys
+will not appear in a config written by an earlier version. They still take their defaults and the
+feature is fully on. `/cs set` reads the values in force rather than the file, so it shows them
+correctly either way -- and setting any one of them writes the file, keys and all.
+
+## Settings
+
+Every setting in `config/chunksmith/config.json` can be read and changed from the server console or
+in-game, without editing the file and without a restart:
+
+    /cs set                          // list every setting and the value in force
+    /cs set <name>                   // show one
+    /cs set <name> <value>           // change it, and save it
+
+Two things worth knowing. Settings that have a legal range are **clamped as they are written**, so
+`/cs set` reports the value that is actually in force rather than echoing what you typed -- if you
+ask for a radius of 40 you will be told it is 16. And a value that cannot be understood at all (a
+word where a number belongs, a language that is not shipped) is refused outright rather than
+silently becoming a default.
+
+`/cs silent` and `/cs quiet` still work; they are the same two settings under their old names.
+
+On Paper and Folia the three `pregenSettle*` settings report that they do not apply. Bukkit does not
+manage chunk tickets, so there is no window for Chunksmith to hold open there.
 
 ## Credits / License
 

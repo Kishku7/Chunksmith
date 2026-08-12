@@ -4,6 +4,26 @@
 
 ## [3.2.4] - 2026-08-11
 
+### Added
+
+- **`/cs set` -- every setting is now readable and writable in-game.** A setting you can only change
+  by editing a file and restarting is not much use on a running server. Only two of the thirteen
+  settings had a command; the rest, including the three new settle keys, could not be changed on a
+  running server at all.
+  - `/cs set` lists every setting with the value in force, `/cs set <name>` shows one, and
+    `/cs set <name> <value>` changes it and saves it immediately.
+  - Values with a legal range are clamped **as they are written**, not only as they are read, so the
+    file can never hold a number the mod would refuse to honour. The command reports the value that
+    was actually stored rather than echoing what you typed -- ask for a settle radius of 40 and it
+    tells you it is 16.
+  - A value that cannot be understood at all -- a word where a number belongs, a language that is
+    not shipped -- is refused, rather than quietly becoming a default.
+  - `/cs silent` and `/cs quiet` still work and are unchanged. Both now PERSIST, which they did not
+    before: they used to change the running value and forget it at the next restart.
+  - On Paper/Folia the three `pregenSettle*` settings report that they do not apply rather than
+    accepting a value that is ignored. Bukkit does not manage chunk tickets, so there is no window
+    to hold open.
+
 ### Fixed
 - **Other mods can build on freshly pregenerated land again.** A pregen added a chunk ticket,
   generated the chunk and dropped the ticket the instant the future completed. For pure terrain that
@@ -20,11 +40,16 @@
   - The rule is deliberately about chunks, not about any particular mod. Nothing in Chunksmith knows
     Millenaire's name; anything that builds on newly generated chunks benefits, and anything that
     does not is unaffected.
-  - **On by default.** `pregenSettle: false` in `config/chunksmith.json` restores the old behaviour
+  - **On by default.** `pregenSettle: false` in `config/chunksmith/config.json` restores the old behaviour
     exactly -- release inline, allocate nothing -- which is the right setting for a pure terrain
     pregen with no such mods installed, where holding the frontier costs memory and a little
     throughput and buys nothing. `pregenSettleDelayTicks` (default 40, i.e. two seconds) tunes how
-    long a chunk lingers after its neighbourhood closes.
+    long a chunk lingers after its neighbourhood closes, and `pregenSettleRadius` (default 7 chunks,
+    maximum 16) sets how much ground the trailing sweep loads together -- sized to the largest
+    footprint a mod is likely to want at once.
+  - Note for upgrades: an existing config is never rewritten, so these keys will not appear in a
+    config written by an earlier version. They take their defaults regardless; delete
+    `config/chunksmith/config.json` and restart to get a fresh one that lists them.
 - **LOD data is no longer re-injected into the renderer on every single world join.** Which
   regions had already been handed to voxy / Distant Horizons was remembered only in memory, and
   that memory was thrown away on disconnect -- so every join re-decoded and re-pushed the entire

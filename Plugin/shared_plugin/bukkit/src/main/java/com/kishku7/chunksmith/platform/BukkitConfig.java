@@ -132,6 +132,30 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isPregenSettleSupported() {
+        return false;
+    }
+
+    // The three setters below are deliberately no-ops rather than throws. isPregenSettleSupported()
+    // is false, so /cs settle refuses before it ever reaches them; a throw here would only turn a
+    // future caller's oversight into a crash on a live server for a setting that does nothing anyway.
+
+    @Override
+    public void setPregenSettleEnabled(final boolean enabled) {
+        // no-op: Bukkit does not manage chunk tickets, so there is no window to open
+    }
+
+    @Override
+    public void setPregenSettleDelayTicks(final long ticks) {
+        // no-op: see setPregenSettleEnabled
+    }
+
+    @Override
+    public void setPregenSettleRadius(final int radius) {
+        // no-op: see setPregenSettleEnabled
+    }
+
+    @Override
     public long getThrottleMaxLodQueue() {
         return plugin.getConfig().getLong("throttle-max-lod-queue", 512L);
     }
@@ -139,6 +163,66 @@ public final class BukkitConfig implements Config {
     @Override
     public boolean isLodDhOverrideEnabled() {
         return false;
+    }
+
+    @Override
+    public void setLanguage(final String language) {
+        plugin.getConfig().set("language", Input.checkLanguage(language));
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setContinueOnRestart(final boolean continueOnRestart) {
+        plugin.getConfig().set("continue-on-restart", continueOnRestart);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setForceLoadExistingChunks(final boolean forceLoadExistingChunks) {
+        plugin.getConfig().set("force-load-existing-chunks", forceLoadExistingChunks);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setIoThrottleEnabled(final boolean enabled) {
+        plugin.getConfig().set("io-throttle", enabled);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleTargetMspt(final double mspt) {
+        plugin.getConfig().set("throttle-target-mspt", mspt);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxChunkMillis(final long millis) {
+        plugin.getConfig().set("throttle-max-chunk-millis", millis);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxQueuedWrites(final long writes) {
+        plugin.getConfig().set("throttle-max-queued-writes", writes);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxLodQueue(final long items) {
+        plugin.getConfig().set("throttle-max-lod-queue", items);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodMode(final LodMode mode) {
+        plugin.getConfig().set("lod-enabled", mode.name().toLowerCase(java.util.Locale.ROOT));
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodDhOverrideEnabled(final boolean enabled) {
+        plugin.getConfig().set("lod-dh-override", enabled);
+        plugin.saveConfig();
     }
 
     @Override

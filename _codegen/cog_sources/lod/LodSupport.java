@@ -349,13 +349,13 @@ public final class LodSupport {
         if (found != null) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled -- detected {}. "
                             + "Pregen will build the CSLOD store (~5.8 KB/chunk, ~16% slower). "
-                            + "Set lodEnabled=false in config/chunksmith.json to turn it off.",
+                            + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.",
                     found);
         } else if (server != null && server.isDedicatedServer()) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled -- dedicated server. No renderer runs "
                     + "here, but the CSLOD store is what Chunksmith-Client downloads, so the store is "
                     + "built (~5.8 KB/chunk, ~16% slower pregen). "
-                    + "Set lodEnabled=false in config/chunksmith.json to turn it off.");
+                    + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.");
         } else {
             LOGGER.info("Chunksmith: no LOD renderer detected (looked for {}); LOD generation off. "
                     + "Install Distant Horizons or voxy, or set lodEnabled=true to force it on.",

@@ -234,6 +234,9 @@ public final class ChunksmithForge {
                 argument(CommandLiteral.RADIUS, word()));
         registerArguments(command, literal(CommandLiteral.RELOAD),
                 argument(CommandLiteral.TYPE, word()));
+        registerArguments(command, literal(CommandLiteral.SET),
+                argument(CommandLiteral.TYPE, string()).suggests(SuggestionProviders.SETTINGS),
+                argument(CommandLiteral.VALUE, string()));
         registerArguments(command, literal(CommandLiteral.SELECTION));
         registerArguments(command, literal(CommandLiteral.SHAPE),
                 argument(CommandLiteral.SHAPE, string()).suggests(SuggestionProviders.SHAPES));

@@ -7,11 +7,13 @@ public final class SuggestionProviders {
     public static final SuggestionProvider<CommandSourceStack> PATTERNS;
     public static final SuggestionProvider<CommandSourceStack> SHAPES;
     public static final SuggestionProvider<CommandSourceStack> TRIM_MODES;
+    public static final SuggestionProvider<CommandSourceStack> SETTINGS;
 
     static {
         PATTERNS = new PatternSuggestionProvider();
         SHAPES = new ShapeSuggestionProvider();
         TRIM_MODES = new TrimModeSuggestionProvider();
+        SETTINGS = new SettingSuggestionProvider();
     }
 
     private SuggestionProviders() {
