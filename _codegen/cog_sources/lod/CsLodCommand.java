@@ -264,10 +264,16 @@ public final class CsLodCommand {
                                      final String value) throws CommandSyntaxException {
         final ServerPlayer player = source.getPlayerOrException();
         if (!CsLodServerNet.hasLodClient(player)) {
+            // NAME BOTH CAUSES. The server cannot tell them apart -- both look identical from here
+            // (no hello) -- and the earlier wording said only "install Chunksmith", which is actively
+            // WRONG for the commoner case: a player who HAS Chunksmith but no renderer. Proven on the
+            // 1.21.11 MP rig 2026-08-12, where that message was the entire output of a working mod.
             source.sendFailure(Component.literal(
-                    "[chunksmith] these are CLIENT settings, and your client has not spoken to this"
-                            + " server's Chunksmith. Install or enable Chunksmith on your client, or"
-                            + " edit config/chunksmith-lod.properties yourself."));
+                    "[chunksmith] this server has not heard from your client's Chunksmith. Either it"
+                            + " is not installed client-side, or it is installed with no LOD renderer"
+                            + " (voxy / Distant Horizons) -- Chunksmith only introduces itself when it"
+                            + " has a renderer to feed. Without one these two settings do nothing"
+                            + " anyway; you can still edit config/chunksmith-lod.properties by hand."));
             return 0;
         }
         if (!CsLodServerNet.sendClientSetting(player, action, name, value)) {
