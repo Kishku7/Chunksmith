@@ -502,6 +502,41 @@ public final class CsLodServerNet {
         send(player, data);
     }
 
+    /**
+     * Has this player's client actually spoken the LOD protocol to us?
+     *
+     * <p>The hello is the only honest signal that there is a Chunksmith on the other end. It matters for
+     * {@code /cslod set}, which asks the CLIENT to read and write its own config file: an unknown message
+     * id is logged and dropped at the far end, silently, so without this check a player on a vanilla
+     * client would type a command, see nothing at all, and have no way to tell the difference between
+     * "it worked" and "nothing is listening".
+     */
+    public static boolean hasLodClient(final ServerPlayer player) {
+        return GREETED.contains(player.getUUID());
+    }
+
+    /**
+     * Ask a player's client to list, show or set one of its OWN LOD settings.
+     *
+     * <p>Main thread only, like every other send. The client prints the reply into its own chat -- this
+     * side deliberately reports nothing about the outcome, because this side does not know it: the file
+     * being written is on the player's machine.
+     *
+     * @return false if the message could not even be built, which is a bug rather than a user error
+     */
+    public static boolean sendClientSetting(final ServerPlayer player,
+                                            final byte action,
+                                            final String name,
+                                            final String value) {
+        try {
+            send(player, CsLodMessages.encode(new CsLodMessages.ClientSetting(action, name, value)));
+            return true;
+        } catch (final java.io.IOException e) {
+            LOGGER.warn("Chunksmith: could not encode a client-setting message: {}", e.toString());
+            return false;
+        }
+    }
+
     // ------------------------------------------------------------------ index + summary
 
     /**

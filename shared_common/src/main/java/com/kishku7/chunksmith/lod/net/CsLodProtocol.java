@@ -189,6 +189,32 @@ public final class CsLodProtocol {
 
     /** S2C: that is everything you asked for. */
     public static final byte S2C_DONE = 104;
+    /**
+     * S2C: act on the player's OWN LOD-client settings -- list them, show one, or set one (3.3.0).
+     *
+     * <p>{@code /cslod set} is typed at a server, but the settings it names live in the player's
+     * {@code config/chunksmith-lod.properties} on their CLIENT, and on a dedicated server that file is
+     * not merely unwritable, it does not exist. So the command does not try to answer: it forwards the
+     * request down this message and the CLIENT prints the reply into its own chat, having read and
+     * written its own file. The one command tree stays on the server where players can find it, and the
+     * state stays on the machine that owns it.
+     *
+     * <p>Purely additive, so no {@link #VERSION} bump: an older client logs the unknown id and drops it,
+     * which is why the server checks {@code CsLodServerNet.hasLodClient} first and says so plainly rather
+     * than leaving the player waiting on a reply that is never coming.
+     */
+    public static final byte S2C_CLIENT_SETTING = 106;
+
+    // ---- actions carried by S2C_CLIENT_SETTING ----
+
+    /** List every client setting with the value in force. */
+    public static final byte SETTING_LIST = 0;
+
+    /** Show one client setting. */
+    public static final byte SETTING_SHOW = 1;
+
+    /** Set one client setting, then report the value actually stored. */
+    public static final byte SETTING_SET = 2;
 
     private CsLodProtocol() {
     }

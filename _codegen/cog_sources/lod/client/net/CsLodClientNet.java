@@ -2,6 +2,7 @@ package com.kishku7.chunksmith.lod.client.net;
 
 import com.kishku7.chunksmith.lod.client.CsLodCache;
 import com.kishku7.chunksmith.lod.client.CsLodClientConfig;
+import com.kishku7.chunksmith.lod.client.CsLodClientSettings;
 import com.kishku7.chunksmith.lod.client.CsLodManifest;
 import com.kishku7.chunksmith.lod.client.CsLodDimension;
 import com.kishku7.chunksmith.lod.client.CsLodDownloader;
@@ -14,6 +15,7 @@ import com.kishku7.chunksmith.lod.net.CsLodSummary;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -592,6 +594,8 @@ public final class CsLodClientNet {
                 case CsLodProtocol.S2C_SUMMARY -> summary(CsLodMessages.decodeRegionSummary(in));
                 case CsLodProtocol.S2C_INDEX -> index(CsLodMessages.decodeRegionIndex(in));
                 case CsLodProtocol.S2C_CHUNK -> slice(CsLodMessages.decodeRegionSlice(in));
+                case CsLodProtocol.S2C_CLIENT_SETTING ->
+                        clientSetting(CsLodMessages.decodeClientSetting(in));
                 case CsLodProtocol.S2C_DONE -> {
                     LOGGER.info("Chunksmith: in-band transfer complete");
                     // One manifest write for the whole transfer, not one per region.
@@ -967,6 +971,79 @@ public final class CsLodClientNet {
     private static Path storeRoot() {
         final String key = host.isEmpty() ? "unknown" : host.replaceAll("[^a-zA-Z0-9._-]", "_");
         return ClientPlatform.gameDir().resolve("chunksmith").resolve("lod").resolve(key);
+    }
+
+    /**
+     * Act on this client's OWN LOD settings, on behalf of a /cslod set typed at the server.
+     *
+     * <p>The reply is printed HERE rather than sent back for the server to print, because the server
+     * cannot know the answer: the file being read and written is on this machine. Everything this method
+     * says is therefore a statement about state it has just observed, not a report of a request it made.
+     *
+     * <p>Already on the client thread -- ClientPlatform hands every payload to the client executor before
+     * calling handle() -- so touching Minecraft.getInstance() here is safe.
+     */
+    private static void clientSetting(final CsLodMessages.ClientSetting request) {
+        final LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        if (request.action() == CsLodProtocol.SETTING_LIST) {
+            say(player, Component.literal(
+                    "[chunksmith] LOD client settings (config/" + CsLodClientConfig.FILE_NAME + "):"));
+            for (final CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
+                say(player, Component.literal(
+                        "  " + setting.name() + " = " + setting.read() + "  -- " + setting.help()));
+            }
+            return;
+        }
+
+        final var found = CsLodClientSettings.find(request.name());
+        if (found.isEmpty()) {
+            say(player, Component.literal(
+                    "[chunksmith] no LOD client setting called '" + request.name() + "'. Known: "
+                            + String.join(", ", CsLodClientSettings.names())));
+            return;
+        }
+        final CsLodClientSettings.Setting setting = found.get();
+
+        if (request.action() == CsLodProtocol.SETTING_SHOW) {
+            say(player, Component.literal(
+                    "[chunksmith] " + setting.name() + " = " + setting.read() + "  -- " + setting.help()));
+            return;
+        }
+
+        // SETTING_SET. A refused value is a SHAPE error -- a word where a number belongs. A value that is
+        // merely out of range is accepted and clamped, so it is reported below as what was STORED rather
+        // than as what was typed: ask for 1 second and it says 30.
+        if (!setting.write(request.value())) {
+            final var expected = setting.kind().completions();
+            say(player, Component.literal(
+                    "[chunksmith] '" + request.value() + "' is not a valid value for " + setting.name()
+                            + (expected.isEmpty() ? " (expected a whole number)"
+                                    : " (expected one of: " + String.join(", ", expected) + ")")));
+            return;
+        }
+        say(player, Component.literal(
+                "[chunksmith] " + setting.name() + " = " + setting.read()
+                        + " -- applied now and saved to config/" + CsLodClientConfig.FILE_NAME));
+    }
+
+    /**
+     * Print one line into the local player's chat.
+     *
+     * <p>The ONLY version-conditional code in this class, and it is here rather than at each call site so
+     * there is one branch instead of six. MC 26 SPLIT {@code Player.displayClientMessage(Component,
+     * boolean)} into {@code sendSystemMessage} / {@code sendOverlayMessage}; nothing spans both eras.
+     * The reasoning, the source citations and the two dodges that do NOT work are in
+     * {@code compat.client_chat_statement}.
+     */
+    private static void say(final LocalPlayer player, final Component line) {
+        //[[[cog
+        // import cog, compat
+        // cog.outl(compat.client_chat_statement(mcver, "player", "line"))
+        //]]]
+        //[[[end]]]
     }
 
     private static void send(final byte[] data) {

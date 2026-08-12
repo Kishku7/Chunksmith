@@ -40,11 +40,31 @@ public final class Input {
         return Optional.empty();
     }
 
+    /**
+     * Parse a boolean STRICTLY -- only "true" or "false", either case, surrounding space ignored.
+     *
+     * <p>It used to be {@code Boolean.parseBoolean}, which answers FALSE for every string that is not
+     * "true" and never reports a problem. Through {@code /cs set} that meant a typo did not fail, it
+     * silently turned the setting OFF: {@code /cs set silent yes} disabled silent mode and said it had
+     * been set. The 3.2.4 notes claim a value that cannot be understood is refused rather than quietly
+     * becoming a default -- true for the numbers, not for the booleans. Found 2026-08-12 by the /cslod
+     * set coverage test asserting the documented behaviour and getting the real one.
+     *
+     * <p>{@code TaskLoader} reads a STORED property through here with {@code orElse(false)}, which is
+     * unchanged by this: a malformed stored value was false before and is false now.
+     */
     public static Optional<Boolean> tryBoolean(final String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(Boolean.parseBoolean(input));
+        final String value = input.trim();
+        if (value.equalsIgnoreCase("true")) {
+            return Optional.of(Boolean.TRUE);
+        }
+        if (value.equalsIgnoreCase("false")) {
+            return Optional.of(Boolean.FALSE);
+        }
+        return Optional.empty();
     }
 
     public static Optional<Integer> tryInteger(final String input) {

@@ -285,6 +285,44 @@ public final class CsLodMessages {
         return new byte[]{CsLodProtocol.C2S_CANCEL};
     }
 
+    /**
+     * A request to act on the player's own LOD-client settings, forwarded from {@code /cslod set}.
+     *
+     * <p>Three fields and no list, so there is nothing to bound at decode time beyond what {@code readUTF}
+     * already bounds -- see the decode-time-ceilings note in CsLodProtocol. {@code name} and {@code value}
+     * are empty strings, never null, for the actions that do not use them: a wire format with an optional
+     * field is a wire format with two shapes.
+     *
+     * @param action one of CsLodProtocol.SETTING_LIST / SETTING_SHOW / SETTING_SET
+     * @param name   the setting name, or "" for SETTING_LIST
+     * @param value  the requested value, or "" for anything but SETTING_SET
+     */
+    public record ClientSetting(byte action, String name, String value) {
+    }
+
+    public static byte[] encode(final ClientSetting setting) throws IOException {
+        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(raw)) {
+            out.writeByte(CsLodProtocol.S2C_CLIENT_SETTING);
+            out.writeByte(setting.action());
+            out.writeUTF(setting.name());
+            out.writeUTF(setting.value());
+        }
+        return raw.toByteArray();
+    }
+
+    public static ClientSetting decodeClientSetting(final DataInputStream in) throws IOException {
+        final byte action = in.readByte();
+        if (action != CsLodProtocol.SETTING_LIST
+                && action != CsLodProtocol.SETTING_SHOW
+                && action != CsLodProtocol.SETTING_SET) {
+            // Refuse an unknown action rather than defaulting to one. Defaulting would make a future
+            // server's new verb silently perform the wrong old one on this client's config file.
+            throw new IOException("CSLOD client setting: unknown action " + action);
+        }
+        return new ClientSetting(action, in.readUTF(), in.readUTF());
+    }
+
     /** Read the leading message id. */
     public static DataInputStream reader(final byte[] payload) {
         return new DataInputStream(new ByteArrayInputStream(payload));

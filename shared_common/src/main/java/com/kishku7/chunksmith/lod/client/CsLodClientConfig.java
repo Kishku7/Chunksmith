@@ -15,12 +15,20 @@ import java.util.Properties;
  * plain {@code config/chunksmith-lod.properties} that the client writes with its defaults and comments on
  * first run, so the knob is discoverable by anyone who opens the folder, and editable without a mod menu.
  *
+ * <p><b>Both settings are also reachable from {@code /cslod set}</b> (3.3.0), which is what the house rule
+ * requires: a setting you can only change by editing a file and restarting is not a setting on a running
+ * game. The command writes through {@link #setSyncSeconds(int)} / {@link #setReinjectOnJoin(boolean)},
+ * which apply the value to the running client AND save the file, so the two can never disagree. The
+ * registry that exposes them is {@link CsLodClientSettings}, and a coverage test fails by name if a key
+ * here is not in it.
+ *
  * <p><b>The floor is enforced in CODE, not in the file.</b> A config value is a suggestion from whoever last
  * edited the file, and "sync-interval-seconds=1" would turn the self-healing sync into a poll storm against
  * a server that is trying to run a pregen -- the exact class of problem this whole release is fixing. So the
- * value is clamped to {@link #MIN_SYNC_SECONDS} on the way out of this class, every time it is read. Nothing
- * downstream can ever see a smaller number, whatever the file says, and a clamped value is announced once so
- * the person who set it understands why it is not being honoured.
+ * value is clamped to {@link #MIN_SYNC_SECONDS} on the way out of this class, every time it is read, AND on
+ * the way in when it is set by command. Nothing downstream can ever see a smaller number, whatever the file
+ * says, and a clamped value is announced once so the person who set it understands why it is not being
+ * honoured.
  */
 public final class CsLodClientConfig {
 
@@ -41,8 +49,9 @@ public final class CsLodClientConfig {
      * nothing we can read says "this was reset". Our record would then honestly describe data that is gone,
      * and we would skip it forever.
      *
-     * <p>So: set this true, join once, set it back. Deleting the {@code .injected} files in the store does
-     * exactly the same thing for anyone who would rather do it that way.
+     * <p>So: set this true, join once, set it back. {@code /cslod set reinject-on-join true} does that
+     * without leaving the game. Deleting the {@code .injected} files in the store does exactly the same
+     * thing for anyone who would rather do it that way.
      */
     public static final String KEY_REINJECT = "reinject-on-join";
 
@@ -70,6 +79,10 @@ public final class CsLodClientConfig {
     private static final String COMMENT =
             " Chunksmith LOD client.\n"
             + "\n"
+            + " Both settings can also be changed in-game with /cslod set <name> <value>, which applies\n"
+            + " the value immediately and rewrites this file. Editing by hand still works; the file is\n"
+            + " read at startup.\n"
+            + "\n"
             + " " + KEY_SYNC_SECONDS + " -- how often (in SECONDS) to ask the server whether its LOD store\n"
             + " has changed. The check itself is two tiny messages; a full index is only pulled when the\n"
             + " answer is 'yes'. This is what lets a player who is STANDING STILL pick up terrain from a\n"
@@ -87,6 +100,16 @@ public final class CsLodClientConfig {
     private static volatile boolean reinject;
     private static volatile boolean loaded;
 
+    /**
+     * Where the file lives, remembered from {@link #load} so a later {@code /cslod set} can save without
+     * being handed the config directory again.
+     *
+     * <p>Null until load() has run -- on a dedicated server this class is never touched, and in a unit test
+     * there is no game directory. A save with no path applies the value in memory and writes nothing, which
+     * is the honest behaviour: there is no file to keep in step.
+     */
+    private static volatile Path file;
+
     private CsLodClientConfig() {
     }
 
@@ -100,11 +123,12 @@ public final class CsLodClientConfig {
      * @return the message to log -- one line, said once, and it names the clamp when the clamp bit
      */
     public static synchronized String load(final Path configDir) {
-        final Path file = configDir.resolve(FILE_NAME);
+        final Path path = configDir.resolve(FILE_NAME);
+        file = path;
         final Properties properties = new Properties();
         boolean present = false;
-        if (Files.isRegularFile(file)) {
-            try (InputStream in = Files.newInputStream(file)) {
+        if (Files.isRegularFile(path)) {
+            try (InputStream in = Files.newInputStream(path)) {
                 properties.load(in);
                 present = true;
             } catch (final IOException e) {
@@ -136,7 +160,7 @@ public final class CsLodClientConfig {
         loaded = true;
 
         if (!present) {
-            write(file);
+            save();
             return "wrote " + FILE_NAME + " with the defaults (sync every " + clamped + "s)";
         }
         if (unparseable) {
@@ -179,6 +203,26 @@ public final class CsLodClientConfig {
     }
 
     /**
+     * Set the sync interval and save it. Clamped ON WRITE as well as on read, so the file can never hold a
+     * number the client would refuse to honour -- a person who reads the file back should see what is
+     * actually in force, not what they asked for.
+     *
+     * @param seconds the requested interval
+     * @return the value actually stored, which is what the command reports rather than echoing the input
+     */
+    public static synchronized int setSyncSeconds(final int seconds) {
+        syncSeconds = clamp(seconds);
+        save();
+        return syncSeconds;
+    }
+
+    /** Set the one-shot re-injection switch and save it. See {@link #KEY_REINJECT}. */
+    public static synchronized void setReinjectOnJoin(final boolean value) {
+        reinject = value;
+        save();
+    }
+
+    /**
      * The floor, applied to any value from any source. Public so the unit test asserts the SAME function the
      * mod uses, rather than a re-implementation of it.
      */
@@ -197,18 +241,29 @@ public final class CsLodClientConfig {
         reinject = value;
     }
 
-    private static void write(final Path file) {
+    /**
+     * Write the values CURRENTLY in force -- not the defaults.
+     *
+     * <p>Called on first run (where the two are the same thing) and after every command write. A failure is
+     * swallowed for the same reason it always was: the value is already in effect in memory, and a player
+     * who cannot write to their own config directory has a bigger problem than our sync interval.
+     */
+    private static void save() {
+        final Path path = file;
+        if (path == null) {
+            return;
+        }
         final Properties out = new Properties();
-        out.setProperty(KEY_SYNC_SECONDS, Integer.toString(DEFAULT_SYNC_SECONDS));
-        out.setProperty(KEY_REINJECT, "false");
+        out.setProperty(KEY_SYNC_SECONDS, Integer.toString(syncSeconds));
+        out.setProperty(KEY_REINJECT, Boolean.toString(reinject));
         try {
-            Files.createDirectories(file.getParent());
-            try (OutputStream stream = Files.newOutputStream(file)) {
+            Files.createDirectories(path.getParent());
+            try (OutputStream stream = Files.newOutputStream(path)) {
                 out.store(stream, COMMENT);
             }
         } catch (final IOException ignored) {
-            // We could not write a config file. The defaults are already in effect; a player who cannot
-            // write to their own config directory has a bigger problem than our sync interval.
+            // See the javadoc: the defaults are already in effect and nothing downstream depends on the
+            // file having been written.
         }
     }
 }

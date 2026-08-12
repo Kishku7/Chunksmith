@@ -1,10 +1,17 @@
 package com.kishku7.chunksmith.lod;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+
+import com.kishku7.chunksmith.lod.client.CsLodClientSettings;
+import com.kishku7.chunksmith.lod.net.CsLodProtocol;
+import com.kishku7.chunksmith.lod.net.CsLodServerNet;
 //[[[cog
 // import cog, compat
 // # The permissions() API + Permissions class exist from 1.21.11, but 26 gates through the
@@ -21,6 +28,8 @@ import java.nio.file.Path;
  * {@code /cslod} -- operator commands for the CSLOD store.
  *
  * <ul>
+ *   <li>{@code /cslod set} -- list, show or change the PLAYER'S OWN client settings. The only
+ *       subcommand any player may run: the others are operator tools, this one is their config.</li>
  *   <li>{@code /cslod status} -- where the store is, how big, and whether the backchannel is up.</li>
  *   <li>{@code /cslod token <player>} -- mint a backchannel token by hand (the "why can't my client
  *       download?" answer).</li>
@@ -54,12 +63,19 @@ public final class CsLodCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         //[[[cog
         // import cog, compat
-        // cog.outl("final LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(\"cslod\")")
-        // cog.outl("        .requires(%s);" % compat.command_permission_gate(mcver, "source"))
+        // cog.outl("final java.util.function.Predicate<CommandSourceStack> operatorOnly =")
+        // cog.outl("        %s;" % compat.command_permission_gate(mcver, "source"))
         //]]]
         //[[[end]]]
 
-        root.then(Commands.literal("status").executes(context -> {
+        // The ROOT is deliberately UNGATED (3.3.0). /cslod set changes the PLAYER'S OWN client
+        // settings, so a gamemaster gate on the root would have meant an ordinary player could not
+        // change their own config -- which is precisely the "not really a setting" problem the house
+        // rule exists to fix. Every OPERATOR subcommand carries the gate itself instead, and brigadier
+        // hides a node whose requires() fails, so a normal player sees /cslod set and nothing else.
+        final LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("cslod");
+
+        root.then(Commands.literal("status").requires(operatorOnly).executes(context -> {
             final ServerLevel level = context.getSource().getLevel();
             final Path store = LodSupport.storeRoot(level);
             final long bytes = sizeOf(store);
@@ -89,7 +105,7 @@ public final class CsLodCommand {
         //[[[cog
         // import cog, compat
         // if compat.has_voxy(mcver, loader):
-        //     cog.outl('root.then(Commands.literal("inject").executes(context -> {')
+        //     cog.outl('root.then(Commands.literal("inject").requires(operatorOnly).executes(context -> {')
         //     cog.outl('    final CommandSourceStack source = context.getSource();')
         //     cog.outl('    final ServerLevel level = source.getLevel();')
         //     cog.outl('    final Path store = LodSupport.storeRoot(level);')
@@ -126,7 +142,7 @@ public final class CsLodCommand {
         //
         // if compat.has_dh(mcver, loader):
         //     cog.outl('')
-        //     cog.outl('root.then(Commands.literal("dhpush").executes(context -> {')
+        //     cog.outl('root.then(Commands.literal("dhpush").requires(operatorOnly).executes(context -> {')
         //     cog.outl('    final CommandSourceStack source = context.getSource();')
         //     cog.outl('    final ServerLevel level = source.getLevel();')
         //     cog.outl('    final Path store = LodSupport.storeRoot(level);')
@@ -168,7 +184,7 @@ public final class CsLodCommand {
         //]]]
         //[[[end]]]
 
-        root.then(Commands.literal("token")
+        root.then(Commands.literal("token").requires(operatorOnly)
                 .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
                         .executes(context -> {
                             final net.minecraft.server.level.ServerPlayer target =
@@ -189,7 +205,77 @@ public final class CsLodCommand {
                             return 1;
                         })));
 
+        // /cslod set -- the PLAYER'S OWN client settings (config/chunksmith-lod.properties), which
+        // live on their machine and not on this one. The command forwards; the client answers. See
+        // CsLodProtocol.S2C_CLIENT_SETTING for why. NO permission gate: it is their own config.
+        //
+        // Referencing CsLodClientSettings from server-side code is safe and is NOT a side-guard
+        // breach: it and CsLodClientConfig name no net.minecraft.client type at all -- they are
+        // java.util.Properties and two static fields. What must never be reached from here is the
+        // renderer/download half, and none of it is.
+        root.then(Commands.literal("set")
+                .executes(context -> clientSetting(context.getSource(),
+                        CsLodProtocol.SETTING_LIST, "", ""))
+                .then(Commands.argument("name", StringArgumentType.word())
+                        .suggests((context, builder) -> {
+                            for (final String name : CsLodClientSettings.names()) {
+                                builder.suggest(name);
+                            }
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> clientSetting(context.getSource(),
+                                CsLodProtocol.SETTING_SHOW,
+                                StringArgumentType.getString(context, "name"), ""))
+                        .then(Commands.argument("value", StringArgumentType.word())
+                                .suggests((context, builder) -> {
+                                    // Completions come from the SETTING, so they can never drift from
+                                    // what the setting will accept.
+                                    final var setting = CsLodClientSettings.find(
+                                            StringArgumentType.getString(context, "name"));
+                                    if (setting.isPresent()) {
+                                        for (final String option : setting.get().kind().completions()) {
+                                            builder.suggest(option);
+                                        }
+                                    }
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> clientSetting(context.getSource(),
+                                        CsLodProtocol.SETTING_SET,
+                                        StringArgumentType.getString(context, "name"),
+                                        StringArgumentType.getString(context, "value"))))));
+
         return root;
+    }
+
+    /**
+     * Forward a client-settings request to the player's own client.
+     *
+     * <p>Deliberately SILENT on success. The client prints the answer because the client is the only
+     * side that knows it -- it is the one that reads and writes the file. A confirmation from here as
+     * well would be a second message, from the side that cannot actually see the outcome.
+     *
+     * <p>The refusal path is the point of {@link CsLodServerNet#hasLodClient}: an unknown message id is
+     * dropped silently at the far end, so without the check a player on a vanilla client would type the
+     * command, see nothing, and have no way to tell success from an empty room.
+     */
+    private static int clientSetting(final CommandSourceStack source,
+                                     final byte action,
+                                     final String name,
+                                     final String value) throws CommandSyntaxException {
+        final ServerPlayer player = source.getPlayerOrException();
+        if (!CsLodServerNet.hasLodClient(player)) {
+            source.sendFailure(Component.literal(
+                    "[chunksmith] these are CLIENT settings, and your client has not spoken to this"
+                            + " server's Chunksmith. Install or enable Chunksmith on your client, or"
+                            + " edit config/chunksmith-lod.properties yourself."));
+            return 0;
+        }
+        if (!CsLodServerNet.sendClientSetting(player, action, name, value)) {
+            source.sendFailure(Component.literal(
+                    "[chunksmith] could not send that request to your client"));
+            return 0;
+        }
+        return 1;
     }
 
     /**

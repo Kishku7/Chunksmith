@@ -1075,6 +1075,32 @@ def profile_name_call(mcver):
     return "name" if v >= (1, 21, 9) else "getName"
 
 
+def client_chat_statement(mcver, player_expr, component_expr):
+    """One line of chat, printed to the LOCAL player. Two eras, cut exactly at 1.21.11 -> 26.1.
+
+    MC 26 SPLIT Player.displayClientMessage(Component, boolean) into sendSystemMessage(Component) and
+    sendOverlayMessage(Component) -- same slot in the class, immediately after getSleepTimer():
+      26.2  net/minecraft/world/entity/player/Player.java:1357  public void sendSystemMessage(Component)
+      26.2  net/minecraft/world/entity/player/Player.java:1360  public void sendOverlayMessage(Component)
+      1.21.11 net/minecraft/world/entity/player/Player.java:1319 public void displayClientMessage(Component, boolean)
+    LocalPlayer overrides it at 26.2 net/minecraft/client/player/LocalPlayer.java:439, routing through
+    minecraft.gui.chatListener().handleSystemMessage(message, true) -- the correct vanilla path for a
+    client-generated chat line, so this is behaviourally right and not merely compilable.
+
+    There is NO call that spans both eras, and the obvious dodges are worse:
+      - sendSystemMessage is the MIRROR bug: Entity dropped CommandSource at 1.21.2, so it exists on
+        1.20.1/1.21.1 (Entity.java:2765 / :2859) and NOT on 1.21.11.
+      - the ChatComponent chain needs THREE variants, not two: gui.getChat().addMessage (<=1.21.11),
+        gui.getChat().addClientSystemMessage (26.1, addMessage went private, ChatComponent.java:269),
+        gui.hud.getChat().addClientSystemMessage (26.2+, Gui.getChat() moved to Gui.hud, Hud.java:1264).
+
+    Discovered 2026-08-12 building the 3.3.0 /cslod set client reply on Fabric/26.
+    """
+    if _parse(mcver)[0] >= 26:
+        return "%s.sendSystemMessage(%s);" % (player_expr, component_expr)
+    return "%s.displayClientMessage(%s, false);" % (player_expr, component_expr)
+
+
 def command_permission_gate(mcver, source_expr):
     """The /cslod root permission gate, keyed on a CommandSourceStack expression. Three eras:
       26+      : Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)  -- a Predicate, so it REPLACES the

@@ -1,6 +1,24 @@
-﻿# Chunksmith Changelog
+# Chunksmith Changelog
 
 ## [Unreleased]
+
+## [3.3.0] - UNRELEASED (do not publish -- awaiting a justified release)
+
+### Added
+
+- **`/cslod set` -- the LOD client's own settings are now settable in-game.** 3.2.4 brought every
+  setting in `config/chunksmith/config.json` under `/cs set`, but the LOD client keeps its two
+  settings somewhere else entirely -- `config/chunksmith-lod.properties`, on the CLIENT -- and those
+  stayed file-only. A setting you can only change by editing a file and restarting is not a setting
+  on a running game, and that applies on the client exactly as it does on the server.
+  - `/cslod set` lists both settings with the value in force, `/cslod set <name>` shows one, and
+    `/cslod set <name> <value>` changes it, applies it immediately and writes it to the file.
+  - `sync-interval-seconds` is clamped ON WRITE to the 30s floor, so the file can never hold a
+    number the client would refuse to honour; the command reports what was actually stored.
+  - `reinject-on-join` can now be turned on, joined with, and turned back off without ever opening
+    the config folder -- which is the entire point of a one-shot recovery switch.
+  - The settings are held in a registry (`CsLodClientSettings`) and a coverage test fails BY NAME if
+    a key in `CsLodClientConfig` is not reachable from the command, the same guard `/cs set` got.
 
 ## [3.2.4] - 2026-08-11
 
