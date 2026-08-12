@@ -20,6 +20,30 @@
   - The settings are held in a registry (`CsLodClientSettings`) and a coverage test fails BY NAME if
     a key in `CsLodClientConfig` is not reachable from the command, the same guard `/cs set` got.
 
+### Fixed
+
+- **Cancelling a pre-generation could crash the server when C2ME is installed** (mod_support #16).
+  Cancelling dumps thousands of chunk-ticket removals through one forced distance-manager update,
+  and under C2ME -- which rewrites that machinery onto its own concurrent scheduler -- that corrupted
+  its ticket map: `ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 513`, then a
+  second copy of the same failure while the server was saving worlds on the way down. The guard for
+  exactly this race already existed and was already applied when tickets are ADDED; the call that
+  propagates REMOVED tickets was missed, and it is the one a cancel hammers. Both sides are guarded
+  now. C2ME consolidates these updates itself, which is why skipping ours is correct rather than
+  merely quieter.
+- **The LOD injector kept running after the world had gone.** On a disconnect or a cancel it would
+  carry on handing regions to your renderer -- observed still logging progress 45 seconds after the
+  server had stopped. It is now told to stop, and stops at the next region.
+
+### Deprecated
+
+- **Folia is deprecated.** The plugin still declares `folia-supported` and still runs on Folia in
+  this release, so nothing breaks today -- but Folia is no longer a tested platform and support
+  will be REMOVED in a future release. Chunksmith's Folia test cells could not be kept working, and
+  a platform we cannot test is a coverage claim nobody can verify; saying so is better than quietly
+  shipping it untested. Paper remains fully supported and tested. If you run Chunksmith on Folia and
+  want that to continue, say so on the issue tracker.
+
 ## [3.2.4] - 2026-08-11
 
 ### Added

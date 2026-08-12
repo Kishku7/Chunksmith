@@ -118,7 +118,21 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     public void chunksmith$runChunkSystemHousekeeping(BooleanSupplier haveTime) {
         if (this.chunksmith$needChunkSystemHousekeeping.compareAndSet(true, false)) {
             for (ServerLevel level : this.getAllLevels()) {
-                ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable
+                // C2ME ticket-race guard on the REMOVE side (mod_support #16, 2026-08-12).
+                // The identical guard was put on the ADD side (FabricWorld, after addTicketWithRadius)
+                // and ported fleet-wide on 2026-08-03 -- but this call site was missed, and it is the
+                // one that does the MOST work: it exists to propagate REMOVED pre-gen tickets, so a
+                // cancel dumps thousands of removals through it at once. Under C2ME that re-enters the
+                // rewritten concurrent chunk system and corrupts its fastutil ticket map -- reported as
+                // ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 513 in
+                // Long2ByteOpenHashMap.rehash, under c2me-base$consolidatePriorityUpdates, on cancelling
+                // a pregen at ~65% (MC 26.2). C2ME consolidates these updates itself, which is exactly
+                // why the add side is safe to skip; the same reasoning applies here.
+                // LESSON: a compat guard applied to ONE call site of a pattern must be applied to EVERY
+                // call site of it -- grep for the pattern, do not fix the one in front of you.
+                if (!PlatformCompat.ENABLE_C2ME_TICKET_COMPAT) {
+                    ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable
+                }
                 // FIX (2026-08-02, mod_support #11): was invokeTick(() -> true) -- "ASAP", ignoring the
                 // haveTime this method already receives. That told vanilla's unload pass it always has
                 // unlimited time, so ChunkMap.tick()/processUnloads() ran fully unbounded on the main

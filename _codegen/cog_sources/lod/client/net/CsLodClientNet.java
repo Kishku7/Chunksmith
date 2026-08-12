@@ -908,6 +908,7 @@ public final class CsLodClientNet {
     /** Hand the new regions to the renderers, off the game thread. */
     private static void injectAsync(final Path root, final String dimension,
                                     final List<CsLodMessages.RegionEntry> regions) {
+        com.kishku7.chunksmith.lod.client.render.LodInjector.arm();
         final Thread worker = new Thread(() -> {
             try {
                 com.kishku7.chunksmith.lod.client.render.LodInjector.injectRegions(root, dimension, regions,
@@ -961,6 +962,9 @@ public final class CsLodClientNet {
         inBandRegions = List.of();
         inBandManifest = null;
         PARTIAL.clear();
+        // Signal FIRST, then clear. A worker may be mid-store right now, and reset() only clears the
+        // bookkeeping -- it does not reach the thread (mod_support #16).
+        com.kishku7.chunksmith.lod.client.render.LodInjector.stop();
         com.kishku7.chunksmith.lod.client.render.LodInjector.reset();
     }
 

@@ -41,6 +41,28 @@ public final class LodInjector {
     private static final AtomicLong voxySections = new AtomicLong();
     private static final AtomicLong dhChunks = new AtomicLong();
 
+    /**
+     * Set when the session this injection belongs to has gone away -- a disconnect, a cancel, or a
+     * server that has stopped (mod_support #16, 2026-08-12).
+     *
+     * <p>The level check below catches the player CHANGING dimension, but it does not catch the world
+     * ending underneath us: in singleplayer the client level object can still be there while the
+     * integrated server is already shutting down, so the worker sails on. It was seen logging
+     * "injected 17500 chunks" for ~45 seconds AFTER the server had crashed and printed "Stopping
+     * server" -- a daemon thread writing into a renderer for a world that no longer exists.
+     */
+    private static volatile boolean stopRequested;
+
+    /** Arm a fresh injection. Called before the worker starts, never from inside it. */
+    public static void arm() {
+        stopRequested = false;
+    }
+
+    /** Ask the running injection to stop at the next region boundary. */
+    public static void stop() {
+        stopRequested = true;
+    }
+
     private LodInjector() {
     }
 
@@ -190,7 +212,7 @@ public final class LodInjector {
             // level on screen, and DH/voxy would take the rest of this dimension's records straight into the
             // new one. Stop, and give the untouched regions back so the re-armed pull injects them into the
             // level they belong to.
-            if (Minecraft.getInstance().level != level) {
+            if (stopRequested || Minecraft.getInstance().level != level) {
                 for (int j = i; j < fresh.size(); j++) {
                     INJECTED.release(dimension, fresh.get(j).regionX(), fresh.get(j).regionZ());
                     forget(index, fresh.get(j));
