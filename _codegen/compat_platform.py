@@ -921,6 +921,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -986,10 +987,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -1024,7 +1054,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -1053,18 +1083,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -1207,6 +1237,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -1272,10 +1303,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -1310,7 +1370,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -1339,18 +1399,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -1496,6 +1556,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -1561,10 +1622,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -1609,7 +1699,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -1638,18 +1728,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -1793,6 +1883,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -1858,10 +1949,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -1896,7 +2016,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -1925,18 +2045,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -2080,6 +2200,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -2145,10 +2266,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -2183,7 +2333,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -2212,18 +2362,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -2369,6 +2519,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -2434,10 +2585,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -2488,7 +2668,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -2517,18 +2697,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -2672,6 +2852,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -2739,10 +2920,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -2796,7 +3006,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                             // note: to prevent pausing on dedicated server when Moonrise is present
                             ((MinecraftServerAccess) world.getServer()).setEmptyTicks(0);
                         }
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -2825,18 +3035,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -2975,6 +3185,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -3040,10 +3251,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -3078,7 +3318,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -3107,18 +3347,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -3264,6 +3504,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class FabricWorld implements World, ServerLevelHolder {
@@ -3329,10 +3570,39 @@ public class FabricWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -3378,7 +3648,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -3407,18 +3677,18 @@ public class FabricWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -4638,6 +4908,7 @@ import java.util.SequencedMap;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -4703,10 +4974,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -4741,7 +5041,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -4770,18 +5070,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -4927,6 +5227,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -4992,10 +5293,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -5041,7 +5371,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -5070,18 +5400,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -5225,6 +5555,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -5290,10 +5621,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -5328,7 +5688,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -5357,18 +5717,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -5511,6 +5871,7 @@ import java.util.SequencedMap;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -5576,10 +5937,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -5614,7 +6004,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -5643,18 +6033,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -5801,6 +6191,7 @@ import java.util.SequencedMap;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -5866,10 +6257,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -5914,7 +6334,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -5943,18 +6363,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -6098,6 +6518,7 @@ import java.util.SequencedMap;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -6163,10 +6584,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -6201,7 +6651,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -6230,18 +6680,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -6385,6 +6835,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -6450,10 +6901,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -6488,7 +6968,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -6517,18 +6997,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -6672,6 +7152,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World, ServerLevelHolder {
@@ -6739,10 +7220,39 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -6794,7 +7304,7 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
                             // note: to prevent pausing on dedicated server when Moonrise is present
                             ((MinecraftServerAccess) world.getServer()).setEmptyTicks(0);
                         }
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -6823,18 +7333,18 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -6973,6 +7483,7 @@ import java.util.SequencedMap;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -7038,10 +7549,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -7076,7 +7616,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -7105,18 +7645,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
@@ -7260,6 +7800,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -7325,10 +7866,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -7363,7 +7933,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -7392,18 +7962,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
@@ -7549,6 +8119,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 public class NeoForgeWorld implements World {
@@ -7614,10 +8185,39 @@ public class NeoForgeWorld implements World {
         }
     }
 
+    /**
+     * Chunksmith's ticket SAFE POINT: the executor every chunk-ticket mutation in this class goes
+     * through. Drained once per server tick from the tickServer housekeeping hook.
+     *
+     * <p>The server EXECUTOR is not a safe place to touch a ticket, even though it is the server
+     * thread. ServerChunkCache.tickChunks spends the whole of ServerLevel.tick inside
+     * DistanceManager.forEachEntityTickingChunk, walking the simulation chunk tracker's
+     * Long2ByteOpenHashMap and ticking each chunk from inside the loop body. A ticket add or remove
+     * queues a chunk-level update, and the first thing ServerChunkCache.MainThreadExecutor.pollTask()
+     * does is runDistanceManagerUpdates() -- which applies it, calls ChunkTracker.setLevel, and writes
+     * the very map being walked. fastutil's iterator then dies on its own null wrapped list
+     * ("Cannot invoke LongArrayList.getLong(int) because this.wrapped is null"). Vanilla flushes the
+     * distance manager immediately BEFORE tickChunks, so the only way to get work in there is to
+     * create it during the walk -- which a running pre-gen does, continuously.
+     *
+     * <p>See MinecraftServerExtension#chunksmith$atTicketSafePoint for the full argument.
+     */
+    private Executor ticketSafePoint() {
+        return ((MinecraftServerExtension) world.getServer())::chunksmith$atTicketSafePoint;
+    }
+
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        if (Thread.currentThread() != world.getServer().getRunningThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).thenCompose(Function.identity());
+        // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
+        // is requested, so nothing here is split apart -- the add and the
+        // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
+        // Only the moment that task runs has moved: off the server executor, which is pumped from
+        // inside the chunk system, and onto Chunksmith's ticket safe point, which is not. Batching
+        // only the RELEASE and leaving the add where it was would not have been enough: the add
+        // creates distance-manager work exactly as the release does, and it is the work, not its
+        // direction, that corrupts the iteration in progress.
+        if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
@@ -7662,7 +8262,7 @@ public class NeoForgeWorld implements World {
                                 () -> serverChunkCache.removeRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE));
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
-                    }, world.getServer())
+                    }, ticketSafePoint())
                     .thenApply(ignored -> null);
         }
     }
@@ -7691,18 +8291,18 @@ public class NeoForgeWorld implements World {
         // again while saving worlds on the way out (mod_support #16). Queued, not awaited: the
         // tickets come back on the next tick, and blocking a worker on the server thread during a
         // cancel is how deadlocks are made.
-        world.getServer().execute(window::drain);
+        ticketSafePoint().execute(window::drain);
     }
 
     @Override
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
-        world.getServer().execute(() -> world.getChunkSource()
+        ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 

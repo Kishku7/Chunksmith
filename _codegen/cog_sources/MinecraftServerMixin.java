@@ -21,6 +21,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 
@@ -52,6 +54,23 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Unique
     private final AtomicBoolean chunksmith$needChunkSystemHousekeeping = new AtomicBoolean(false);
 
+    /**
+     * Chunk-ticket work waiting for the safe point. See MinecraftServerExtension#chunksmith$atTicketSafePoint
+     * for the whole argument; the short version is that a ticket mutation run from the server EXECUTOR
+     * lands inside ServerChunkCache.tickChunks' iteration of the simulation chunk tracker, and the
+     * distance-manager flush that the next executor pump performs then writes the map being iterated.
+     */
+    @Unique
+    private final Queue<Runnable> chunksmith$ticketSafePointQueue = new ConcurrentLinkedQueue<>();
+
+    /**
+     * The thread currently draining the safe-point queue, or null. Volatile and identity-compared
+     * rather than a boolean flag: it answers "am I the drain?" correctly for every thread, with no
+     * chance of a stale true letting an off-thread caller mutate tickets inline.
+     */
+    @Unique
+    private volatile Thread chunksmith$ticketSafePointThread;
+
     // Tick-health telemetry, sampled only while a generation task runs. Measured as the
     // wall-clock interval between server ticks (EWMA-smoothed). A healthy 20 TPS server
     // sleeps to ~50 ms/tick; when it can no longer keep up the interval climbs past 50 ms.
@@ -64,6 +83,20 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
 
     @Inject(method = "tickServer", at = @At("HEAD"))
     private void chunksmith$onTickHead(BooleanSupplier booleanSupplier, CallbackInfo ci) {
+        // THE TICKET SAFE POINT. Deliberately here and not in the housekeeping hook below: tickServer
+        // HEAD is the one injection point that fires unconditionally, every tick, on EVERY game
+        // version. The 26-line housekeeping hook does not -- it binds at INVOKE tickConnection()V,
+        // and in MC 26 tickServer only reaches tickConnection() inside the "server empty for N
+        // seconds, pausing" branch, which then returns early. With pause-when-empty off, or with a
+        // pre-gen running (keep-awake zeroes emptyTicks by design, just below), that branch is never
+        // taken and the hook never fires. Draining there stalled a 26.1.2 pre-gen at zero chunks.
+        //
+        // ORDERING: what this drain queues is applied by vanilla's own flush, not ours.
+        // ServerChunkCache.tick() calls runDistanceManagerUpdates() immediately BEFORE tickChunks(),
+        // and tickChunks is the walk of the simulation chunk tracker that must not be disturbed. So
+        // every ticket mutation made here is fully propagated before that walk begins, and nothing of
+        // ours is left pending for a re-entrant pump to apply underneath it.
+        this.chunksmith$drainTicketSafePoint();
         this.chunksmith$keepAwakeWhileGenerating();
         final boolean wgRunning = ChunksmithProvider.isLoaded() && !ChunksmithProvider.get().getGenerationTasks().isEmpty();
         WorldgenOverreachReporter.get().tick(wgRunning);
@@ -115,6 +148,19 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     }
 
     @Override
+    public void chunksmith$atTicketSafePoint(final Runnable task) {
+        this.chunksmith$ticketSafePointQueue.add(task);
+        // A released pre-gen ticket only becomes an unloadable chunk once the holders are
+        // downgraded, which is what housekeeping does -- so arm it rather than leave the job half done.
+        this.chunksmith$markChunkSystemHousekeeping();
+    }
+
+    @Override
+    public boolean chunksmith$onTicketSafePoint() {
+        return Thread.currentThread() == this.chunksmith$ticketSafePointThread;
+    }
+
+    @Override
     public void chunksmith$runChunkSystemHousekeeping(BooleanSupplier haveTime) {
         if (this.chunksmith$needChunkSystemHousekeeping.compareAndSet(true, false)) {
             for (ServerLevel level : this.getAllLevels()) {
@@ -122,9 +168,9 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                 // here on the theory that this call was the ticket-map race; the C2ME cancel gate
                 // (Server_Tests/cs-c2me-cancel-gate) proved it was NOT -- the crash reproduced with the
                 // guard in place, arriving instead through vanilla ServerChunkCache.pollTask, i.e. the
-                // map was already corrupt. The real cause was settleDrain releasing tickets off-thread
-                // (see FabricWorld.settleDrain). The guard was reverted rather than kept: it suppressed
-                // legitimate unload propagation under C2ME and bought nothing.
+                // map was already corrupt. The real cause was ticket mutation reaching the chunk
+                // system from the server EXECUTOR, mid-iteration; that is now confined to the ticket
+                // safe point at tickServer HEAD (see chunksmith$onTickHead).
                 ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable
                 // FIX (2026-08-02, mod_support #11): was invokeTick(() -> true) -- "ASAP", ignoring the
                 // haveTime this method already receives. That told vanilla's unload pass it always has
@@ -148,6 +194,31 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                     ((ServerLevelMixin) level).getEntityManager().tick();
                 }
             }
+        }
+    }
+
+    /**
+     * Run the queued chunk-ticket work. The ONE place Chunksmith mutates a chunk ticket.
+     *
+     * <p>Bounded by the queue size on entry. A task may enqueue another -- a chunk future completing
+     * during the drain hands its ticket release straight back -- and running those in the same pass
+     * would let a busy pre-gen extend the drain indefinitely inside a single tick. Whatever arrives
+     * mid-drain is picked up by the next tick's drain.
+     */
+    @Unique
+    private void chunksmith$drainTicketSafePoint() {
+        int budget = this.chunksmith$ticketSafePointQueue.size();
+        if (budget <= 0) {
+            return;
+        }
+        this.chunksmith$ticketSafePointThread = Thread.currentThread();
+        try {
+            Runnable task;
+            while (budget-- > 0 && (task = this.chunksmith$ticketSafePointQueue.poll()) != null) {
+                task.run();
+            }
+        } finally {
+            this.chunksmith$ticketSafePointThread = null;
         }
     }
 
