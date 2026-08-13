@@ -32,9 +32,12 @@ import java.util.function.BooleanSupplier;
  * <p>COG DRIFT: the idle-pause reset differs - MC 1.21.2..1.21.11 zero the @Shadow emptyTicks field
  * directly, 26 routes through the MinecraftServerAccess seam accessor (setEmptyTicks), and <1.21.2
  * (the field does not exist yet) emits a no-op (keep-awake N/A).
- * The housekeeping @Inject binds at tickServer TAIL pre-26 vs the 26-only tickConnection()V INVOKE
- * hook. 26 also runs an extra ServerChunkCache.broadcastChangedChunks(ProfilerFiller) invoker that
- * older lines lack. All three are Cog-emitted from compat.py.
+ * The housekeeping @Inject binds at tickServer TAIL on EVERY version. (3.4.0: the 26 line used to
+ * bind at INVOKE tickConnection()V, a call site tickServer only reaches inside the empty-server
+ * pause branch that returns early -- so housekeeping never actually ran there. See
+ * compat.housekeeping_inject_at for the bytecode.) 26 also runs an extra
+ * ServerChunkCache.broadcastChangedChunks(ProfilerFiller) invoker that older lines lack.
+ * All three are Cog-emitted from compat.py.
  */
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin implements MinecraftServerExtension {
@@ -85,11 +88,10 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     private void chunksmith$onTickHead(BooleanSupplier booleanSupplier, CallbackInfo ci) {
         // THE TICKET SAFE POINT. Deliberately here and not in the housekeeping hook below: tickServer
         // HEAD is the one injection point that fires unconditionally, every tick, on EVERY game
-        // version. The 26-line housekeeping hook does not -- it binds at INVOKE tickConnection()V,
-        // and in MC 26 tickServer only reaches tickConnection() inside the "server empty for N
-        // seconds, pausing" branch, which then returns early. With pause-when-empty off, or with a
-        // pre-gen running (keep-awake zeroes emptyTicks by design, just below), that branch is never
-        // taken and the hook never fires. Draining there stalled a 26.1.2 pre-gen at zero chunks.
+        // version -- including the empty-server pause tick, which returns before TAIL is reached.
+        // Draining in the housekeeping hook stalled a 26.1.2 pre-gen at zero chunks back when that
+        // hook bound to INVOKE tickConnection()V; 3.4.0 moved it to TAIL (see
+        // compat.housekeeping_inject_at for why that binding never fired), but the drain stays here.
         //
         // ORDERING: what this drain queues is applied by vanilla's own flush, not ours.
         // ServerChunkCache.tick() calls runDistanceManagerUpdates() immediately BEFORE tickChunks(),

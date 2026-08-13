@@ -2,7 +2,50 @@
 
 ## [Unreleased]
 
-## [3.3.0] - UNRELEASED (do not publish -- awaiting a justified release)
+## [3.4.0] - UNRELEASED
+
+### Fixed
+
+- **A player with Chunksmith but no LOD renderer could not reach their own client settings.**
+  3.3.0 added `/cslod set`, which is a server command that relays to the player's client over the
+  `chunksmith:lod` channel -- and the server only relays to a client it has actually heard from.
+  The client never said hello unless voxy or Distant Horizons was installed, so for everyone else
+  the command answered with a refusal, and the two settings in `config/chunksmith-lod.properties`
+  were reachable only by editing the file and restarting. That is precisely the situation the house
+  rule exists to end, and the refusal text said so out loud rather than fixing it.
+  - The client now sends its hello with **no renderer installed** as well. The wire format has
+    always carried `hasVoxy`/`hasDh` and the server has always modelled both-false, so this needed
+    no protocol change and older servers answer it exactly as they always did.
+  - It stays an INTRODUCTION and nothing more: with no renderer the client never asks for an index,
+    a summary or a region, and never enters the empty-store retry loop. The server answers with an
+    empty hello, mints no token, scans no store, records no radius, and does not add the player to
+    the store watch -- so nothing is sent that nobody could draw.
+  - The server records the greeting (which is what `/cslod set` tests) and logs it once per player
+    per session, naming the no-renderer case, rather than the previous silence.
+  - The refusal text lost its "or you have no LOD renderer" half, because that is no longer a cause
+    of it, and pointing a player at a config file for a problem they no longer have is worse than
+    saying nothing.
+  - Loading the client config at hello is now load-bearing rather than incidental: it is what tells
+    the config where its file lives, and without it a `/cslod set` from a no-renderer client would
+    have changed the value in memory and written no file at all.
+
+- **On Minecraft 26, Chunksmith's chunk-system housekeeping never actually ran.** Every tick
+  Chunksmith gives the chunk system a second nudge: push through the chunk tickets a pre-gen has
+  just handed back so the finished chunks are free to go, run a time-budgeted unload pass so they
+  actually leave memory, flush pending block changes, and tick the entity manager. On 1.20.x and
+  1.21.x that nudge is attached to the END of the server tick, and it fires every tick. On the 26
+  line it had been attached to a point the server tick only reaches while it is PAUSING because
+  nobody is online -- a path that returns immediately, before the rest of the tick even runs. Two
+  things guarantee that path is never taken during a pre-gen: `pause-when-empty-seconds=0` skips
+  the check outright, and Chunksmith's own keep-awake deliberately resets the empty-server counter
+  every tick so a running pre-gen is never paused. The hook was installed, was valid, and fired
+  exactly zero times on every 26 server since the 26 line existed -- so on 26 the whole unload
+  side of a pre-gen was left entirely to vanilla's single pass per tick. It now attaches to the
+  end of the server tick on 26 too, the same place as every other Minecraft version. Confirmed by
+  reading the compiled server (`javap -c`) on 26.1, 26.1.2, 26.2 and 26.3, and proven by recording
+  the running server on 26.1.2: the hook is called zero times in 3.3.0 and once per tick in 3.4.0.
+
+## [3.3.0] - 2026-08-12
 
 ### Added
 

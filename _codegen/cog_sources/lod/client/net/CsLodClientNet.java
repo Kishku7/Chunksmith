@@ -478,6 +478,13 @@ public final class CsLodClientNet {
         if (helloAnswered || silenceReported || helloSentMillis == 0L || host.isEmpty()) {
             return;
         }
+        // Every word below is about LOD TERRAIN the player was expecting to see. Someone with no renderer
+        // installed was never going to see any, and our hello went out to reach /cslod set rather than to
+        // ask for data (see hello()), so an unanswered one is not the failure this line describes. hello()
+        // has already said, in plain words, that no data will be requested.
+        if (!capsVoxy && !capsDh) {
+            return;
+        }
         if (System.currentTimeMillis() - helloSentMillis < HELLO_TIMEOUT_MILLIS) {
             return;
         }
@@ -523,14 +530,28 @@ public final class CsLodClientNet {
         sendHello(false);
     }
 
-    /** Tell the server what we can render, and how far. The join handshake. */
+    /**
+     * Tell the server what we can render, and how far. The join handshake.
+     *
+     * <p><b>We say hello even with NO renderer installed</b> (3.4.0). It used to return here, silently, and
+     * that was a mistake with a name: {@code /cslod set} is a SERVER command that relays to this client, and
+     * the server only relays to a client it has heard from ({@code CsLodServerNet.hasLodClient}). So the two
+     * settings in {@code config/chunksmith-lod.properties} were unreachable in-game for exactly the players
+     * most likely to be fiddling with them, and the command answered with a refusal instead. A setting you
+     * cannot reach is the problem the house rule exists to fix; the fix is to introduce ourselves.
+     *
+     * <p>The hello carries {@code hasVoxy}/{@code hasDh}, both FALSE in this case, and the server has always
+     * modelled that pair -- it answers with an empty hello and serves no data. Nothing below asks for an
+     * index, a summary or a region when there is no renderer ({@link #serverHello} stops at the same test),
+     * so this introduces us WITHOUT making the server ship LOD data nobody can draw.
+     *
+     * <p>Loading the config here is load-bearing rather than incidental: {@link CsLodClientConfig} only
+     * learns WHERE its file lives from this call, and until it does, a {@code /cslod set} would change the
+     * value in memory and write no file at all.
+     */
     private static void hello() {
         final boolean voxy = Renderers.hasVoxy();
         final boolean dh = Renderers.hasDh();
-        if (!voxy && !dh) {
-            LOGGER.info("Chunksmith: no LOD renderer installed (voxy / Distant Horizons); staying quiet");
-            return;
-        }
         final Minecraft client = Minecraft.getInstance();
         if (client.getCurrentServer() != null) {
             host = client.getCurrentServer().ip;
@@ -551,7 +572,15 @@ public final class CsLodClientNet {
         // suggestion, and "sync-interval-seconds=1" must not become a poll storm against a server that is
         // trying to run a pregen). Read at join, when there is a game directory to read it from.
         LOGGER.info("Chunksmith: {}", CsLodClientConfig.load(ClientPlatform.gameDir().resolve("config")));
-        LOGGER.info("Chunksmith: hello -- voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
+        if (!voxy && !dh) {
+            // Introducing ourselves, and nothing more. Say which of the two things this hello is for, so
+            // nobody reading the log mistakes it for the start of a transfer that is never coming.
+            LOGGER.info("Chunksmith: hello -- no LOD renderer installed (voxy / Distant Horizons), so no"
+                    + " LOD data will be requested or drawn. Saying hello anyway so that /cslod set can"
+                    + " reach this client's settings.");
+        } else {
+            LOGGER.info("Chunksmith: hello -- voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
+        }
         // Name the DH the player ACTUALLY has, at join, in our own log. We compile against the standalone
         // distanthorizonsapi artifact and support a wide range of DH releases, so the single most useful
         // fact in any bug report is which one was installed -- record it before anything can go wrong.
@@ -632,6 +661,15 @@ public final class CsLodClientNet {
                             + " The server and the client must be on the same Chunksmith version"
                             + " (v1 is 3.1.0-beta-3 and earlier; v2 is 3.1.0-beta-4 and later).",
                     hello.protocolVersion(), CsLodProtocol.VERSION);
+            return;
+        }
+        if (!capsVoxy && !capsDh) {
+            // No renderer. Our hello was an introduction so that /cslod set can reach us, and it has been
+            // answered -- that is the whole of what this handshake was for. Stop here: do NOT arm a
+            // dimension, do NOT request an index, and above all do NOT enter the empty-store retry loop,
+            // which would keep re-asking a server that is quite right not to send us anything.
+            LOGGER.debug("Chunksmith: the server answered our hello; with no renderer installed nothing"
+                    + " will be fetched, but /cslod set can now reach this client");
             return;
         }
         if (!hello.storeAvailable() || hello.dimensions().isEmpty()) {

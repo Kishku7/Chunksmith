@@ -141,7 +141,7 @@ def chunkpos_z(mcver):
 def has_broadcast_changed_chunks(mcver):
     """ServerChunkCacheMixin: is invokeBroadcastChangedChunks(ProfilerFiller) present?
 
-    26-only invoker (added with the tickConnection housekeeping hook). Absent on
+    26-only invoker, called from the chunk-system housekeeping hook. Absent on
     the 1.21.x / 1.20.x lines.
     """
     v = _parse(mcver)
@@ -237,14 +237,50 @@ def empty_ticks_reset(mcver):
 def housekeeping_inject_at(mcver):
     """MinecraftServerMixin: where the chunk-system housekeeping @Inject binds.
 
-    The tickConnection()V hook is a 26-only addition (matrix section 2h / era 4
-    additions). 1.21.11 is otherwise modern_11plus but KEEPS the older TAIL form,
-    so this is keyed on the 26-only marker (major >= 26), NOT on the era name.
-      26+ : at INVOKE tickConnection()V (mid-tick).
-      else: at TAIL of tickServer.
+    ALWAYS tickServer TAIL, on EVERY MC version. mcver is kept in the signature so the
+    compat-matrix dump and the Cog call site stay uniform with the other drift points.
+
+    HISTORY -- fixed 2026-08-13 (3.4.0); the 26 line was broken from the day it was added.
+    26 used to bind this at
+        @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;tickConnection()V")
+    on the belief that 26 had moved the housekeeping-friendly point mid-tick. It had not.
+    javap -c of net/minecraft/server/MinecraftServer on 26.1, 26.1.2, 26.2 and 26.3-snapshot-7
+    shows tickServer reaching tickConnection() at exactly ONE bytecode offset, and only inside
+    the "Server empty for {} seconds, pausing" branch, which then returns:
+
+        13: iload      4          // pauseWhenEmptySeconds() * 20
+        15: ifle       101        // pause-when-empty disabled -> skip the whole branch
+        ...
+        62: if_icmplt  101        // emptyTicks < threshold  -> skip the whole branch
+        ...
+        93: invokevirtual autoSave:()V
+        96: aload_0
+        97: invokevirtual tickConnection:()V
+       100: return                // EARLY RETURN: the real tick never runs on this path
+       101: ...                   // tickCount++, tickChildren(BooleanSupplier), profiler, ...
+       274: return                // <-- the last RETURN in the method == @At("TAIL")
+
+    The injection was LEGAL -- exactly one match, so the mixin applied cleanly and silently --
+    but unreachable in practice. With pause-when-empty-seconds=0 the ifle at 15 skips the
+    branch outright, and during a pre-gen Chunksmith's own keep-awake zeroes emptyTicks every
+    tick by design, so the if_icmplt at 62 skips it too. Net effect: chunk-system housekeeping
+    effectively NEVER ran on the 26 line. (The class does contain a second tickConnection()
+    call site that fires every tick, but it lives in tickChildren() -- a different method,
+    invisible to an @Inject targeting tickServer.)
+
+    TAIL is bytecode offset 274, the last RETURN in tickServer. It is reached on every
+    non-paused tick on every MC version, and it is the point the nine pre-26 cells have always
+    used, so this unifies the matrix instead of special-casing it.
+
+    SAFETY w.r.t. the 3.3.0 ticket safe point (chunksmith$onTickHead): housekeeping mutates
+    ticket/holder state through runDistanceManagerUpdates() + ChunkMap.tick(), and that must
+    never land inside ServerChunkCache.tickChunks' iteration of the simulation chunk tracker.
+    At tickServer TAIL, tickChildren() has already RETURNED -- and with it
+    ServerChunkCache.tick(), which calls runDistanceManagerUpdates() then tickChunks(). No
+    chunk-system iteration is in flight, and we are on the server thread, not an executor pump.
+    The 3.3.0 hazard was specifically ticket work arriving from the server EXECUTOR while that
+    walk was live; TAIL cannot re-create it.
     """
-    if _parse(mcver)[0] >= 26:
-        return 'at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;tickConnection()V")'
     return 'at = @At("TAIL")'
 
 

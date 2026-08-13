@@ -328,9 +328,23 @@ public final class CsLodServerNet {
             return;
         }
         if (!hello.hasVoxy() && !hello.hasDh()) {
-            // No renderer, no point. Say so and stop -- do not burn bandwidth on data nobody can draw.
+            // No renderer, no DATA -- do not burn bandwidth on terrain nobody can draw. Answer with an
+            // empty hello and stop before the store is even looked at: no token is minted, no dimension
+            // list is built, no radius is recorded, and the player is deliberately NOT added to WAITING,
+            // so storeWatchTick will never wake them up with an offer they cannot accept.
             send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                     CsLodProtocol.VERSION, false, 0, "", List.of())));
+            // But DO record the greeting (3.4.0). This is a real Chunksmith on the other end -- it just has
+            // nothing to render with -- and GREETED is what hasLodClient() answers, which is what decides
+            // whether /cslod set will relay to them. Leaving it out was why a player with Chunksmith and no
+            // renderer could not reach their own two client settings from in-game at all.
+            //
+            // Guarded by the add() so this is ONE line per player per session, not one per retried hello.
+            if (GREETED.add(player.getUUID())) {
+                LOGGER.info("Chunksmith: LOD hello from " + nameOf(player)
+                        + " (voxy=false dh=false -- no LOD renderer) -> serving no data;"
+                        + " /cslod set can reach them");
+            }
             return;
         }
 
@@ -510,6 +524,11 @@ public final class CsLodServerNet {
      * id is logged and dropped at the far end, silently, so without this check a player on a vanilla
      * client would type a command, see nothing at all, and have no way to tell the difference between
      * "it worked" and "nothing is listening".
+     *
+     * <p><b>A renderer is not required to be greeted</b> (3.4.0). Every hello is recorded here, including
+     * the no-renderer one handled above, because this question is "is there a Chunksmith listening?" and
+     * not "is there anything to draw with?". Those are different questions and only the first one decides
+     * whether a settings message will be heard.
      */
     public static boolean hasLodClient(final ServerPlayer player) {
         return GREETED.contains(player.getUUID());

@@ -257,6 +257,10 @@ public final class CsLodCommand {
      * <p>The refusal path is the point of {@link CsLodServerNet#hasLodClient}: an unknown message id is
      * dropped silently at the far end, so without the check a player on a vanilla client would type the
      * command, see nothing, and have no way to tell success from an empty room.
+     *
+     * <p>As of 3.4.0 that refusal means ONE thing again, which is why the wording below shrank: a client
+     * with Chunksmith and no LOD renderer now says hello like any other, so it is no longer a cause of
+     * this message. See {@code CsLodClientNet.hello()}.
      */
     private static int clientSetting(final CommandSourceStack source,
                                      final byte action,
@@ -264,16 +268,21 @@ public final class CsLodCommand {
                                      final String value) throws CommandSyntaxException {
         final ServerPlayer player = source.getPlayerOrException();
         if (!CsLodServerNet.hasLodClient(player)) {
-            // NAME BOTH CAUSES. The server cannot tell them apart -- both look identical from here
-            // (no hello) -- and the earlier wording said only "install Chunksmith", which is actively
-            // WRONG for the commoner case: a player who HAS Chunksmith but no renderer. Proven on the
-            // 1.21.11 MP rig 2026-08-12, where that message was the entire output of a working mod.
+            // The "no renderer" half of this message is GONE (3.4.0), because that case is gone: the
+            // client now introduces itself whether or not it has voxy or Distant Horizons, precisely so
+            // that these settings are reachable. Telling a player their missing renderer is to blame
+            // would now be a wrong answer, and sending them off to edit a file by hand for a problem that
+            // no longer exists is worse than saying nothing.
+            //
+            // What is left is the honest remainder: we have had no hello, so either there is no
+            // Chunksmith on that client or it speaks a different LOD protocol version (which the client
+            // reports in its own log, by version number, when it happens).
             source.sendFailure(Component.literal(
-                    "[chunksmith] this server has not heard from your client's Chunksmith. Either it"
-                            + " is not installed client-side, or it is installed with no LOD renderer"
-                            + " (voxy / Distant Horizons) -- Chunksmith only introduces itself when it"
-                            + " has a renderer to feed. Without one these two settings do nothing"
-                            + " anyway; you can still edit config/chunksmith-lod.properties by hand."));
+                    "[chunksmith] this server has not heard from your client's Chunksmith, so it cannot"
+                            + " reach your client settings. Either Chunksmith is not installed"
+                            + " client-side, or your version speaks a different LOD protocol than this"
+                            + " server -- your client's log names which. Editing"
+                            + " config/chunksmith-lod.properties by hand always works."));
             return 0;
         }
         if (!CsLodServerNet.sendClientSetting(player, action, name, value)) {
