@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -42,25 +43,35 @@ public final class LodInjector {
     private static final AtomicLong dhChunks = new AtomicLong();
 
     /**
-     * Set when the session this injection belongs to has gone away -- a disconnect, a cancel, or a
-     * server that has stopped (mod_support #16, 2026-08-12).
+     * Which injection SESSION is current. Bumped when the session a running injection belongs to has
+     * gone away -- a disconnect, a cancel, or a server that has stopped (mod_support #16, 2026-08-12).
      *
-     * <p>The level check below catches the player CHANGING dimension, but it does not catch the world
-     * ending underneath us: in singleplayer the client level object can still be there while the
-     * integrated server is already shutting down, so the worker sails on. It was seen logging
-     * "injected 17500 chunks" for ~45 seconds AFTER the server had crashed and printed "Stopping
-     * server" -- a daemon thread writing into a renderer for a world that no longer exists.
+     * <p>A worker captures this value when it starts and stops as soon as it no longer matches, so the
+     * level check below is not the only thing guarding it. That matters because the level check catches
+     * the player CHANGING dimension but not the world ending underneath us: in singleplayer the client
+     * level object can still be there while the integrated server is already shutting down, so the
+     * worker sails on. It was seen logging "injected 17500 chunks" for ~45 seconds AFTER the server had
+     * crashed and printed "Stopping server" -- a daemon thread writing into a renderer for a world that
+     * no longer exists.
+     *
+     * <p><b>A COUNTER, deliberately, and not the boolean it replaces.</b> The boolean was set true by
+     * {@code stop()} on disconnect and cleared by an {@code arm()} that only ONE of the two callers made
+     * -- the in-band fallback. The backchannel is the path almost every player is on, and it never
+     * armed, so the first disconnect of a game session latched the flag true and every join after it
+     * aborted at region 0 while reporting "the player left ..." -- for the remaining life of the
+     * process. The store downloaded perfectly and was thrown away at the last step, and the log line
+     * blamed the player.
+     *
+     * <p>A generation has no pairing to get wrong. A new injection reads the CURRENT value as its own
+     * baseline, so a stop can only ever end the work it was aimed at, and a call site that forgets to
+     * announce itself cannot poison the next session. There is nothing to arm, which is why
+     * {@code arm()} is gone rather than fixed.
      */
-    private static volatile boolean stopRequested;
+    private static final AtomicInteger SESSION = new AtomicInteger();
 
-    /** Arm a fresh injection. Called before the worker starts, never from inside it. */
-    public static void arm() {
-        stopRequested = false;
-    }
-
-    /** Ask the running injection to stop at the next region boundary. */
+    /** Ask every running injection to stop at its next region boundary. */
     public static void stop() {
-        stopRequested = true;
+        SESSION.incrementAndGet();
     }
 
     private LodInjector() {
@@ -114,6 +125,9 @@ public final class LodInjector {
     public static void injectRegions(final Path storeRoot, final String dimension,
                                      final java.util.List<CsLodMessages.RegionEntry> regions,
                                      final Consumer<String> progress) {
+        // Captured TOGETHER with the level, and for the same reason: both are "the world this batch of
+        // records belongs to", and both are re-checked per region below.
+        final int session = SESSION.get();
         final Minecraft client = Minecraft.getInstance();
         final Level level = client.level;
         if (level == null) {
@@ -212,15 +226,23 @@ public final class LodInjector {
             // level on screen, and DH/voxy would take the rest of this dimension's records straight into the
             // new one. Stop, and give the untouched regions back so the re-armed pull injects them into the
             // level they belong to.
-            if (stopRequested || Minecraft.getInstance().level != level) {
+            final boolean sessionEnded = SESSION.get() != session;
+            if (sessionEnded || Minecraft.getInstance().level != level) {
                 for (int j = i; j < fresh.size(); j++) {
                     INJECTED.release(dimension, fresh.get(j).regionX(), fresh.get(j).regionZ());
                     forget(index, fresh.get(j));
                 }
                 flush(index, dimension);
-                LOGGER.info("Chunksmith: the player left {} while its LOD data was still being injected;"
-                                + " stopping here. {} region(s) were not injected and will be re-fetched if"
-                                + " the player returns.", dimension, fresh.size() - i);
+                // Say WHICH of the two happened. They are different events with different fixes, and
+                // the old wording announced a dimension change for both -- so the session-ended case
+                // spent its whole life telling players they had walked through a portal they had not
+                // walked through, which is how the latched-flag bug above stayed invisible.
+                LOGGER.info("Chunksmith: stopping the {} LOD injection -- {}. {} region(s) were not"
+                                + " injected and will be re-fetched {}.",
+                        dimension,
+                        sessionEnded ? "the session ended" : "the player is no longer in this world",
+                        fresh.size() - i,
+                        sessionEnded ? "on the next join" : "if the player returns");
                 return;
             }
 

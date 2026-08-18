@@ -826,6 +826,14 @@ public final class CsLodClientNet {
                     return;
                 }
 
+                // THE PATH THAT ALMOST EVERY PLAYER IS ON. It injects inline here rather than through
+                // injectAsync (it is already off the game thread, and the download has to finish first),
+                // and that difference is exactly what made the 3.3.0 stop-flag bug invisible: the fix
+                // for mod_support #16 added an arm() to injectAsync, which is the IN-BAND FALLBACK, and
+                // this call site never got one. The flag latched on the first disconnect and killed
+                // every injection for the rest of the process. LodInjector no longer has anything to
+                // arm -- but if a third injection call site is ever added, it must still go through
+                // injectRegions and nowhere else.
                 com.kishku7.chunksmith.lod.client.render.LodInjector.injectRegions(
                         root, index.dimension(), index.regions(),
                         line -> LOGGER.info("Chunksmith: {}", line));
@@ -946,7 +954,8 @@ public final class CsLodClientNet {
     /** Hand the new regions to the renderers, off the game thread. */
     private static void injectAsync(final Path root, final String dimension,
                                     final List<CsLodMessages.RegionEntry> regions) {
-        com.kishku7.chunksmith.lod.client.render.LodInjector.arm();
+        // Nothing to arm. The injector reads the CURRENT session generation when it starts -- see the
+        // note on LodInjector.SESSION for why an explicit arm() was removed rather than added here.
         final Thread worker = new Thread(() -> {
             try {
                 com.kishku7.chunksmith.lod.client.render.LodInjector.injectRegions(root, dimension, regions,

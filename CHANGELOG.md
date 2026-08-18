@@ -2,7 +2,31 @@
 
 ## [Unreleased]
 
-## [3.4.0] - UNRELEASED
+## [3.4.1] - UNRELEASED
+
+### Fixed
+
+- **LOD stopped being injected after the first disconnect, for the rest of the game session.**
+  Join a server, leave it, join again -- and from then on every LOD injection ended instantly with
+  `the player left <dimension> while its LOD data was still being injected`, in every dimension, no
+  matter where the player actually was. The regions downloaded correctly and were thrown away at the
+  last step. Restarting Minecraft was the only way out, and only until the next disconnect.
+  Introduced in 3.3.0; 3.3.0 and 3.4.0 are both affected.
+  - 3.3.0's fix for mod_support #16 gave the injector a `stopRequested` flag, set on disconnect and
+    cleared by an `arm()` call. Only the IN-BAND FALLBACK path called `arm()`. The HTTP backchannel
+    -- the path used whenever the server has its port open, which is almost always -- never did, so
+    the flag stayed true forever after the first disconnect.
+  - The flag is now a per-session generation counter. An injection reads the current generation when
+    it starts, so a stop can only end the work it was aimed at and no call site has to remember to
+    arm anything. `LodInjector.arm()` is gone rather than fixed: it was a pairing that could be got
+    wrong, and it was.
+  - The abort message now names which of the two conditions fired. It used to announce a dimension
+    change for both, so the session-ended case reported a portal the player had never walked through
+    -- which is most of why this took a full session to spot.
+  - Everything the mod does that is not client-side LOD injection was unaffected: pregeneration,
+    the store, and the server's serving of it all behaved correctly throughout.
+
+## [3.4.0] - 2026-08-13
 
 ### Fixed
 
