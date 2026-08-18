@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [3.4.1] - UNRELEASED
+## [3.4.1] - 2026-08-18
 
 ### Fixed
 
