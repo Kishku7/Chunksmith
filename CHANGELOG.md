@@ -2,6 +2,70 @@
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-08-19
+
+### Fixed
+
+- **A pregen could drive the server to 75,045 resident chunks and then keep going, until the
+  watchdog killed it.** Observed live on a 1.21.11 Fabric server: a run at 6.95% was holding about
+  ten times the chunks its sweep frontier could account for, the I/O throttle was pinned at its
+  floor (`1/50`), throughput had fallen to ~5 chunks/sec and the estimate had grown past 42 hours.
+  The crash itself came from elsewhere -- an unrelated datapack tick function walking 11,613
+  entities -- but a server in this state has no margin left for anything else to go wrong, and
+  nothing in Chunksmith could see it happening.
+
+  Three separate mechanisms, each individually defensible, formed a loop that only tightened:
+  - **The throttle measured everything except what mattered.** Tick time, per-chunk latency, the
+    write queue and the LOD sink all measure the rate work goes IN. Nothing measured what had piled
+    up and not gone OUT, so the resident chunk count was invisible to every signal the mod had.
+  - **A server that has fallen behind stops unloading entirely.** 3.2.0 fixed a 60-minute CPU pin
+    (mod_support #11) by handing vanilla's own `haveTime` budget to the unload pass instead of a
+    hardcoded "unlimited". That was correct, and it created the opposite failure: once the tick is
+    over budget, `haveTime` is false for the whole tick, so the unload pass does nothing at all.
+    More resident chunks then cost more to tick, and the server falls further behind.
+  - **Backing off made it worse.** A settle window's ticket releases are driven by new arrivals, and
+    housekeeping was only armed by ticket mutations. Cutting dispatch to 1 therefore also cut the
+    rate at which chunks were handed back -- the throttle was throttling the cure.
+
+  What changed:
+  - Chunk residency is now a first-class throttle signal (`ChunkResidency`, published once per tick
+    from the server thread). Past `throttleMaxLoadedChunks` (new, default 20000, 0 disables)
+    dispatch stops entirely until the server has unloaded back to half of it -- the same hard gate
+    the write-queue backlog already had. A run can never wedge on it: if residency stays over the
+    cap for two minutes the gate opens anyway and says so, because a Chunksmith that silently
+    stopped working is worse than a slow one.
+  - The unload pass now gets a guaranteed floor of 2 ms per tick (`haveTime` OR 2 ms, whichever is
+    greater), shared across dimensions rather than per-dimension. A healthy server behaves exactly
+    as it did in 3.2.0 -- `haveTime` is true and the floor is never consulted. A starved one drains
+    its backlog steadily instead of not at all. 2 ms of a 50 ms tick cannot pin a core, which is the
+    failure 3.2.0 was fixing.
+  - Chunk-system housekeeping is armed every tick while a run is active, not only when a ticket
+    moves.
+
+- **The settle window could hold chunks for an entire run, and on a resumed world usually did.**
+  Its rule -- release a chunk once all eight neighbours exist -- bounds the frontier only while
+  every held chunk eventually gets its ninth neighbour. Chunks the run SKIPS are never offered, so
+  a chunk bordering already-generated ground or the edge of the shape never completes and was held
+  until the task finished. That makes the leak worst on exactly the common case: re-running a
+  pregen over a world that is already partly done. `pregenSettleMaxHeld` (new, default 8192,
+  0 = unbounded) caps the frontier and releases the oldest held chunk when it is exceeded -- age
+  being the evidence that a neighbourhood is not coming. Evictions are counted separately from
+  ordinary releases, because a run with many of them is a run worth looking at.
+
+### Added
+
+- **Chunksmith now says so when a dedicated server is carrying an LOD renderer it does not need.**
+  One warning at startup naming what it found (Distant Horizons, voxy, or both), why it is not
+  needed -- Chunksmith builds its own LOD data and serves it to each player's client, which injects
+  it into the renderer THEY have -- and when keeping it is still the right call (serving vanilla DH
+  clients that do not have Chunksmith). It is advice, not enforcement: nothing is disabled, nothing
+  is declared incompatible, and Distant Horizons is never something Chunksmith `breaks` -- it is a
+  renderer we feed. Nothing is said on an integrated server, which is a client and does need one.
+  Wired on all three mod loaders.
+
+- New settings, both reachable from `/cs set` like every other config key:
+  `throttleMaxLoadedChunks` and `pregenSettleMaxHeld`.
+
 ## [3.4.1] - 2026-08-18
 
 ### Fixed

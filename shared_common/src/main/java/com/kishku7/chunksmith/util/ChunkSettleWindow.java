@@ -3,6 +3,7 @@ package com.kishku7.chunksmith.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,22 @@ import java.util.Map;
  * moment it can no longer be needed. Memory is proportional to the frontier and its perimeter, not to the
  * size of the run.
  *
+ * <p><b>Why the frontier still needs a hard cap.</b> "Hold until the neighbourhood closes" bounds the
+ * frontier only while every position in it eventually gets all nine neighbours. Two things break that.
+ * A chunk the run SKIPS -- already generated with its LOD already present, or outside the shape -- is
+ * never offered, so it never counts toward its neighbours' nine; the chunks beside it are then held for
+ * the whole run rather than for a moment. That makes a resumed or partly pregenerated world leak
+ * steadily, which is the common case, not the exotic one. And a genuinely huge selection has a genuinely
+ * huge frontier: the perimeter grows with the radius, so "bounded by the shape of the pattern" can still
+ * be tens of thousands of chunks.
+ *
+ * <p>Both were live on a server that reached 75,045 resident chunk holders during a pregen
+ * (2026-08-19). So the frontier is capped: past {@code maxHeld}, the OLDEST held chunk is released to
+ * make room. Oldest-first is the right eviction because age is exactly the evidence that a chunk's
+ * neighbourhood is not coming -- the recent entries ARE the live frontier, and the old ones are the
+ * strandings. A released chunk is not a broken promise either: the hold is a courtesy window for other
+ * mods, and a courtesy that can exhaust the server's memory is not one worth keeping.
+ *
  * <p>Deliberately MC-free (a chunk is a packed long, a release is a {@link Runnable}) so it can be
  * unit-tested without a server. Not thread-safe by construction: every call is made from the server
  * thread, which is also the only thread allowed to touch a chunk ticket.
@@ -54,15 +71,25 @@ public final class ChunkSettleWindow {
     /** Position -> how many of its nine neighbours (itself included) have been generated. */
     private final Map<Long, Integer> arrived = new HashMap<>();
 
-    /** Chunk -> the ticket release we have not run yet. The frontier. */
-    private final Map<Long, Runnable> held = new HashMap<>();
+    /**
+     * Chunk -> the ticket release we have not run yet. The frontier.
+     *
+     * <p>Insertion-ordered on purpose: eviction is oldest-first, and the iteration order IS the age
+     * order. A plain HashMap would make "the oldest" unanswerable without a second structure.
+     */
+    private final Map<Long, Runnable> held = new LinkedHashMap<>();
 
     /** Chunk -> the tick its release becomes due. Only chunks whose neighbourhood has closed. */
     private final Map<Long, Long> due = new HashMap<>();
 
     private final long delayTicks;
 
+    /** Hard ceiling on the frontier. Zero means unbounded (the pre-3.5.0 behaviour). */
+    private final long maxHeld;
+
     private long releasedCount;
+
+    private long evictedCount;
 
     /**
      * @param delayTicks how long to keep a chunk after its neighbourhood closes. Zero releases as soon as
@@ -70,7 +97,19 @@ public final class ChunkSettleWindow {
      *                   tick; a small positive value covers one that acts a tick or two later.
      */
     public ChunkSettleWindow(final long delayTicks) {
+        this(delayTicks, 0L);
+    }
+
+    /**
+     * @param delayTicks how long to keep a chunk after its neighbourhood closes; see above
+     * @param maxHeld    the most chunks this window may hold at once. Past it the oldest is released
+     *                   early. Zero means unbounded, which is only safe when every offered chunk is
+     *                   guaranteed to have its neighbourhood closed -- see the class javadoc for why
+     *                   that guarantee does not hold on a real run.
+     */
+    public ChunkSettleWindow(final long delayTicks, final long maxHeld) {
         this.delayTicks = Math.max(0L, delayTicks);
+        this.maxHeld = Math.max(0L, maxHeld);
     }
 
     /**
@@ -97,6 +136,7 @@ public final class ChunkSettleWindow {
             }
         }
         releaseDue(now);
+        evictBeyondCap();
     }
 
     /** Release everything whose delay has elapsed. Safe to call every tick; cheap when nothing is due. */
@@ -139,6 +179,29 @@ public final class ChunkSettleWindow {
         this.due.clear();
     }
 
+    /**
+     * Release the oldest held chunks until the frontier is back within its cap.
+     *
+     * <p>Runs on every offer, so it sheds one entry per arrival rather than a burst of thousands at
+     * whatever moment the cap is first crossed -- the frontier tracks the cap instead of sawtoothing
+     * around it, and no single tick pays for the whole correction.
+     */
+    private void evictBeyondCap() {
+        if (this.maxHeld <= 0L || this.held.size() <= this.maxHeld) {
+            return;
+        }
+        while (this.held.size() > this.maxHeld) {
+            final Iterator<Map.Entry<Long, Runnable>> it = this.held.entrySet().iterator();
+            if (!it.hasNext()) {
+                return;
+            }
+            final Long oldest = it.next().getKey();
+            this.due.remove(oldest);
+            this.evictedCount++;
+            run(oldest);
+        }
+    }
+
     /** How many chunks are held right now -- the live size of the frontier. */
     public int heldCount() {
         return this.held.size();
@@ -152,6 +215,17 @@ public final class ChunkSettleWindow {
     /** How many tickets this window has released. Counters, because a silent leak looks like success. */
     public long releasedCount() {
         return this.releasedCount;
+    }
+
+    /**
+     * How many were released EARLY because the frontier hit its cap.
+     *
+     * <p>Worth its own counter rather than folding into {@code releasedCount}: a run with a large number
+     * here is a run whose frontier is not behaving the way the neighbourhood rule assumes, and that is
+     * something an operator should be able to see rather than infer.
+     */
+    public long evictedCount() {
+        return this.evictedCount;
     }
 
     /** Has this position seen all nine of its neighbourhood? Package-visible so the test asserts the rule. */

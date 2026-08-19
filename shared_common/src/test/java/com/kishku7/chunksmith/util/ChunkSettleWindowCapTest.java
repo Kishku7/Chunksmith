@@ -1,0 +1,83 @@
+package com.kishku7.chunksmith.util;
+
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+/**
+ * The frontier cap -- the guard against the failure the neighbourhood rule alone does not cover.
+ *
+ * <p>{@link ChunkSettleWindowTest} proves the rule itself. These prove what happens when the rule's
+ * assumption is false: chunks whose neighbourhood never closes, because the run skipped the ground next
+ * to them. Without a cap those are held for the whole run, which is how a live server reached 75,045
+ * resident chunks (2026-08-19).
+ */
+public class ChunkSettleWindowCapTest {
+
+    /** Offer a straight line of chunks. No chunk in a line ever gets all nine of its neighbours. */
+    private static List<Integer> offerLine(final ChunkSettleWindow window, final int count, final long cap) {
+        final List<Integer> released = new ArrayList<>();
+        for (int x = 0; x < count; x++) {
+            final int captured = x;
+            window.offer(x, 0, 0L, () -> released.add(captured));
+        }
+        assertTrue("a line never closes a neighbourhood, so nothing may be released by the rule",
+                cap > 0 || released.isEmpty());
+        return released;
+    }
+
+    @Test
+    public void withoutACapAStrandedFrontierGrowsForever() {
+        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        offerLine(window, 5_000, 0L);
+        assertEquals("this is the leak: every one of them is still held", 5_000, window.heldCount());
+        assertEquals(0L, window.evictedCount());
+    }
+
+    @Test
+    public void theCapBoundsTheFrontier() {
+        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 100L);
+        offerLine(window, 5_000, 100L);
+        assertEquals(100, window.heldCount());
+        assertEquals("everything over the cap came back", 4_900L, window.evictedCount());
+    }
+
+    @Test
+    public void evictionIsOldestFirstBecauseAgeIsTheEvidence() {
+        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 3L);
+        final List<Integer> released = new ArrayList<>();
+        for (int x = 0; x < 6; x++) {
+            final int captured = x;
+            window.offer(x, 0, 0L, () -> released.add(captured));
+        }
+        assertEquals("the three oldest went, in order", List.of(0, 1, 2), released);
+        assertEquals(3, window.heldCount());
+    }
+
+    @Test
+    public void everyTicketStillComesBackExactlyOnce() {
+        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 10L);
+        final List<Integer> released = new ArrayList<>();
+        for (int x = 0; x < 500; x++) {
+            final int captured = x;
+            window.offer(x, 0, 0L, () -> released.add(captured));
+        }
+        window.drain();
+        assertEquals("no ticket may be dropped and none may run twice", 500, released.size());
+        assertEquals(500, released.stream().distinct().count());
+        assertEquals(0, window.heldCount());
+        assertEquals("bookkeeping does not outlive the run", 0, window.trackedCount());
+    }
+
+    @Test
+    public void aCapLargerThanTheFrontierChangesNothing() {
+        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 100_000L);
+        offerLine(window, 1_000, 100_000L);
+        assertEquals(1_000, window.heldCount());
+        assertEquals(0L, window.evictedCount());
+    }
+}

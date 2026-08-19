@@ -33,6 +33,13 @@ public final class GsonConfig implements Config {
     private static final long MAX_QUEUED_WRITES_MIN = 50L;
     private static final long MAX_QUEUED_WRITES_MAX = 1_000_000L;
     private static final long MAX_QUEUED_WRITES_DEFAULT = 800L;
+    // Maximum RESIDENT chunks before generation dispatch is held off. 0 disables. The default is
+    // generous: a legitimate sweep frontier is roughly 16x the selection radius in chunks, so 20000
+    // clears a 1200-chunk-radius run untouched, while the runaway this bounds reached 75045 on a
+    // 470-chunk-radius selection. Hysteresis resumes dispatch at half.
+    private static final long MAX_LOADED_CHUNKS_MIN = 1_000L;
+    private static final long MAX_LOADED_CHUNKS_MAX = 5_000_000L;
+    private static final long MAX_LOADED_CHUNKS_DEFAULT = 20_000L;
     // Governor for the LOD sink. Voxy's ingest queue is unbounded and never reports saturation, so
     // this is the only thing standing between a fast pregen and an OOM.
     private static final long MAX_LOD_QUEUE_MIN = 16L;
@@ -42,6 +49,11 @@ public final class GsonConfig implements Config {
     private static final long SETTLE_DELAY_MAX = 600L;
     private static final int SETTLE_RADIUS_DEFAULT = 7;
     private static final int SETTLE_RADIUS_MAX = 16;
+    // Hard ceiling on the settle frontier. 0 = unbounded (pre-3.5.0 behaviour). The default comfortably
+    // exceeds the frontier of a mid-sized run while still capping the strandings a resumed world leaves.
+    private static final long SETTLE_MAX_HELD_MIN = 256L;
+    private static final long SETTLE_MAX_HELD_MAX = 1_000_000L;
+    private static final long SETTLE_MAX_HELD_DEFAULT = 8_192L;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
@@ -144,6 +156,20 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public long getThrottleMaxLoadedChunks() {
+        final long raw = Optional.ofNullable(configModel.throttleMaxLoadedChunks).orElse(MAX_LOADED_CHUNKS_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        final long clamped = Math.max(MAX_LOADED_CHUNKS_MIN, Math.min(MAX_LOADED_CHUNKS_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: throttleMaxLoadedChunks %d is out of range [%d, %d], using %d",
+                    raw, MAX_LOADED_CHUNKS_MIN, MAX_LOADED_CHUNKS_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
     public LodMode getLodMode() {
         final String raw = configModel.lodEnabled;
         final LodMode mode = LodMode.parse(raw);
@@ -182,6 +208,20 @@ public final class GsonConfig implements Config {
         if (raw != clamped) {
             LOGGER.warning(String.format("Chunksmith: pregenSettleDelayTicks %d is out of range [0, %d],"
                     + " using %d", raw, SETTLE_DELAY_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
+    public long getPregenSettleMaxHeld() {
+        final long raw = Optional.ofNullable(configModel.pregenSettleMaxHeld).orElse(SETTLE_MAX_HELD_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        final long clamped = Math.max(SETTLE_MAX_HELD_MIN, Math.min(SETTLE_MAX_HELD_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: pregenSettleMaxHeld %d is out of range [%d, %d], using %d",
+                    raw, SETTLE_MAX_HELD_MIN, SETTLE_MAX_HELD_MAX, clamped));
         }
         return clamped;
     }
@@ -276,6 +316,24 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setThrottleMaxLoadedChunks(final long chunks) {
+        // 0 is the documented "disable the residency bound" value, as with the write backlog above.
+        configModel.throttleMaxLoadedChunks = chunks <= 0L
+                ? 0L
+                : Math.max(MAX_LOADED_CHUNKS_MIN, Math.min(MAX_LOADED_CHUNKS_MAX, chunks));
+        saveConfig();
+    }
+
+    @Override
+    public void setPregenSettleMaxHeld(final long maxHeld) {
+        // 0 disables the cap entirely, so it must survive the clamp.
+        configModel.pregenSettleMaxHeld = maxHeld <= 0L
+                ? 0L
+                : Math.max(SETTLE_MAX_HELD_MIN, Math.min(SETTLE_MAX_HELD_MAX, maxHeld));
+        saveConfig();
+    }
+
+    @Override
     public void setThrottleMaxLodQueue(final long items) {
         // 0 disables, as above.
         configModel.throttleMaxLodQueue = items <= 0L
@@ -330,6 +388,7 @@ public final class GsonConfig implements Config {
         private Double throttleTargetMspt = TARGET_MSPT_DEFAULT;
         private Long throttleMaxChunkMillis = MAX_CHUNK_MILLIS_DEFAULT;
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
+        private Long throttleMaxLoadedChunks = MAX_LOADED_CHUNKS_DEFAULT;
         // TRISTATE, written as the string "auto" by default. Declared String, not Boolean, ON PURPOSE:
         // Gson's String adapter coerces a JSON boolean to "true"/"false", so a config that already says
         // `"lodEnabled": false` (or true) from an older Chunksmith still parses, still means exactly what
@@ -342,6 +401,7 @@ public final class GsonConfig implements Config {
         private Boolean pregenSettle = true;
         private Long pregenSettleDelayTicks = SETTLE_DELAY_DEFAULT;
         private Integer pregenSettleRadius = SETTLE_RADIUS_DEFAULT;
+        private Long pregenSettleMaxHeld = SETTLE_MAX_HELD_DEFAULT;
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }
@@ -366,6 +426,10 @@ public final class GsonConfig implements Config {
         public void setThrottleMaxChunkMillis(final Long throttleMaxChunkMillis) { this.throttleMaxChunkMillis = throttleMaxChunkMillis; }
         public Long getThrottleMaxQueuedWrites() { return throttleMaxQueuedWrites; }
         public void setThrottleMaxQueuedWrites(final Long throttleMaxQueuedWrites) { this.throttleMaxQueuedWrites = throttleMaxQueuedWrites; }
+        public Long getThrottleMaxLoadedChunks() { return throttleMaxLoadedChunks; }
+        public void setThrottleMaxLoadedChunks(final Long throttleMaxLoadedChunks) { this.throttleMaxLoadedChunks = throttleMaxLoadedChunks; }
+        public Long getPregenSettleMaxHeld() { return pregenSettleMaxHeld; }
+        public void setPregenSettleMaxHeld(final Long pregenSettleMaxHeld) { this.pregenSettleMaxHeld = pregenSettleMaxHeld; }
     }
 
     @SuppressWarnings("unused")

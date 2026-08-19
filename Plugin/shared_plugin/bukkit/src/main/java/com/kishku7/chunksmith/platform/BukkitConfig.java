@@ -92,6 +92,11 @@ public final class BukkitConfig implements Config {
         return plugin.getConfig().getLong("throttle-max-queued-writes", 800L);
     }
 
+    @Override
+    public long getThrottleMaxLoadedChunks() {
+        return plugin.getConfig().getLong("throttle-max-loaded-chunks", 20_000L);
+    }
+
     /**
      * CHANGED (2026-08-03, mod_support #9 follow-up): this platform now carries a
      * server-side CSLOD generator + store (see lod.CsLodExtractor / lod.LodSupport in this source
@@ -129,6 +134,12 @@ public final class BukkitConfig implements Config {
     @Override
     public int getPregenSettleRadius() {
         return 1;
+    }
+
+    @Override
+    public long getPregenSettleMaxHeld() {
+        // Nothing is ever held on this platform (see isPregenSettleEnabled), so there is nothing to cap.
+        return 0L;
     }
 
     @Override
@@ -204,6 +215,19 @@ public final class BukkitConfig implements Config {
     @Override
     public void setThrottleMaxQueuedWrites(final long writes) {
         plugin.getConfig().set("throttle-max-queued-writes", writes);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxLoadedChunks(final long chunks) {
+        plugin.getConfig().set("throttle-max-loaded-chunks", chunks);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setPregenSettleMaxHeld(final long maxHeld) {
+        // Accepted and persisted so the key round-trips, but this platform holds no tickets to cap.
+        plugin.getConfig().set("pregen-settle-max-held", maxHeld);
         plugin.saveConfig();
     }
 

@@ -29,6 +29,7 @@ import com.kishku7.chunksmith.platform.FabricSender;
 import com.kishku7.chunksmith.platform.FabricServer;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.platform.impl.GsonConfig;
+import com.kishku7.chunksmith.util.ServerSideRendererAdvisory;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.TranslationKey;
 
@@ -68,6 +69,11 @@ public class ChunksmithFabric implements ModInitializer {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
         ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
+            // An LOD renderer on a DEDICATED server is duplicated work Chunksmith does not need -- it
+            // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
+            // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
+            ServerSideRendererAdvisory.message(minecraftServer.isDedicatedServer(), FabricLoader.getInstance()::isModLoaded)
+                    .ifPresent(message -> org.slf4j.LoggerFactory.getLogger("Chunksmith").warn(message));
             final Path configDir = FabricLoader.getInstance().getConfigDir();
             Path baseDir = configDir.resolve("chunksmith");
             final Path legacyDir = configDir.resolve("chunky");

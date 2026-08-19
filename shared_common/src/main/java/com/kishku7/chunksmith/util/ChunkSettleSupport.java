@@ -17,14 +17,16 @@ public final class ChunkSettleSupport {
 
     private static volatile boolean enabled;
     private static volatile long delayTicks;
+    private static volatile long maxHeld;
 
     private ChunkSettleSupport() {
     }
 
     /** Called when a generation task starts, from the config that task was created with. */
-    public static void configure(final boolean enabled, final long delayTicks) {
+    public static void configure(final boolean enabled, final long delayTicks, final long maxHeld) {
         ChunkSettleSupport.enabled = enabled;
         ChunkSettleSupport.delayTicks = Math.max(0L, delayTicks);
+        ChunkSettleSupport.maxHeld = Math.max(0L, maxHeld);
     }
 
     public static boolean isEnabled() {
@@ -39,6 +41,6 @@ public final class ChunkSettleSupport {
      * for the operator who has turned this off precisely because they want none of it.
      */
     public static ChunkSettleWindow newWindow() {
-        return enabled ? new ChunkSettleWindow(delayTicks) : null;
+        return enabled ? new ChunkSettleWindow(delayTicks, maxHeld) : null;
     }
 }

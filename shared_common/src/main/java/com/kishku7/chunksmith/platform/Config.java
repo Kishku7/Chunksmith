@@ -45,6 +45,18 @@ public interface Config {
     long getThrottleMaxQueuedWrites();
 
     /**
+     * Maximum chunks allowed to stay RESIDENT in memory before the throttle stops dispatching new
+     * chunks until the server unloads some (hysteresis: resumes at half this value). 0 disables.
+     *
+     * <p>The other throttle signals all measure work going IN. This one measures what has piled up and
+     * not gone OUT, which nothing else could see -- see {@code ChunkResidency} for the failure it exists
+     * to catch. Set it above the largest sweep frontier a run legitimately needs (roughly 16x the
+     * selection radius in chunks) and below the point where the resident set costs more to tick than the
+     * server can afford.
+     */
+    long getThrottleMaxLoadedChunks();
+
+    /**
      * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean.
      *
      * <p>Default {@link LodMode#AUTO}: LOD generation turns itself ON when an LOD renderer (Distant
@@ -90,6 +102,16 @@ public interface Config {
     int getPregenSettleRadius();
 
     /**
+     * Hard ceiling on how many chunks the settle window may hold open at once. 0 means unbounded.
+     *
+     * <p>The neighbourhood rule bounds the frontier only while every held chunk eventually gets all nine
+     * of its neighbours; chunks beside SKIPPED ground never do, so a resumed world strands them for the
+     * whole run. Past this cap the oldest held chunk is released early -- age being the evidence that its
+     * neighbourhood is not coming. Only meaningful when {@link #isPregenSettleEnabled()}.
+     */
+    long getPregenSettleMaxHeld();
+
+    /**
      * Turn the settle window on or off and PERSIST the change.
      *
      * <p>Persisted deliberately: settle is tuned for a pregen run that may outlive several restarts, and a
@@ -107,6 +129,9 @@ public interface Config {
      * Set the settle sweep radius in chunks and persist it. Clamped like {@link #getPregenSettleDelayTicks()}.
      */
     void setPregenSettleRadius(int radius);
+
+    /** Set the settle frontier cap and persist it. Clamped like the other settle setters. */
+    void setPregenSettleMaxHeld(long maxHeld);
 
     /**
      * Whether this platform can honour the settle settings at all.
@@ -142,6 +167,8 @@ public interface Config {
     void setThrottleMaxChunkMillis(long millis);
 
     void setThrottleMaxQueuedWrites(long writes);
+
+    void setThrottleMaxLoadedChunks(long chunks);
 
     void setThrottleMaxLodQueue(long items);
 

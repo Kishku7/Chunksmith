@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 //[[[end]]]
 import com.kishku7.chunksmith.PlatformCompat;
 import com.kishku7.chunksmith.ChunksmithProvider;
+import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.WorldgenOverreachReporter;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
@@ -56,6 +57,23 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
 
     @Unique
     private final AtomicBoolean chunksmith$needChunkSystemHousekeeping = new AtomicBoolean(false);
+
+    /**
+     * The unload work we guarantee ourselves each tick, even on a server that is already over budget.
+     *
+     * <p>3.2.0 fixed a 60-minute CPU pin by passing vanilla's own {@code haveTime} into the unload pass
+     * instead of a hardcoded true. That was right, and it introduced the opposite failure: {@code
+     * haveTime} is false for the whole tick once the server is behind, so a server that has fallen behind
+     * unloads NOTHING, its resident set grows, ticking it costs more, and it falls further behind. A live
+     * server reached 75,045 resident chunks that way (2026-08-19).
+     *
+     * <p>So the budget is "vanilla's allowance, OR this much, whichever is greater". A healthy server
+     * behaves exactly as it did in 3.2.0 -- haveTime is true and this is never consulted. A starved one
+     * gets a small, fixed, bounded slice per tick, which is enough to drain a backlog steadily and far
+     * too little to pin a core. 2 ms of a 50 ms tick is 4%.
+     */
+    @Unique
+    private static final long CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS = 2_000_000L;
 
     /**
      * Chunk-ticket work waiting for the safe point. See MinecraftServerExtension#chunksmith$atTicketSafePoint
@@ -125,6 +143,12 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // cog.outl("            %s" % compat.empty_ticks_reset(mcver))
             //]]]
             //[[[end]]]
+            // Housekeeping is normally armed by a ticket mutation. That is not enough during a pregen:
+            // when the throttle has cut dispatch to its floor, ticket mutations become rare exactly when
+            // the unload backlog most needs draining -- the throttle would be throttling the cure. While
+            // a run is active, arm it every tick.
+            this.chunksmith$markChunkSystemHousekeeping();
+            this.chunksmith$reportChunkResidency();
             final long now = System.nanoTime();
             final long prev = this.chunksmith$lastTickNanos;
             this.chunksmith$lastTickNanos = now;
@@ -138,10 +162,29 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             }
         } else {
             // No active generation -- reset so the next run starts from a clean, healthy
-            // baseline rather than a stale idle-sleep interval.
+            // baseline rather than a stale idle-sleep interval, and drop the residency reading so it
+            // can never gate a later run.
+            ChunkResidency.clear();
             this.chunksmith$lastTickNanos = 0L;
             this.chunksmith$mspt = 50.0D;
         }
+    }
+
+    /**
+     * Publish how many chunks the server is holding, for the generation throttle to gate on.
+     *
+     * <p>{@code getLoadedChunksCount()} is the same number the crash report prints as {@code Chunks[S]
+     * W:} -- public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
+     * drift handling. Summed across dimensions because memory is, and a pregen in one dimension is
+     * perfectly capable of being starved by chunks resident in another.
+     */
+    @Unique
+    private void chunksmith$reportChunkResidency() {
+        long loaded = 0L;
+        for (ServerLevel level : this.getAllLevels()) {
+            loaded += level.getChunkSource().getLoadedChunksCount();
+        }
+        ChunkResidency.report(loaded);
     }
 
     @Override
@@ -165,6 +208,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Override
     public void chunksmith$runChunkSystemHousekeeping(BooleanSupplier haveTime) {
         if (this.chunksmith$needChunkSystemHousekeeping.compareAndSet(true, false)) {
+            // ONE deadline for the whole pass, not one per level: the floor is what Chunksmith is
+            // willing to spend on unloading this tick in total, and a per-level deadline would multiply
+            // it by the number of dimensions.
+            final long deadline = System.nanoTime() + CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS;
+            final BooleanSupplier budget = () -> haveTime.getAsBoolean() || System.nanoTime() < deadline;
             for (ServerLevel level : this.getAllLevels()) {
                 // NOT guarded on C2ME, deliberately (mod_support #16, 2026-08-12). A guard was tried
                 // here on the theory that this call was the ticket-map race; the C2ME cancel gate
@@ -185,7 +233,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                 // through here (instead of a hardcoded true) makes the unload pass self-limit per tick
                 // and drain a large backlog incrementally across many ticks instead of forcing it all
                 // through in one synchronous call.
-                ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(haveTime); // bounded: respect the real per-tick time budget
+                ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(budget); // bounded: vanilla's budget, floored so a starved tick still unloads
                 //[[[cog
                 // import cog, compat
                 // cog.outl("                %s" % compat.broadcast_changed_chunks_call(mcver))

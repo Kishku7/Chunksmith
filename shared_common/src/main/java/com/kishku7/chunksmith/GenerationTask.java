@@ -14,6 +14,7 @@ import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.shape.Shape;
 import com.kishku7.chunksmith.shape.ShapeFactory;
 import com.kishku7.chunksmith.util.ChunkCoordinate;
+import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.util.Pair;
 import com.kishku7.chunksmith.util.RegionCache;
@@ -63,6 +64,13 @@ public class GenerationTask implements Runnable {
     // >= MIN_DEPTH with no drain progress for STALL_MILLIS. JVM-tunable; STALL_MILLIS=0 disables.
     private static final long WRITE_STALL_MILLIS = Math.max(0L, Input.tryInteger(System.getProperty("chunksmith.writeStallMillis")).orElse(2000));
     private static final long WRITE_STALL_MIN_DEPTH = Math.max(1L, Input.tryInteger(System.getProperty("chunksmith.writeStallMinDepth")).orElse(16));
+    // Chunk-residency backpressure. Sampled on the same cadence as the write queue.
+    private static final long RESIDENCY_CHECK_INTERVAL_MS = 250L;
+    // How long residency may stay over its cap before we give up waiting and generate anyway. A run must
+    // never wedge: if the server genuinely will not unload (a foreign mod pinning chunks, a selection
+    // whose legitimate frontier exceeds the cap), a Chunksmith that waits forever is a Chunksmith that
+    // silently stopped working, which is worse than a slow one. Say so out loud and carry on.
+    private static final long RESIDENCY_STALL_MAX_MS = Math.max(0L, Input.tryInteger(System.getProperty("chunksmith.residencyStallMaxMillis")).orElse(120_000));
     private final Chunksmith chunky;
     private final Selection selection;
     private final Shape shape;
@@ -98,6 +106,11 @@ public class GenerationTask implements Runnable {
     private volatile boolean writeQueueStalled;
     private final AtomicLong lastWriteDrainTime = new AtomicLong(0);
     private long lastQueuedObserved = -1L;
+    private final long maxLoadedChunks;
+    private final AtomicLong lastResidencyCheckTime = new AtomicLong(0);
+    private final AtomicLong lastResidencyNoticeTime = new AtomicLong(0);
+    private final AtomicLong residencyStalledSince = new AtomicLong(0);
+    private volatile boolean chunkResidencyStalled;
     private volatile Thread dispatchThread;
     private ChunkIterator chunkIterator;
     private boolean stopped, cancelled;
@@ -138,12 +151,14 @@ public class GenerationTask implements Runnable {
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
+        this.maxLoadedChunks = chunky.getConfig().getThrottleMaxLoadedChunks();
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
         // exist" means anything -- see ChunkSettleWindow (mod_support #14).
         com.kishku7.chunksmith.util.ChunkSettleSupport.configure(
                 chunky.getConfig().isPregenSettleEnabled(),
-                chunky.getConfig().getPregenSettleDelayTicks());
+                chunky.getConfig().getPregenSettleDelayTicks(),
+                chunky.getConfig().getPregenSettleMaxHeld());
         if (chunky.getConfig().isPregenSettleEnabled()) {
             final int radius = chunky.getConfig().getPregenSettleRadius();
             this.settleSweep = new com.kishku7.chunksmith.util.SettleSweep(
@@ -367,6 +382,73 @@ public class GenerationTask implements Runnable {
         }
     }
 
+    /**
+     * Chunk-residency backpressure -- the bound on what is already IN memory.
+     *
+     * <p>Every other signal here measures the rate work arrives: tick time, per-chunk latency, the
+     * write queue, the LOD sink. None of them can see the resident chunk set, and on a real server
+     * (2026-08-19) that set reached 75,045 holders -- about ten times the sweep frontier the run needed
+     * -- while every one of those signals read "slow down", which is precisely what stopped it draining.
+     *
+     * <p>The loop is the problem, not the number: vanilla's unload pass is budgeted by the server's own
+     * per-tick time allowance, so a server that has fallen behind unloads almost nothing; a bigger
+     * resident set costs more to tick; it falls further behind. Backing dispatch off does not break that
+     * -- it feeds it, because a settle window's releases are driven by new arrivals. So residency gets a
+     * signal of its own and a HARD gate: past the cap, dispatch nothing at all until the server has
+     * unloaded back to half of it. That is the one action that actually lets the loop unwind.
+     *
+     * <p>No-op when the platform does not report residency, and when the operator has set the cap to 0.
+     */
+    private void evaluateChunkResidency() {
+        if (maxLoadedChunks <= 0L) {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        final long last = lastResidencyCheckTime.get();
+        if (now - last < RESIDENCY_CHECK_INTERVAL_MS || !lastResidencyCheckTime.compareAndSet(last, now)) {
+            return;
+        }
+        final long loaded = ChunkResidency.loadedChunks();
+        if (loaded < 0L) {
+            // The platform is not reporting (or the reading went stale). Unknown is not zero: leave the
+            // gate exactly as it was rather than opening it on the strength of a measurement we do not
+            // have. It cannot latch shut -- the stall deadline below still applies.
+            return;
+        }
+        if (chunkResidencyStalled) {
+            if (loaded <= Math.max(1L, maxLoadedChunks / 2L)) {
+                chunkResidencyStalled = false;
+                residencyStalledSince.set(0L);
+                return;
+            }
+            final long since = residencyStalledSince.get();
+            if (RESIDENCY_STALL_MAX_MS > 0L && since > 0L && now - since >= RESIDENCY_STALL_MAX_MS) {
+                chunkResidencyStalled = false;
+                residencyStalledSince.set(0L);
+                // Reset the notice clock too, so the give-up line is never swallowed by the throttle
+                // notice that preceded it.
+                lastResidencyNoticeTime.set(0L);
+                chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_RESIDENCY_STUCK_NOTICE,
+                        maxLoadedChunks, (now - since) / 1000L);
+            }
+            return;
+        }
+        if (loaded >= maxLoadedChunks) {
+            chunkResidencyStalled = true;
+            residencyStalledSince.set(now);
+            maybeNotifyResidency(loaded);
+        }
+    }
+
+    private void maybeNotifyResidency(final long loaded) {
+        final long now = System.currentTimeMillis();
+        final long last = lastResidencyNoticeTime.get();
+        if (now - last >= NOTICE_INTERVAL_MS && lastResidencyNoticeTime.compareAndSet(last, now)) {
+            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_RESIDENCY_BACKPRESSURE_NOTICE,
+                    loaded, maxLoadedChunks);
+        }
+    }
+
     private void maybeNotifyWrite(final long queued) {
         final long now = System.currentTimeMillis();
         final long last = lastWriteNoticeTime.get();
@@ -441,9 +523,13 @@ public class GenerationTask implements Runnable {
                     }
                 }
                 // The LOD sink is governed regardless of ioThrottleEnabled: it is not a disk-I/O
-                // signal, and an unbounded ingest backlog is an OOM, not a slowdown.
+                // signal, and an unbounded ingest backlog is an OOM, not a slowdown. Chunk residency is
+                // governed for the same reason -- an unbounded resident set is an OOM and a watchdog
+                // kill, not a slowdown -- so neither is gated on the operator's I/O-throttle switch.
                 adjustFromLodQueue();
-                if (!writeQueueStalled && inFlight.get() < Math.max(1, dispatchLimit.get())) {
+                evaluateChunkResidency();
+                if (!writeQueueStalled && !chunkResidencyStalled
+                        && inFlight.get() < Math.max(1, dispatchLimit.get())) {
                     break;
                 }
                 LockSupport.parkNanos(1_000_000L);

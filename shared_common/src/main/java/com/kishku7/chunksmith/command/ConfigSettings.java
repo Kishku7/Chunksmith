@@ -52,6 +52,7 @@ public final class ConfigSettings {
             integer("throttleMaxChunkMillis", Config::getThrottleMaxChunkMillis, Config::setThrottleMaxChunkMillis),
             integer("throttleMaxQueuedWrites", Config::getThrottleMaxQueuedWrites, Config::setThrottleMaxQueuedWrites),
             integer("throttleMaxLodQueue", Config::getThrottleMaxLodQueue, Config::setThrottleMaxLodQueue),
+            integer("throttleMaxLoadedChunks", Config::getThrottleMaxLoadedChunks, Config::setThrottleMaxLoadedChunks),
             of("lodEnabled", ConfigSetting.Kind.TRISTATE,
                     config -> config.getLodMode().name().toLowerCase(Locale.ROOT),
                     (config, raw) -> {
@@ -68,7 +69,9 @@ public final class ConfigSettings {
                     Config::getPregenSettleDelayTicks, Config::setPregenSettleDelayTicks)),
             settle(integer("pregenSettleRadius",
                     config -> (long) config.getPregenSettleRadius(),
-                    (config, value) -> config.setPregenSettleRadius((int) value)))
+                    (config, value) -> config.setPregenSettleRadius((int) value))),
+            settle(integer("pregenSettleMaxHeld",
+                    Config::getPregenSettleMaxHeld, Config::setPregenSettleMaxHeld))
     );
 
     public static List<ConfigSetting> all() {

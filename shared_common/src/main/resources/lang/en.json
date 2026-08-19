@@ -101,6 +101,8 @@
   "task_throttle_notice": "I/O throttle rate set to %s/%s",
   "task_throttle_status": "I/O throttle active - concurrency: %s/%s",
   "task_write_backpressure_notice": "I/O write backpressure - holding generation, %s writes queued (limit %s)",
+  "task_residency_backpressure_notice": "Chunk residency backpressure - holding generation, %s chunks resident (limit %s)",
+  "task_residency_stuck_notice": "Chunk residency has stayed above %s for %s seconds - the server is not unloading. Resuming generation anyway; expect it to be slow.",
   "task_trim": "Deleted %s chunks from %s in %s seconds.",
   "task_trim_update": "Task running for %s. Processed: %s regions (%s%%)",
   "task_done": "Task finished for %s. Processed: %s chunks (%s%%), Total time: %s:%s:%s",
