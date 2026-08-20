@@ -123,9 +123,13 @@ public final class UnloadDiagnostics {
         if (total <= 0L) {
             verdict = "nothing resident";
         } else if (levelDroppable > total / 2L) {
-            verdict = "MOST ARE DROPPABLE -- nothing holds them and vanilla is not dropping them";
+            verdict = "MOST ARE PAST MAX_LEVEL -- nothing holds them and vanilla is not dropping them";
         } else {
-            verdict = "MOST ARE HELD AT A LOADED LEVEL -- somebody's tickets are keeping them alive";
+            // Not a leak by itself. Every FULL chunk needs a ring of worldgen context around it, so a
+            // pre-gen keeps that ring resident for its whole frontier -- and the frontier's perimeter
+            // grows with the radius being generated. Compare 'ticking' against the dispatch limit and
+            // the settle cap: if THAT is bounded, this band is the cost of the frontier, not a leak.
+            verdict = "mostly worldgen context around the frontier -- judge by 'ticking', not this";
         }
         return String.format("ticking=%d loaded=%d droppable=%d age=%ds -- %s",
                 levelTicking, levelLoaded, levelDroppable,

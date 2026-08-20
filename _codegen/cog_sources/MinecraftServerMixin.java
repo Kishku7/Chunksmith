@@ -308,8 +308,14 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                 for (final net.minecraft.server.level.Ticket ticket : store.getTickets(pos)) {
                     byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
                 }
+                // Buckets taken from ChunkLevel itself, NOT from hand-written numbers. The first
+                // version of this used 33 and 44 from memory; MAX_LEVEL is actually
+                // 33 + RADIUS_AROUND_FULL_CHUNK, so "44" was wrong and two whole levels of droppable
+                // chunks were being counted as loaded. Reading the constant also makes the buckets
+                // correct on every MC version instead of just the one they were guessed for.
                 final int chunkLevel = distance.getChunkLevel(pos, false);
-                if (chunkLevel <= 33) {
+                if (chunkLevel <= net.minecraft.server.level.ChunkLevel.byStatus(
+                        net.minecraft.world.level.chunk.status.ChunkStatus.FULL)) {
                     ticking++;
                     // Read the ticket rather than guess at it. A handful is enough to name a type.
                     if (sampled < 6) {
@@ -322,7 +328,9 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                                 .append(" load=").append(store.getTicketDebugString(pos, false))
                                 .append(" sim=").append(store.getTicketDebugString(pos, true));
                     }
-                } else if (chunkLevel < 44) {
+                } else if (net.minecraft.server.level.ChunkLevel.isLoaded(chunkLevel)) {
+                    // 34..MAX_LEVEL: not accessible, but still held as worldgen CONTEXT for a FULL
+                    // chunk nearby. A pre-gen inherently keeps this ring around its whole frontier.
                     loadedLevel++;
                 } else {
                     droppable++;

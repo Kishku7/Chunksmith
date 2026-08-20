@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-08-20
+
+### Fixed
+
+- **The diagnostic's own level thresholds were hand-written and wrong.** It classified a chunk as
+  droppable at level 44, but `ChunkLevel.MAX_LEVEL` is `33 + RADIUS_AROUND_FULL_CHUNK` -- 41 on this
+  version -- so two whole levels of genuinely-droppable chunks were being reported as loaded, and the
+  "droppable" figure it printed was noise. It now reads `ChunkLevel.byStatus(FULL)` and
+  `ChunkLevel.isLoaded` directly, which is both correct here and correct on every other MC version
+  instead of only the one the numbers were guessed for.
+
+  With the buckets right, the picture inverts: **droppable = 0**. Every resident chunk is either FULL
+  or the worldgen context ring that a FULL chunk requires. Nothing is sitting around waiting to be
+  unloaded, and vanilla's unload path is healthy.
+
+### Note on what the resident count means
+
+A pre-gen's resident set is its FULL chunks plus the mandatory context ring around each of them, and
+the frontier's perimeter grows with the radius being generated. On a radius-7500 square that reaches
+tens of thousands of chunks legitimately. It is not a leak, which is why `throttleMaxAddedChunks`
+defaults to 0 and memory is bounded by `throttleMaxHeapPercent` instead. What must stay bounded is
+the number of FULL chunks held at once -- the dispatch limit and `pregenSettleMaxHeld` -- and that is
+what 3.4.1 got wrong by holding an uncapped settle frontier.
+
 ## [3.6.0] - 2026-08-20
 
 **This is the release that actually fixes the unbounded chunk retention reported on 2026-08-19.**
