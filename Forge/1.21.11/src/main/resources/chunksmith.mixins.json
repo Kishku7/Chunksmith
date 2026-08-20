@@ -6,6 +6,7 @@
   "mixins": [
     "BlockAttachedEntityMixin",
     "ChunkMapMixin",
+    "DistanceManagerMixin",
     "EntityStorageAccessor",
     "IOWorkerAccessor",
     "MinecraftServerMixin",
