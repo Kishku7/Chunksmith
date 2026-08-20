@@ -91,6 +91,8 @@ public final class ChunkSettleWindow {
 
     private long evictedCount;
 
+    private boolean drained;
+
     /**
      * @param delayTicks how long to keep a chunk after its neighbourhood closes. Zero releases as soon as
      *                   the neighbourhood is complete, which already suffices for a mod acting on the same
@@ -170,6 +172,7 @@ public final class ChunkSettleWindow {
      * ticket on the edge of the run.
      */
     public void drain() {
+        this.drained = true;
         final List<Long> keys = new ArrayList<>(this.held.keySet());
         for (final Long key : keys) {
             this.due.remove(key);
@@ -200,6 +203,14 @@ public final class ChunkSettleWindow {
             this.evictedCount++;
             run(oldest);
         }
+    }
+
+    /**
+     * Has this window been drained? A drained window is finished and holds nothing; the tick pass uses
+     * this to stop iterating it rather than keeping a reference to a window nobody will offer to again.
+     */
+    public boolean isDrained() {
+        return this.drained;
     }
 
     /** How many chunks are held right now -- the live size of the frontier. */

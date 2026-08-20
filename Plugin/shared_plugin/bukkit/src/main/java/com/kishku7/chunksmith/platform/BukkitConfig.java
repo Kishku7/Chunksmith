@@ -93,8 +93,8 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
-    public long getThrottleMaxLoadedChunks() {
-        return plugin.getConfig().getLong("throttle-max-loaded-chunks", 20_000L);
+    public long getThrottleMaxAddedChunks() {
+        return plugin.getConfig().getLong("throttle-max-added-chunks", 20_000L);
     }
 
     /**
@@ -219,8 +219,8 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
-    public void setThrottleMaxLoadedChunks(final long chunks) {
-        plugin.getConfig().set("throttle-max-loaded-chunks", chunks);
+    public void setThrottleMaxAddedChunks(final long chunks) {
+        plugin.getConfig().set("throttle-max-added-chunks", chunks);
         plugin.saveConfig();
     }
 

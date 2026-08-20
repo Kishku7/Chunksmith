@@ -52,7 +52,7 @@ public final class ConfigSettings {
             integer("throttleMaxChunkMillis", Config::getThrottleMaxChunkMillis, Config::setThrottleMaxChunkMillis),
             integer("throttleMaxQueuedWrites", Config::getThrottleMaxQueuedWrites, Config::setThrottleMaxQueuedWrites),
             integer("throttleMaxLodQueue", Config::getThrottleMaxLodQueue, Config::setThrottleMaxLodQueue),
-            integer("throttleMaxLoadedChunks", Config::getThrottleMaxLoadedChunks, Config::setThrottleMaxLoadedChunks),
+            integer("throttleMaxAddedChunks", Config::getThrottleMaxAddedChunks, Config::setThrottleMaxAddedChunks),
             of("lodEnabled", ConfigSetting.Kind.TRISTATE,
                     config -> config.getLodMode().name().toLowerCase(Locale.ROOT),
                     (config, raw) -> {

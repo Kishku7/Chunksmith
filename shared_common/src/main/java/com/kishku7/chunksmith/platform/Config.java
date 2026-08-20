@@ -45,16 +45,18 @@ public interface Config {
     long getThrottleMaxQueuedWrites();
 
     /**
-     * Maximum chunks allowed to stay RESIDENT in memory before the throttle stops dispatching new
-     * chunks until the server unloads some (hysteresis: resumes at half this value). 0 disables.
+     * Maximum chunks THIS RUN may ADD to the server's resident set before the throttle stops
+     * dispatching, until enough have unloaded (hysteresis: resumes at half). 0 disables.
      *
-     * <p>The other throttle signals all measure work going IN. This one measures what has piled up and
-     * not gone OUT, which nothing else could see -- see {@code ChunkResidency} for the failure it exists
-     * to catch. Set it above the largest sweep frontier a run legitimately needs (roughly 16x the
-     * selection radius in chunks) and below the point where the resident set costs more to tick than the
-     * server can afford.
+     * <p>Measured against the residency recorded when the run STARTED, not against an absolute count.
+     * 3.5.0 gated on the absolute number and tripped on servers whose ordinary resident set was already
+     * near the cap -- the gate closed on somebody else's chunks and never opened. What we can be
+     * responsible for is what we added. See {@code ChunkResidency}.
+     *
+     * <p>Set it above the largest sweep frontier a run legitimately needs (roughly 16x the selection
+     * radius in chunks, plus {@link #getPregenSettleMaxHeld()}) and below what the heap can hold.
      */
-    long getThrottleMaxLoadedChunks();
+    long getThrottleMaxAddedChunks();
 
     /**
      * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean.
@@ -168,7 +170,7 @@ public interface Config {
 
     void setThrottleMaxQueuedWrites(long writes);
 
-    void setThrottleMaxLoadedChunks(long chunks);
+    void setThrottleMaxAddedChunks(long chunks);
 
     void setThrottleMaxLodQueue(long items);
 

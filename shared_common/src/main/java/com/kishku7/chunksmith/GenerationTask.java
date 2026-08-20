@@ -106,7 +106,7 @@ public class GenerationTask implements Runnable {
     private volatile boolean writeQueueStalled;
     private final AtomicLong lastWriteDrainTime = new AtomicLong(0);
     private long lastQueuedObserved = -1L;
-    private final long maxLoadedChunks;
+    private final long maxAddedChunks;
     private final AtomicLong lastResidencyCheckTime = new AtomicLong(0);
     private final AtomicLong lastResidencyNoticeTime = new AtomicLong(0);
     private final AtomicLong residencyStalledSince = new AtomicLong(0);
@@ -151,7 +151,7 @@ public class GenerationTask implements Runnable {
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
-        this.maxLoadedChunks = chunky.getConfig().getThrottleMaxLoadedChunks();
+        this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
         // exist" means anything -- see ChunkSettleWindow (mod_support #14).
@@ -400,7 +400,7 @@ public class GenerationTask implements Runnable {
      * <p>No-op when the platform does not report residency, and when the operator has set the cap to 0.
      */
     private void evaluateChunkResidency() {
-        if (maxLoadedChunks <= 0L) {
+        if (maxAddedChunks <= 0L) {
             return;
         }
         final long now = System.currentTimeMillis();
@@ -408,15 +408,19 @@ public class GenerationTask implements Runnable {
         if (now - last < RESIDENCY_CHECK_INTERVAL_MS || !lastResidencyCheckTime.compareAndSet(last, now)) {
             return;
         }
-        final long loaded = ChunkResidency.loadedChunks();
-        if (loaded < 0L) {
-            // The platform is not reporting (or the reading went stale). Unknown is not zero: leave the
-            // gate exactly as it was rather than opening it on the strength of a measurement we do not
-            // have. It cannot latch shut -- the stall deadline below still applies.
+        // The DELTA, not the absolute count. 3.5.0 gated on "how many chunks exist", which on a server
+        // whose ordinary resident set was already near the cap meant the gate closed on somebody else's
+        // chunks and never opened -- measured on a live server 2026-08-20, where it stuttered a run at
+        // the never-wedge interval. What a pregen can be held responsible for is what it ADDED.
+        final long added = ChunkResidency.addedChunks();
+        if (added < 0L) {
+            // The platform is not reporting, the reading went stale, or we never got a baseline.
+            // Unknown is not zero: leave the gate exactly as it was rather than opening it on the
+            // strength of a measurement we do not have. It cannot latch shut -- the deadline applies.
             return;
         }
         if (chunkResidencyStalled) {
-            if (loaded <= Math.max(1L, maxLoadedChunks / 2L)) {
+            if (added <= Math.max(1L, maxAddedChunks / 2L)) {
                 chunkResidencyStalled = false;
                 residencyStalledSince.set(0L);
                 return;
@@ -429,23 +433,23 @@ public class GenerationTask implements Runnable {
                 // notice that preceded it.
                 lastResidencyNoticeTime.set(0L);
                 chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_RESIDENCY_STUCK_NOTICE,
-                        maxLoadedChunks, (now - since) / 1000L);
+                        maxAddedChunks, (now - since) / 1000L);
             }
             return;
         }
-        if (loaded >= maxLoadedChunks) {
+        if (added >= maxAddedChunks) {
             chunkResidencyStalled = true;
             residencyStalledSince.set(now);
-            maybeNotifyResidency(loaded);
+            maybeNotifyResidency(added);
         }
     }
 
-    private void maybeNotifyResidency(final long loaded) {
+    private void maybeNotifyResidency(final long added) {
         final long now = System.currentTimeMillis();
         final long last = lastResidencyNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastResidencyNoticeTime.compareAndSet(last, now)) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_RESIDENCY_BACKPRESSURE_NOTICE,
-                    loaded, maxLoadedChunks);
+                    added, maxAddedChunks, ChunkResidency.loadedChunks());
         }
     }
 
@@ -482,6 +486,9 @@ public class GenerationTask implements Runnable {
         // counters are cumulative. Snapshot them here and report the DELTA, or the summary would bill
         // this run for every earlier run's work too.
         final CsLodPresenceIndex.Cost lodCostBefore = lodIndex == null ? null : lodIndex.cost();
+        // Everything already resident belongs to the server, not to this run. Capture it before the
+        // first dispatch so the gate below measures OUR growth and nothing else's.
+        ChunkResidency.noteTaskStart();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunk = chunkIterator.next();
@@ -626,6 +633,13 @@ public class GenerationTask implements Runnable {
         // neighbourhood completed. Hand every held ticket back before anyone is told the task is done.
         finishSettleSweep();
         selection.world().settleDrain();
+        // Ending a task is NOT the same as finishing the work. The tickets come back now; the chunks do
+        // not go away until the distance manager has propagated that and the unload pass has run. 3.5.0
+        // stopped driving the unload pass the moment a task ended, which orphaned the backlog -- 39,064
+        // chunks were still resident nineteen minutes after a pregen stopped, with the server idle and
+        // no players on, and it stayed that way until a restart. Declare the debt here; the platform's
+        // tick hook keeps paying it until residency is actually back down.
+        ChunkResidency.noteTaskEnd();
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
         chunky.getEventBus().call(new GenerationCompleteEvent(selection.world().getName()));
     }

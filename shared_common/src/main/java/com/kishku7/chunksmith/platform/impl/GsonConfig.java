@@ -33,13 +33,14 @@ public final class GsonConfig implements Config {
     private static final long MAX_QUEUED_WRITES_MIN = 50L;
     private static final long MAX_QUEUED_WRITES_MAX = 1_000_000L;
     private static final long MAX_QUEUED_WRITES_DEFAULT = 800L;
-    // Maximum RESIDENT chunks before generation dispatch is held off. 0 disables. The default is
-    // generous: a legitimate sweep frontier is roughly 16x the selection radius in chunks, so 20000
-    // clears a 1200-chunk-radius run untouched, while the runaway this bounds reached 75045 on a
-    // 470-chunk-radius selection. Hysteresis resumes dispatch at half.
-    private static final long MAX_LOADED_CHUNKS_MIN = 1_000L;
-    private static final long MAX_LOADED_CHUNKS_MAX = 5_000_000L;
-    private static final long MAX_LOADED_CHUNKS_DEFAULT = 20_000L;
+    // Maximum chunks a run may ADD to the resident set before dispatch is held off. 0 disables.
+    // Measured as a DELTA against residency at task start (3.5.1); the 3.5.0 absolute form tripped on
+    // whatever the server already had. A legitimate sweep frontier is roughly 16x the selection radius
+    // in chunks, so 20000 clears a ~1200-chunk-radius run untouched, while the runaway this bounds
+    // added ~55000 over baseline on a 470-chunk-radius selection. Hysteresis resumes dispatch at half.
+    private static final long MAX_ADDED_CHUNKS_MIN = 1_000L;
+    private static final long MAX_ADDED_CHUNKS_MAX = 5_000_000L;
+    private static final long MAX_ADDED_CHUNKS_DEFAULT = 20_000L;
     // Governor for the LOD sink. Voxy's ingest queue is unbounded and never reports saturation, so
     // this is the only thing standing between a fast pregen and an OOM.
     private static final long MAX_LOD_QUEUE_MIN = 16L;
@@ -156,15 +157,15 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public long getThrottleMaxLoadedChunks() {
-        final long raw = Optional.ofNullable(configModel.throttleMaxLoadedChunks).orElse(MAX_LOADED_CHUNKS_DEFAULT);
+    public long getThrottleMaxAddedChunks() {
+        final long raw = Optional.ofNullable(configModel.throttleMaxAddedChunks).orElse(MAX_ADDED_CHUNKS_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(MAX_LOADED_CHUNKS_MIN, Math.min(MAX_LOADED_CHUNKS_MAX, raw));
+        final long clamped = Math.max(MAX_ADDED_CHUNKS_MIN, Math.min(MAX_ADDED_CHUNKS_MAX, raw));
         if (raw != clamped) {
-            LOGGER.warning(String.format("Chunksmith: throttleMaxLoadedChunks %d is out of range [%d, %d], using %d",
-                    raw, MAX_LOADED_CHUNKS_MIN, MAX_LOADED_CHUNKS_MAX, clamped));
+            LOGGER.warning(String.format("Chunksmith: throttleMaxAddedChunks %d is out of range [%d, %d], using %d",
+                    raw, MAX_ADDED_CHUNKS_MIN, MAX_ADDED_CHUNKS_MAX, clamped));
         }
         return clamped;
     }
@@ -316,11 +317,11 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setThrottleMaxLoadedChunks(final long chunks) {
+    public void setThrottleMaxAddedChunks(final long chunks) {
         // 0 is the documented "disable the residency bound" value, as with the write backlog above.
-        configModel.throttleMaxLoadedChunks = chunks <= 0L
+        configModel.throttleMaxAddedChunks = chunks <= 0L
                 ? 0L
-                : Math.max(MAX_LOADED_CHUNKS_MIN, Math.min(MAX_LOADED_CHUNKS_MAX, chunks));
+                : Math.max(MAX_ADDED_CHUNKS_MIN, Math.min(MAX_ADDED_CHUNKS_MAX, chunks));
         saveConfig();
     }
 
@@ -388,7 +389,7 @@ public final class GsonConfig implements Config {
         private Double throttleTargetMspt = TARGET_MSPT_DEFAULT;
         private Long throttleMaxChunkMillis = MAX_CHUNK_MILLIS_DEFAULT;
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
-        private Long throttleMaxLoadedChunks = MAX_LOADED_CHUNKS_DEFAULT;
+        private Long throttleMaxAddedChunks = MAX_ADDED_CHUNKS_DEFAULT;
         // TRISTATE, written as the string "auto" by default. Declared String, not Boolean, ON PURPOSE:
         // Gson's String adapter coerces a JSON boolean to "true"/"false", so a config that already says
         // `"lodEnabled": false` (or true) from an older Chunksmith still parses, still means exactly what
@@ -426,8 +427,8 @@ public final class GsonConfig implements Config {
         public void setThrottleMaxChunkMillis(final Long throttleMaxChunkMillis) { this.throttleMaxChunkMillis = throttleMaxChunkMillis; }
         public Long getThrottleMaxQueuedWrites() { return throttleMaxQueuedWrites; }
         public void setThrottleMaxQueuedWrites(final Long throttleMaxQueuedWrites) { this.throttleMaxQueuedWrites = throttleMaxQueuedWrites; }
-        public Long getThrottleMaxLoadedChunks() { return throttleMaxLoadedChunks; }
-        public void setThrottleMaxLoadedChunks(final Long throttleMaxLoadedChunks) { this.throttleMaxLoadedChunks = throttleMaxLoadedChunks; }
+        public Long getThrottleMaxAddedChunks() { return throttleMaxAddedChunks; }
+        public void setThrottleMaxAddedChunks(final Long throttleMaxAddedChunks) { this.throttleMaxAddedChunks = throttleMaxAddedChunks; }
         public Long getPregenSettleMaxHeld() { return pregenSettleMaxHeld; }
         public void setPregenSettleMaxHeld(final Long pregenSettleMaxHeld) { this.pregenSettleMaxHeld = pregenSettleMaxHeld; }
     }

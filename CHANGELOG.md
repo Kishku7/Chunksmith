@@ -2,6 +2,60 @@
 
 ## [Unreleased]
 
+## [3.5.1] - 2026-08-20
+
+3.5.0's residency work was right about the problem and wrong in two ways that only a live server
+could show. Both were found within an hour of deploying it, on the same world that produced the
+original report. 3.5.0 was never published to Modrinth; the config key renamed below therefore
+exists on exactly one server, which has been updated by hand.
+
+### Fixed
+
+- **A finished pregen orphaned its own unload backlog, and the server never recovered without a
+  restart.** Measured on a 1.21.11 dedicated server: **39,064 chunks still resident nineteen minutes
+  after the pregen was paused, with no players online** -- 51.4 ms per tick (P95 59.3), a stall of
+  almost exactly 2000 ms every ~65 seconds, and the heap pinned at 8.7 GB of an 8 GB `-Xmx`. After a
+  restart the same server measured 0.2 ms per tick and 792 MB. A 19.5-hour idle log from the same
+  build contains zero "Can't keep up", so it is running a pregen that causes this, not the build
+  sitting there.
+
+  The cause was 3.5.0's own change. It armed chunk-system housekeeping every tick *while a task was
+  active*; when the task ended, that stopped, and the remaining backlog was left to vanilla's
+  `ChunkMap.tick(haveTime)` -- which does approximately nothing once the tick is over budget, which
+  it is precisely BECAUSE of the retained chunks. The 2 ms unload floor added in 3.5.0 could not
+  help, because on an idle server nothing armed the hook that would have spent it.
+  - `ChunkResidency` now publishes every tick, running or not, and carries a DRAIN state: ending a
+    task declares a debt that keeps the unload pass armed until residency is actually back to where
+    the run started. The drain ends on success, or when the count has not moved for 30 s (the
+    remainder is pinned by players or another mod and no further pass will shift it), or after ten
+    minutes flat. All three exits are unit-tested against an injected clock.
+  - The unload floor is now 2 ms normally and **10 ms when nobody is online and a drain is
+    outstanding**. 2 ms is tuned for "do not disturb a live server", which is the wrong constraint
+    for an empty one. Still bounded and still self-limiting, so it cannot become the unbounded pin
+    that 3.2.0 fixed.
+
+- **The residency gate measured the wrong thing and closed on chunks that were not ours.**
+  `throttleMaxLoadedChunks` capped the ABSOLUTE resident count, so on a server already sitting near
+  the cap it tripped immediately and stayed tripped, stuttering a run at the never-wedge interval to
+  roughly 0.9 chunks/sec -- worse than the runaway it was added to prevent. Renamed to
+  **`throttleMaxAddedChunks`** and measured as a DELTA against residency captured when the run
+  starts. What a pregen can be held responsible for is what it added; everything already there
+  belongs to the server. The backpressure message now reports both numbers.
+
+- **The settle window could only release when new work arrived, so holding dispatch stopped it
+  draining.** `ChunkSettleWindow.releaseDue()` had exactly one production caller -- inside
+  `offer()`. With the residency gate holding dispatch there are no arrivals, so the frontier could
+  not shrink, so residency could not fall, so the gate stayed shut: it suppressed its own recovery.
+  Live windows are now registered with `ChunkSettleSupport` and pumped once per server tick, so a
+  release depends on time passing rather than on more work being dispatched. Drained windows drop
+  themselves rather than requiring the adapter to remember to deregister.
+
+### Changed
+
+- `throttleMaxLoadedChunks` is now `throttleMaxAddedChunks` (default 20000, 0 disables). Its meaning
+  changed, so the key changed with it rather than silently redefining what an operator had already
+  set.
+
 ## [3.5.0] - 2026-08-19
 
 ### Fixed

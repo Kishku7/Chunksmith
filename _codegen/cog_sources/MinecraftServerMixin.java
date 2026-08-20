@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import com.kishku7.chunksmith.PlatformCompat;
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.util.ChunkResidency;
+import com.kishku7.chunksmith.util.ChunkSettleSupport;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.WorldgenOverreachReporter;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
@@ -45,6 +46,9 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Shadow
     public abstract Iterable<ServerLevel> getAllLevels();
 
+    @Shadow
+    public abstract int getPlayerCount();
+
     //[[[cog
     // import cog, compat
     // # The emptyTicks idle-pause counter exists from MC 1.21.2 onward; pre-26 with the field
@@ -74,6 +78,18 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      */
     @Unique
     private static final long CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS = 2_000_000L;
+
+    /**
+     * The floor used when nobody is playing and a run has left a backlog behind.
+     *
+     * <p>2 ms is tuned for "do not disturb a live server", which is the wrong constraint for an empty
+     * one. An idle server has the whole tick to spare and a backlog it must clear before the next run
+     * (or the next player) arrives, so it may spend a fifth of a tick on it. Still bounded, still
+     * self-limiting -- the drain ends when the chunks are gone -- so this cannot become the 3.2.0
+     * unbounded pin, which had no ceiling at all.
+     */
+    @Unique
+    private static final long CHUNKSMITH$IDLE_UNLOAD_BUDGET_NANOS = 10_000_000L;
 
     /**
      * Chunk-ticket work waiting for the safe point. See MinecraftServerExtension#chunksmith$atTicketSafePoint
@@ -119,6 +135,19 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         this.chunksmith$drainTicketSafePoint();
         this.chunksmith$keepAwakeWhileGenerating();
         final boolean wgRunning = ChunksmithProvider.isLoaded() && !ChunksmithProvider.get().getGenerationTasks().isEmpty();
+        // Residency is published EVERY tick, running or not. 3.5.0 cleared it the moment a task ended,
+        // which is precisely when the backlog that task left behind most needed watching.
+        this.chunksmith$reportChunkResidency();
+        // Keep the unload pass armed while a finished run still owes the server a drain. Without this
+        // the backlog is orphaned: nothing arms housekeeping on an idle server, and vanilla's own pass
+        // does nothing once the tick is over budget -- which it is, because of the retained chunks.
+        if (ChunkResidency.isDraining()) {
+            this.chunksmith$markChunkSystemHousekeeping();
+        }
+        // Pump the settle windows on the TICK, not on chunk arrivals. Held tickets used to come back
+        // only when a new chunk was offered, so holding dispatch stopped the frontier shrinking and the
+        // residency gate suppressed its own recovery.
+        ChunkSettleSupport.tick(this.chunksmith$gameTimeForSettle());
         WorldgenOverreachReporter.get().tick(wgRunning);
         StructureFaultReporter.get().tick(wgRunning);
     }
@@ -148,7 +177,6 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // the unload backlog most needs draining -- the throttle would be throttling the cure. While
             // a run is active, arm it every tick.
             this.chunksmith$markChunkSystemHousekeeping();
-            this.chunksmith$reportChunkResidency();
             final long now = System.nanoTime();
             final long prev = this.chunksmith$lastTickNanos;
             this.chunksmith$lastTickNanos = now;
@@ -161,10 +189,9 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                 }
             }
         } else {
-            // No active generation -- reset so the next run starts from a clean, healthy
-            // baseline rather than a stale idle-sleep interval, and drop the residency reading so it
-            // can never gate a later run.
-            ChunkResidency.clear();
+            // No active generation -- reset so the next run starts from a clean, healthy baseline
+            // rather than a stale idle-sleep interval. The residency reading is deliberately NOT
+            // cleared here: a run that has just ended is exactly when its backlog must stay visible.
             this.chunksmith$lastTickNanos = 0L;
             this.chunksmith$mspt = 50.0D;
         }
@@ -178,6 +205,21 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * drift handling. Summed across dimensions because memory is, and a pregen in one dimension is
      * perfectly capable of being starved by chunks resident in another.
      */
+    /**
+     * A monotonic tick clock for the settle window, taken from the overworld's game time.
+     *
+     * <p>The window is given the same clock {@code offer()} uses, so a delay measured in ticks means
+     * the same thing on both paths. Falls back to zero on a server with no levels, which cannot happen
+     * in practice but must not throw if it ever does.
+     */
+    @Unique
+    private long chunksmith$gameTimeForSettle() {
+        for (ServerLevel level : this.getAllLevels()) {
+            return level.getGameTime();
+        }
+        return 0L;
+    }
+
     @Unique
     private void chunksmith$reportChunkResidency() {
         long loaded = 0L;
@@ -211,7 +253,10 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // ONE deadline for the whole pass, not one per level: the floor is what Chunksmith is
             // willing to spend on unloading this tick in total, and a per-level deadline would multiply
             // it by the number of dimensions.
-            final long deadline = System.nanoTime() + CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS;
+            final long floor = this.getPlayerCount() == 0 && ChunkResidency.isDraining()
+                    ? CHUNKSMITH$IDLE_UNLOAD_BUDGET_NANOS
+                    : CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS;
+            final long deadline = System.nanoTime() + floor;
             final BooleanSupplier budget = () -> haveTime.getAsBoolean() || System.nanoTime() < deadline;
             for (ServerLevel level : this.getAllLevels()) {
                 // NOT guarded on C2ME, deliberately (mod_support #16, 2026-08-12). A guard was tried
