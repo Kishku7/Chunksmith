@@ -97,6 +97,11 @@ public final class BukkitConfig implements Config {
         return plugin.getConfig().getLong("throttle-max-added-chunks", 20_000L);
     }
 
+    @Override
+    public long getThrottleMaxHeapPercent() {
+        return plugin.getConfig().getLong("throttle-max-heap-percent", 85L);
+    }
+
     /**
      * CHANGED (2026-08-03, mod_support #9 follow-up): this platform now carries a
      * server-side CSLOD generator + store (see lod.CsLodExtractor / lod.LodSupport in this source
@@ -221,6 +226,12 @@ public final class BukkitConfig implements Config {
     @Override
     public void setThrottleMaxAddedChunks(final long chunks) {
         plugin.getConfig().set("throttle-max-added-chunks", chunks);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleMaxHeapPercent(final long percent) {
+        plugin.getConfig().set("throttle-max-heap-percent", percent);
         plugin.saveConfig();
     }
 

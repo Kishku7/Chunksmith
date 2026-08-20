@@ -104,6 +104,7 @@ public final class TranslationKey {
     public static final String TASK_WRITE_BACKPRESSURE_NOTICE = "task_write_backpressure_notice";
     public static final String TASK_RESIDENCY_BACKPRESSURE_NOTICE = "task_residency_backpressure_notice";
     public static final String TASK_RESIDENCY_STUCK_NOTICE = "task_residency_stuck_notice";
+    public static final String TASK_HEAP_BACKPRESSURE_NOTICE = "task_heap_backpressure_notice";
     public static final String TASK_TRIM = "task_trim";
     public static final String TASK_TRIM_UPDATE = "task_trim_update";
     public static final String TASK_DONE = "task_done";

@@ -128,6 +128,7 @@ public class ChunkResidencyTest {
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);
         ChunkResidency.noteTaskEnd(T0 + 2_000L);
+        ChunkResidency.noteDrainBudget(true);
 
         // Falls a little, then stops: the remainder is pinned by players, spawn chunks or another mod.
         ChunkResidency.report(40_000L, T0 + 3_000L);
@@ -141,11 +142,57 @@ public class ChunkResidencyTest {
     }
 
     @Test
+    public void aDrainOnAStarvedBudgetIsNeverConvictedOfStalling() {
+        ChunkResidency.report(5_000L, T0);
+        ChunkResidency.noteTaskStart(T0);
+        ChunkResidency.report(45_000L, T0 + 1_000L);
+        ChunkResidency.noteTaskEnd(T0 + 2_000L);
+        ChunkResidency.noteDrainBudget(false);
+
+        // Two full minutes of no movement -- but it was never given a budget, so "it will not move"
+        // is not a conclusion anybody is entitled to draw.
+        for (long dt = 3_000L; dt <= 123_000L; dt += 5_000L) {
+            ChunkResidency.report(45_000L, T0 + dt);
+        }
+        assertTrue("not trying is not the same as nothing left to do", ChunkResidency.isDraining());
+    }
+
+    @Test
+    public void theLastPlayerLeavingGivesAGivenUpDrainAnotherGo() {
+        ChunkResidency.report(5_000L, T0);
+        ChunkResidency.noteTaskStart(T0);
+        ChunkResidency.report(45_000L, T0 + 1_000L);
+        ChunkResidency.noteTaskEnd(T0 + 2_000L);
+        ChunkResidency.noteDrainBudget(true);
+
+        // Give up on a full budget: legitimate.
+        ChunkResidency.report(45_000L, T0 + 3_000L);
+        ChunkResidency.report(45_000L, T0 + 40_000L);
+        assertFalse(ChunkResidency.isDraining());
+
+        // Conditions change. A drain is not a one-shot.
+        ChunkResidency.reconsiderDrain(T0 + 41_000L);
+        assertTrue("still 40k above where the run started, so try again",
+                ChunkResidency.isDraining());
+    }
+
+    @Test
+    public void reconsideringDoesNothingWhenThereIsNothingLeftToDrain() {
+        ChunkResidency.report(5_000L, T0);
+        ChunkResidency.noteTaskStart(T0);
+        ChunkResidency.report(5_050L, T0 + 1_000L);
+        ChunkResidency.reconsiderDrain(T0 + 2_000L);
+        assertFalse("already back at baseline -- do not arm the unload pass for nothing",
+                ChunkResidency.isDraining());
+    }
+
+    @Test
     public void drainHasAnAbsoluteCeilingSoItCannotArmTheUnloadPassForEver() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(500_000L, T0 + 1_000L);
         ChunkResidency.noteTaskEnd(T0 + 2_000L);
+        ChunkResidency.noteDrainBudget(true);
 
         // Trickles downward for ever, one chunk at a time, always making "progress".
         long loaded = 500_000L;
@@ -156,6 +203,45 @@ public class ChunkResidencyTest {
             ChunkResidency.report(loaded, now);
         }
         assertFalse("ten minutes is enough; something else is wrong", ChunkResidency.isDraining());
+    }
+
+    @Test
+    public void describeSaysUnknownRatherThanZeroWhenItHasNothing() {
+        final String snapshot = ChunkResidency.describe();
+        assertTrue(snapshot, snapshot.contains("resident=unknown"));
+        assertTrue(snapshot, snapshot.contains("baseline=unset"));
+        assertTrue(snapshot, snapshot.contains("added=unknown"));
+        assertTrue(snapshot, snapshot.contains("draining=false"));
+    }
+
+    @Test
+    public void describeIsSafeToHandToAFormatter() {
+        // Sender.sendMessagePrefixed runs its message through String.format. A literal percent sign in
+        // this string is therefore a crash, and in 3.5.2 it was one: /cs debug answered "An unexpected
+        // error occurred trying to execute that command". Unit-testing describe() in isolation did not
+        // catch it, because the bug lived in the seam between describe() and the sender.
+        ChunkResidency.report(1_000L);
+        ChunkResidency.noteTaskStart();
+        final String snapshot = ChunkResidency.describe();
+        assertFalse("no literal % may appear -- see the class javadoc", snapshot.contains("%"));
+        // The real proof: it survives the thing that actually happens to it.
+        assertTrue(String.format(snapshot).length() > 0);
+    }
+
+    @Test
+    public void describeReportsHowTheLastDrainEnded() {
+        ChunkResidency.report(5_000L, T0);
+        ChunkResidency.noteTaskStart(T0);
+        ChunkResidency.report(45_000L, T0 + 1_000L);
+        ChunkResidency.noteTaskEnd(T0 + 2_000L);
+        assertTrue(ChunkResidency.describe().contains("draining=true"));
+
+        ChunkResidency.report(5_100L, T0 + 3_000L);
+        final String snapshot = ChunkResidency.describe();
+        assertTrue(snapshot, snapshot.contains("draining=false"));
+        assertTrue("an operator must be able to see WHY it stopped, not just that it did",
+                snapshot.contains("back to where the run started"));
+        assertTrue("and how much it actually freed", snapshot.contains("39900 freed"));
     }
 
     @Test

@@ -86,6 +86,20 @@ public final class ChunkSettleSupport {
         }
     }
 
+    /**
+     * Hand back every held ticket in every live window, without retiring the windows.
+     *
+     * <p>Called when a throttle gate stops dispatch. See {@link ChunkSettleWindow#releaseAllHeld} for
+     * why a frozen frontier is worse than no frontier.
+     */
+    public static void flushAll() {
+        for (final ChunkSettleWindow window : LIVE) {
+            if (!window.isDrained()) {
+                window.releaseAllHeld();
+            }
+        }
+    }
+
     /** How many windows are live. Test-visible, because a registry that leaks is a ticket leak. */
     public static int liveWindowCount() {
         return LIVE.size();

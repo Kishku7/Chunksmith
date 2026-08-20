@@ -2,6 +2,7 @@ package com.kishku7.chunksmith.command;
 
 import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
+import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.Debug;
 
 import java.util.List;
@@ -13,6 +14,13 @@ import java.util.Optional;
  * dimension's entity-manager prints a stats line to the server log every ~5 seconds
  * (known/visible/sections/loadStatuses/visibility/inbox/toUnload, plus disk-read fast-path hits).
  * Default off, so a normal install logs nothing.
+ *
+ * <p>It ALSO prints the chunk-residency snapshot every time it is run, whichever way the toggle went
+ * -- resident count, the run's baseline, how many this run added, whether a drain is in progress, and
+ * how the last drain ended. That is the readout 3.5.1 was missing: without it the only way to learn
+ * what the server was holding was to set a low throttleMaxAddedChunks, start a run and read the
+ * backpressure line, which perturbs the very thing being measured and cannot be done at all while the
+ * server is idle.
  */
 public class DebugCommand implements ChunksmithCommand {
     @SuppressWarnings("unused")
@@ -42,6 +50,7 @@ public class DebugCommand implements ChunksmithCommand {
         } else {
             sender.sendMessagePrefixed("Debug logging disabled.");
         }
+        sender.sendMessagePrefixed("Chunk residency: " + ChunkResidency.describe());
     }
 
     @Override

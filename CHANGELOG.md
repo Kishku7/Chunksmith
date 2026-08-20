@@ -2,6 +2,104 @@
 
 ## [Unreleased]
 
+## [3.5.4] - 2026-08-20
+
+Three fixes for things the first live test of the 3.5.2/3.5.3 gates exposed within ten minutes.
+
+### Fixed
+
+- **The drain's own log lines never appeared.** `ChunkResidency` logged through
+  `java.util.logging`, which the loaders do not route into the game log, so 3.5.3's drain lifecycle
+  reporting ran and went nowhere. Switched to slf4j, which every other logging class in the mod
+  already uses. (`GsonConfig` and `TaskScheduler` still use JUL and are equally invisible -- notably
+  `TaskScheduler` logs uncaught generation-task exceptions that way.)
+
+- **A gate holding dispatch got the SMALL unload budget, so nothing unloaded and the gate never
+  reopened.** The larger idle budget was conditional on a post-run drain only. But a mid-run hold is
+  the same situation -- nobody is playing, nothing is generating, and unloading is the only thing
+  that can end it. Measured: a residency hold ran for the full 120-second never-wedge window and the
+  resident count went UP by 196 instead of falling, so the run resumed straight into the gate again
+  and stuttered. The full budget now applies whenever nobody is online and generation is stopped by
+  one of our own gates, and housekeeping stays armed for the same window.
+
+- **The settle frontier froze at its cap during a hold and blocked its own recovery.** A held chunk
+  is released once its neighbours exist, and neighbours only arrive from new dispatches -- so with
+  dispatch gated the frontier can never complete, and it sits at `pregenSettleMaxHeld` holding
+  tickets that prevent the unloading the gate is waiting for. Entering a hold now hands every held
+  ticket back, without retiring the window: when the gate opens, the next arrivals build a fresh
+  frontier. This is the third distinct form of the same bug -- a mechanism suppressing the recovery
+  it is waiting on -- and the general lesson is that anything driven by "new work arriving" must not
+  be load-bearing on a path that stops new work arriving.
+
+## [3.5.3] - 2026-08-20
+
+### Fixed
+
+- **`/cs debug` answered "An unexpected error occurred trying to execute that command".** The new
+  residency snapshot contained a literal percent sign, and `Sender.sendMessagePrefixed` runs its
+  message through `String.format`, which read it as a format specifier and threw. The snapshot no
+  longer contains one, and a test now asserts that and then formats the string to prove it. The
+  original tests did not catch this because they exercised `describe()` in isolation -- the bug lived
+  in the seam between it and the sender, which is where this kind of bug always lives.
+
+## [3.5.2] - 2026-08-20
+
+Instrumentation, plus the throttle change the instrumentation immediately justified: this release
+stops trying to bound a pregen by counting chunks and starts measuring the heap.
+
+3.5.1 fixed the orphaned unload backlog and was, on a real server, largely right: no tick overruns,
+the heap down from 107% of an 8 GB Xmx to a third of it, and no restart needed. But an idle server
+still did not return all the way to its pre-run tick cost, and there was **no way to tell whether the
+drain was still working, had succeeded, or had quietly given up** -- only to infer it from tick times.
+A signal nobody can read is a signal that cannot be debugged, which is how the 3.5.0 defect survived
+review in the first place.
+
+### Added
+
+- **The drain now says what it is doing.** One line when a run's drain starts (chunks resident, and
+  how many of them this run added) and one when it ends, naming the outcome -- back to where the run
+  started, stopped falling because the rest is pinned by something that is not ours, or the
+  ten-minute ceiling -- with how many chunks were freed, how many remain above the starting point,
+  and how long it took. Two lines per run. It is logged as a WARNING rather than information when
+  chunks are left behind, because that is the case an operator actually needs to see, and it is
+  exactly the case that could not be distinguished from success before.
+
+- **`/cs debug` prints a chunk-residency snapshot** on every invocation, whichever way the toggle
+  went: resident count, the run's baseline, how many this run added, whether a drain is in progress,
+  and how the last one ended. Until now the only way to read residency was to set a low
+  `throttleMaxAddedChunks`, start a run and read the backpressure line -- which perturbs the thing
+  being measured and cannot be done at all on an idle server.
+
+### Fixed
+
+- **Bound the run by MEASURING MEMORY instead of counting chunks.** Three releases have tried to
+  bound a pregen with a proxy -- queued writes, LOD queue depth, resident chunks, chunks added since
+  the run started -- and each was wrong on a live server in a different way. An absolute chunk cap
+  fired on chunks that were never ours. A delta cap did not fire at all while the heap filled to
+  107% of `-Xmx`, because the run had been resumed on an already-loaded server. A chunk is worth
+  wildly different amounts of heap depending on the entities and block entities that came with it,
+  so no chunk count means the same thing on two worlds. New `throttleMaxHeapPercent` (default 85,
+  0 disables) stops dispatch when the heap stays above the threshold for several consecutive
+  samples, and resumes only once there is 15 points of headroom again. Confirmation over several
+  samples is what stops ordinary uncollected garbage from tripping it. The chunk counters remain,
+  for the cases they are genuinely good at.
+
+- **A drain could be convicted of stalling when it was never given a budget to work with.** The
+  unload floor is 2 ms while players are online and 10 ms when the server is empty; the
+  "no progress for 30 seconds" give-up made no distinction, so a drain running at 2 ms next to a
+  player loading chunks was almost guaranteed to be declared stuck. Measured: a drain gave up while
+  one player was online, that player logged off, and the server then sat at **71.5 ms per tick with
+  the heap at 107%** and did not recover until it was restarted. The no-progress clock now only
+  advances while the drain is actually being given the full budget, so a give-up can only ever mean
+  "we tried properly and it would not move".
+
+- **A drain was a one-shot that could be lost for ever.** Nothing re-armed it when the thing
+  blocking it went away. The moment the last player leaves, an outstanding drain is resumed.
+
+- **`/cs debug on` and `/cs debug off` were rejected by the command parser.** The command has always
+  accepted an explicit on/off argument, but only the bare toggle was registered in the loaders'
+  command trees, so anything after `debug` failed to parse. Registered on all three loaders.
+
 ## [3.5.1] - 2026-08-20
 
 3.5.0's residency work was right about the problem and wrong in two ways that only a live server

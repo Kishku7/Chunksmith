@@ -59,6 +59,19 @@ public interface Config {
     long getThrottleMaxAddedChunks();
 
     /**
+     * Heap usage, as a percentage of {@code -Xmx}, at which generation stops dispatching until the
+     * heap drains. 0 disables.
+     *
+     * <p>The backstop the chunk counters could not be. Every other bound in this mod counts a PROXY --
+     * queued writes, LOD queue depth, resident chunks, chunks added -- and a chunk is worth wildly
+     * different amounts of heap depending on the entities and block entities that came with it. What
+     * actually ends a pregen badly is running out of memory, so this measures memory. Confirmed over
+     * several consecutive samples so ordinary uncollected garbage cannot trip it, and resumed only
+     * once there is real headroom again.
+     */
+    long getThrottleMaxHeapPercent();
+
+    /**
      * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean.
      *
      * <p>Default {@link LodMode#AUTO}: LOD generation turns itself ON when an LOD renderer (Distant
@@ -171,6 +184,8 @@ public interface Config {
     void setThrottleMaxQueuedWrites(long writes);
 
     void setThrottleMaxAddedChunks(long chunks);
+
+    void setThrottleMaxHeapPercent(long percent);
 
     void setThrottleMaxLodQueue(long items);
 

@@ -36,6 +36,11 @@ package com.kishku7.chunksmith.util;
  */
 public final class ChunkResidency {
 
+    // slf4j, NOT java.util.logging. The loaders route slf4j into the game's own log; JUL output goes
+    // nowhere anybody looks, which is why 3.5.3's drain lifecycle lines never appeared on the server
+    // even though the code ran. (GsonConfig and TaskScheduler still use JUL and are equally invisible.)
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+
     /** How long a published reading stays usable. Beyond this the count is treated as unknown. */
     public static final long FRESH_MILLIS = 60_000L;
 
@@ -63,6 +68,10 @@ public final class ChunkResidency {
     private static volatile long drainStartedMillis;
     private static volatile long drainBestSeen = Long.MAX_VALUE;
     private static volatile long drainProgressMillis;
+    private static volatile long drainStartedAt = -1L;
+    private static volatile boolean drainOnFullBudget;
+    private static volatile boolean generationHeld;
+    private static volatile String lastDrainOutcome = "none yet";
 
     private ChunkResidency() {
     }
@@ -168,11 +177,85 @@ public final class ChunkResidency {
         drainProgressMillis = now;
         final long current = loadedChunksAt(now);
         drainBestSeen = current < 0L ? Long.MAX_VALUE : current;
+        drainStartedAt = current;
+        // A drain that nobody can see is a drain nobody can debug. 3.5.1 was correct and INVISIBLE:
+        // when an idle server did not return to its pre-run tick cost there was no way to tell whether
+        // the drain was still working, had succeeded, or had given up -- only to infer it from tick
+        // times. Say what is happening, once at each end. Two lines per run is not log spam.
+        LOGGER.info(String.format(
+                "Chunksmith: pregen finished; draining its chunks. %d resident, %d of them added by this run.",
+                current, Math.max(0L, current - baseline)));
     }
 
     /** True while a finished run still owes the server a drain. */
     public static boolean isDraining() {
         return draining;
+    }
+
+    /**
+     * Tell the drain whether it is currently being given a real budget.
+     *
+     * <p>The unload floor is small while players are online, and a drain on the small floor makes
+     * little or no measurable progress -- which the stall detector below would read as "there is
+     * nothing left to unload" and end the drain. That is exactly backwards, and it happened: on
+     * 2026-08-20 a drain gave up while a player was online, the player then left, and the server sat
+     * at 71.5 ms per tick with a full heap until it was restarted, because nothing re-armed it.
+     *
+     * <p>So the no-progress clock only advances while the drain is actually being allowed to work. A
+     * give-up must mean "we tried properly and it would not move", never "we were not trying".
+     */
+    public static void noteDrainBudget(final boolean fullBudget) {
+        drainOnFullBudget = fullBudget;
+    }
+
+    /**
+     * Conditions have improved -- typically the last player has left. Resume draining if the server is
+     * still holding more than the run started with.
+     *
+     * <p>A drain is not a one-shot. Treating it as one is what let a server stay degraded indefinitely
+     * after the thing that was blocking the drain went away.
+     */
+    public static void reconsiderDrain() {
+        reconsiderDrain(System.currentTimeMillis());
+    }
+
+    static void reconsiderDrain(final long now) {
+        if (draining) {
+            return;
+        }
+        final long base = baseline;
+        final long loaded = loadedChunksAt(now);
+        if (base < 0L || loaded < 0L || loaded <= base + DRAIN_MARGIN) {
+            return;
+        }
+        draining = true;
+        drainStartedMillis = now;
+        drainProgressMillis = now;
+        drainBestSeen = loaded;
+        drainStartedAt = loaded;
+        LOGGER.info(String.format(
+                "Chunksmith: resuming the drain now that conditions allow it. %d resident, %d above where the run started.",
+                loaded, loaded - base));
+    }
+
+    /**
+     * Generation has stopped dispatching because one of OUR gates closed -- residency or heap.
+     *
+     * <p>Two things follow from it, and both were missing when the gate was first tested on a real
+     * server. The unload pass should get the full budget: nothing is being generated, so the tick is
+     * free, and unloading is the only thing that can reopen the gate. And the settle frontier must be
+     * let go, because a held chunk is released only once its neighbours exist, and with dispatch
+     * stopped no neighbour is ever coming -- so the frontier freezes at its cap and PREVENTS the very
+     * recovery the gate is waiting for. Measured 2026-08-20: 25,638 resident, held for 120 s, and the
+     * count went UP by 196 rather than falling.
+     */
+    public static void noteGenerationHeld(final boolean held) {
+        generationHeld = held;
+    }
+
+    /** True while a Chunksmith gate is holding dispatch. */
+    public static boolean isGenerationHeld() {
+        return generationHeld;
     }
 
     /** Forget everything. Called when the server stops, so no reading outlives its server. */
@@ -184,6 +267,10 @@ public final class ChunkResidency {
         drainBestSeen = Long.MAX_VALUE;
         drainStartedMillis = 0L;
         drainProgressMillis = 0L;
+        drainStartedAt = -1L;
+        drainOnFullBudget = false;
+        generationHeld = false;
+        lastDrainOutcome = "none yet";
     }
 
     /**
@@ -197,18 +284,62 @@ public final class ChunkResidency {
     private static void evaluateDrain(final long loaded, final long now) {
         final long base = baseline;
         if (base >= 0L && loaded <= base + DRAIN_MARGIN) {
-            draining = false;
+            finishDrain(loaded, now, "back to where the run started");
             return;
         }
         if (loaded < drainBestSeen) {
             drainBestSeen = loaded;
             drainProgressMillis = now;
+        } else if (!drainOnFullBudget) {
+            // Not being given a real budget, so "no progress" proves nothing. Hold the clock rather
+            // than let it convict the drain of a stall it never had a chance to avoid.
+            drainProgressMillis = now;
         } else if (now - drainProgressMillis >= DRAIN_STALL_MILLIS) {
-            draining = false;
+            finishDrain(loaded, now, "stopped falling on a full budget -- the rest is pinned by something that is not ours");
             return;
         }
         if (now - drainStartedMillis >= DRAIN_MAX_MILLIS) {
-            draining = false;
+            finishDrain(loaded, now, "hit the ten-minute ceiling");
         }
+    }
+
+    private static void finishDrain(final long loaded, final long now, final String reason) {
+        draining = false;
+        final long seconds = Math.max(0L, (now - drainStartedMillis) / 1000L);
+        final long freed = drainStartedAt < 0L ? -1L : Math.max(0L, drainStartedAt - loaded);
+        lastDrainOutcome = String.format("%s (%d resident, %d freed, %ds)", reason, loaded, freed, seconds);
+        // WARN rather than INFO when chunks are left behind: that is the case an operator needs to see,
+        // and it is exactly the case 3.5.1 could not distinguish from success.
+        final String message = String.format(
+                "Chunksmith: drain finished -- %s. %d chunks resident, %d freed, %d above where the run started, took %ds.",
+                reason, loaded, freed, baseline < 0L ? -1L : Math.max(0L, loaded - baseline), seconds);
+        if (baseline >= 0L && loaded > baseline + DRAIN_MARGIN) {
+            LOGGER.warn(message);
+        } else {
+            LOGGER.info(message);
+        }
+    }
+
+    /**
+     * One line describing the whole signal, for {@code /cs debug}. Never throws, never blocks.
+     *
+     * <p>Contains NO literal percent sign, deliberately. {@code Sender.sendMessagePrefixed} runs its
+     * message through {@code String.format}, so a stray {@code %} in the text is read as a format
+     * specifier and throws -- which is exactly what shipped in 3.5.2 and made {@code /cs debug} report
+     * "An unexpected error occurred trying to execute that command".
+     */
+    public static String describe() {
+        final long now = loadedChunks();
+        final long base = baseline;
+        final long added = addedChunks();
+        return String.format("resident=%s baseline=%s added=%s draining=%s heap=%dMB of %dMB (%.0f pct) lastDrain=[%s]",
+                now < 0L ? "unknown" : Long.toString(now),
+                base < 0L ? "unset" : Long.toString(base),
+                added < 0L ? "unknown" : Long.toString(added),
+                draining,
+                HeapPressure.usedMegabytes(),
+                HeapPressure.maxMegabytes(),
+                HeapPressure.usedPercent(),
+                lastDrainOutcome);
     }
 }

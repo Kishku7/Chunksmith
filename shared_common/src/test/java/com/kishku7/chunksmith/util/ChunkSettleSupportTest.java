@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -69,6 +70,29 @@ public class ChunkSettleSupportTest {
 
         ChunkSettleSupport.tick(40L);
         assertEquals("time alone released it -- no offer() was needed", List.of("0,0"), released);
+    }
+
+    @Test
+    public void flushAllLetsGoOfAFrozenFrontierWithoutRetiringTheWindow() {
+        ChunkSettleSupport.configure(true, 1000L, 0L);
+        final ChunkSettleWindow window = ChunkSettleSupport.newWindow();
+        final List<String> released = new ArrayList<>();
+        for (int x = 0; x < 5; x++) {
+            final String name = "x" + x;
+            window.offer(x, 0, 0L, () -> released.add(name));
+        }
+        assertEquals("a line never completes a neighbourhood, so all five are stuck", 5, window.heldCount());
+
+        // This is the situation: dispatch is gated, so no further chunk will EVER arrive to close
+        // those neighbourhoods, and the tickets they hold are stopping the unloading the gate waits for.
+        ChunkSettleSupport.flushAll();
+        assertEquals("every ticket came back", 5, released.size());
+        assertEquals(0, window.heldCount());
+        assertFalse("the run is not over -- the window must still be usable", window.isDrained());
+        assertEquals("and still registered for the next frontier", 1, ChunkSettleSupport.liveWindowCount());
+
+        window.offer(10, 10, 0L, () -> released.add("later"));
+        assertEquals("it still works afterwards", 1, window.heldCount());
     }
 
     @Test

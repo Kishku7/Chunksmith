@@ -165,6 +165,26 @@ public final class ChunkSettleWindow {
     }
 
     /**
+     * Release everything held right now, but keep the window usable.
+     *
+     * <p>For when generation has been HELD by a throttle gate. A chunk is released once its
+     * neighbourhood closes, and a neighbourhood closes only when new chunks arrive -- so while
+     * dispatch is stopped the frontier can never complete and simply sits at its cap, holding tickets
+     * that stop the very unloading the gate is waiting for. Letting go here costs the courtesy window
+     * that other mods use, which is the right trade: the alternative is a run that cannot restart.
+     *
+     * <p>Unlike {@link #drain} this does NOT retire the window -- the run is still going, and when the
+     * gate opens the next arrivals build a fresh frontier.
+     */
+    public void releaseAllHeld() {
+        final List<Long> keys = new ArrayList<>(this.held.keySet());
+        for (final Long key : keys) {
+            this.due.remove(key);
+            run(key);
+        }
+    }
+
+    /**
      * Release EVERYTHING still held, due or not, and forget the bookkeeping.
      *
      * <p>Called when a task finishes, is cancelled, or the server is stopping. The frontier at that moment

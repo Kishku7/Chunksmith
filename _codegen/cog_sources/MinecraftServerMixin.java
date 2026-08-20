@@ -115,6 +115,17 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     // across game versions without a mapping dependency.
     @Unique
     private volatile double chunksmith$mspt = 50.0D;
+
+    /**
+     * Player count as of the previous tick, so the moment the server becomes EMPTY can be noticed.
+     *
+     * <p>That transition is when a stalled drain deserves another go: the unload floor jumps to the
+     * idle budget, and whatever a player was doing to keep chunks resident has stopped. Without this a
+     * drain that gave up while somebody was online stays given-up for ever -- which is precisely how a
+     * server was left at 71.5 ms per tick with a full heap after its last player logged off.
+     */
+    @Unique
+    private int chunksmith$lastPlayerCount = -1;
     @Unique
     private long chunksmith$lastTickNanos = 0L;
 
@@ -138,10 +149,18 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         // Residency is published EVERY tick, running or not. 3.5.0 cleared it the moment a task ended,
         // which is precisely when the backlog that task left behind most needed watching.
         this.chunksmith$reportChunkResidency();
+        final int players = this.getPlayerCount();
+        // Tell the drain whether it is being given a real budget, so a no-progress verdict can only be
+        // reached when it actually had a chance to make progress.
+        ChunkResidency.noteDrainBudget(players == 0);
+        if (players == 0 && this.chunksmith$lastPlayerCount > 0) {
+            ChunkResidency.reconsiderDrain();
+        }
+        this.chunksmith$lastPlayerCount = players;
         // Keep the unload pass armed while a finished run still owes the server a drain. Without this
         // the backlog is orphaned: nothing arms housekeeping on an idle server, and vanilla's own pass
         // does nothing once the tick is over budget -- which it is, because of the retained chunks.
-        if (ChunkResidency.isDraining()) {
+        if (ChunkResidency.isDraining() || ChunkResidency.isGenerationHeld()) {
             this.chunksmith$markChunkSystemHousekeeping();
         }
         // Pump the settle windows on the TICK, not on chunk arrivals. Held tickets used to come back
@@ -253,7 +272,13 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // ONE deadline for the whole pass, not one per level: the floor is what Chunksmith is
             // willing to spend on unloading this tick in total, and a per-level deadline would multiply
             // it by the number of dimensions.
-            final long floor = this.getPlayerCount() == 0 && ChunkResidency.isDraining()
+            // The bigger budget applies whenever nobody is playing AND nothing is being generated
+            // because one of our own gates said so -- a drain after a run, or a gate holding dispatch
+            // mid-run. In both cases the tick is free and unloading is the only thing that can end the
+            // situation. 3.5.3 gated this on the drain alone, so a mid-run hold got 2 ms and the
+            // resident count did not fall at all across a 120-second hold.
+            final long floor = this.getPlayerCount() == 0
+                    && (ChunkResidency.isDraining() || ChunkResidency.isGenerationHeld())
                     ? CHUNKSMITH$IDLE_UNLOAD_BUDGET_NANOS
                     : CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS;
             final long deadline = System.nanoTime() + floor;

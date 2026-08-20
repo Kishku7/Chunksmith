@@ -15,6 +15,7 @@ import com.kishku7.chunksmith.shape.Shape;
 import com.kishku7.chunksmith.shape.ShapeFactory;
 import com.kishku7.chunksmith.util.ChunkCoordinate;
 import com.kishku7.chunksmith.util.ChunkResidency;
+import com.kishku7.chunksmith.util.HeapPressure;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.util.Pair;
 import com.kishku7.chunksmith.util.RegionCache;
@@ -66,6 +67,9 @@ public class GenerationTask implements Runnable {
     private static final long WRITE_STALL_MIN_DEPTH = Math.max(1L, Input.tryInteger(System.getProperty("chunksmith.writeStallMinDepth")).orElse(16));
     // Chunk-residency backpressure. Sampled on the same cadence as the write queue.
     private static final long RESIDENCY_CHECK_INTERVAL_MS = 250L;
+    // Heap is sampled on a slower cadence than the chunk counters: it is a whole-JVM number that moves
+    // in GC-sized steps, and sampling it faster would only multiply the cost of reading it.
+    private static final long HEAP_CHECK_INTERVAL_MS = 500L;
     // How long residency may stay over its cap before we give up waiting and generate anyway. A run must
     // never wedge: if the server genuinely will not unload (a foreign mod pinning chunks, a selection
     // whose legitimate frontier exceeds the cap), a Chunksmith that waits forever is a Chunksmith that
@@ -107,6 +111,11 @@ public class GenerationTask implements Runnable {
     private final AtomicLong lastWriteDrainTime = new AtomicLong(0);
     private long lastQueuedObserved = -1L;
     private final long maxAddedChunks;
+    private final long maxHeapPercent;
+    private final AtomicLong lastHeapCheckTime = new AtomicLong(0);
+    private final AtomicLong lastHeapNoticeTime = new AtomicLong(0);
+    private volatile boolean heapStalled;
+    private boolean heldNotified;
     private final AtomicLong lastResidencyCheckTime = new AtomicLong(0);
     private final AtomicLong lastResidencyNoticeTime = new AtomicLong(0);
     private final AtomicLong residencyStalledSince = new AtomicLong(0);
@@ -152,6 +161,7 @@ public class GenerationTask implements Runnable {
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
+        this.maxHeapPercent = chunky.getConfig().getThrottleMaxHeapPercent();
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
         // exist" means anything -- see ChunkSettleWindow (mod_support #14).
@@ -444,6 +454,42 @@ public class GenerationTask implements Runnable {
         }
     }
 
+    /**
+     * The backstop the chunk counters could not be.
+     *
+     * <p>Three releases of this mod have tried to bound a pregen by counting proxies -- queued writes,
+     * LOD queue depth, resident chunks, chunks added since the run started -- and each has been wrong
+     * on a real server in a different way. A chunk is worth wildly different amounts of heap depending
+     * on the entities and block entities that came with it, so no chunk count can be tuned to mean the
+     * same thing on two worlds. What actually ends a pregen badly is running out of memory. Measure
+     * that instead, and let the counters handle the cases they are genuinely good at.
+     */
+    private void evaluateHeapPressure() {
+        if (maxHeapPercent <= 0L) {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        final long last = lastHeapCheckTime.get();
+        if (now - last < HEAP_CHECK_INTERVAL_MS || !lastHeapCheckTime.compareAndSet(last, now)) {
+            return;
+        }
+        final boolean hold = HeapPressure.shouldHold(heapStalled, maxHeapPercent);
+        if (hold && !heapStalled) {
+            maybeNotifyHeap();
+        }
+        heapStalled = hold;
+    }
+
+    private void maybeNotifyHeap() {
+        final long now = System.currentTimeMillis();
+        final long last = lastHeapNoticeTime.get();
+        if (now - last >= NOTICE_INTERVAL_MS && lastHeapNoticeTime.compareAndSet(last, now)) {
+            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HEAP_BACKPRESSURE_NOTICE,
+                    String.format("%.0f", HeapPressure.usedPercent()),
+                    HeapPressure.usedMegabytes(), HeapPressure.maxMegabytes(), maxHeapPercent);
+        }
+    }
+
     private void maybeNotifyResidency(final long added) {
         final long now = System.currentTimeMillis();
         final long last = lastResidencyNoticeTime.get();
@@ -489,6 +535,7 @@ public class GenerationTask implements Runnable {
         // Everything already resident belongs to the server, not to this run. Capture it before the
         // first dispatch so the gate below measures OUR growth and nothing else's.
         ChunkResidency.noteTaskStart();
+        HeapPressure.reset();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunk = chunkIterator.next();
@@ -535,8 +582,18 @@ public class GenerationTask implements Runnable {
                 // kill, not a slowdown -- so neither is gated on the operator's I/O-throttle switch.
                 adjustFromLodQueue();
                 evaluateChunkResidency();
-                if (!writeQueueStalled && !chunkResidencyStalled
-                        && inFlight.get() < Math.max(1, dispatchLimit.get())) {
+                evaluateHeapPressure();
+                final boolean gated = writeQueueStalled || chunkResidencyStalled || heapStalled;
+                if (gated != heldNotified) {
+                    heldNotified = gated;
+                    ChunkResidency.noteGenerationHeld(gated);
+                    if (gated) {
+                        // The frontier cannot complete while dispatch is stopped, so it would sit at
+                        // its cap holding tickets and prevent the unloading this gate is waiting for.
+                        com.kishku7.chunksmith.util.ChunkSettleSupport.flushAll();
+                    }
+                }
+                if (!gated && inFlight.get() < Math.max(1, dispatchLimit.get())) {
                     break;
                 }
                 LockSupport.parkNanos(1_000_000L);
@@ -631,6 +688,7 @@ public class GenerationTask implements Runnable {
         Thread.currentThread().setName(poolThreadName);
         // Nothing more is coming, so the chunks on the edge of the run will never have their
         // neighbourhood completed. Hand every held ticket back before anyone is told the task is done.
+        ChunkResidency.noteGenerationHeld(false);
         finishSettleSweep();
         selection.world().settleDrain();
         // Ending a task is NOT the same as finishing the work. The tickets come back now; the chunks do
