@@ -13,6 +13,7 @@ import com.kishku7.chunksmith.PlatformCompat;
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.ChunkSettleSupport;
+import com.kishku7.chunksmith.util.UnloadDiagnostics;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.WorldgenOverreachReporter;
 import com.kishku7.chunksmith.ducks.MinecraftServerExtension;
@@ -126,6 +127,14 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      */
     @Unique
     private int chunksmith$lastPlayerCount = -1;
+
+    /** When the ticket-level histogram was last walked. It is O(resident), so not every tick. */
+    @Unique
+    private long chunksmith$lastLevelSampleMillis = 0L;
+
+    /** How often to walk it. Ten seconds of a number that moves slowly is plenty. */
+    @Unique
+    private static final long CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS = 10_000L;
     @Unique
     private long chunksmith$lastTickNanos = 0L;
 
@@ -242,10 +251,97 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Unique
     private void chunksmith$reportChunkResidency() {
         long loaded = 0L;
+        long toDrop = 0L;
+        long unloadQueue = 0L;
+        long pendingUnloads = 0L;
+        boolean hasTickets = false;
         for (ServerLevel level : this.getAllLevels()) {
             loaded += level.getChunkSource().getLoadedChunksCount();
+            // The eligibility question, answered directly instead of inferred from tick times. See
+            // UnloadDiagnostics: toDrop == 0 while chunks are resident means nothing is ELIGIBLE to
+            // unload, which is a ticket problem, not a throughput one -- and the two were
+            // indistinguishable from outside for three releases.
+            final ChunkMapMixin chunkMap = (ChunkMapMixin) level.getChunkSource().chunkMap;
+            toDrop += chunkMap.getToDrop().size();
+            unloadQueue += chunkMap.getUnloadQueue().size();
+            pendingUnloads += chunkMap.getPendingUnloads().size();
+            hasTickets |= level.getChunkSource().chunkMap.getDistanceManager().hasTickets();
         }
         ChunkResidency.report(loaded);
+        UnloadDiagnostics.report(loaded, toDrop, unloadQueue, pendingUnloads, hasTickets);
+        this.chunksmith$sampleChunkLevels();
+    }
+
+    /**
+     * Bucket every resident chunk by its ticket level.
+     *
+     * <p>The last question standing. Chunksmith's own ledger has ruled our tickets out -- a few
+     * hundred outstanding while eleven thousand chunks sat resident -- so either something ELSE holds
+     * these chunks at a live level, or nothing holds them and vanilla is simply not dropping them.
+     * The level is what decides, and {@code DistanceManager.getChunkLevel} is public on every
+     * supported version, so this needs no new plumbing beyond the resident map itself.
+     *
+     * <p>Thresholds follow {@code ChunkLevel}: 33 is FULL, and 44 and above is past the maximum a
+     * loaded chunk may have, which is precisely "nothing wants this".
+     */
+    @Unique
+    private void chunksmith$sampleChunkLevels() {
+        final long now = System.currentTimeMillis();
+        if (now - this.chunksmith$lastLevelSampleMillis < CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS) {
+            return;
+        }
+        this.chunksmith$lastLevelSampleMillis = now;
+        long ticking = 0L;
+        long loadedLevel = 0L;
+        long droppable = 0L;
+        final StringBuilder sample = new StringBuilder();
+        int sampled = 0;
+        // Tally every ticket on every resident chunk BY TYPE. Six sampled strings named the suspect;
+        // this counts it. "How many" is the difference between a clue and a cause.
+        final java.util.Map<String, Integer> byType = new java.util.HashMap<>();
+        for (ServerLevel level : this.getAllLevels()) {
+            final net.minecraft.server.level.ChunkMap map = level.getChunkSource().chunkMap;
+            final net.minecraft.server.level.DistanceManager distance = map.getDistanceManager();
+            final net.minecraft.world.level.TicketStorage store =
+                    ((DistanceManagerMixin) distance).getTicketStorage();
+            for (final long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
+                for (final net.minecraft.server.level.Ticket ticket : store.getTickets(pos)) {
+                    byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
+                }
+                final int chunkLevel = distance.getChunkLevel(pos, false);
+                if (chunkLevel <= 33) {
+                    ticking++;
+                    // Read the ticket rather than guess at it. A handful is enough to name a type.
+                    if (sampled < 6) {
+                        sampled++;
+                        if (sample.length() > 0) {
+                            sample.append(" | ");
+                        }
+                        sample.append(new net.minecraft.world.level.ChunkPos(pos))
+                                .append(" lvl=").append(chunkLevel)
+                                .append(" load=").append(store.getTicketDebugString(pos, false))
+                                .append(" sim=").append(store.getTicketDebugString(pos, true));
+                    }
+                } else if (chunkLevel < 44) {
+                    loadedLevel++;
+                } else {
+                    droppable++;
+                }
+            }
+        }
+        UnloadDiagnostics.reportLevels(ticking, loadedLevel, droppable, now);
+        UnloadDiagnostics.reportTicketSample(sampled == 0 ? "no chunk at a ticking level" : sample.toString());
+        final StringBuilder tally = new StringBuilder();
+        byType.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(6)
+                .forEach(e -> {
+                    if (tally.length() > 0) {
+                        tally.append(", ");
+                    }
+                    tally.append(e.getKey()).append('=').append(e.getValue());
+                });
+        UnloadDiagnostics.reportTicketTally(tally.length() == 0 ? "no tickets on resident chunks" : tally.toString());
     }
 
     @Override

@@ -2,6 +2,71 @@
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-08-20
+
+**This is the release that actually fixes the unbounded chunk retention reported on 2026-08-19.**
+Everything between 3.5.0 and 3.5.9 was built against theories that measurement later disproved; they
+are left in the changelog as written because each one is a real, if secondary, improvement, and
+because the wrong turns are worth reading.
+
+### Fixed
+
+- **A pre-gen could hold the entire world open. The cap that was supposed to stop it was counted in
+  the wrong unit.**
+
+  A held chunk does not cost one chunk. Its ticket sits at FULL level, and vanilla's distance manager
+  propagates that level outward one ring at a time, so a single held ticket keeps a whole
+  neighbourhood resident with it. Measured on a live 1.21.11 server: **20 held tickets -> 3,507
+  resident chunks; ~400 held -> 10,167 resident** -- roughly 25 resident chunks per held ticket at
+  pre-gen clustering.
+
+  `pregenSettleMaxHeld` counts TICKETS. Its 3.5.0 default of 8192 therefore authorised on the order
+  of **two hundred thousand** resident chunks, and 3.4.1 -- which had no cap at all, because the
+  setting did not exist yet -- let the window hold the entire un-closed frontier. That is how a live
+  server reached **75,045 resident chunks** and died to the tick watchdog.
+
+  The default is now **256** (about 6,000 resident chunks on that measurement, which an 8 GB heap
+  carries comfortably), the minimum is 16, and the setting now documents the multiplier everywhere it
+  appears. It is a memory setting, and it now says so.
+
+- Nothing was wrong with ticket removal, the unload pass, level propagation, or the settle window's
+  release logic. Each was investigated in turn and each was innocent; the counts that proved it are
+  the ones `/cs debug` now prints.
+
+### How it was finally found, since the method is the transferable part
+
+Six theories were reasoned out and shipped against before anything was counted, and all six were
+wrong. What ended it was measuring the thing itself rather than a proxy: first Chunksmith's own
+ticket ledger (20 outstanding against 3,507 resident -- so not ours), then a tally of every ticket on
+every resident chunk by type (**138 tickets holding 3,507 chunks** -- so not a leak at all, but a
+multiplier). A count that cannot be read two ways beats any amount of inference from tick times.
+
+## [3.5.5] - 2026-08-20
+
+### Added
+
+- **Chunksmith can now say WHY a drain is not freeing chunks.** A drain ran its full ten-minute
+  ceiling and freed 30 chunks out of 22,067, with the pregen paused, and nothing in the mod could
+  distinguish the two possible causes: chunks not ELIGIBLE to unload (their tickets are still held)
+  versus eligible work not getting done. Three releases were spent making the unload pass faster on
+  the assumption it was the second. Reading `ChunkMap.processUnloads` shows it cannot be: its
+  `toDrop` loop consults no budget at all, and its `unloadQueue` drain runs
+  `while (unloadQueue.size() - 2000 > 0 || haveTime())`, so vanilla drains that queue down to 2000
+  entries even when `haveTime` is false.
+
+  `/cs debug` now reports `visible`, `toDrop`, `unloadQueue`, `pendingUnloads` and `hasTickets`,
+  with a plain-English verdict, and the drain start/finish lines carry the same numbers. `toDrop`
+  is the one that matters: zero, while chunks are resident, means nothing is eligible and the
+  problem is tickets. All five read identically on every supported version (1.20.1 through 26.3),
+  so this needs no version handling.
+
+### Changed
+
+- **`throttleMaxAddedChunks` now defaults to 0 (off).** On a live server it closed at 22,000 chunks
+  while the heap sat at 40 percent, and stuttered a healthy run down to 60 chunks per two minutes.
+  A chunk count cannot be tuned to mean the same thing on two worlds. Memory is governed by
+  `throttleMaxHeapPercent` and load by tick health; this remains available as an expert knob.
+
 ## [3.5.4] - 2026-08-20
 
 Three fixes for things the first live test of the 3.5.2/3.5.3 gates exposed within ten minutes.

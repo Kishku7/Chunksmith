@@ -536,6 +536,7 @@ public class GenerationTask implements Runnable {
         // first dispatch so the gate below measures OUR growth and nothing else's.
         ChunkResidency.noteTaskStart();
         HeapPressure.reset();
+        com.kishku7.chunksmith.util.TicketLedger.reset();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunk = chunkIterator.next();

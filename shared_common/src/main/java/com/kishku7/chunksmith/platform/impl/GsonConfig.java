@@ -40,7 +40,12 @@ public final class GsonConfig implements Config {
     // added ~55000 over baseline on a 470-chunk-radius selection. Hysteresis resumes dispatch at half.
     private static final long MAX_ADDED_CHUNKS_MIN = 1_000L;
     private static final long MAX_ADDED_CHUNKS_MAX = 5_000_000L;
-    private static final long MAX_ADDED_CHUNKS_DEFAULT = 20_000L;
+    // DEFAULT 0 = OFF as of 3.5.5. A chunk count cannot be tuned to mean the same thing on two
+    // worlds -- a chunk is worth wildly different amounts of heap depending on the entities and block
+    // entities that came with it -- and on a live server this gate closed at 22,000 chunks while the
+    // heap sat at 40 percent, stuttering a perfectly healthy run to 60 chunks per two minutes. Memory
+    // is governed by throttleMaxHeapPercent and load by tick health; this stays as an expert knob.
+    private static final long MAX_ADDED_CHUNKS_DEFAULT = 0L;
     // Heap ceiling, as a percentage of -Xmx, above which dispatch is held. 0 disables. 85 leaves the
     // collector room to work while still stopping well short of the thrash that precedes an OOM.
     private static final long MAX_HEAP_PERCENT_MIN = 50L;
@@ -55,11 +60,21 @@ public final class GsonConfig implements Config {
     private static final long SETTLE_DELAY_MAX = 600L;
     private static final int SETTLE_RADIUS_DEFAULT = 7;
     private static final int SETTLE_RADIUS_MAX = 16;
-    // Hard ceiling on the settle frontier. 0 = unbounded (pre-3.5.0 behaviour). The default comfortably
-    // exceeds the frontier of a mid-sized run while still capping the strandings a resumed world leaves.
-    private static final long SETTLE_MAX_HELD_MIN = 256L;
+    // Hard ceiling on the settle frontier, counted in TICKETS -- but paid for in TICKETS x HALO.
+    //
+    // A ticket at FULL level does not hold one chunk. Vanilla's distance manager propagates the level
+    // outward one ring at a time until it passes the maximum, so a single held ticket drags roughly
+    // eleven rings of neighbours into the "loaded" band with it. Measured on a live 1.21.11 pre-gen:
+    // 20 held tickets -> 3,507 resident chunks; ~400 held -> 10,167 resident. Call it 25 resident
+    // chunks per held ticket at pre-gen clustering.
+    //
+    // The 3.5.0 default of 8192 therefore authorised something like 200,000 resident chunks, and
+    // 3.4.1 -- which had no cap at all -- is how a live server reached 75,045 and died to the
+    // watchdog. 256 is about 6,000 resident chunks on that measurement, which an 8 GB heap carries
+    // comfortably. Raise it only with that arithmetic in mind.
+    private static final long SETTLE_MAX_HELD_MIN = 16L;
     private static final long SETTLE_MAX_HELD_MAX = 1_000_000L;
-    private static final long SETTLE_MAX_HELD_DEFAULT = 8_192L;
+    private static final long SETTLE_MAX_HELD_DEFAULT = 256L;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 

@@ -119,10 +119,17 @@ public interface Config {
     /**
      * Hard ceiling on how many chunks the settle window may hold open at once. 0 means unbounded.
      *
-     * <p>The neighbourhood rule bounds the frontier only while every held chunk eventually gets all nine
-     * of its neighbours; chunks beside SKIPPED ground never do, so a resumed world strands them for the
-     * whole run. Past this cap the oldest held chunk is released early -- age being the evidence that its
-     * neighbourhood is not coming. Only meaningful when {@link #isPregenSettleEnabled()}.
+     * <p><b>Read this as a memory setting, because that is what it is.</b> A held chunk keeps a
+     * FULL-level ticket, and vanilla propagates that level outward ring by ring, so ONE held ticket
+     * keeps roughly a neighbourhood -- measured at about 25 resident chunks per held ticket during a
+     * pre-gen. The number here is tickets; the cost is tickets times that halo. A cap of 8192 is not
+     * "8192 chunks", it is closer to two hundred thousand.
+     *
+     * <p>The neighbourhood rule alone bounds the frontier only while every held chunk eventually gets
+     * all nine of its neighbours; chunks beside SKIPPED ground never do, so a resumed world strands
+     * them for the whole run. Past this cap the oldest held chunk is released early -- age being the
+     * evidence that its neighbourhood is not coming. Only meaningful when
+     * {@link #isPregenSettleEnabled()}.
      */
     long getPregenSettleMaxHeld();
 

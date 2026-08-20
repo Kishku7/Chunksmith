@@ -4,6 +4,8 @@ import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.Debug;
+import com.kishku7.chunksmith.util.TicketLedger;
+import com.kishku7.chunksmith.util.UnloadDiagnostics;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +53,11 @@ public class DebugCommand implements ChunksmithCommand {
             sender.sendMessagePrefixed("Debug logging disabled.");
         }
         sender.sendMessagePrefixed("Chunk residency: " + ChunkResidency.describe());
+        sender.sendMessagePrefixed("Chunk unloading: " + UnloadDiagnostics.describe());
+        sender.sendMessagePrefixed("Chunksmith tickets: " + TicketLedger.describe());
+        sender.sendMessagePrefixed("Chunk ticket levels: " + UnloadDiagnostics.describeLevels());
+        sender.sendMessagePrefixed("Tickets by type: " + UnloadDiagnostics.describeTicketTally());
+        sender.sendMessagePrefixed("Who holds them: " + UnloadDiagnostics.describeTicketSample());
     }
 
     @Override

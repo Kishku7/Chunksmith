@@ -183,8 +183,9 @@ public final class ChunkResidency {
         // the drain was still working, had succeeded, or had given up -- only to infer it from tick
         // times. Say what is happening, once at each end. Two lines per run is not log spam.
         LOGGER.info(String.format(
-                "Chunksmith: pregen finished; draining its chunks. %d resident, %d of them added by this run.",
-                current, Math.max(0L, current - baseline)));
+                "Chunksmith: pregen finished; draining its chunks. %d resident, %d of them added by this run. %s",
+                current, Math.max(0L, current - baseline),
+                UnloadDiagnostics.describe() + " | our tickets: " + TicketLedger.describe()));
     }
 
     /** True while a finished run still owes the server a drain. */
@@ -270,6 +271,7 @@ public final class ChunkResidency {
         drainStartedAt = -1L;
         drainOnFullBudget = false;
         generationHeld = false;
+        UnloadDiagnostics.clear();
         lastDrainOutcome = "none yet";
     }
 
@@ -311,8 +313,9 @@ public final class ChunkResidency {
         // WARN rather than INFO when chunks are left behind: that is the case an operator needs to see,
         // and it is exactly the case 3.5.1 could not distinguish from success.
         final String message = String.format(
-                "Chunksmith: drain finished -- %s. %d chunks resident, %d freed, %d above where the run started, took %ds.",
-                reason, loaded, freed, baseline < 0L ? -1L : Math.max(0L, loaded - baseline), seconds);
+                "Chunksmith: drain finished -- %s. %d chunks resident, %d freed, %d above where the run started, took %ds. %s",
+                reason, loaded, freed, baseline < 0L ? -1L : Math.max(0L, loaded - baseline), seconds,
+                UnloadDiagnostics.describe() + " | our tickets: " + TicketLedger.describe());
         if (baseline >= 0L && loaded > baseline + DRAIN_MARGIN) {
             LOGGER.warn(message);
         } else {

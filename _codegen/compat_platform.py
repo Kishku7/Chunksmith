@@ -2512,6 +2512,7 @@ import com.kishku7.chunksmith.platform.util.Location;
 import com.kishku7.chunksmith.util.ChunkSettleSupport;
 import com.kishku7.chunksmith.util.ChunkSettleWindow;
 import com.kishku7.chunksmith.util.Input;
+import com.kishku7.chunksmith.util.TicketLedger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -2625,6 +2626,7 @@ public class FabricWorld implements World, ServerLevelHolder {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
             serverChunkCache.addTicketWithRadius(CHUNKY, chunkPos, 0);
+            TicketLedger.noteAdd();
             // Vanilla only ever runs the distance manager's update pass once per tick, from one
             // place, so ticket-map mutation and iteration are naturally serialized. Forcing it here
             // (below) re-enters that code far more often and from more call sites than vanilla ever
@@ -2663,9 +2665,13 @@ public class FabricWorld implements World, ServerLevelHolder {
                         }
                         if (this.settleWindow == null) {
                             serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
+                            TicketLedger.noteRemove();
                         } else {
                             this.settleWindow.offer(x, z, world.getGameTime(),
-                                () -> serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0));
+                                () -> {
+                                    serverChunkCache.removeTicketWithRadius(CHUNKY, chunkPos, 0);
+                                    TicketLedger.noteRemove();
+                                });
                         }
                         ((MinecraftServerExtension) world.getServer()).chunksmith$markChunkSystemHousekeeping();
                     }, ticketSafePoint())
@@ -2704,12 +2710,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
+        TicketLedger.noteAdd();
     }
 
     @Override
     public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
+        TicketLedger.noteRemove();
     }
 
     @Override

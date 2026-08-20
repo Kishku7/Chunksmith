@@ -94,7 +94,7 @@ public final class BukkitConfig implements Config {
 
     @Override
     public long getThrottleMaxAddedChunks() {
-        return plugin.getConfig().getLong("throttle-max-added-chunks", 20_000L);
+        return plugin.getConfig().getLong("throttle-max-added-chunks", 0L);
     }
 
     @Override

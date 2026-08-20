@@ -59,6 +59,13 @@ import java.util.Map;
  * strandings. A released chunk is not a broken promise either: the hold is a courtesy window for other
  * mods, and a courtesy that can exhaust the server's memory is not one worth keeping.
  *
+ * <p><b>What a held chunk actually costs.</b> Not one chunk. The ticket that keeps it loaded is at
+ * FULL level, and the distance manager propagates that level outward a ring at a time, so each held
+ * ticket keeps a neighbourhood resident with it -- about 25 chunks each, measured on a live pre-gen
+ * (20 held -> 3,507 resident; ~400 held -> 10,167 resident). That multiplier is why the cap is a
+ * small number and why raising it is a memory decision rather than a throughput one, and it is the
+ * whole explanation for a server that reached 75,045 resident chunks under an uncapped window.
+ *
  * <p>Deliberately MC-free (a chunk is a packed long, a release is a {@link Runnable}) so it can be
  * unit-tested without a server. Not thread-safe by construction: every call is made from the server
  * thread, which is also the only thread allowed to touch a chunk ticket.
