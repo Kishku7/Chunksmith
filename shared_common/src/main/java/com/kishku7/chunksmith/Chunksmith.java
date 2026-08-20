@@ -84,6 +84,7 @@ public final class Chunksmith {
         // Static state must not outlive its server. A residency reading or a registered settle window
         // left behind here would be read by the NEXT server in this JVM -- an integrated server opened
         // after leaving a world -- and would be about a world that no longer exists.
+        com.kishku7.chunksmith.util.AutoPause.clear();
         com.kishku7.chunksmith.util.ChunkResidency.clear();
         com.kishku7.chunksmith.util.ChunkSettleSupport.forget();
         ChunksmithProvider.unregister();

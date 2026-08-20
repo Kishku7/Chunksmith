@@ -51,6 +51,12 @@ public final class GsonConfig implements Config {
     private static final long MAX_HEAP_PERCENT_MIN = 50L;
     private static final long MAX_HEAP_PERCENT_MAX = 99L;
     private static final long MAX_HEAP_PERCENT_DEFAULT = 85L;
+    // Auto-pause: how long the server must hold a state before the run is stopped or restarted.
+    // 120 s is long enough to ride out an autosave or a structure-heavy patch of terrain, and short
+    // enough that an operator watching a stalled run does not sit through many minutes of stutter.
+    private static final int AUTO_PAUSE_GRACE_MIN = 10;
+    private static final int AUTO_PAUSE_GRACE_MAX = 3600;
+    private static final int AUTO_PAUSE_GRACE_DEFAULT = 120;
     // Governor for the LOD sink. Voxy's ingest queue is unbounded and never reports saturation, so
     // this is the only thing standing between a fast pregen and an OOM.
     private static final long MAX_LOD_QUEUE_MIN = 16L;
@@ -200,6 +206,22 @@ public final class GsonConfig implements Config {
         if (raw != clamped) {
             LOGGER.warning(String.format("Chunksmith: throttleMaxHeapPercent %d is out of range [%d, %d], using %d",
                     raw, MAX_HEAP_PERCENT_MIN, MAX_HEAP_PERCENT_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
+    public boolean isAutoPauseEnabled() {
+        return Optional.ofNullable(configModel.autoPauseOnOverload).orElse(true);
+    }
+
+    @Override
+    public int getAutoPauseGraceSeconds() {
+        final int raw = Optional.ofNullable(configModel.autoPauseGraceSeconds).orElse(AUTO_PAUSE_GRACE_DEFAULT);
+        final int clamped = Math.max(AUTO_PAUSE_GRACE_MIN, Math.min(AUTO_PAUSE_GRACE_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: autoPauseGraceSeconds %d is out of range [%d, %d], using %d",
+                    raw, AUTO_PAUSE_GRACE_MIN, AUTO_PAUSE_GRACE_MAX, clamped));
         }
         return clamped;
     }
@@ -369,6 +391,19 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setAutoPauseEnabled(final boolean enabled) {
+        configModel.autoPauseOnOverload = enabled;
+        saveConfig();
+    }
+
+    @Override
+    public void setAutoPauseGraceSeconds(final int seconds) {
+        configModel.autoPauseGraceSeconds =
+                Math.max(AUTO_PAUSE_GRACE_MIN, Math.min(AUTO_PAUSE_GRACE_MAX, seconds));
+        saveConfig();
+    }
+
+    @Override
     public void setPregenSettleMaxHeld(final long maxHeld) {
         // 0 disables the cap entirely, so it must survive the clamp.
         configModel.pregenSettleMaxHeld = maxHeld <= 0L
@@ -434,6 +469,8 @@ public final class GsonConfig implements Config {
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
         private Long throttleMaxAddedChunks = MAX_ADDED_CHUNKS_DEFAULT;
         private Long throttleMaxHeapPercent = MAX_HEAP_PERCENT_DEFAULT;
+        private Boolean autoPauseOnOverload = true;
+        private Integer autoPauseGraceSeconds = AUTO_PAUSE_GRACE_DEFAULT;
         // TRISTATE, written as the string "auto" by default. Declared String, not Boolean, ON PURPOSE:
         // Gson's String adapter coerces a JSON boolean to "true"/"false", so a config that already says
         // `"lodEnabled": false` (or true) from an older Chunksmith still parses, still means exactly what
@@ -475,6 +512,10 @@ public final class GsonConfig implements Config {
         public void setThrottleMaxAddedChunks(final Long throttleMaxAddedChunks) { this.throttleMaxAddedChunks = throttleMaxAddedChunks; }
         public Long getThrottleMaxHeapPercent() { return throttleMaxHeapPercent; }
         public void setThrottleMaxHeapPercent(final Long throttleMaxHeapPercent) { this.throttleMaxHeapPercent = throttleMaxHeapPercent; }
+        public Boolean getAutoPauseOnOverload() { return autoPauseOnOverload; }
+        public void setAutoPauseOnOverload(final Boolean autoPauseOnOverload) { this.autoPauseOnOverload = autoPauseOnOverload; }
+        public Integer getAutoPauseGraceSeconds() { return autoPauseGraceSeconds; }
+        public void setAutoPauseGraceSeconds(final Integer autoPauseGraceSeconds) { this.autoPauseGraceSeconds = autoPauseGraceSeconds; }
         public Long getPregenSettleMaxHeld() { return pregenSettleMaxHeld; }
         public void setPregenSettleMaxHeld(final Long pregenSettleMaxHeld) { this.pregenSettleMaxHeld = pregenSettleMaxHeld; }
     }

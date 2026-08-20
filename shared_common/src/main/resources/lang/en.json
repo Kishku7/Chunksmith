@@ -104,6 +104,8 @@
   "task_residency_backpressure_notice": "Chunk residency backpressure - holding generation, this run has added %s chunks (limit %s); %s resident in total",
   "task_residency_stuck_notice": "This run has stayed more than %s chunks above where it started for %s seconds - the server is not unloading them. Resuming generation anyway; expect it to be slow.",
   "task_heap_backpressure_notice": "Heap backpressure - holding generation, %s%% of the heap in use (%s MB of %s MB, limit %s%%)",
+  "task_auto_paused": "Paused generation for %s - the server has been unable to keep up for %s seconds. It will start again by itself once the server recovers. Run '/cs set autoPauseOnOverload false' to disable this and push on regardless.",
+  "task_auto_resumed": "The server has been healthy for %s seconds - resuming generation for %s.",
   "task_trim": "Deleted %s chunks from %s in %s seconds.",
   "task_trim_update": "Task running for %s. Processed: %s regions (%s%%)",
   "task_done": "Task finished for %s. Processed: %s chunks (%s%%), Total time: %s:%s:%s",

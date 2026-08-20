@@ -102,6 +102,16 @@ public final class BukkitConfig implements Config {
         return plugin.getConfig().getLong("throttle-max-heap-percent", 85L);
     }
 
+    @Override
+    public boolean isAutoPauseEnabled() {
+        return plugin.getConfig().getBoolean("auto-pause-on-overload", true);
+    }
+
+    @Override
+    public int getAutoPauseGraceSeconds() {
+        return plugin.getConfig().getInt("auto-pause-grace-seconds", 120);
+    }
+
     /**
      * CHANGED (2026-08-03, mod_support #9 follow-up): this platform now carries a
      * server-side CSLOD generator + store (see lod.CsLodExtractor / lod.LodSupport in this source
@@ -232,6 +242,18 @@ public final class BukkitConfig implements Config {
     @Override
     public void setThrottleMaxHeapPercent(final long percent) {
         plugin.getConfig().set("throttle-max-heap-percent", percent);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setAutoPauseEnabled(final boolean enabled) {
+        plugin.getConfig().set("auto-pause-on-overload", enabled);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setAutoPauseGraceSeconds(final int seconds) {
+        plugin.getConfig().set("auto-pause-grace-seconds", seconds);
         plugin.saveConfig();
     }
 

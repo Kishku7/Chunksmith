@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-08-20
+
+### Added
+
+- **A pre-gen now stops when the server cannot sustain it, and starts again when it can.** On an
+  overloaded server a gated run does not stop -- it stutters, because the never-wedge valve lets
+  through about a second of work every grace period. Measured on a live server: **60 chunks in two
+  minutes**. That is indistinguishable from a hang to anyone watching, it keeps the server under load
+  throughout, and it produces nothing. Chunksmith now pauses, says why, and resumes by itself once
+  the server has been healthy for the grace period.
+
+  `autoPauseOnOverload` (default **true**) and `autoPauseGraceSeconds` (default 120, range 10-3600),
+  both settable from `/cs set` and both editable in the config, live -- turn it off and a run pushes
+  on regardless.
+
+  Both directions require the condition to hold CONTINUOUSLY for the grace period, and any moment to
+  the contrary resets the clock: pausing on the first bad second would stop a run for a passing
+  autosave, and resuming on the first good second would restart it into the same wall. "Healthy"
+  means the tick keeping up AND the heap having real headroom, because either alone recovers before
+  the other.
+
+  **A human `/cs pause` outranks it in both directions** -- it is never auto-resumed, and it clears
+  any outstanding auto-pause so a later recovery cannot restart a run somebody deliberately stopped.
+
 ## [3.6.1] - 2026-08-20
 
 ### Fixed

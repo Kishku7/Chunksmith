@@ -1,0 +1,124 @@
+package com.kishku7.chunksmith.util;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+/**
+ * The state machine behind the auto-pause policy: pause when the server cannot sustain a run, resume when it
+ * can, and never undo a decision a human made.
+ *
+ * <p>Both directions need patience, and the tests care most about the impatient failures: pausing on
+ * a blip stops a healthy run for an autosave, and resuming on a blip walks straight back into the
+ * wall that caused the pause.
+ */
+public class AutoPauseTest {
+
+    private static final long T0 = 1_000_000L;
+    private static final long GRACE = 120_000L;
+
+    @Before
+    public void reset() {
+        AutoPause.clear();
+        AutoPause.configure(true, GRACE);
+    }
+
+    @After
+    public void tearDown() {
+        AutoPause.clear();
+    }
+
+    @Test
+    public void aBriefStallDoesNotPauseARun() {
+        AutoPause.noteGated(true, T0);
+        assertFalse(AutoPause.shouldPause(T0 + GRACE - 1));
+        // Recovered before the grace expired: the clock must start over, not carry on.
+        AutoPause.noteGated(false, T0 + GRACE - 1);
+        AutoPause.noteGated(true, T0 + GRACE);
+        assertFalse("an autosave must not stop a run", AutoPause.shouldPause(T0 + GRACE + 1));
+    }
+
+    @Test
+    public void asustainedStallDoesPauseIt() {
+        AutoPause.noteGated(true, T0);
+        AutoPause.noteGated(true, T0 + 60_000L);
+        assertTrue(AutoPause.shouldPause(T0 + GRACE));
+        assertEquals(120L, AutoPause.gatedSeconds(T0 + GRACE));
+    }
+
+    @Test
+    public void aBriefRecoveryDoesNotResume() {
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteHealthy(true, T0);
+        assertFalse(AutoPause.shouldResume(T0 + GRACE - 1));
+        AutoPause.noteHealthy(false, T0 + GRACE - 1);
+        AutoPause.noteHealthy(true, T0 + GRACE);
+        assertFalse("resuming on a blip walks back into the same wall",
+                AutoPause.shouldResume(T0 + GRACE + 1));
+    }
+
+    @Test
+    public void asustainedRecoveryDoesResume() {
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteHealthy(true, T0);
+        assertTrue(AutoPause.shouldResume(T0 + GRACE));
+        assertEquals("minecraft:overworld", AutoPause.pausedWorld());
+    }
+
+    @Test
+    public void onlyOurOwnPauseIsEverResumed() {
+        AutoPause.noteHealthy(true, T0);
+        assertFalse("nothing paused it, so there is nothing to resume",
+                AutoPause.shouldResume(T0 + GRACE * 10));
+    }
+
+    @Test
+    public void aHumanPauseOutranksUsInBothDirections() {
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteHealthy(true, T0);
+        AutoPause.clear();
+        assertFalse(AutoPause.isAutoPaused());
+        assertFalse("a deliberate pause must stay paused", AutoPause.shouldResume(T0 + GRACE * 10));
+    }
+
+    @Test
+    public void disabledMeansNeitherDirectionEverFires() {
+        AutoPause.configure(false, GRACE);
+        AutoPause.noteGated(true, T0);
+        assertFalse(AutoPause.shouldPause(T0 + GRACE * 10));
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteHealthy(true, T0);
+        assertFalse(AutoPause.shouldResume(T0 + GRACE * 10));
+    }
+
+    @Test
+    public void pausingTwiceIsNotPossible() {
+        AutoPause.noteGated(true, T0);
+        assertTrue(AutoPause.shouldPause(T0 + GRACE));
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteGated(true, T0 + GRACE);
+        assertFalse("already paused -- there is nothing left to stop",
+                AutoPause.shouldPause(T0 + GRACE * 3));
+    }
+
+    @Test
+    public void resumingClearsTheStateSoTheNextStallStartsFresh() {
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteHealthy(true, T0);
+        assertTrue(AutoPause.shouldResume(T0 + GRACE));
+        AutoPause.clearAutoPaused();
+        assertFalse(AutoPause.isAutoPaused());
+        assertFalse(AutoPause.shouldResume(T0 + GRACE * 2));
+    }
+
+    @Test
+    public void describeCarriesNoPercentSignBecauseTheSenderFormatsIt() {
+        AutoPause.markAutoPaused("minecraft:overworld");
+        assertFalse(AutoPause.describe().contains("%"));
+        assertTrue(String.format(AutoPause.describe()).length() > 0);
+    }
+}

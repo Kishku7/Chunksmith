@@ -11,7 +11,9 @@ import net.minecraft.server.level.ServerLevel;
 //[[[end]]]
 import com.kishku7.chunksmith.PlatformCompat;
 import com.kishku7.chunksmith.ChunksmithProvider;
+import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
+import com.kishku7.chunksmith.util.HeapPressure;
 import com.kishku7.chunksmith.util.ChunkSettleSupport;
 import com.kishku7.chunksmith.util.UnloadDiagnostics;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
@@ -176,6 +178,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         // only when a new chunk was offered, so holding dispatch stopped the frontier shrinking and the
         // residency gate suppressed its own recovery.
         ChunkSettleSupport.tick(this.chunksmith$gameTimeForSettle());
+        this.chunksmith$tickAutoResume(wgRunning);
         WorldgenOverreachReporter.get().tick(wgRunning);
         StructureFaultReporter.get().tick(wgRunning);
     }
@@ -350,6 +353,43 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
                     tally.append(e.getKey()).append('=').append(e.getValue());
                 });
         UnloadDiagnostics.reportTicketTally(tally.length() == 0 ? "no tickets on resident chunks" : tally.toString());
+    }
+
+    /**
+     * Watch for the server recovering, and restart a run WE paused.
+     *
+     * <p>Deliberately outside {@code GenerationTask}: the task is gone by the time this matters, so
+     * the thing that restarts it cannot live inside it. Only a run auto-paused by Chunksmith is ever
+     * resumed -- a human {@code /cs pause} is a decision, not a fault, and must stay paused.
+     *
+     * <p>"Healthy" is the tick keeping up AND the heap having real headroom. Both, because either one
+     * alone comes back before the other and a resume on half the evidence just walks into the same
+     * wall. The grace period then requires it to HOLD.
+     */
+    @Unique
+    private void chunksmith$tickAutoResume(final boolean generationRunning) {
+        if (!AutoPause.isAutoPaused() || generationRunning) {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        final double heap = HeapPressure.usedPercent();
+        final boolean healthy = this.chunksmith$mspt <= 55.0D && heap >= 0.0D && heap < 70.0D;
+        AutoPause.noteHealthy(healthy, now);
+        if (!AutoPause.shouldResume(now)) {
+            return;
+        }
+        final String world = AutoPause.pausedWorld();
+        AutoPause.clearAutoPaused();
+        if (!ChunksmithProvider.isLoaded()) {
+            return;
+        }
+        final com.kishku7.chunksmith.Chunksmith chunky = ChunksmithProvider.get();
+        chunky.getServer().getConsole().sendMessagePrefixed(
+                com.kishku7.chunksmith.util.TranslationKey.TASK_AUTO_RESUMED,
+                AutoPause.graceMillis() / 1000L, world);
+        chunky.getCommands().get(com.kishku7.chunksmith.command.CommandLiteral.CONTINUE)
+                .execute(chunky.getServer().getConsole(),
+                        com.kishku7.chunksmith.command.CommandArguments.empty());
     }
 
     @Override

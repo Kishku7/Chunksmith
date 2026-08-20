@@ -54,6 +54,9 @@ public final class ConfigSettings {
             integer("throttleMaxLodQueue", Config::getThrottleMaxLodQueue, Config::setThrottleMaxLodQueue),
             integer("throttleMaxAddedChunks", Config::getThrottleMaxAddedChunks, Config::setThrottleMaxAddedChunks),
             integer("throttleMaxHeapPercent", Config::getThrottleMaxHeapPercent, Config::setThrottleMaxHeapPercent),
+            bool("autoPauseOnOverload", Config::isAutoPauseEnabled, Config::setAutoPauseEnabled),
+            integer("autoPauseGraceSeconds", config -> (long) config.getAutoPauseGraceSeconds(),
+                    (config, value) -> config.setAutoPauseGraceSeconds((int) value)),
             of("lodEnabled", ConfigSetting.Kind.TRISTATE,
                     config -> config.getLodMode().name().toLowerCase(Locale.ROOT),
                     (config, raw) -> {

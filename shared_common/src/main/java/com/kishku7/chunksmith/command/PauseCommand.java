@@ -21,6 +21,10 @@ public class PauseCommand implements ChunksmithCommand {
 
     @Override
     public void execute(final Sender sender, final CommandArguments arguments) {
+        // A human pause outranks auto-pause in both directions: it must not be undone by the resume
+        // watcher, and it clears any outstanding auto-pause so a later recovery does not restart a
+        // run the operator deliberately stopped.
+        com.kishku7.chunksmith.util.AutoPause.clear();
         final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         if (generationTasks.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_PAUSE_NO_TASKS);

@@ -6,7 +6,7 @@
 // dev-time @Inject/@Redirect/@Accessor/@Invoker target names to their SRG runtime names. The refmap is
 // produced by the SpongePowered mixin annotation processor (org.spongepowered:mixin:0.8.5:processor),
 // wired via the org.spongepowered.mixin gradle plugin's mixin{} block. This is the same proven
-// toolchain the old-branch 1.20.1 Forge cell used (and Dave's other 1.20.1 Forge/NeoForge mods).
+// toolchain the old-branch 1.20.1 Forge cell used (and the other 1.20.1 Forge/NeoForge mods here).
 //
 // On 1.20.1 "NeoForge" is the project's first release: net.neoforged:forge:1.20.1-47.x still uses the
 // net.minecraftforge.* API namespace, so this cell is built against net.minecraftforge:forge:1.20.1-47.x

@@ -2,6 +2,7 @@ package com.kishku7.chunksmith.command;
 
 import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.platform.Sender;
+import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.Debug;
 import com.kishku7.chunksmith.util.TicketLedger;
@@ -52,6 +53,7 @@ public class DebugCommand implements ChunksmithCommand {
         } else {
             sender.sendMessagePrefixed("Debug logging disabled.");
         }
+        sender.sendMessagePrefixed("Auto-pause: " + AutoPause.describe());
         sender.sendMessagePrefixed("Chunk residency: " + ChunkResidency.describe());
         sender.sendMessagePrefixed("Chunk unloading: " + UnloadDiagnostics.describe());
         sender.sendMessagePrefixed("Chunksmith tickets: " + TicketLedger.describe());

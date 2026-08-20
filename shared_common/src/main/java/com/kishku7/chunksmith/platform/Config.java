@@ -72,6 +72,24 @@ public interface Config {
     long getThrottleMaxHeapPercent();
 
     /**
+     * Pause a run when the server cannot sustain it, and resume it when the server recovers.
+     *
+     * <p>ON by default (maintainer decision, 2026-08-20). A gated pre-gen on an overloaded server
+     * stop, it stutters -- measured at 60 chunks in two minutes, which looks exactly like a hang and
+     * keeps the server under load for nothing. Stopping with a stated reason is better, and starting
+     * again by itself costs the operator nothing. Turn it off to have a run push on regardless.
+     */
+    boolean isAutoPauseEnabled();
+
+    /**
+     * How long the server must stay in a state -- bad, then good -- before auto-pause acts on it.
+     *
+     * <p>Applies to BOTH directions. Pausing on the first bad second would stop a run for a passing
+     * autosave; resuming on the first good second would restart it into the same wall.
+     */
+    int getAutoPauseGraceSeconds();
+
+    /**
      * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean.
      *
      * <p>Default {@link LodMode#AUTO}: LOD generation turns itself ON when an LOD renderer (Distant
@@ -193,6 +211,10 @@ public interface Config {
     void setThrottleMaxAddedChunks(long chunks);
 
     void setThrottleMaxHeapPercent(long percent);
+
+    void setAutoPauseEnabled(boolean enabled);
+
+    void setAutoPauseGraceSeconds(int seconds);
 
     void setThrottleMaxLodQueue(long items);
 

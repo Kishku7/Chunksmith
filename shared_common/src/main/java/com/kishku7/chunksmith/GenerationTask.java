@@ -14,6 +14,7 @@ import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.shape.Shape;
 import com.kishku7.chunksmith.shape.ShapeFactory;
 import com.kishku7.chunksmith.util.ChunkCoordinate;
+import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.HeapPressure;
 import com.kishku7.chunksmith.util.Input;
@@ -162,6 +163,8 @@ public class GenerationTask implements Runnable {
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
         this.maxHeapPercent = chunky.getConfig().getThrottleMaxHeapPercent();
+        AutoPause.configure(chunky.getConfig().isAutoPauseEnabled(),
+                chunky.getConfig().getAutoPauseGraceSeconds() * 1000L);
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
         // exist" means anything -- see ChunkSettleWindow (mod_support #14).
@@ -585,6 +588,19 @@ public class GenerationTask implements Runnable {
                 evaluateChunkResidency();
                 evaluateHeapPressure();
                 final boolean gated = writeQueueStalled || chunkResidencyStalled || heapStalled;
+                final long gateNow = System.currentTimeMillis();
+                AutoPause.noteGated(gated, gateNow);
+                if (AutoPause.shouldPause(gateNow)) {
+                    // Stuttering is worse than stopping: on a server that cannot keep up, the
+                    // never-wedge valve lets through about a second of work every grace period and
+                    // nothing useful gets generated, while the server stays under load throughout.
+                    // Stop, say why, and let the resume watcher restart it when the pressure lifts.
+                    chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_AUTO_PAUSED,
+                            selection.world().getName(), AutoPause.gatedSeconds(gateNow));
+                    AutoPause.markAutoPaused(selection.world().getName());
+                    stop(false);
+                    break;
+                }
                 if (gated != heldNotified) {
                     heldNotified = gated;
                     ChunkResidency.noteGenerationHeld(gated);
