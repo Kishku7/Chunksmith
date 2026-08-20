@@ -33,21 +33,29 @@ public class AutoPauseTest {
     }
 
     @Test
+    public void tickTroubleCountsEvenWhenNoGateOfOursIsClosed() {
+        // The 3.7.0 flaw: keyed on our gates alone, auto-pause sat idle through twelve "Can't keep
+        // up" warnings because the chunk gate was off and the heap was under its threshold.
+        AutoPause.noteStruggling(true, T0);
+        assertTrue("struggling is struggling, whoever caused it", AutoPause.shouldPause(T0 + GRACE));
+    }
+
+    @Test
     public void aBriefStallDoesNotPauseARun() {
-        AutoPause.noteGated(true, T0);
+        AutoPause.noteStruggling(true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE - 1));
         // Recovered before the grace expired: the clock must start over, not carry on.
-        AutoPause.noteGated(false, T0 + GRACE - 1);
-        AutoPause.noteGated(true, T0 + GRACE);
+        AutoPause.noteStruggling(false, T0 + GRACE - 1);
+        AutoPause.noteStruggling(true, T0 + GRACE);
         assertFalse("an autosave must not stop a run", AutoPause.shouldPause(T0 + GRACE + 1));
     }
 
     @Test
     public void asustainedStallDoesPauseIt() {
-        AutoPause.noteGated(true, T0);
-        AutoPause.noteGated(true, T0 + 60_000L);
+        AutoPause.noteStruggling(true, T0);
+        AutoPause.noteStruggling(true, T0 + 60_000L);
         assertTrue(AutoPause.shouldPause(T0 + GRACE));
-        assertEquals(120L, AutoPause.gatedSeconds(T0 + GRACE));
+        assertEquals(120L, AutoPause.strugglingSeconds(T0 + GRACE));
     }
 
     @Test
@@ -88,7 +96,7 @@ public class AutoPauseTest {
     @Test
     public void disabledMeansNeitherDirectionEverFires() {
         AutoPause.configure(false, GRACE);
-        AutoPause.noteGated(true, T0);
+        AutoPause.noteStruggling(true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE * 10));
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
@@ -97,10 +105,10 @@ public class AutoPauseTest {
 
     @Test
     public void pausingTwiceIsNotPossible() {
-        AutoPause.noteGated(true, T0);
+        AutoPause.noteStruggling(true, T0);
         assertTrue(AutoPause.shouldPause(T0 + GRACE));
         AutoPause.markAutoPaused("minecraft:overworld");
-        AutoPause.noteGated(true, T0 + GRACE);
+        AutoPause.noteStruggling(true, T0 + GRACE);
         assertFalse("already paused -- there is nothing left to stop",
                 AutoPause.shouldPause(T0 + GRACE * 3));
     }

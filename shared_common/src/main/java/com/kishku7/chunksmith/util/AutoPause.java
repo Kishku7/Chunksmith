@@ -52,15 +52,18 @@ public final class AutoPause {
     }
 
     /**
-     * Report whether generation is currently held by one of our throttle gates.
+     * Report whether the server is currently unable to sustain the run.
      *
-     * <p>Gated is the right signal rather than raw tick time: it already means "we have stopped
-     * dispatching and the server still is not recovering", which is exactly the condition that makes
-     * continuing pointless. Reading tick health directly would also fire on load that has nothing to
-     * do with us.
+     * <p><b>Not just "our gate is closed".</b> That was the first version of this and it was too
+     * narrow: on a live server with the chunk gate off and the heap under its threshold, nothing of
+     * ours ever closed while the server logged twelve "Can't keep up" warnings and generation fell to
+     * 5 chunks per second. Auto-pause could not see the very situation it exists for. The condition
+     * is "cannot sustain", which is either of our gates holding OR the tick running far past the
+     * target the throttle steers to -- load that has nothing to do with us still means a pre-gen
+     * should not be adding to it.
      */
-    public static void noteGated(final boolean gated, final long now) {
-        if (!gated) {
+    public static void noteStruggling(final boolean struggling, final long now) {
+        if (!struggling) {
             gatedSince = 0L;
         } else if (gatedSince == 0L) {
             gatedSince = now;
@@ -72,8 +75,8 @@ public final class AutoPause {
         return enabled && !autoPaused && gatedSince != 0L && now - gatedSince >= graceMillis;
     }
 
-    /** How long the current hold has lasted, in seconds, for the message. */
-    public static long gatedSeconds(final long now) {
+    /** How long the server has been struggling, in seconds, for the message. */
+    public static long strugglingSeconds(final long now) {
         return gatedSince == 0L ? 0L : Math.max(0L, (now - gatedSince) / 1000L);
     }
 

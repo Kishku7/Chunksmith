@@ -589,14 +589,22 @@ public class GenerationTask implements Runnable {
                 evaluateHeapPressure();
                 final boolean gated = writeQueueStalled || chunkResidencyStalled || heapStalled;
                 final long gateNow = System.currentTimeMillis();
-                AutoPause.noteGated(gated, gateNow);
+                // "Cannot sustain" is either of our gates holding OR the tick running far past the
+                // target the throttle steers to. The gates alone are too narrow: with the chunk gate
+                // off and the heap under its threshold, a live server logged twelve "Can't keep up"
+                // warnings at 5 cps and nothing of ours ever closed, so auto-pause could not see the
+                // situation it exists for. Twice the target is well clear of a healthy pre-gen and
+                // well short of a server that is merely busy.
+                final double mspt = chunky.getServer().getMillisPerTick();
+                final boolean tickFarBehind = mspt >= 0.0D && mspt > targetMspt * 2.0D;
+                AutoPause.noteStruggling(gated || tickFarBehind, gateNow);
                 if (AutoPause.shouldPause(gateNow)) {
                     // Stuttering is worse than stopping: on a server that cannot keep up, the
                     // never-wedge valve lets through about a second of work every grace period and
                     // nothing useful gets generated, while the server stays under load throughout.
                     // Stop, say why, and let the resume watcher restart it when the pressure lifts.
                     chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_AUTO_PAUSED,
-                            selection.world().getName(), AutoPause.gatedSeconds(gateNow));
+                            selection.world().getName(), AutoPause.strugglingSeconds(gateNow));
                     AutoPause.markAutoPaused(selection.world().getName());
                     stop(false);
                     break;

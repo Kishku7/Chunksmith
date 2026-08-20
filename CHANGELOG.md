@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [3.7.1] - 2026-08-20
+
+### Fixed
+
+- **Auto-pause could not see the situation it exists for.** 3.7.0 triggered only when one of
+  Chunksmith's own throttle gates was holding dispatch. On a live server with the chunk gate off
+  (its default) and the heap below its threshold, nothing of ours ever closed while the server
+  logged **twelve "Can't keep up" warnings and generation fell to 5 chunks per second** -- and
+  auto-pause sat idle through all of it.
+
+  The condition is now "the server cannot sustain this run", which is either of our gates holding
+  **or** the tick running past twice the target the throttle steers to. Load that has nothing to do
+  with Chunksmith still means a pre-gen should not be adding to it. Twice the target is well clear of
+  a healthy pre-gen and well short of a server that is merely busy.
+
 ## [3.7.0] - 2026-08-20
 
 ### Added
