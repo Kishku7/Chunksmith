@@ -130,13 +130,6 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Unique
     private int chunksmith$lastPlayerCount = -1;
 
-    /** When the ticket-level histogram was last walked. It is O(resident), so not every tick. */
-    @Unique
-    private long chunksmith$lastLevelSampleMillis = 0L;
-
-    /** How often to walk it. Ten seconds of a number that moves slowly is plenty. */
-    @Unique
-    private static final long CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS = 10_000L;
     @Unique
     private long chunksmith$lastTickNanos = 0L;
 
@@ -208,23 +201,24 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // the unload backlog most needs draining -- the throttle would be throttling the cure. While
             // a run is active, arm it every tick.
             this.chunksmith$markChunkSystemHousekeeping();
-            final long now = System.nanoTime();
-            final long prev = this.chunksmith$lastTickNanos;
-            this.chunksmith$lastTickNanos = now;
-            if (prev != 0L) {
-                final double dtMs = (now - prev) / 1.0e6D;
-                // Ignore absurd gaps (first tick after a pause, GC stalls) so one outlier
-                // can't poison the average.
-                if (dtMs > 0.0D && dtMs < 10_000.0D) {
-                    this.chunksmith$mspt = (this.chunksmith$mspt * 0.8D) + (dtMs * 0.2D);
-                }
+        }
+        // Tick health is measured EVERY tick, generating or not. It used to be sampled only while a
+        // run was active and reset to a nominal 50 ms otherwise, so a run had no idea what the server
+        // cost BEFORE it started and the throttle could only steer on ABSOLUTE tick time. On a server
+        // whose idle baseline already sits at the configured target that is fatal: the governor never
+        // sees a healthy tick, pins dispatch at 1 for ever, and blames itself for load it is not
+        // causing. Measured on a live server: 74.9 ms with the pre-gen PAUSED against a target of 75,
+        // and 85.2 ms with it running -- the run itself cost 10 ms and was throttled to 2 chunks/sec.
+        final long now = System.nanoTime();
+        final long prev = this.chunksmith$lastTickNanos;
+        this.chunksmith$lastTickNanos = now;
+        if (prev != 0L) {
+            final double dtMs = (now - prev) / 1.0e6D;
+            // Ignore absurd gaps (first tick after a pause, GC stalls) so one outlier cannot poison
+            // the average.
+            if (dtMs > 0.0D && dtMs < 10_000.0D) {
+                this.chunksmith$mspt = (this.chunksmith$mspt * 0.8D) + (dtMs * 0.2D);
             }
-        } else {
-            // No active generation -- reset so the next run starts from a clean, healthy baseline
-            // rather than a stale idle-sleep interval. The residency reading is deliberately NOT
-            // cleared here: a run that has just ended is exactly when its backlog must stay visible.
-            this.chunksmith$lastTickNanos = 0L;
-            this.chunksmith$mspt = 50.0D;
         }
     }
 
@@ -272,87 +266,6 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         }
         ChunkResidency.report(loaded);
         UnloadDiagnostics.report(loaded, toDrop, unloadQueue, pendingUnloads, hasTickets);
-        this.chunksmith$sampleChunkLevels();
-    }
-
-    /**
-     * Bucket every resident chunk by its ticket level.
-     *
-     * <p>The last question standing. Chunksmith's own ledger has ruled our tickets out -- a few
-     * hundred outstanding while eleven thousand chunks sat resident -- so either something ELSE holds
-     * these chunks at a live level, or nothing holds them and vanilla is simply not dropping them.
-     * The level is what decides, and {@code DistanceManager.getChunkLevel} is public on every
-     * supported version, so this needs no new plumbing beyond the resident map itself.
-     *
-     * <p>Thresholds follow {@code ChunkLevel}: 33 is FULL, and 44 and above is past the maximum a
-     * loaded chunk may have, which is precisely "nothing wants this".
-     */
-    @Unique
-    private void chunksmith$sampleChunkLevels() {
-        final long now = System.currentTimeMillis();
-        if (now - this.chunksmith$lastLevelSampleMillis < CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS) {
-            return;
-        }
-        this.chunksmith$lastLevelSampleMillis = now;
-        long ticking = 0L;
-        long loadedLevel = 0L;
-        long droppable = 0L;
-        final StringBuilder sample = new StringBuilder();
-        int sampled = 0;
-        // Tally every ticket on every resident chunk BY TYPE. Six sampled strings named the suspect;
-        // this counts it. "How many" is the difference between a clue and a cause.
-        final java.util.Map<String, Integer> byType = new java.util.HashMap<>();
-        for (ServerLevel level : this.getAllLevels()) {
-            final net.minecraft.server.level.ChunkMap map = level.getChunkSource().chunkMap;
-            final net.minecraft.server.level.DistanceManager distance = map.getDistanceManager();
-            final net.minecraft.world.level.TicketStorage store =
-                    ((DistanceManagerMixin) distance).getTicketStorage();
-            for (final long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
-                for (final net.minecraft.server.level.Ticket ticket : store.getTickets(pos)) {
-                    byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
-                }
-                // Buckets taken from ChunkLevel itself, NOT from hand-written numbers. The first
-                // version of this used 33 and 44 from memory; MAX_LEVEL is actually
-                // 33 + RADIUS_AROUND_FULL_CHUNK, so "44" was wrong and two whole levels of droppable
-                // chunks were being counted as loaded. Reading the constant also makes the buckets
-                // correct on every MC version instead of just the one they were guessed for.
-                final int chunkLevel = distance.getChunkLevel(pos, false);
-                if (chunkLevel <= net.minecraft.server.level.ChunkLevel.byStatus(
-                        net.minecraft.world.level.chunk.status.ChunkStatus.FULL)) {
-                    ticking++;
-                    // Read the ticket rather than guess at it. A handful is enough to name a type.
-                    if (sampled < 6) {
-                        sampled++;
-                        if (sample.length() > 0) {
-                            sample.append(" | ");
-                        }
-                        sample.append(new net.minecraft.world.level.ChunkPos(pos))
-                                .append(" lvl=").append(chunkLevel)
-                                .append(" load=").append(store.getTicketDebugString(pos, false))
-                                .append(" sim=").append(store.getTicketDebugString(pos, true));
-                    }
-                } else if (net.minecraft.server.level.ChunkLevel.isLoaded(chunkLevel)) {
-                    // 34..MAX_LEVEL: not accessible, but still held as worldgen CONTEXT for a FULL
-                    // chunk nearby. A pre-gen inherently keeps this ring around its whole frontier.
-                    loadedLevel++;
-                } else {
-                    droppable++;
-                }
-            }
-        }
-        UnloadDiagnostics.reportLevels(ticking, loadedLevel, droppable, now);
-        UnloadDiagnostics.reportTicketSample(sampled == 0 ? "no chunk at a ticking level" : sample.toString());
-        final StringBuilder tally = new StringBuilder();
-        byType.entrySet().stream()
-                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                .limit(6)
-                .forEach(e -> {
-                    if (tally.length() > 0) {
-                        tally.append(", ");
-                    }
-                    tally.append(e.getKey()).append('=').append(e.getValue());
-                });
-        UnloadDiagnostics.reportTicketTally(tally.length() == 0 ? "no tickets on resident chunks" : tally.toString());
     }
 
     /**

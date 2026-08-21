@@ -297,8 +297,16 @@ public final class LodSupport {
      * precisely where the CSLOD store has to exist -- it is the thing Chunksmith-Client downloads.
      * Left OFF, the multiplayer half of the feature does nothing until an operator finds a config key,
      * which is the bug we are fixing. The cost is bounded and only ever paid during a pregen the
-     * operator explicitly started (~16% wall clock, ~5.8 KB per chunk on disk), it is stated in the
-     * startup log, and one line of config turns it off.
+     * operator explicitly started (~5.8 KB per chunk on disk), it is stated in the startup log, and
+     * one line of config turns it off.
+     *
+     * <p>The wall-clock cost used to be quoted here as ~16 percent. MEASURED on a dedicated server
+     * 2026-08-20 and that is NOT true any more: 36.1 cps with LOD on against 34.2 cps with it off over
+     * matched windows -- no measurable difference, and the OFF run was slightly slower, which is
+     * terrain noise. The reason is that extraction runs on the server thread, and once dispatch width
+     * was raised the server thread stopped being the bottleneck: it profiled at ~10 percent utilised,
+     * with extraction 70 percent OF THAT -- a big slice of a small pie. Do not re-introduce a scary
+     * number here without re-measuring it.
      */
     public static boolean decide(final com.kishku7.chunksmith.platform.Config config,
                                  final MinecraftServer server) {
@@ -348,13 +356,13 @@ public final class LodSupport {
         }
         if (found != null) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled -- detected {}. "
-                            + "Pregen will build the CSLOD store (~5.8 KB/chunk, ~16% slower). "
+                            + "Pregen will build the CSLOD store (~5.8 KB/chunk; measured cost to pregen speed: none). "
                             + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.",
                     found);
         } else if (server != null && server.isDedicatedServer()) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled -- dedicated server. No renderer runs "
                     + "here, but the CSLOD store is what Chunksmith-Client downloads, so the store is "
-                    + "built (~5.8 KB/chunk, ~16% slower pregen). "
+                    + "built (~5.8 KB/chunk; measured cost to pregen speed: none). "
                     + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.");
         } else {
             LOGGER.info("Chunksmith: no LOD renderer detected (looked for {}); LOD generation off. "

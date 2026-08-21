@@ -186,6 +186,27 @@ def has_chunk_storage_accessor(mcver):
     return era(mcver) != "modern_11plus"
 
 
+def has_ticket_storage(mcver):
+    """Is net.minecraft.world.level.TicketStorage present, and reachable off DistanceManager?
+
+    Present on modern_11plus (1.21.11 and the 26.x line) ONLY. The 1.21.11 chunk-ticket rework
+    split the ticket store out of DistanceManager into its own TicketStorage class; before that
+    there is no such type and no `ticketStorage` field to @Accessor.
+
+    Gates the whole TICKET-DIAGNOSTIC seam added 2026-08-20 during a chunk-residency hunt:
+    DistanceManagerMixin (reaches the store so Chunksmith can NAME what is holding a chunk open),
+    TicketMixin (reads Ticket.ticksLeft, because vanilla isTimedOut() cannot see the state the
+    leaked minecraft:unknown tickets actually sit in), and the sweep/report blocks in
+    MinecraftServerMixin that use them.
+
+    Ungated, those files broke EVERY cell below 1.21.11 -- the diagnostics were written straight
+    against the live server that had the bug and never compiled anywhere else. Found when the
+    CRITICAL smoketest rebuild was attempted 2026-08-20 and Fabric/1.20.1 and Fabric/1.21.1 both
+    failed on `cannot find symbol: TicketStorage`.
+    """
+    return era(mcver) == "modern_11plus"
+
+
 def has_empty_ticks(mcver):
     """Does vanilla MinecraftServer carry the 'emptyTicks' idle-pause counter field?
 

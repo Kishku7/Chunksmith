@@ -86,19 +86,15 @@ public final class ChunkSettleSupport {
         }
     }
 
-    /**
-     * Hand back every held ticket in every live window, without retiring the windows.
-     *
-     * <p>Called when a throttle gate stops dispatch. See {@link ChunkSettleWindow#releaseAllHeld} for
-     * why a frozen frontier is worse than no frontier.
-     */
-    public static void flushAll() {
-        for (final ChunkSettleWindow window : LIVE) {
-            if (!window.isDrained()) {
-                window.releaseAllHeld();
-            }
-        }
-    }
+    // flushAll() REMOVED (2026-08-20). It handed back every held ticket at once, and its only caller
+    // was the dispatch loop -- which runs on the Chunksmith WORKER thread. Releasing a ticket calls
+    // removeTicketWithRadius, and the server thread is the only thread allowed to touch a chunk
+    // ticket (see ChunkSettleWindow's javadoc; mod_support #16 is that rule being broken). It
+    // corrupted the fastutil ticket graph on a live server and killed it via
+    // ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap.rehash plus a 60-second tick.
+    //
+    // Nothing replaces it: the frontier is bounded by pregenSettleMaxHeld and released by tick() on
+    // the server thread, which is where ticket work belongs.
 
     /** How many windows are live. Test-visible, because a registry that leaks is a ticket leak. */
     public static int liveWindowCount() {

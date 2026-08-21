@@ -153,6 +153,7 @@ try {
     $hasChunkStorage = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_chunk_storage_accessor('$McVer') else '0')")
     $hasSimpleRegionStorage = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_simple_region_storage_accessor('$McVer') else '0')")
     $hasMcServerAcc  = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_minecraft_server_access('$McVer') else '0')")
+    $hasTicketStorage = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_ticket_storage('$McVer') else '0')")
     $hangingClass    = (& python -c "import compat,sys; sys.stdout.write(compat.hanging_entity_class('$McVer'))")
     # JAVA_17 for 1.20.x and 26+ (as before). Also JAVA_17 for classic-Forge cells at MC 1.21/1.21.1:
     # Forge 51.0.0 (MC 1.21) bundles Mixin 0.8.5 which does not recognise JAVA_21 and hard-crashes at
@@ -182,6 +183,25 @@ if ($hasMcServerAcc -eq '1') {
 } else {
     if (Test-Path $mcServerAccDst) { Remove-Item -Force $mcServerAccDst }
     Write-Host "[cog-gen] - MinecraftServerAccess (absent on $McVer)"
+}
+
+# TICKET DIAGNOSTICS (2026-08-20). TicketStorage + the chunk.status ChunkStatus package are
+# 1.21.11-and-newer shapes. These three files were written against the live server that had the
+# residency bug and compiled NOWHERE else -- which is how the entire 3.5-3.13 line ended up with jars
+# for 1.21.11 only, and therefore no CRITICAL smoketest coverage at all. Gate them like any other
+# presence-drift file: where the gate is false the class is NOT GENERATED, so there is no stub to
+# maintain and chunksmith.mixins.json (regenerated from the files present) drops them automatically.
+$ticketDiagFiles = @(
+    (Join-Path $genJava (Join-Path $mixinPkg 'MinecraftServerTicketsMixin.java')),
+    (Join-Path $genJava (Join-Path $mixinPkg 'DistanceManagerMixin.java')),
+    (Join-Path $genJava (Join-Path $mixinPkg 'TicketMixin.java'))
+)
+if ($hasTicketStorage -eq '1') {
+    Write-Host "[cog-gen] + ticket diagnostics (TicketStorage present on $McVer)"
+    # already copied from shared_minecraft; leave them.
+} else {
+    foreach ($f in $ticketDiagFiles) { if (Test-Path $f) { Remove-Item -Force $f } }
+    Write-Host "[cog-gen] - ticket diagnostics (no TicketStorage on $McVer)"
 }
 
 # SimpleRegionStorage landed at 1.20.5; on ancient (1.20.1/1.20.4) the class does not exist, so

@@ -17,6 +17,7 @@ import com.kishku7.chunksmith.util.ChunkCoordinate;
 import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.HeapPressure;
+import com.kishku7.chunksmith.util.TickBudget;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.util.Pair;
 import com.kishku7.chunksmith.util.RegionCache;
@@ -33,7 +34,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 public class GenerationTask implements Runnable {
-    private static final int MAX_WORKING_COUNT = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount")).orElse(50);
+    /**
+     * Fallback width when the config cannot answer. The system property is retained so an operator who
+     * already set {@code -Dchunksmith.maxWorkingCount} on the command line keeps that value as their
+     * default; the {@code dispatchMaxConcurrent} config key overrides it and is settable live.
+     */
+    private static final int DEFAULT_WORKING_COUNT = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount")).orElse(50);
     private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunksmith.sampleInterval")).orElse(30), 30);
     private static final double SAMPLE_SUB_INTERVAL = SAMPLE_INTERVAL / 30;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
@@ -95,7 +101,9 @@ public class GenerationTask implements Runnable {
     private final Progress progress;
     private final RegionCache.WorldState worldState;
     private final AtomicInteger inFlight = new AtomicInteger(0);
-    private final AtomicInteger dispatchLimit = new AtomicInteger(MAX_WORKING_COUNT);
+    private final AtomicInteger dispatchLimit = new AtomicInteger(DEFAULT_WORKING_COUNT);
+    /** Pipeline WIDTH for this run -- see Config#getDispatchMaxConcurrent for why width is the lever. */
+    private final int maxWorkingCount;
     private final AtomicLong lastThrottleNoticeTime = new AtomicLong(0);
     private final AtomicLong lastRampTime = new AtomicLong(0);
     private final AtomicLong lastBackoffTime = new AtomicLong(0);
@@ -113,6 +121,7 @@ public class GenerationTask implements Runnable {
     private long lastQueuedObserved = -1L;
     private final long maxAddedChunks;
     private final long maxHeapPercent;
+    private final long tickBudgetMillis;
     private final AtomicLong lastHeapCheckTime = new AtomicLong(0);
     private final AtomicLong lastHeapNoticeTime = new AtomicLong(0);
     private volatile boolean heapStalled;
@@ -161,8 +170,14 @@ public class GenerationTask implements Runnable {
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
+        this.maxWorkingCount = (int) Math.max(1L, chunky.getConfig().getDispatchMaxConcurrent());
+        this.dispatchLimit.set(this.maxWorkingCount);
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
         this.maxHeapPercent = chunky.getConfig().getThrottleMaxHeapPercent();
+        this.tickBudgetMillis = chunky.getConfig().getThrottleTickBudgetMillis();
+        TickBudget.configure(this.tickBudgetMillis,
+                chunky.getConfig().getThrottlePlayerReserveMillis(),
+                chunky.getConfig().getThrottleCeilingMillis());
         AutoPause.configure(chunky.getConfig().isAutoPauseEnabled(),
                 chunky.getConfig().getAutoPauseGraceSeconds() * 1000L);
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
@@ -227,7 +242,7 @@ public class GenerationTask implements Runnable {
         progress.chunkX = chunkX;
         progress.chunkZ = chunkZ;
         progress.dispatchCurrent = dispatchLimit.get();
-        progress.dispatchMax = MAX_WORKING_COUNT;
+        progress.dispatchMax = maxWorkingCount;
         chunky.getEventBus().call(new GenerationProgressEvent(progress.world, progress.chunkCount, progress.complete, progress.percentComplete, progress.hours, progress.minutes, progress.seconds, progress.rate, progress.chunkX, progress.chunkZ));
         if (progress.complete) {
             progress.sendUpdate(chunky.getServer().getConsole());
@@ -262,11 +277,60 @@ public class GenerationTask implements Runnable {
         if (mspt < 0.0D) {
             return;
         }
-        if (mspt > targetMspt + MSPT_BAND) {
+        // "Our work is in flight" must mean we are actually adding load. A run held by one of our own
+        // gates -- or holding itself still for a baseline probe -- has stopped dispatching, so those
+        // ticks are baseline samples.
+        final boolean addingLoad = inFlight.get() > 0
+                && !writeQueueStalled && !chunkResidencyStalled && !heapStalled
+                && !TickBudget.isProbing();
+        TickBudget.sample(mspt, addingLoad, chunky.getServer().getPlayers().size());
+        final double target = effectiveTargetMspt();
+        if (mspt > target + MSPT_BAND) {
             backoff();
-        } else if (mspt < targetMspt - MSPT_BAND) {
-            rampUp();
+        } else if (mspt < target - MSPT_BAND) {
+            // RECOVERY, not just back-off. A single spike used to cost a full second of climbing back
+            // at +1 per second, and a run that spent its life one step below the limit left work on
+            // the table for no reason. The further under target we are, the faster we climb.
+            final double headroom = target - mspt;
+            int steps = 1;
+            if (headroom > MSPT_BAND * 4.0D) {
+                steps = 8;
+            } else if (headroom > MSPT_BAND * 2.0D) {
+                steps = 3;
+            }
+            for (int i = 0; i < steps; i++) {
+                rampUp(steps > 1);
+            }
         }
+    }
+
+    /**
+     * What tick cost this run should steer to.
+     *
+     * <p>An ABSOLUTE target cannot work on a busy server, and this was not theoretical: measured on a
+     * live server, the tick cost 74.9 ms with the pre-gen PAUSED against a configured target of 75.
+     * The governor could therefore never observe a healthy tick -- it backs off above target+band and
+     * only ramps below target-band, and the server never got below target-band even doing nothing --
+     * so it pinned dispatch at 1 permanently and throttled the run to 2 chunks/sec while the run
+     * itself was costing 10 ms.
+     *
+     * <p>So the target is whichever is HIGHER: the operator's absolute figure, or what the server
+     * already costs plus the budget this run is allowed to add. That bounds what Chunksmith COSTS
+     * instead of demanding the whole server be healthy in absolute terms -- the same
+     * delta-not-absolute correction already applied to chunk residency.
+     */
+    private double effectiveTargetMspt() {
+        if (tickBudgetMillis <= 0L) {
+            return targetMspt;
+        }
+        final double measured = TickBudget.effectiveTarget();
+        if (measured < 0.0D) {
+            return targetMspt;
+        }
+        // Whichever is HIGHER. The operator's absolute figure is a floor, not a ceiling: on a server
+        // whose baseline already sits at it, obeying it literally is what pinned dispatch at 1 and
+        // throttled a run to 2 chunks/sec for load it was not causing.
+        return Math.max(targetMspt, measured);
     }
 
     /**
@@ -312,15 +376,26 @@ public class GenerationTask implements Runnable {
     }
 
     private void rampUp() {
+        rampUp(false);
+    }
+
+    /**
+     * @param burst skip the once-a-second rate limit -- used by the recovery path, where the whole
+     *              point is to climb back quickly instead of one step per second after a single spike
+     */
+    private void rampUp(final boolean burst) {
         final long now = System.currentTimeMillis();
         final long last = lastRampTime.get();
-        if (now - last < RAMP_INTERVAL_MS || !lastRampTime.compareAndSet(last, now)) {
+        if (!burst && (now - last < RAMP_INTERVAL_MS || !lastRampTime.compareAndSet(last, now))) {
             return;
+        }
+        if (burst) {
+            lastRampTime.set(now);
         }
         int current;
         do {
             current = dispatchLimit.get();
-            if (current >= MAX_WORKING_COUNT) {
+            if (current >= maxWorkingCount) {
                 return;
             }
         } while (!dispatchLimit.compareAndSet(current, current + 1));
@@ -331,7 +406,7 @@ public class GenerationTask implements Runnable {
         final long now = System.currentTimeMillis();
         final long last = lastThrottleNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastThrottleNoticeTime.compareAndSet(last, now)) {
-            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_THROTTLE_NOTICE, newLimit, MAX_WORKING_COUNT);
+            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_THROTTLE_NOTICE, newLimit, maxWorkingCount);
         }
     }
 
@@ -539,6 +614,7 @@ public class GenerationTask implements Runnable {
         // first dispatch so the gate below measures OUR growth and nothing else's.
         ChunkResidency.noteTaskStart();
         HeapPressure.reset();
+        TickBudget.reset();
         com.kishku7.chunksmith.util.TicketLedger.reset();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
@@ -587,6 +663,15 @@ public class GenerationTask implements Runnable {
                 adjustFromLodQueue();
                 evaluateChunkResidency();
                 evaluateHeapPressure();
+                // Periodically stop dispatching for a moment so the baseline can be re-measured. A
+                // baseline sampled once at the start and then trusted for ever is how a run came to
+                // attribute the server's own GC pressure to itself and throttle to 1/50.
+                //
+                // The probe holds dispatch but is NOT a throttle gate. Conflating the two crashed a
+                // live server (2026-08-20 18:08): entering a gate used to hand back the whole settle
+                // frontier at once, so a two-second measurement window was dumping hundreds of ticket
+                // mutations into the distance manager every two minutes.
+                final boolean probing = TickBudget.shouldProbe(System.currentTimeMillis());
                 final boolean gated = writeQueueStalled || chunkResidencyStalled || heapStalled;
                 final long gateNow = System.currentTimeMillis();
                 // "Cannot sustain" is either of our gates holding OR the tick running far past the
@@ -596,7 +681,13 @@ public class GenerationTask implements Runnable {
                 // situation it exists for. Twice the target is well clear of a healthy pre-gen and
                 // well short of a server that is merely busy.
                 final double mspt = chunky.getServer().getMillisPerTick();
-                final boolean tickFarBehind = mspt >= 0.0D && mspt > targetMspt * 2.0D;
+                // Compare against the ABSOLUTE ceiling, not the adaptive target. Once the target is
+                // derived from the baseline, "twice the target" moves with the server and becomes
+                // nearly unreachable -- auto-pause stopped being able to see a struggling server at
+                // all the moment the target went adaptive. Same shape as the 3.7.1 bug: a trigger
+                // keyed to the wrong reference.
+                final boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
+                        && mspt > TickBudget.effectiveTarget() + MSPT_BAND;
                 AutoPause.noteStruggling(gated || tickFarBehind, gateNow);
                 if (AutoPause.shouldPause(gateNow)) {
                     // Stuttering is worse than stopping: on a server that cannot keep up, the
@@ -612,13 +703,16 @@ public class GenerationTask implements Runnable {
                 if (gated != heldNotified) {
                     heldNotified = gated;
                     ChunkResidency.noteGenerationHeld(gated);
-                    if (gated) {
-                        // The frontier cannot complete while dispatch is stopped, so it would sit at
-                        // its cap holding tickets and prevent the unloading this gate is waiting for.
-                        com.kishku7.chunksmith.util.ChunkSettleSupport.flushAll();
-                    }
+                    // NO ticket work here. This loop runs on the Chunksmith WORKER thread, and the
+                    // server thread is the only one allowed to touch a chunk ticket -- ChunkSettleWindow
+                    // says so in its own javadoc, and mod_support #16 is that rule being broken. The
+                    // flush that used to live here called removeTicketWithRadius straight from this
+                    // thread; it corrupted the fastutil ticket graph and took a live server down with
+                    // ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap.rehash, then a 60-second
+                    // tick and a watchdog kill. The frontier is capped at pregenSettleMaxHeld and is
+                    // released through the tick pump on the server thread, which is enough.
                 }
-                if (!gated && inFlight.get() < Math.max(1, dispatchLimit.get())) {
+                if (!gated && !probing && inFlight.get() < Math.max(1, dispatchLimit.get())) {
                     break;
                 }
                 LockSupport.parkNanos(1_000_000L);
@@ -901,6 +995,19 @@ public class GenerationTask implements Runnable {
 
     public Shape getShape() {
         return shape;
+    }
+
+    /**
+     * True from the moment a stop was REQUESTED until the run loop actually exits.
+     *
+     * <p>Stopping is not instant -- the task drains its chunks first, which takes several seconds. The
+     * task stays in Chunksmith's live-task map for that whole window, so a `continue` issued during it
+     * used to be answered with "Task already started!" and then do nothing, leaving the operator with a
+     * STOPPED run and a message saying the opposite. Callers check this so they can say what is really
+     * happening instead.
+     */
+    public boolean isStopping() {
+        return stopped;
     }
 
     public boolean isCancelled() {

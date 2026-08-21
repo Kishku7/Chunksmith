@@ -6,16 +6,19 @@
   "mixins": [
     "BlockAttachedEntityMixin",
     "ChunkMapMixin",
+    "DistanceManagerMixin",
     "EntityStorageAccessor",
     "IOWorkerAccessor",
     "MinecraftServerAccess",
     "MinecraftServerMixin",
+    "MinecraftServerTicketsMixin",
     "PersistentEntitySectionManagerMixin",
     "RegionFileStorageAccessor",
     "ServerChunkCacheMixin",
     "ServerLevelMixin",
     "SimpleRegionStorageAccessor",
     "StructureStartMixin",
+    "TicketMixin",
     "WorldGenRegionMixin"
   ],
   "client": [

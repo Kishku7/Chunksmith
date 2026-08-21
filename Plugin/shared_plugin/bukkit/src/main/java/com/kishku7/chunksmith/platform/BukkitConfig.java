@@ -103,6 +103,21 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public long getThrottleTickBudgetMillis() {
+        return plugin.getConfig().getLong("throttle-tick-budget-millis", 25L);
+    }
+
+    @Override
+    public long getThrottlePlayerReserveMillis() {
+        return plugin.getConfig().getLong("throttle-player-reserve-millis", 20L);
+    }
+
+    @Override
+    public long getThrottleCeilingMillis() {
+        return plugin.getConfig().getLong("throttle-ceiling-millis", 150L);
+    }
+
+    @Override
     public boolean isAutoPauseEnabled() {
         return plugin.getConfig().getBoolean("auto-pause-on-overload", true);
     }
@@ -187,6 +202,11 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public long getDispatchMaxConcurrent() {
+        return plugin.getConfig().getLong("dispatch-max-concurrent", 50L);
+    }
+
+    @Override
     public boolean isLodDhOverrideEnabled() {
         return false;
     }
@@ -246,6 +266,24 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public void setThrottleTickBudgetMillis(final long millis) {
+        plugin.getConfig().set("throttle-tick-budget-millis", millis);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottlePlayerReserveMillis(final long millis) {
+        plugin.getConfig().set("throttle-player-reserve-millis", millis);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setThrottleCeilingMillis(final long millis) {
+        plugin.getConfig().set("throttle-ceiling-millis", millis);
+        plugin.saveConfig();
+    }
+
+    @Override
     public void setAutoPauseEnabled(final boolean enabled) {
         plugin.getConfig().set("auto-pause-on-overload", enabled);
         plugin.saveConfig();
@@ -267,6 +305,12 @@ public final class BukkitConfig implements Config {
     @Override
     public void setThrottleMaxLodQueue(final long items) {
         plugin.getConfig().set("throttle-max-lod-queue", items);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setDispatchMaxConcurrent(final long chunks) {
+        plugin.getConfig().set("dispatch-max-concurrent", chunks);
         plugin.saveConfig();
     }
 

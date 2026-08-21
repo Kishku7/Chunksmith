@@ -57,11 +57,51 @@ public final class GsonConfig implements Config {
     private static final int AUTO_PAUSE_GRACE_MIN = 10;
     private static final int AUTO_PAUSE_GRACE_MAX = 3600;
     private static final int AUTO_PAUSE_GRACE_DEFAULT = 120;
+    // How much tick time a pre-gen may ADD on top of whatever the server already costs. See
+    // Config#getThrottleTickBudgetMillis: an absolute target is unusable on a server whose idle
+    // baseline already sits at it. 25 ms is a quarter of a 100 ms tick and was measured to be more
+    // than the whole run was costing (10 ms) on the server that exposed this.
+    private static final long TICK_BUDGET_MIN = 5L;
+    private static final long TICK_BUDGET_MAX = 500L;
+    private static final long TICK_BUDGET_DEFAULT = 25L;
+    // Reserved per online player, taken out of our allowance. 20 ms is roughly double what a player
+    // was measured to cost, matching the "twice the measured cost" rule used for our own budget.
+    private static final long PLAYER_RESERVE_MIN = 0L;
+    private static final long PLAYER_RESERVE_MAX = 200L;
+    private static final long PLAYER_RESERVE_DEFAULT = 20L;
+    // Absolute playability ceiling. 150 ms is ~6.7 TPS: slow, but a server you can still be on.
+    // Vanilla's own target is 50 ms, so this already grants a pre-gen three times the normal budget.
+    private static final long CEILING_MIN = 60L;
+    private static final long CEILING_MAX = 2000L;
+    private static final long CEILING_DEFAULT = 150L;
     // Governor for the LOD sink. Voxy's ingest queue is unbounded and never reports saturation, so
     // this is the only thing standing between a fast pregen and an OOM.
     private static final long MAX_LOD_QUEUE_MIN = 16L;
     private static final long MAX_LOD_QUEUE_MAX = 100_000L;
     private static final long MAX_LOD_QUEUE_DEFAULT = 512L;
+    private static final long DISPATCH_MAX_CONCURRENT_MIN = 1L;
+    private static final long DISPATCH_MAX_CONCURRENT_MAX = 4096L;
+    /**
+     * Default pipeline width, scaled to the box.
+     *
+     * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated server
+     * (2026-08-20) 50 gave 31.6 cps while 200 gave 43.9 -- a 39 percent gain -- with residency and heap
+     * no worse, and no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because the real
+     * ceiling past that point is vanilla promoting roughly 2.2 chunks per tick at 20 tps.
+     *
+     * <p>So the knee is around 25 per core rather than a fixed number, and a fixed 200 would be wrong
+     * on a 2-core VPS for the same reason 50 was wrong on an 8-core box. Floor stays at the historic 50
+     * so no machine gets slower than it was; ceiling at 400 because nothing above the knee helps and
+     * every extra slot costs resident chunks.
+     *
+     * <p>The original {@code chunksmith.maxWorkingCount} system property still wins when set, so an
+     * operator who already tuned this on the command line is never silently overridden.
+     */
+    private static final long DISPATCH_MAX_CONCURRENT_DEFAULT =
+            com.kishku7.chunksmith.util.Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"))
+                    .map(Long::valueOf)
+                    .orElseGet(() -> Math.min(400L,
+                            Math.max(50L, Runtime.getRuntime().availableProcessors() * 25L)));
     private static final long SETTLE_DELAY_DEFAULT = 40L;
     private static final long SETTLE_DELAY_MAX = 600L;
     private static final int SETTLE_RADIUS_DEFAULT = 7;
@@ -227,6 +267,45 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public long getThrottleTickBudgetMillis() {
+        final long raw = Optional.ofNullable(configModel.throttleTickBudgetMillis).orElse(TICK_BUDGET_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        final long clamped = Math.max(TICK_BUDGET_MIN, Math.min(TICK_BUDGET_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: throttleTickBudgetMillis %d is out of range [%d, %d], using %d",
+                    raw, TICK_BUDGET_MIN, TICK_BUDGET_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
+    public long getThrottlePlayerReserveMillis() {
+        final long raw = Optional.ofNullable(configModel.throttlePlayerReserveMillis).orElse(PLAYER_RESERVE_DEFAULT);
+        final long clamped = Math.max(PLAYER_RESERVE_MIN, Math.min(PLAYER_RESERVE_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: throttlePlayerReserveMillis %d is out of range [%d, %d], using %d",
+                    raw, PLAYER_RESERVE_MIN, PLAYER_RESERVE_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
+    public long getThrottleCeilingMillis() {
+        final long raw = Optional.ofNullable(configModel.throttleCeilingMillis).orElse(CEILING_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        final long clamped = Math.max(CEILING_MIN, Math.min(CEILING_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format("Chunksmith: throttleCeilingMillis %d is out of range [%d, %d], using %d",
+                    raw, CEILING_MIN, CEILING_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
     public LodMode getLodMode() {
         final String raw = configModel.lodEnabled;
         final LodMode mode = LodMode.parse(raw);
@@ -248,6 +327,20 @@ public final class GsonConfig implements Config {
         if (raw != clamped) {
             LOGGER.warning(String.format("Chunksmith: throttleMaxLodQueue %d is out of range [%d, %d], using %d",
                     raw, MAX_LOD_QUEUE_MIN, MAX_LOD_QUEUE_MAX, clamped));
+        }
+        return clamped;
+    }
+
+    @Override
+    public long getDispatchMaxConcurrent() {
+        final long raw = Optional.ofNullable(configModel.dispatchMaxConcurrent)
+                .orElse(DISPATCH_MAX_CONCURRENT_DEFAULT);
+        final long clamped = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
+                Math.min(DISPATCH_MAX_CONCURRENT_MAX, raw));
+        if (raw != clamped) {
+            LOGGER.warning(String.format(
+                    "Chunksmith: dispatchMaxConcurrent %d is out of range [%d, %d], using %d",
+                    raw, DISPATCH_MAX_CONCURRENT_MIN, DISPATCH_MAX_CONCURRENT_MAX, clamped));
         }
         return clamped;
     }
@@ -391,6 +484,29 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setThrottleTickBudgetMillis(final long millis) {
+        configModel.throttleTickBudgetMillis = millis <= 0L
+                ? 0L
+                : Math.max(TICK_BUDGET_MIN, Math.min(TICK_BUDGET_MAX, millis));
+        saveConfig();
+    }
+
+    @Override
+    public void setThrottlePlayerReserveMillis(final long millis) {
+        configModel.throttlePlayerReserveMillis =
+                Math.max(PLAYER_RESERVE_MIN, Math.min(PLAYER_RESERVE_MAX, millis));
+        saveConfig();
+    }
+
+    @Override
+    public void setThrottleCeilingMillis(final long millis) {
+        configModel.throttleCeilingMillis = millis <= 0L
+                ? 0L
+                : Math.max(CEILING_MIN, Math.min(CEILING_MAX, millis));
+        saveConfig();
+    }
+
+    @Override
     public void setAutoPauseEnabled(final boolean enabled) {
         configModel.autoPauseOnOverload = enabled;
         saveConfig();
@@ -418,6 +534,13 @@ public final class GsonConfig implements Config {
         configModel.throttleMaxLodQueue = items <= 0L
                 ? 0L
                 : Math.max(MAX_LOD_QUEUE_MIN, Math.min(MAX_LOD_QUEUE_MAX, items));
+        saveConfig();
+    }
+
+    @Override
+    public void setDispatchMaxConcurrent(final long chunks) {
+        configModel.dispatchMaxConcurrent = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
+                Math.min(DISPATCH_MAX_CONCURRENT_MAX, chunks));
         saveConfig();
     }
 
@@ -469,6 +592,9 @@ public final class GsonConfig implements Config {
         private Long throttleMaxQueuedWrites = MAX_QUEUED_WRITES_DEFAULT;
         private Long throttleMaxAddedChunks = MAX_ADDED_CHUNKS_DEFAULT;
         private Long throttleMaxHeapPercent = MAX_HEAP_PERCENT_DEFAULT;
+        private Long throttleTickBudgetMillis = TICK_BUDGET_DEFAULT;
+        private Long throttlePlayerReserveMillis = PLAYER_RESERVE_DEFAULT;
+        private Long throttleCeilingMillis = CEILING_DEFAULT;
         private Boolean autoPauseOnOverload = true;
         private Integer autoPauseGraceSeconds = AUTO_PAUSE_GRACE_DEFAULT;
         // TRISTATE, written as the string "auto" by default. Declared String, not Boolean, ON PURPOSE:
@@ -477,6 +603,7 @@ public final class GsonConfig implements Config {
         // it said, and is never rewritten behind the operator's back.
         private String lodEnabled = "auto";
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
+        private Long dispatchMaxConcurrent = DISPATCH_MAX_CONCURRENT_DEFAULT;
         private Boolean lodDhOverride = false;
         // ON by default: dropping a chunk the instant it is generated silently breaks every mod that
         // builds on newly generated land (mod_support #14). Off is for a pure terrain pregen.
@@ -510,6 +637,12 @@ public final class GsonConfig implements Config {
         public void setThrottleMaxQueuedWrites(final Long throttleMaxQueuedWrites) { this.throttleMaxQueuedWrites = throttleMaxQueuedWrites; }
         public Long getThrottleMaxAddedChunks() { return throttleMaxAddedChunks; }
         public void setThrottleMaxAddedChunks(final Long throttleMaxAddedChunks) { this.throttleMaxAddedChunks = throttleMaxAddedChunks; }
+        public Long getThrottleCeilingMillis() { return throttleCeilingMillis; }
+        public void setThrottleCeilingMillis(final Long throttleCeilingMillis) { this.throttleCeilingMillis = throttleCeilingMillis; }
+        public Long getThrottlePlayerReserveMillis() { return throttlePlayerReserveMillis; }
+        public void setThrottlePlayerReserveMillis(final Long throttlePlayerReserveMillis) { this.throttlePlayerReserveMillis = throttlePlayerReserveMillis; }
+        public Long getThrottleTickBudgetMillis() { return throttleTickBudgetMillis; }
+        public void setThrottleTickBudgetMillis(final Long throttleTickBudgetMillis) { this.throttleTickBudgetMillis = throttleTickBudgetMillis; }
         public Long getThrottleMaxHeapPercent() { return throttleMaxHeapPercent; }
         public void setThrottleMaxHeapPercent(final Long throttleMaxHeapPercent) { this.throttleMaxHeapPercent = throttleMaxHeapPercent; }
         public Boolean getAutoPauseOnOverload() { return autoPauseOnOverload; }

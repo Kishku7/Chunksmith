@@ -72,6 +72,49 @@ public interface Config {
     long getThrottleMaxHeapPercent();
 
     /**
+     * How many extra milliseconds per tick a pre-gen is allowed to ADD to whatever the server already
+     * costs. 0 falls back to steering on {@link #getThrottleTargetMspt()} alone.
+     *
+     * <p>This exists because an absolute target cannot work on a busy server. Measured on a live
+     * server: the tick cost 74.9 ms with the pre-gen PAUSED, against a configured target of 75 -- so
+     * the governor could never observe a healthy tick, pinned dispatch at its floor permanently, and
+     * throttled the run to 2 chunks/sec while the run itself was only costing 10 ms. The throttle was
+     * blaming itself for load it did not cause.
+     *
+     * <p>The effective target is therefore {@code max(throttleTargetMspt, baseline + this)}, where the
+     * baseline is the tick cost observed with nothing in flight. That bounds what Chunksmith COSTS
+     * rather than demanding the whole server be healthy in absolute terms -- the same delta-not-
+     * absolute correction already applied to chunk residency.
+     */
+    long getThrottleTickBudgetMillis();
+
+    /**
+     * Tick time reserved for EACH online player, taken out of Chunksmith's own allowance.
+     *
+     * <p>A player's cost is already in the measured baseline, so a rising baseline stops Chunksmith
+     * making things worse -- but it does not give the player anything back. This does: every online
+     * player shrinks our allowance by this much, so an empty server gets the full allowance and a
+     * populated one gets actively yielded to. The difference between not-worsening and yielding.
+     */
+    long getThrottlePlayerReserveMillis();
+
+    /**
+     * Absolute tick cost the run will never steer past, whatever the measured baseline says.
+     * 0 disables the ceiling.
+     *
+     * <p>Every other bound here is RELATIVE, and relative bounds move with the thing they are meant
+     * to protect against. Deriving the target from a measured baseline correctly stops Chunksmith
+     * throttling itself for load it did not cause -- and, unbounded, stops it defending the server at
+     * all: observed live, a 163.9 ms baseline produced a 238.9 ms target, steering toward about 4 TPS
+     * with nothing objecting, because the heap gate was under its threshold and auto-pause compares
+     * against this very target.
+     *
+     * <p>Past this figure the server is not playable whoever is to blame, so the run yields. This is
+     * the one bound that must not be relative.
+     */
+    long getThrottleCeilingMillis();
+
+    /**
      * Pause a run when the server cannot sustain it, and resume it when the server recovers.
      *
      * <p>ON by default (maintainer decision, 2026-08-20). A gated pre-gen on an overloaded server
@@ -109,6 +152,26 @@ public interface Config {
      * this governor a fast pregen can outrun LOD ingestion and drive the heap into an OOM. 0 disables.
      */
     long getThrottleMaxLodQueue();
+
+    /**
+     * How many chunk requests Chunksmith keeps in flight at once.
+     *
+     * <p>This is the pipeline's WIDTH, and on a healthy server it is what actually sets the rate. A
+     * chunk request spends almost all of its life WAITING: vanilla walks it up through its generation
+     * statuses roughly a hop per tick, so per-chunk wall-clock latency runs over a second even when
+     * nothing is busy. Width, not speed, converts that latency into throughput.
+     *
+     * <p>Measured on a dedicated server (2026-08-20) whose CPU sat at 40 percent across 8 cores and
+     * whose server thread spent 0.2ms of a 25ms allowance on us: dispatch was pinned at its cap for the
+     * whole run while every other governor read "idle". The cap was the only limit in play.
+     *
+     * <p>Costs memory roughly linearly -- more chunks resident at once -- which is what the heap and
+     * residency gates are there to catch. Lower it on a memory-tight box, raise it where cores are free.
+     *
+     * <p>Previously reachable only via the {@code chunksmith.maxWorkingCount} system property, which is
+     * still honoured as this key's DEFAULT so existing launch scripts keep working.
+     */
+    long getDispatchMaxConcurrent();
 
     /**
      * Keep a generated chunk loaded until its neighbours exist, so other mods can act on it.
@@ -212,11 +275,19 @@ public interface Config {
 
     void setThrottleMaxHeapPercent(long percent);
 
+    void setThrottleTickBudgetMillis(long millis);
+
+    void setThrottlePlayerReserveMillis(long millis);
+
+    void setThrottleCeilingMillis(long millis);
+
     void setAutoPauseEnabled(boolean enabled);
 
     void setAutoPauseGraceSeconds(int seconds);
 
     void setThrottleMaxLodQueue(long items);
+
+    void setDispatchMaxConcurrent(long chunks);
 
     void setLodMode(LodMode mode);
 

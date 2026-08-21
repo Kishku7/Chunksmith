@@ -61,6 +61,7 @@ public final class TranslationKey {
     public static final String FORMAT_START_DISK = "format_start_disk";
     public static final String FORMAT_START_LIMIT = "format_start_limit";
     public static final String FORMAT_STARTED_ALREADY = "format_started_already";
+    public static final String FORMAT_TASK_STOPPING = "format_task_stopping";
     public static final String FORMAT_WORLD = "format_world";
     public static final String FORMAT_WORLDBORDER_TOO_LARGE = "format_worldborder_too_large";
     public static final String HELP_BORDER = "help_border";
