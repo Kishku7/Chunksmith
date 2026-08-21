@@ -27,6 +27,13 @@ current development happens. The 2.x line is frozen on
   eliminating the lag of on-demand generation.
 - **Safe under load.** An adaptive throttle watches server tick-health and backs off
   automatically, so generation can run while players are online without tanking TPS.
+- **Tunable throughput.** `dispatchMaxConcurrent` controls how many chunk requests stay in
+  flight. It defaults to a value scaled to your CPU and is settable live with `/cs set` - on an
+  8-core dedicated server, raising it from the old fixed 50 to 200 measured **+39%**
+  (31.6 to 43.9 chunks/sec).
+- **It stops when your server cannot take it, and starts again when it can.** Instead of
+  stuttering along under load, a run pauses with a stated reason and resumes once the server has
+  been healthy for a grace period. A manual `/cs pause` always outranks it.
 - **Flexible shapes.** Generate by square, circle, diamond, triangle, star, and more -
   centered on coordinates, world spawn, or the world border, by radius or diameter.
 - **Multi-world**, with live progress, rate, ETA, and an optional boss bar.
@@ -163,8 +170,10 @@ many it skipped because both were already there.
 An explicit `true` or `false` is your decision and Chunksmith never overrides it. Whichever way it
 goes, it is stated once in the server log at startup, and `/cslod status` will tell you again.
 
-What it costs when it is on: **~5.8 KB per chunk** on disk and a **~16% slower** pre-generation. Plain
-region files - no native database, nothing extra to install.
+What it costs when it is on: **~5.8 KB per chunk** on disk and, measured over matched
+windows, **no measurable pre-generation slowdown** - 36.1 chunks/sec with LOD on against
+34.2 with it off. (Earlier builds claimed a ~16% cost. That was never measured and is not
+true.) Plain region files - no native database, nothing extra to install.
 
 ### Where LOD is available
 
@@ -237,6 +246,19 @@ Common workflow:
 
 Generation is throttled automatically against server tick-health, so it can run while
 players are online.
+
+### Tuning
+
+Every setting is readable and settable live with `/cs set <key> [value]` - no restart, no editing
+files - and persists to `config/chunksmith/config.json`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `dispatchMaxConcurrent` | scales with CPU cores | How many chunk requests stay in flight. The single biggest throughput lever; 200 was the measured knee on an 8-core server. |
+| `autoPauseOnOverload` | `true` | Pause the run when the server cannot sustain it, resume when it recovers. |
+| `autoPauseGraceSeconds` | `120` | How long the condition must hold, in both directions, before acting on it. |
+| `throttleMaxHeapPercent` | `85` | Hold dispatch while the heap stays above this, resuming once there is real headroom again. |
+| `pregenSettleMaxHeld` | `256` | How many finished chunks are held open at once so neighbouring structures can finish building. This is a memory setting: each held chunk keeps a worldgen context ring resident with it. |
 
 ## License
 
