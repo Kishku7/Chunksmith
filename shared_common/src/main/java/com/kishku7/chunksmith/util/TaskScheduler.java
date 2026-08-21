@@ -9,6 +9,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class TaskScheduler {
+    /** slf4j: JUL does not reach the game log on any loader, so this used to vanish. */
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+
     private final ExecutorService executor;
     private final Set<Future<?>> futures = ConcurrentHashMap.newKeySet();
 
@@ -25,7 +28,7 @@ public class TaskScheduler {
     }
 
     public void runTask(final Runnable runnable) {
-        futures.add(executor.submit(() -> { try { runnable.run(); } catch (final Throwable t) { java.util.logging.Logger.getLogger("Chunksmith").log(java.util.logging.Level.SEVERE, "Generation task threw an uncaught exception", t); throw t; } }));
+        futures.add(executor.submit(() -> { try { runnable.run(); } catch (final Throwable t) { LOGGER.error("Generation task threw an uncaught exception", t); throw t; } }));
         futures.removeIf(Future::isDone);
     }
 

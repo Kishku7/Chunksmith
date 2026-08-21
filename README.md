@@ -277,6 +277,76 @@ silently becoming a default.
 
 `/cs silent` and `/cs quiet` still work; they are the same two settings under their old names.
 
+### Throughput: `dispatchMaxConcurrent`
+
+How many chunk requests Chunksmith keeps in flight at once. This is the pipeline's WIDTH, and on a
+healthy server it is the setting that actually decides the rate.
+
+A chunk request spends almost all of its life WAITING. Vanilla walks it up through its generation
+statuses at roughly one hop per tick, so the wall-clock latency of a single chunk is over a second
+even on a completely idle machine. You do not make that faster; you run more of them at once.
+
+    "dispatchMaxConcurrent": 200,    // default: min(400, max(50, cpu_cores * 25))
+
+Measured on an 8-core dedicated server:
+
+| value | chunks/sec | resident chunks | heap |
+|---|---|---|---|
+| 50 (the old fixed cap) | 31.6 | ~3,000 | 20% |
+| **200** | **43.9** | 2,390 | 33% |
+| 600 | 42.4 | 4,952 | 34% |
+
+200 is the knee. Above it you buy nothing, because the remaining ceiling is vanilla promoting
+roughly 2.2 chunks per tick at 20 TPS -- about 43 chunks/sec -- and no amount of width beats that.
+Below it you leave throughput on the table: at the old cap of 50 nothing on the box was saturated
+(CPU 255 of 800 percent, worker threads ~24 percent busy, the server thread ~10) and Chunksmith was
+spending 0.2ms of a 25ms tick allowance. The cap was the only thing in the way.
+
+The cost of raising it is memory, roughly linearly -- more chunks resident at once -- which is what
+`throttleMaxHeapPercent` and the residency gate are there to catch. Lower it on a memory-tight box;
+raise it where you have cores to spare. The default scales with the machine because the knee is
+per-core: a fixed 200 would be as wrong on a 2-core VPS as the old fixed 50 was on 8 cores.
+
+The older `-Dchunksmith.maxWorkingCount` system property still wins when set, so an existing launch
+script keeps working.
+
+### Protecting the server: the tick budget
+
+    "throttleTickBudgetMillis": 25,      // tick time we may ADD before backing off
+    "throttlePlayerReserveMillis": 20,   // ...minus this much per online player
+    "throttleCeilingMillis": 150,        // absolute stop, whoever is to blame (~6.7 TPS)
+    "throttleMaxHeapPercent": 85,        // hold dispatch above this much of -Xmx. 0 disables
+    "throttleMaxAddedChunks": 0,         // hard cap on chunks we add to memory. 0 disables
+
+Chunksmith measures what the server costs WITHOUT it and what it adds ON TOP, rather than steering
+on absolute tick time. That distinction matters: a server already running at 75ms for its own
+reasons would otherwise make Chunksmith throttle itself to nothing for load it did not cause.
+
+Each online player also SHRINKS the allowance by `throttlePlayerReserveMillis`. An empty server gets
+the full budget; a server with people on it actively gives ground rather than merely not making
+things worse.
+
+`throttleCeilingMillis` is the one bound that is deliberately ABSOLUTE. Every other limit here is
+relative to a measured baseline, and a relative bound moves with the thing it is supposed to protect
+against -- past the ceiling the server is unplayable no matter whose fault it is, so the run yields.
+
+### Yielding entirely: `autoPauseOnOverload`
+
+    "autoPauseOnOverload": true,      // pause the run when the server stays overloaded
+    "autoPauseGraceSeconds": 120,     // ...for this long, and resume when it recovers
+
+Backing off is not always enough. Under sustained load the run pauses itself and resumes when the
+server is healthy again, so a pregen left running overnight cannot sit on a struggling server.
+
+### `pregenSettleMaxHeld`
+
+    "pregenSettleMaxHeld": 256,       // hard cap on the settle frontier, counted in TICKETS
+
+Counted in tickets, but paid for in tickets TIMES their halo: a FULL chunk drags in the 17x17 ring
+of worldgen context around it, so each held ticket is worth roughly 25 resident chunks. That is why
+the cap is small -- it is not the number you feel, the product is.
+
+
 On Paper and Folia the three `pregenSettle*` settings report that they do not apply. Bukkit does not
 manage chunk tickets, so there is no window for Chunksmith to hold open there.
 
