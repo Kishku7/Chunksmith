@@ -2,6 +2,112 @@
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-08-21
+
+The first release since 3.4.1. Versions 3.5.0 through 3.12.0 were built and tested in-house but
+never published, so everything they contain arrives here -- this entry covers the whole line. The
+short version: a pre-gen could hold the entire world open until the server died, and that is fixed;
+throughput on a multi-core server is up substantially; and the mod now tells you what it is doing
+instead of leaving you to infer it from tick times.
+
+### Fixed
+
+- **A pre-gen could hold the entire world open, and the server would die to the tick watchdog.**
+  This is the headline fix. A held chunk does not cost one chunk: its ticket sits at FULL level and
+  vanilla's distance manager propagates that level outward one ring at a time, so a single held
+  ticket keeps a whole neighbourhood resident. Measured on a live 1.21.11 server, **20 held tickets
+  held 3,507 resident chunks** -- roughly 25 resident chunks per held ticket at pre-gen clustering.
+  3.4.1 had no cap on the settle frontier at all, which is how a real server reached **75,045
+  resident chunks**, pinned its heap at 107% of an 8 GB `-Xmx`, and collapsed to 5 chunks per second
+  with a 42-hour ETA. The frontier is now bounded by `pregenSettleMaxHeld` (default 256), and memory
+  is bounded directly by `throttleMaxHeapPercent` rather than by any proxy.
+
+- **The unload backlog outlived the task that created it.** Housekeeping was armed by a running
+  task, so when a run paused or finished, whatever backlog remained was handed to vanilla's budgeted
+  pass -- which does almost nothing once the tick is already over budget, and the tick was over
+  budget precisely because of the retained chunks. The backlog was then permanent until a restart.
+  Housekeeping is now armed while a BACKLOG exists, not while a task exists.
+
+- **Three separate mechanisms were suppressing their own recovery.** Releases are driven by new
+  chunks arriving, so gating dispatch also stopped the releases that would have opened the gate; a
+  gate holding dispatch was given the small unload budget, so nothing unloaded and it never
+  reopened; and the settle frontier froze at its cap during a hold while holding the very tickets
+  that blocked recovery. All three now release, drain and re-arm from the tick instead.
+
+- **`/cs debug` answered "An unexpected error occurred trying to execute that command".** The
+  residency snapshot contained a literal percent sign and the message path runs through
+  `String.format`.
+
+- **`/cs continue` reported "Task already started!" while the previous run was still draining**,
+  leaving the operator with a stopped pre-gen and a message saying the opposite. It now says what is
+  actually happening.
+
+- **The ticket diagnostics were compiled into the shared mixin but written against 1.21.11-and-newer
+  shapes**, so this whole line of work could only build for 1.21.11. They are now gated on the
+  presence of those shapes and every supported version has a jar again.
+
+- **A 26-line drift:** `ChunkPos` became a record and lost its packed-long constructor.
+
+- **Config range-clamp warnings went nowhere.** `GsonConfig` and `TaskScheduler` logged through
+  `java.util.logging`, which no loader routes into the game log, so a clamped value was silently
+  corrected with the explanation discarded. Both now use slf4j like the rest of the mod.
+
+### Added
+
+- **`dispatchMaxConcurrent` -- how many chunk requests stay in flight, and the single biggest
+  throughput lever in the mod.** It was previously fixed at 50 and reachable only through an
+  undocumented `chunksmith.maxWorkingCount` system property. Nothing was saturated at that cap: CPU
+  sat at 255 of 800 percent, workers at ~24 percent, the server thread at ~10. Measured on an
+  8-core dedicated server: **50 -> 31.6 chunks/sec, 200 -> 43.9, 600 -> 42.4.** So 200 is the knee,
+  worth **+39 percent**, and beyond it the remaining ceiling is vanilla promoting about 2.2 chunks
+  per tick at 20 tps. The default now scales with the machine -- `min(400, max(50, cores * 25))` --
+  with a floor of 50 so no server gets slower than it was. Live-settable with `/cs set`.
+
+- **A pre-gen now pauses when the server cannot sustain it, and resumes when it can.**
+  `autoPauseOnOverload` (default true) and `autoPauseGraceSeconds` (default 120). A gated run on an
+  overloaded server does not stop, it stutters -- measured at 60 chunks in two minutes, which is
+  indistinguishable from a hang, keeps the server under load throughout, and produces nothing. Both
+  directions require the condition to hold continuously for the grace period. A human `/cs pause`
+  outranks it in both directions and is never auto-resumed.
+
+- **`throttleMaxHeapPercent` (default 85) bounds the run by measuring memory.** Three earlier
+  releases tried to bound a pre-gen with a proxy -- queued writes, LOD queue depth, resident chunks,
+  chunks added since the run started -- and each was wrong on a live server in a different way. A
+  chunk is worth wildly different amounts of heap depending on what came with it, so no chunk count
+  means the same thing on two worlds.
+
+- **The mod now reports what it is doing.** `/cs debug` prints a chunk-residency snapshot, a ticket
+  ledger, and an unload breakdown with a plain-English verdict; a drain logs one line when it starts
+  and one when it ends, naming the outcome and how many chunks it freed, at WARNING level when
+  chunks are left behind. Previously the only way to read residency at all was to set a low cap,
+  start a run, and read the backpressure line -- which perturbs the thing being measured.
+
+### Changed
+
+- **`throttleMaxAddedChunks` now defaults to 0 (off).** On a live server it closed at 22,000 chunks
+  with the heap at 40 percent and stuttered a healthy run down to 60 chunks per two minutes. A
+  pre-gen's resident set is its FULL chunks plus the mandatory worldgen context ring around each of
+  them, and that frontier's perimeter legitimately grows with the radius. It remains available as an
+  expert knob.
+
+- **The tick-budget baseline now requires 15 consecutive idle ticks**, and probes every 60 seconds
+  instead of 120. A one- or two-tick gap between chunks is not idle -- it is still paying for the
+  chunk that just landed -- and sampling those taught the baseline the mod's own aftermath, observed
+  as a baseline reading 49ms and then 116.8ms with no change in load.
+
+- **The LOD startup message no longer claims LOD generation costs ~16 percent of pre-gen speed.**
+  It does not: measured over matched windows, **36.1 chunks/sec with LOD on against 34.2 with it
+  off**. The message now reports the measured cost as none.
+
+- The README documents nine config keys that previously had no documentation anywhere.
+
+### Removed
+
+- **The stale-ticket purge, and its `purgeStaleVanillaTickets` and `staleTicketThreshold` keys.** A
+  controlled A/B put residency at 16,800 with it on and 16,820 with it off -- a 0.1 percent
+  difference -- while it evicted 10,765 tickets. It recovered nothing and was removed rather than
+  kept as reassurance.
+
 ## [3.7.1] - 2026-08-20
 
 ### Fixed
