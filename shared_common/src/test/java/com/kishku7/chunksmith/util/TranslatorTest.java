@@ -130,9 +130,9 @@ public class TranslatorTest {
         translate(TranslationKey.SHAPE_STAR);
         translate(TranslationKey.SHAPE_TRIANGLE);
         translate(TranslationKey.TASK_TRIM, 5000, "world", String.format("%.3f", 1f));
-        translate(TranslationKey.TASK_DONE, "world", 5000, String.format("%.2f", 50f), "0", "01", "15");
+        translate(TranslationKey.TASK_DONE, "world", 5000, String.format("%.2f", 50f), "0", "01", "15", 1200L, 3800L);
         translate(TranslationKey.TASK_STOPPED, "world");
-        translate(TranslationKey.TASK_UPDATE, "world", 5000, String.format("%.2f", 50f), "0", "00", "01", String.format("%.1f", 40f), 70, 70);
+        translate(TranslationKey.TASK_UPDATE, "world", 5000, String.format("%.2f", 50f), "0", "00", "01", String.format("%.1f", 40f), 70, 70, 1200L, 3800L);
         translate(TranslationKey.WRAP_BOTH);
         translate(TranslationKey.WRAP_DEFAULT);
         translate(TranslationKey.WRAP_EARTH);

@@ -14,6 +14,7 @@ import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.shape.Shape;
 import com.kishku7.chunksmith.shape.ShapeFactory;
 import com.kishku7.chunksmith.util.ChunkCoordinate;
+import com.kishku7.chunksmith.util.GeneratedChunkScan;
 import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.HeapPressure;
@@ -34,6 +35,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 public class GenerationTask implements Runnable {
+    // slf4j, not JUL: JUL does not reach the game log on any loader, which is how a
+    // diagnostic can run and be invisible (same trap the config layer hit).
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
     /**
      * Fallback width when the config cannot answer. The system property is retained so an operator who
      * already set {@code -Dchunksmith.maxWorkingCount} on the command line keeps that value as their
@@ -42,6 +46,19 @@ public class GenerationTask implements Runnable {
     private static final int DEFAULT_WORKING_COUNT = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount")).orElse(50);
     private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunksmith.sampleInterval")).orElse(30), 30);
     private static final double SAMPLE_SUB_INTERVAL = SAMPLE_INTERVAL / 30;
+    /**
+     * Never average a rate over less than this many seconds (mod_support #17).
+     *
+     * <p>The sample window starts empty, so the first few updates divide a handful of chunks by a
+     * fraction of a second and publish a number in the thousands. It then decays toward the real
+     * rate as the window fills -- which reads, to anyone watching, as the pre-gen getting slower
+     * and slower. It is not: it is an average converging after starting from a fiction. Measured
+     * on a resumed selection: 7310 cps in the first update against a true 39 cps.
+     *
+     * <p>Five seconds costs nothing once a run is underway -- the window is 30 seconds, so this
+     * floor only ever bites at the very start, which is exactly where the lie was.
+     */
+    private static final double RATE_MIN_WINDOW_SECONDS = 5.0d;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
     // How long the LOD summary waits for the last in-flight chunks to land before reporting.
     private static final long DRAIN_TIMEOUT_MS = 60_000L;
@@ -199,12 +216,63 @@ public class GenerationTask implements Runnable {
         this.resumeQueuedWrites = this.maxQueuedWrites > 0 ? Math.max(1L, this.maxQueuedWrites / 2L) : 0L;
     }
 
+    /**
+     * Prime the in-memory generated-chunk bitmap from the region files, once, before dispatching.
+     *
+     * <p>{@code worldState} starts COLD on a fresh boot, so without this every already-generated
+     * chunk in a resumed selection takes an asynchronous per-chunk round-trip just to be told it
+     * exists -- measured at about seven seconds per 5929 chunks, and linear
+     * (mod_support #17). One read per REGION answers the same question.
+     *
+     * <p>Skipped entirely when {@code forceLoadExistingChunks} is set, because then every chunk is
+     * being reprocessed on purpose and there is nothing to skip; and when the platform cannot tell
+     * us where its region files are (Bukkit worlds that expose no directory), where the old path
+     * remains correct and simply stays slower.
+     *
+     * <p>Never fatal. A failure here leaves the bitmap however far it got, and every unseeded chunk
+     * takes exactly the path it took before -- the pre-gen cannot be made worse by this, only
+     * faster.
+     */
+    private void preScanExistingChunks(final boolean forceLoadExistingChunks) {
+        if (forceLoadExistingChunks) {
+            return;
+        }
+        final java.util.Optional<java.nio.file.Path> regionDirectory =
+                selection.world().getRegionDirectory();
+        if (regionDirectory.isEmpty()) {
+            return;
+        }
+        try {
+            final int centerChunkX = selection.centerChunkX();
+            final int centerChunkZ = selection.centerChunkZ();
+            final int radiusChunksX = selection.radiusChunksX();
+            final int radiusChunksZ = selection.radiusChunksZ();
+            final long began = System.currentTimeMillis();
+            final long seeded = GeneratedChunkScan.seed(
+                    regionDirectory.get(), worldState,
+                    centerChunkX - radiusChunksX, centerChunkZ - radiusChunksZ,
+                    centerChunkX + radiusChunksX, centerChunkZ + radiusChunksZ);
+            if (seeded > 0) {
+                LOGGER.info("Chunksmith: " + seeded + " chunk(s) in this selection are already"
+                        + " generated (found in " + (System.currentTimeMillis() - began)
+                        + " ms); they will be skipped without loading.");
+            }
+        } catch (final Throwable t) {
+            LOGGER.info("Chunksmith: could not pre-scan the region files (" + t
+                    + "); existing chunks will be detected individually as before");
+        }
+    }
+
     private synchronized void update(final int chunkX, final int chunkZ, final boolean loaded) {
         if (stopped) {
             return;
         }
         progress.chunkCount = finishedChunks.addAndGet(1);
         progress.percentComplete = 100f * progress.chunkCount / chunkIterator.total();
+        // Split the two populations. They are not the same work and must not read as one number:
+        // a skipped chunk is free, a generated one is the entire cost of the run.
+        progress.skipped = skippedChunks.get();
+        progress.generated = progress.chunkCount - progress.skipped;
         final long currentTime = System.currentTimeMillis();
         final Pair<Long, AtomicLong> bin = updateSamples.peekLast();
         if (loaded) {
@@ -228,7 +296,9 @@ public class GenerationTask implements Runnable {
         for (Pair<Long, AtomicLong> b : updateSamples) {
             sampleCount += b.right().get();
         }
-        progress.rate = timeDiff > 0 ? sampleCount / timeDiff : 0;
+        // Divide by the FLOORED window, never the real one, so a barely-started window cannot
+        // manufacture a four-figure rate. Once timeDiff passes the floor this is a no-op.
+        progress.rate = sampleCount / Math.max(timeDiff, RATE_MIN_WINDOW_SECONDS);
         final long time;
         if (chunksLeft == 0) {
             time = (prevTime + (currentTime - startTime.get())) / 1000;
@@ -594,6 +664,9 @@ public class GenerationTask implements Runnable {
             stop(true);
         }
         final boolean forceLoadExistingChunks = chunky.getConfig().isForceLoadExistingChunks();
+        // Learn what this selection already has, in ONE pass over the region files, before the
+        // first dispatch -- otherwise every existing chunk costs an async round-trip to discover.
+        preScanExistingChunks(forceLoadExistingChunks);
         // The CSLOD store is a first-class part of the skip decision, but ONLY when LOD generation is
         // actually active for this world. Null means it is not, and null takes the original code path
         // untouched. Null happens in two ways, both of which must behave exactly as they did before:
@@ -1031,6 +1104,8 @@ public class GenerationTask implements Runnable {
         private float percentComplete;
         private long hours, minutes, seconds;
         private double rate;
+        private long skipped;
+        private long generated;
         private int chunkX, chunkZ;
         private int dispatchCurrent;
         private int dispatchMax;
@@ -1072,6 +1147,16 @@ public class GenerationTask implements Runnable {
             return rate;
         }
 
+        /** Chunks that already existed and cost nothing. */
+        public long getSkipped() {
+            return skipped;
+        }
+
+        /** Chunks this run actually generated -- the only ones the rate is measured over. */
+        public long getGenerated() {
+            return generated;
+        }
+
         public int getChunkX() {
             return chunkX;
         }
@@ -1090,9 +1175,9 @@ public class GenerationTask implements Runnable {
 
         public void sendUpdate(final Sender sender) {
             if (complete) {
-                sender.sendMessagePrefixed(TranslationKey.TASK_DONE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds));
+                sender.sendMessagePrefixed(TranslationKey.TASK_DONE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), skipped, generated);
             } else {
-                sender.sendMessagePrefixed(TranslationKey.TASK_UPDATE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), String.format("%.1f", rate), chunkX, chunkZ);
+                sender.sendMessagePrefixed(TranslationKey.TASK_UPDATE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), String.format("%.1f", rate), chunkX, chunkZ, skipped, generated);
                 if (dispatchCurrent < dispatchMax) {
                     final long now = System.currentTimeMillis();
                     if (now - lastThrottleStatusPrintMs >= THROTTLE_STATUS_INTERVAL_MS) {

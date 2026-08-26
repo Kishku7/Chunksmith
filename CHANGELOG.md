@@ -37,7 +37,36 @@
   the server is paused: the safe point exists to keep ticket changes out of the chunk-tick walk,
   and that walk does not happen while paused.
 
+- **Resuming a pre-gen over ground you already generated is dramatically faster.** Chunksmith
+  keeps an in-memory map of what it has generated, but that map starts empty every time the game
+  starts -- so on the run where it matters most, re-running a selection after a restart, it knew
+  nothing and asked the chunk system about every single chunk, one asynchronous round-trip at a
+  time, purely to be told the chunk was already there. A region file's header describes 1024 chunks
+  at once, so that question is now answered by reading a handful of files before the run begins:
+  **5929 existing chunks identified in 183 ms where the old path spent about seven seconds**, and
+  14898 in 301 ms. The saving scales with the selection, so a large resumed pre-gen that used to
+  spend minutes deciding it had nothing to do now starts almost immediately.
+
+  Only chunks recorded as fully generated count; anything else is generated as normal. If a region
+  file cannot be read, those chunks are simply checked the old way, so the worst case of this change
+  is the behaviour that was there before.
+
 ### Changed
+
+- **The progress line no longer makes a healthy run look like a failing one.** Resuming a
+  pre-gen reported a rate in the thousands of chunks per second that then fell steadily to a few
+  dozen, and an ETA that grew to match. Nothing was slowing down: already-generated chunks counted
+  toward the percentage but not toward the rate, so the figure started from a number that meant
+  nothing and spent the next minute converging on the truth. Watching it, the only reasonable
+  conclusion was that the mod was grinding to a halt -- which is what somebody reported
+  (mod_support #17).
+
+  The rate is now averaged over at least five seconds, so it climbs to the real figure instead of
+  falling from an imaginary one, and the progress line says how many chunks were already there
+  versus how many this run actually generated:
+
+      Task finished for minecraft:overworld. Processed: 5929 chunks (100.00%),
+      Total time: 0:00:00 -- 5929 already generated (skipped), 0 newly generated
 
 - **A backchannel that cannot bind now says so at WARN, naming the port.** It was logged at INFO,
   worded as though nothing much had happened, and the mod quietly fell back to the slower in-band
