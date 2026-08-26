@@ -139,8 +139,12 @@ any one LOD mod's private shape. From that single store we can serve **every** L
 
 LOD ships on the cells where a renderer actually exists: Fabric 1.20.1 / 1.21.1 / 1.21.11 / 26.x,
 NeoForge 1.21.1 / 1.21.11 / 26.1 / 26.2, Forge 1.20.1 (DH everywhere on that list, needs >= 2.3.0-b;
-voxy only on Fabric 1.21.11 + 26.x). The Bukkit/Paper/Folia plugin has no LOD code at all - there is
-no plugin-side renderer. Gates: `_codegen/compat.py` (`has_lod` / `has_dh` / `has_voxy`).
+voxy only on Fabric 1.21.11 + 26.x). The Bukkit/Paper/Folia plugin GENERATES a CSLOD store
+(`CsLodExtractor`, `LodSupport`) but cannot SERVE it: it registers no plugin-messaging channel and
+has no `CsLodHttpServer`, no `ServerHello` and no tokens, so a client connected to a plugin server
+never learns there is anything to fetch. Server-side generation only, deliberately, as a later
+phase (mod_support #18 was a user hitting exactly this). Gates: `_codegen/compat.py` (`has_lod` /
+`has_dh` / `has_voxy`).
 
 ### Why a neutral format
 
@@ -207,6 +211,42 @@ Notes:
   dependencies, compiled against and never shipped. DH is compiled against its published API
   artifact (`maven.modrinth:distanthorizonsapi`); the voxy soft-dep jars go in the repo-root
   `libs/` (gitignored) - run `python scripts/prep-libs.py` to stage them.
+
+### The LOD backchannel port
+
+On a multiplayer server the client pulls LOD region files over a small read-only HTTP listener rather
+than through the game connection, because pushing hundreds of megabytes down the play channel starves
+the game loop. That listener needs a port.
+
+By default it is **game port + 1** (25565 -> 25566), which needs no configuration and is right on a
+machine you control. It is wrong on a managed host, which rents you a fixed set of ports and has no
+reason to give you the one next to your game port. Set it explicitly:
+
+    "lodBackchannelPort": 30000   // 0 (default) = derive it, game port + 1
+
+or from in-game, with immediate effect and no restart:
+
+    /cs set lodBackchannelPort 30000
+    /cs set lodBackchannelPort 0       // back to the derived port
+
+**Clients need no matching setting, ever.** The server tells each client which port to use when they
+connect, so a player moving between servers picks up whatever each one is running. There is no client
+port option and there never has been - the client is already connected to the host, so only the port
+was ever in question, and that is negotiated.
+
+Changing it live stops the old listener, binds the new one, and re-issues every connected client a
+download token in the same pass. Nobody has to relog.
+
+Rules worth knowing:
+
+- The port must be **1024-65535**, and must not be the game's own port. Anything else is refused and
+  logged with the reason, rather than clamped to a number you did not ask for.
+- If the port cannot be bound, Chunksmith **keeps working** - it falls back to the in-band channel,
+  which is correct but much slower - and says so at WARN, naming the port. If LODs are not arriving on
+  a server that has Chunksmith on both sides, that log line is the first place to look.
+- `/cs status` reports the port in force and whether it was derived or configured.
+- Open the port to your players. A backchannel that binds fine but is firewalled looks identical to
+  one that never bound, from the player's side: the client probes it once, warns, and falls back.
 
 ## Letting other mods build on freshly generated land
 

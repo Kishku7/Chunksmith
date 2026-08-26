@@ -212,6 +212,11 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public int getLodBackchannelPort() {
+        return plugin.getConfig().getInt("lod-backchannel-port", 0);
+    }
+
+    @Override
     public void setLanguage(final String language) {
         plugin.getConfig().set("language", Input.checkLanguage(language));
         plugin.saveConfig();
@@ -323,6 +328,13 @@ public final class BukkitConfig implements Config {
     @Override
     public void setLodDhOverrideEnabled(final boolean enabled) {
         plugin.getConfig().set("lod-dh-override", enabled);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodBackchannelPort(final int port) {
+        plugin.getConfig().set("lod-backchannel-port",
+                (port < 1024 || port > 65535) ? 0 : port);
         plugin.saveConfig();
     }
 

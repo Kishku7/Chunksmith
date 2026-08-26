@@ -1,5 +1,6 @@
 package com.kishku7.chunksmith.command;
 
+import com.kishku7.chunksmith.lod.net.CsLodRebind;
 import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
@@ -72,6 +73,26 @@ public final class ConfigSettings {
                         return true;
                     }),
             bool("lodDhOverride", Config::isLodDhOverrideEnabled, Config::setLodDhOverrideEnabled),
+            of("lodBackchannelPort", ConfigSetting.Kind.INTEGER,
+                    config -> String.valueOf(config.getLodBackchannelPort()),
+                    (config, raw) -> {
+                        final Optional<Long> value = Input.tryLong(raw);
+                        if (value.isEmpty()) {
+                            return false;
+                        }
+                        final long asked = value.get();
+                        // Out of INT range at all is a typo, not a port. Casting it would wrap and
+                        // store something nobody asked for.
+                        if (asked < Integer.MIN_VALUE || asked > Integer.MAX_VALUE) {
+                            return false;
+                        }
+                        config.setLodBackchannelPort((int) asked);
+                        // Take effect NOW. The whole point of the key is to help an operator who
+                        // cannot casually restart; a port that only moves on the next boot would
+                        // solve their problem in theory and not in practice.
+                        CsLodRebind.apply();
+                        return true;
+                    }),
             settle(bool("pregenSettle", Config::isPregenSettleEnabled, Config::setPregenSettleEnabled)),
             settle(integer("pregenSettleDelayTicks",
                     Config::getPregenSettleDelayTicks, Config::setPregenSettleDelayTicks)),

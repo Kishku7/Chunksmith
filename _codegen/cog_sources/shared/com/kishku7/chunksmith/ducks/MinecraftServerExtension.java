@@ -42,6 +42,27 @@ public interface MinecraftServerExtension {
     void chunksmith$atTicketSafePoint(Runnable task);
 
     /**
+     * Run the queued ticket work NOW, on the calling (server) thread.
+     *
+     * <p>Exists for ONE caller: the paused integrated server. The ordinary drain rides
+     * {@code MinecraftServer.tickServer} HEAD, and {@code IntegratedServer.tickServer} does not
+     * call its superclass at all while paused -- it calls {@code tickPaused()} and returns. So on
+     * a paused single-player world the queue filled and nothing ever emptied it: no chunk was
+     * given a ticket, the pre-gen made no progress, and because nothing threw, the log was silent
+     * (mod_support #17, regression from 3.3.0's safe point).
+     *
+     * <p><b>Draining here is safe precisely because the server is paused.</b> The safe point exists
+     * so ticket mutations never land during {@code tickChunks}' walk of the simulation chunk
+     * tracker -- and while paused, {@code tickChunks} does not run at all. What the drain queues is
+     * still propagated the same way it was before 3.3.0: the outer {@code runServer} loop keeps
+     * pumping {@code ServerChunkCache.MainThreadExecutor.pollTask()}, whose first act is
+     * {@code runDistanceManagerUpdates()}.
+     *
+     * <p>Server thread only.
+     */
+    void chunksmith$drainTicketSafePointNow();
+
+    /**
      * True only while the safe-point queue is being drained, on the server thread.
      *
      * <p>The one condition under which chunk-ticket work may be done inline instead of queued.

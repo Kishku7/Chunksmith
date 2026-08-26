@@ -220,8 +220,11 @@ public final class CsLodProtocol {
     }
 
     /**
-     * The backchannel port is DERIVED from the game port -- never configured, nothing for an operator to
-     * set. Game on 25565 -> HTTP on 25566.
+     * The backchannel port, DERIVED from the game port. Game on 25565 -> HTTP on 25566.
+     *
+     * <p>This is the default, not the only option: an operator may name a port explicitly (config key
+     * {@code lodBackchannelPort}) because a managed host will not necessarily rent them the port next
+     * to their game port -- see {@link #httpPort(int, int)} and mod_support #19.
      *
      * @param gamePort the port the Minecraft server is listening on
      * @return the backchannel port, or 0 if the game port is at the top of the range (no room for +1)
@@ -229,5 +232,27 @@ public final class CsLodProtocol {
     public static int httpPort(final int gamePort) {
         final int port = gamePort + 1;
         return port > 65535 ? 0 : port;
+    }
+
+    /**
+     * Resolve the backchannel port an operator actually gets: their configured port if they named one,
+     * otherwise {@link #httpPort(int) the derived one}.
+     *
+     * <p>A configured port that collides with the game port is REFUSED rather than honoured -- binding
+     * it cannot succeed anyway (the game already holds it), and refusing lets the caller report a
+     * cause instead of an anonymous bind failure.
+     *
+     * @param gamePort   the port the Minecraft server is listening on
+     * @param configured the operator's chosen port, or 0 to derive
+     * @return the port to bind, or 0 if there is none to be had
+     */
+    public static int httpPort(final int gamePort, final int configured) {
+        if (configured == 0) {
+            return httpPort(gamePort);
+        }
+        if (configured == gamePort || configured < 1024 || configured > 65535) {
+            return 0;
+        }
+        return configured;
     }
 }

@@ -2,6 +2,63 @@
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-08-26
+
+### Added
+
+- **The LOD backchannel port is now yours to choose (`lodBackchannelPort`).** It was derived from
+  the game port and nothing else -- always `serverPort + 1`, with no way to change it. That is fine
+  on a box you own and impossible on a managed host that will not hand you the port next door
+  (mod_support #19). The new key takes an explicit port; `0` keeps the old derived behaviour and
+  remains the default, so an existing server is unaffected and nothing needs to be set.
+
+- **`/cs set lodBackchannelPort <0|1024-65535>` -- and it takes effect immediately.** No restart.
+  The backchannel stops, rebinds on the new port, and every connected client is told the new port
+  and handed a fresh download credential in the same pass. Clients never had a port setting to
+  begin with (the server has always advertised it on connect), so changing it costs a player
+  nothing -- they do not need to know it happened.
+
+### Fixed
+
+- **A paused single-player pre-gen made no progress at all, and said nothing about it.** Since
+  3.3.0. Pausing is how people run a big pre-gen -- the menu is open, nothing else is competing,
+  the generator has the machine -- so this took the mod's best case and turned it into its worst
+  one, with no error to explain it (mod_support #17).
+
+  3.3.0 introduced a ticket safe point: all chunk-ticket work goes onto a queue that is drained
+  once per tick from `MinecraftServer.tickServer`. That fixed a real crash, and on a dedicated
+  server it fires every tick without exception. But `IntegratedServer.tickServer` calls
+  `tickPaused()` and **returns without calling its superclass** whenever the game is paused, so on
+  single-player the drain simply never ran. Ticket work piled up, no chunk was ever given a ticket,
+  and the generator -- which runs on its own thread -- kept looping happily over work the server
+  would never accept. Nothing threw, so nothing was logged.
+
+  The paused tick now drains the queue before it runs housekeeping. This is safe precisely because
+  the server is paused: the safe point exists to keep ticket changes out of the chunk-tick walk,
+  and that walk does not happen while paused.
+
+### Changed
+
+- **A backchannel that cannot bind now says so at WARN, naming the port.** It was logged at INFO,
+  worded as though nothing much had happened, and the mod quietly fell back to the slower in-band
+  channel. That is the line an operator needed to see and did not: "Chunksmith is installed on both
+  sides and no LOD ever arrives" reads like a broken mod, not like a closed port. The message now
+  names the port that failed and says what to do about it.
+
+- **The Bukkit/Paper plugin now says plainly that it cannot send LOD to players.** It writes a
+  CSLOD store and has no channel to serve it -- that is by design, and it has always been true, but
+  the startup line said "no renderer feed on this platform yet", which an operator reads as a
+  remark about the server rather than as "your players will receive nothing". Somebody ran
+  Chunksmith on their server and their client, got no LOD, and had to open an issue to find out
+  that no combination of mods could have worked (mod_support #18). The message now names the
+  consequence, names the build that does support it, and says outright that no client mod is a
+  workaround. The store is still written and is still worth having: it becomes servable the moment
+  that server moves to the mod build.
+
+- **`/cs status` reports the effective backchannel port**, including whether it was derived or set,
+  so the answer to "what port should I be opening?" comes from the server rather than from
+  arithmetic.
+
 ## [3.13.0] - 2026-08-21
 
 The first release since 3.4.1. Versions 3.5.0 through 3.12.0 were built and tested in-house but

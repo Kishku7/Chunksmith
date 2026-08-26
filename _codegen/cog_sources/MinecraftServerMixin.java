@@ -135,9 +135,18 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
 
     @Inject(method = "tickServer", at = @At("HEAD"))
     private void chunksmith$onTickHead(BooleanSupplier booleanSupplier, CallbackInfo ci) {
-        // THE TICKET SAFE POINT. Deliberately here and not in the housekeeping hook below: tickServer
-        // HEAD is the one injection point that fires unconditionally, every tick, on EVERY game
-        // version -- including the empty-server pause tick, which returns before TAIL is reached.
+        // THE TICKET SAFE POINT. Deliberately here and not in the housekeeping hook below: on a
+        // DEDICATED server tickServer HEAD fires unconditionally, every tick, on every game version
+        // -- including the empty-server tick, which returns before TAIL is reached.
+        //
+        // IT IS NOT SUFFICIENT ON ITS OWN (mod_support #17). This comment used to claim HEAD covered
+        // "the pause tick" too, conflating a dedicated server's empty tick with an INTEGRATED
+        // server's paused tick. They are not the same: IntegratedServer.tickServer sets
+        // `paused = Minecraft.isPaused() || players.isEmpty()`, and when paused calls tickPaused()
+        // and RETURNS -- super.tickServer is never reached, so neither is this injection. From 3.3.0
+        // until that was found, a paused single-player pre-gen queued ticket work that nothing ever
+        // drained and sat at zero chunks, silently. IntegratedServerMixin now drains on the paused
+        // path; see MinecraftServerExtension#chunksmith$drainTicketSafePointNow.
         // Draining in the housekeeping hook stalled a 26.1.2 pre-gen at zero chunks back when that
         // hook bound to INVOKE tickConnection()V; 3.4.0 moved it to TAIL (see
         // compat.housekeeping_inject_at for why that binding never fired), but the drain stays here.
@@ -223,14 +232,6 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     }
 
     /**
-     * Publish how many chunks the server is holding, for the generation throttle to gate on.
-     *
-     * <p>{@code getLoadedChunksCount()} is the same number the crash report prints as {@code Chunks[S]
-     * W:} -- public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
-     * drift handling. Summed across dimensions because memory is, and a pregen in one dimension is
-     * perfectly capable of being starved by chunks resident in another.
-     */
-    /**
      * A monotonic tick clock for the settle window, taken from the overworld's game time.
      *
      * <p>The window is given the same clock {@code offer()} uses, so a delay measured in ticks means
@@ -245,6 +246,14 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         return 0L;
     }
 
+    /**
+     * Publish how many chunks the server is holding, for the generation throttle to gate on.
+     *
+     * <p>{@code getLoadedChunksCount()} is the same number the crash report prints as {@code Chunks[S]
+     * W:} -- public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
+     * drift handling. Summed across dimensions because memory is, and a pregen in one dimension is
+     * perfectly capable of being starved by chunks resident in another.
+     */
     @Unique
     private void chunksmith$reportChunkResidency() {
         long loaded = 0L;
@@ -316,6 +325,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         // A released pre-gen ticket only becomes an unloadable chunk once the holders are
         // downgraded, which is what housekeeping does -- so arm it rather than leave the job half done.
         this.chunksmith$markChunkSystemHousekeeping();
+    }
+
+    @Override
+    public void chunksmith$drainTicketSafePointNow() {
+        this.chunksmith$drainTicketSafePoint();
     }
 
     @Override

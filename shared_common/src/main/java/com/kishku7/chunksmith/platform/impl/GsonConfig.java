@@ -126,6 +126,13 @@ public final class GsonConfig implements Config {
     private static final long SETTLE_MAX_HELD_MIN = 16L;
     private static final long SETTLE_MAX_HELD_MAX = 1_000_000L;
     private static final long SETTLE_MAX_HELD_DEFAULT = 256L;
+    // The LOD backchannel port. 0 = derive it from the game port (gamePort + 1), which is what
+    // Chunksmith did unconditionally before 3.14.0 and remains the default. An explicit value is
+    // floored at 1024 because binding a privileged port is not something a game server should be
+    // asking for, and a value below it is far more likely to be a typo than an intention.
+    private static final int BACKCHANNEL_PORT_DERIVE = 0;
+    private static final int BACKCHANNEL_PORT_MIN = 1024;
+    private static final int BACKCHANNEL_PORT_MAX = 65535;
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
@@ -418,6 +425,23 @@ public final class GsonConfig implements Config {
         return Optional.ofNullable(configModel.lodDhOverride).orElse(false);
     }
 
+    @Override
+    public int getLodBackchannelPort() {
+        final int raw = Optional.ofNullable(configModel.lodBackchannelPort).orElse(BACKCHANNEL_PORT_DERIVE);
+        if (raw == BACKCHANNEL_PORT_DERIVE) {
+            return BACKCHANNEL_PORT_DERIVE;
+        }
+        if (raw < BACKCHANNEL_PORT_MIN || raw > BACKCHANNEL_PORT_MAX) {
+            // Say it out loud. A silently corrected port is the worst outcome here: the operator
+            // opens the number they wrote in the file and the server is listening somewhere else.
+            LOGGER.warn("Chunksmith: lodBackchannelPort " + raw + " is outside "
+                    + BACKCHANNEL_PORT_MIN + "-" + BACKCHANNEL_PORT_MAX
+                    + "; deriving the port from the game port instead");
+            return BACKCHANNEL_PORT_DERIVE;
+        }
+        return raw;
+    }
+
     // Every setter below clamps to the SAME range its getter enforces, then saves. Clamping only on
     // read would let the file hold a number the mod refuses to honour, so the file and `/cs set` would
     // disagree about what is in force -- and the file is what an operator inspects when something is wrong.
@@ -562,6 +586,19 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setLodBackchannelPort(final int port) {
+        // Out-of-range collapses to DERIVE rather than clamping to the nearest legal port. Clamping
+        // would answer "set it to 80" with "it is now 1024", which is a different server than the
+        // one that was asked for; deriving is at least the documented default and is what the
+        // getter already reports for the same input.
+        configModel.lodBackchannelPort =
+                (port < BACKCHANNEL_PORT_MIN || port > BACKCHANNEL_PORT_MAX)
+                        ? BACKCHANNEL_PORT_DERIVE
+                        : port;
+        saveConfig();
+    }
+
+    @Override
     public void reload() {
         try (final Reader reader = Files.newBufferedReader(savePath)) {
             configModel = GSON.fromJson(reader, ConfigModel.class);
@@ -610,6 +647,8 @@ public final class GsonConfig implements Config {
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
         private Long dispatchMaxConcurrent = DISPATCH_MAX_CONCURRENT_DEFAULT;
         private Boolean lodDhOverride = false;
+        // 0 = derive from the game port. See Config#getLodBackchannelPort.
+        private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
         // ON by default: dropping a chunk the instant it is generated silently breaks every mod that
         // builds on newly generated land (mod_support #14). Off is for a pure terrain pregen.
         private Boolean pregenSettle = true;

@@ -29,9 +29,16 @@ import java.util.regex.Pattern;
  * anything: it just serves them. Range requests, resume, parallel connections, at network speed, with the
  * game pipeline untouched.
  *
- * <p><b>Address is derived, never configured:</b> the game's own interface, at game port + 1. There is
- * nothing for an operator to set. If the port cannot be bound, that is a LOG LINE, not an error -- the
- * client silently falls back to the in-band channel.
+ * <p><b>The address follows the game; the port is the operator's if they want it.</b> The interface is
+ * always the one the game is bound to -- a client is already connected to that host, so there is nothing
+ * to negotiate. The port defaults to game port + 1 and can be set explicitly, because a managed host
+ * rents a fixed set of ports and will not hand out the one next to the game just because it is tidy
+ * (mod_support #19).
+ *
+ * <p>If the port cannot be bound the mod still runs -- the client falls back to the in-band channel --
+ * but it says so at WARN, naming the port. It used to say so at INFO, and the result was operators
+ * reporting "Chunksmith is installed on both sides and no LOD ever arrives" with the explanation sitting
+ * unread in their log.
  *
  * <p>Uses the JDK's own {@link HttpServer}: zero dependencies, consistent with the rest of the LOD stack
  * (no native DB, no native compressor).
@@ -70,6 +77,7 @@ public final class CsLodHttpServer {
     private HttpServer server;
     private ExecutorService pool;
     private int port;
+    private boolean derived = true;
 
     /**
      * @param storeRoot the {@code <world>/chunksmith/lod} directory -- the ONLY tree ever served
@@ -83,14 +91,28 @@ public final class CsLodHttpServer {
     /**
      * Bind and start.
      *
-     * @param bindAddress the address the GAME is bound to (empty/null = all interfaces, same as the game)
-     * @param gamePort    the game's port; the backchannel takes gamePort + 1
+     * @param bindAddress    the address the GAME is bound to (empty/null = all interfaces, same as the game)
+     * @param gamePort       the game's port
+     * @param configuredPort the operator's chosen port, or 0 to derive {@code gamePort + 1}
      * @return the bound port, or 0 if the backchannel is unavailable (in which case: fall back in-band)
      */
-    public int start(final String bindAddress, final int gamePort) {
-        final int wanted = CsLodProtocol.httpPort(gamePort);
+    public int start(final String bindAddress, final int gamePort, final int configuredPort) {
+        derived = configuredPort == 0;
+        final int wanted = CsLodProtocol.httpPort(gamePort, configuredPort);
         if (wanted == 0) {
-            LOGGER.info("Chunksmith: no room for a LOD backchannel port above " + gamePort + "; in-band only");
+            if (derived) {
+                LOGGER.warn("Chunksmith: no room for a LOD backchannel port above " + gamePort
+                        + "; falling back to the in-band channel (slower). Set lodBackchannelPort"
+                        + " to name a port explicitly.");
+            } else {
+                // Refused before we ever tried to bind, so say WHICH rule refused it. An operator who
+                // typed their game port here would otherwise get a bind failure with no cause.
+                LOGGER.warn("Chunksmith: lodBackchannelPort " + configuredPort + " cannot be used"
+                        + (configuredPort == gamePort
+                                ? " because it is the game's own port"
+                                : " because it is outside 1024-65535")
+                        + "; falling back to the in-band channel (slower)");
+            }
             return 0;
         }
         try {
@@ -110,13 +132,20 @@ public final class CsLodHttpServer {
             server.createContext(CsLodProtocol.HTTP_PREFIX, this::handle);
             server.start();
             port = wanted;
-            LOGGER.info("Chunksmith: LOD backchannel listening on " + address + " (game port + 1)");
+            LOGGER.info("Chunksmith: LOD backchannel listening on " + address + " (port " + port
+                    + (derived ? ", derived from the game port" : ", set by lodBackchannelPort")
+                    + "). Open this port to clients for fast LOD downloads.");
             return port;
         } catch (final IOException e) {
-            // Not an error. The operator may simply not have the port open -- the client falls back in-band.
-            LOGGER.info("Chunksmith: LOD backchannel could not bind port " + wanted
-                    + " (" + e.getMessage() + "); falling back to the in-band channel");
+            // The mod still works -- the client falls back in-band -- but this is the line that answers
+            // "why is no LOD arriving?", so it is a WARN and it names the port. At INFO it was read by
+            // nobody and the symptom looked like a broken mod instead of a closed port.
+            LOGGER.warn("Chunksmith: the LOD backchannel could not bind port " + wanted
+                    + " (" + e.getMessage() + "). Falling back to the in-band channel, which works but is"
+                    + " much slower. Either open port " + wanted + ", or set lodBackchannelPort to a port"
+                    + " your host does give you (/cs set lodBackchannelPort <port>).");
             server = null;
+            port = 0;
             return 0;
         }
     }
@@ -137,11 +166,17 @@ public final class CsLodHttpServer {
         return port;
     }
 
+    /** True when the bound port came from {@code gamePort + 1} rather than from the config. */
+    public boolean isDerived() {
+        return derived;
+    }
+
     /** served / bytes / rejected -- surfaced by the status command. Counters exist from day one, on purpose. */
     public String describe() {
         return server == null
                 ? "backchannel: not running (in-band fallback)"
-                : "backchannel: port " + port + ", " + served.get() + " files, " + bytes.get()
+                : "backchannel: port " + port + (derived ? " (derived)" : " (configured)")
+                        + ", " + served.get() + " files, " + bytes.get()
                         + " bytes, " + rejected.get() + " rejected, " + tokens.size() + " live tokens";
     }
 

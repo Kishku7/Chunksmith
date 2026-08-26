@@ -112,8 +112,18 @@ public final class LodSupport {
             return;
         }
         if (lodEnabled(config)) {
-            LOGGER.info("Chunksmith: LOD generation ON (server-side CSLOD store only -- no renderer "
-                    + "feed on this platform yet). Set lod-enabled: false in config.yml to turn it off.");
+            // State the CONSEQUENCE for the operator, not the shape of the code. The old wording
+            // ("no renderer feed on this platform yet") is true and useless: of course a server does
+            // not render. What an operator needs to know is that their PLAYERS get nothing, and that
+            // no client-side mod they install will change it -- mod_support #18 was somebody working
+            // that out the hard way, with this line already in their log.
+            LOGGER.info("Chunksmith: LOD generation ON -- writing a CSLOD store on this server."
+                    + " NOTE: this plugin CANNOT send LOD to players. Serving the store to clients"
+                    + " is available only in the Fabric / NeoForge / Forge MOD build of Chunksmith,"
+                    + " not in the Bukkit/Paper plugin -- no client mod can work around that. The"
+                    + " store is still useful: it is kept, and it will be servable if you move this"
+                    + " server to the mod build. Set lod-enabled: false in config.yml to stop"
+                    + " generating it.");
         } else {
             LOGGER.info("Chunksmith: LOD generation off (lod-enabled: false in config.yml).");
         }

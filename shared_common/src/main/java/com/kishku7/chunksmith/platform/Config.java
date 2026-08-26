@@ -257,6 +257,24 @@ public interface Config {
      */
     boolean isLodDhOverrideEnabled();
 
+    /**
+     * The TCP port the LOD backchannel binds, or 0 to derive it from the game port.
+     *
+     * <p>0 is the default and means {@code gamePort + 1}, which is what Chunksmith has always
+     * done. It stays the default because it is right on a machine you control: the port next to
+     * the game is almost always free, and an operator who never thinks about this gets a working
+     * backchannel for free.
+     *
+     * <p>It is wrong on a managed host, which hands out a fixed set of ports and will not give
+     * you the one adjacent to your game port just because it would be convenient. Before this
+     * key those servers could not use the backchannel at all and had no way to say so
+     * (mod_support #19). An explicit port is an operator decision and is never second-guessed.
+     *
+     * <p>Changing it does NOT require a restart, and clients need no matching setting: the port
+     * is advertised to each client on connect, so it is the server's business alone.
+     */
+    int getLodBackchannelPort();
+
     void setLanguage(String language);
 
     void setContinueOnRestart(boolean continueOnRestart);
@@ -292,6 +310,14 @@ public interface Config {
     void setLodMode(LodMode mode);
 
     void setLodDhOverrideEnabled(boolean enabled);
+
+    /**
+     * Set the backchannel port and persist it. 0 restores the derived {@code gamePort + 1}.
+     *
+     * <p>Persisting is the point: a port you had to re-apply after every restart would not solve
+     * the problem this key exists for.
+     */
+    void setLodBackchannelPort(int port);
 
     void reload();
 }

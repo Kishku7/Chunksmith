@@ -1,5 +1,6 @@
 package com.kishku7.chunksmith.lod.net;
 
+import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.lod.LodSupport;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -226,12 +227,104 @@ public final class CsLodServerNet {
             return thread;
         });
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
-        // Same interface the game is bound to, game port + 1. Nothing for an operator to configure.
-        // A bind failure is a log line, not an error: the client falls back to the in-band channel.
-        http.start(current.getLocalIp(), current.getPort());
+        // Same interface the game is bound to. The PORT is gamePort + 1 unless the operator named one
+        // (lodBackchannelPort) -- see mod_support #19. A bind failure is not fatal: the client falls
+        // back to the in-band channel, and CsLodHttpServer warns loudly enough to be found in a log.
+        http.start(current.getLocalIp(), current.getPort(), configuredPort());
+        // From here, `/cs set lodBackchannelPort` can move the listener without a restart.
+        CsLodRebind.register(CsLodServerNet::rebind);
+    }
+
+    /** The operator's chosen backchannel port, or 0 to derive it. 0 whenever the mod is not loaded. */
+    private static int configuredPort() {
+        // ChunksmithProvider.get() THROWS when unloaded, so gate on isLoaded() first -- same pattern
+        // as LodSupport.lodEnabled.
+        return ChunksmithProvider.isLoaded()
+                ? ChunksmithProvider.get().getConfig().getLodBackchannelPort()
+                : 0;
+    }
+
+    /**
+     * Move the backchannel to the currently configured port WITHOUT a restart.
+     *
+     * <p>Called after {@code /cs set lodBackchannelPort}. Three things have to happen together or the
+     * change is worse than useless:
+     * <ol>
+     *   <li>the old listener stops -- otherwise the old port stays open and the operator has moved
+     *       nothing;</li>
+     *   <li>the new one binds;</li>
+     *   <li>every connected client is told, and re-issued a token. {@link CsLodHttpServer#stop()}
+     *       clears the token table, so a client that is not re-greeted holds a credential the new
+     *       listener will not honour and quietly 404s until it relogs. That silent-until-relog state
+     *       is exactly the failure this whole issue is about, so it is not acceptable to leave it to
+     *       chance.</li>
+     * </ol>
+     *
+     * <p>Main thread only: it sends packets.
+     *
+     * @return the port now bound, or 0 if the backchannel is not running (in-band fallback)
+     */
+    public static int rebind() {
+        final MinecraftServer current = server;
+        if (current == null) {
+            return 0;
+        }
+        if (http != null) {
+            http.stop();
+            http = null;
+        }
+        if (!LodSupport.lodEnabled(current)) {
+            return 0;
+        }
+        final Path root = LodSupport.storeRootBase(current);
+        try {
+            Files.createDirectories(root);
+        } catch (final IOException e) {
+            LOGGER.warn("Chunksmith: cannot create the LOD store root " + root + ": " + e);
+            return 0;
+        }
+        http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
+        final int bound = http.start(current.getLocalIp(), current.getPort(), configuredPort());
+        readvertise(current, bound);
+        return bound;
+    }
+
+    /**
+     * Re-send the hello to every client that has spoken the protocol, carrying the new port and a
+     * fresh token.
+     *
+     * <p>Only GREETED players: a vanilla client has nothing to do with this message and would log an
+     * unknown id and drop it. A player whose send fails is left alone rather than retried -- they will
+     * re-hello on their next join, and the in-band channel keeps working meanwhile.
+     */
+    private static void readvertise(final MinecraftServer current, final int port) {
+        final List<String> dims = dimensions();
+        final boolean available = !dims.isEmpty();
+        int told = 0;
+        for (final ServerPlayer player : current.getPlayerList().getPlayers()) {
+            if (!GREETED.contains(player.getUUID())) {
+                continue;
+            }
+            final String token = (available && port != 0)
+                    ? TOKENS.issue(player.getUUID(), addressOf(player))
+                    : "";
+            try {
+                send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
+                        CsLodProtocol.VERSION, available, port, token, dims)));
+                told++;
+            } catch (final IOException e) {
+                LOGGER.warn("Chunksmith: could not tell {} about the new backchannel port: {}",
+                        nameOf(player), e.toString());
+            }
+        }
+        LOGGER.info("Chunksmith: LOD backchannel moved to port {} -- {} connected client(s) re-issued"
+                + " a token. No relog needed.", port == 0 ? "none (in-band)" : String.valueOf(port), told);
     }
 
     public static void onServerStopped() {
+        // Before anything else: a rebind that fired after this point would resurrect a listener for a
+        // server that is going away.
+        CsLodRebind.clear();
         if (http != null) {
             http.stop();
             http = null;
