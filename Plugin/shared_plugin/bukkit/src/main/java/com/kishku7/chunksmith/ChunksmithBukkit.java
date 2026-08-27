@@ -97,6 +97,9 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         }
         installOverreachDiagnostic();
         com.kishku7.chunksmith.lod.LodSupport.announce(chunky.getConfig());
+        // Connect the LOD serving path. Everything it needs has shipped in this jar since
+        // 3.2.0; nothing ever started it (mod_support #18).
+        com.kishku7.chunksmith.lod.CsLodServerBukkit.enable(this, chunky.getConfig());
     }
 
     @Override
@@ -107,7 +110,8 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
             overreachFilter = null;
         }
         if (chunky != null) {
-            com.kishku7.chunksmith.lod.LodSupport.shutdown();
+            com.kishku7.chunksmith.lod.CsLodServerBukkit.disable();
+        com.kishku7.chunksmith.lod.LodSupport.shutdown();
             chunky.disable();
         }
     }
@@ -186,6 +190,12 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
 
     public Chunksmith getChunky() {
         return chunky;
+    }
+
+    @EventHandler
+    public void onPlayerQuit(final org.bukkit.event.player.PlayerQuitEvent event) {
+        // A LOD download token is bound to one session. It must not outlive it.
+        com.kishku7.chunksmith.lod.CsLodServerBukkit.onQuit(event.getPlayer().getUniqueId());
     }
 
     @EventHandler

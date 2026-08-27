@@ -117,13 +117,10 @@ public final class LodSupport {
             // not render. What an operator needs to know is that their PLAYERS get nothing, and that
             // no client-side mod they install will change it -- mod_support #18 was somebody working
             // that out the hard way, with this line already in their log.
-            LOGGER.info("Chunksmith: LOD generation ON -- writing a CSLOD store on this server."
-                    + " NOTE: this plugin CANNOT send LOD to players. Serving the store to clients"
-                    + " is available only in the Fabric / NeoForge / Forge MOD build of Chunksmith,"
-                    + " not in the Bukkit/Paper plugin -- no client mod can work around that. The"
-                    + " store is still useful: it is kept, and it will be servable if you move this"
-                    + " server to the mod build. Set lod-enabled: false in config.yml to stop"
-                    + " generating it.");
+            LOGGER.info("Chunksmith: LOD generation ON -- writing a CSLOD store, and serving it to"
+                    + " players who have Chunksmith installed. Watch for the backchannel line just"
+                    + " below: that port has to be reachable by your players, or they get no LOD."
+                    + " Set lod-enabled: false in config.yml to turn all of this off.");
         } else {
             LOGGER.info("Chunksmith: LOD generation off (lod-enabled: false in config.yml).");
         }

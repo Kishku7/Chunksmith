@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-08-26
+
+### Added
+
+- **The Bukkit/Paper plugin can now send LOD to players.** Until today it generated the data and had
+  no way to deliver it, so anyone running the plugin got a store on disk and players who saw nothing
+  -- and no combination of client mods could change that (mod_support #18).
+
+  The awkward part of that story: every piece of the machinery had been shipping inside the plugin
+  jar since 3.2.0, because it lives in the shared code. The wire format, the token store, the HTTP
+  backchannel -- all present, all unreachable, because nothing registered a channel or started the
+  server. This release is the connection that was missing.
+
+  Nothing to configure. If LOD is on, the plugin registers the channel, opens the backchannel port
+  and answers clients exactly as the mod does. `lod-backchannel-port` in `config.yml` works the same
+  way it does on the mod, and the startup line tells you which port your players need to reach.
+
+  **One honest limitation:** the mod falls back to streaming LOD down the game connection when the
+  backchannel port is unreachable. The plugin does not do that yet -- if the port is blocked, players
+  get nothing rather than something slow. The log says so plainly instead of going quiet, and the
+  fix is to open the port or set one your host allows.
+
+### Changed
+
+- **The plugin's startup message no longer says it cannot serve LOD**, because it can.
+
+
 ## [3.14.0] - 2026-08-26
 
 ### Added

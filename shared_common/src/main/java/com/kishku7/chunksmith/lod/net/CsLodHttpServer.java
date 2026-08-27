@@ -66,7 +66,20 @@ public final class CsLodHttpServer {
     private static final int MAX_CONCURRENT_PER_IP = 6;
     private static final int STOP_GRACE_SECONDS = 2;
 
-    private final Path storeRoot;
+    /**
+     * Where a given dimension's region files live.
+     *
+     * <p>A mod-loader server keeps every dimension under one save root, so the default is simply
+     * {@code root.resolve(dimension)}. Bukkit gives each world its own folder, so there is no
+     * single parent to point at and it supplies its own resolver instead.
+     */
+    @FunctionalInterface
+    public interface RootResolver {
+        /** @return the directory holding that dimension's {@code .cslod} files, or null if unknown */
+        Path rootFor(String dimension);
+    }
+
+    private final RootResolver roots;
     private final CsLodTokens tokens;
     private final CsLodTokens.OnlineCheck onlineCheck;
     private final Map<String, Integer> inFlightByIp = new ConcurrentHashMap<>();
@@ -80,10 +93,19 @@ public final class CsLodHttpServer {
     private boolean derived = true;
 
     /**
-     * @param storeRoot the {@code <world>/chunksmith/lod} directory -- the ONLY tree ever served
+     * @param storeRoot the {@code <world>/chunksmith/lod} directory -- dimensions are its subdirectories
      */
     public CsLodHttpServer(final Path storeRoot, final CsLodTokens tokens, final CsLodTokens.OnlineCheck onlineCheck) {
-        this.storeRoot = storeRoot.toAbsolutePath().normalize();
+        this(dimension -> storeRoot.toAbsolutePath().normalize().resolve(dimension),
+                tokens, onlineCheck);
+    }
+
+    /**
+     * @param roots resolves a dimension name to the directory holding its region files
+     */
+    public CsLodHttpServer(final RootResolver roots, final CsLodTokens tokens,
+                           final CsLodTokens.OnlineCheck onlineCheck) {
+        this.roots = roots;
         this.tokens = tokens;
         this.onlineCheck = onlineCheck;
     }
@@ -241,8 +263,16 @@ public final class CsLodHttpServer {
         if (!DIM_DIR.matcher(parts[0]).matches() || !REGION_FILE.matcher(parts[1]).matches()) {
             return null;
         }
-        final Path candidate = storeRoot.resolve(parts[0]).resolve(parts[1]).toAbsolutePath().normalize();
-        return candidate.startsWith(storeRoot) ? candidate : null;
+        // Resolve the dimension FIRST, then containment-check against that dimension's own root.
+        // The two gates are unchanged in strength: the shape had to match, and the canonical result
+        // still has to sit inside the directory we meant to serve.
+        final Path dimensionRoot = roots.rootFor(parts[0]);
+        if (dimensionRoot == null) {
+            return null;
+        }
+        final Path base = dimensionRoot.toAbsolutePath().normalize();
+        final Path candidate = base.resolve(parts[1]).toAbsolutePath().normalize();
+        return candidate.startsWith(base) ? candidate : null;
     }
 
     private void sendFile(final HttpExchange exchange, final Path file, final boolean headOnly) throws IOException {
