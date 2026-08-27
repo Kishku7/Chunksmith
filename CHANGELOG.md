@@ -24,9 +24,36 @@
   get nothing rather than something slow. The log says so plainly instead of going quiet, and the
   fix is to open the port or set one your host allows.
 
+- **A client on a Paper server now actually receives LOD -- measured, not inferred.** The first
+  cut of the above answered the client's hello and stopped there, which looks exactly like
+  working: the server logs the greeting, opens the port, mints a download credential, and serves
+  nothing at all, because the client is waiting on a region index that never comes. Two things
+  were missing.
+
+  **The index and sync requests are answered.** The hello is only the introduction. The client
+  then asks what is near it, compares that against what it already has, and downloads the
+  difference -- and it asks again every few minutes as it travels. The plugin answers both now,
+  off the main thread, filtered to the draw distance the client actually reported.
+
+  **Bukkit is told to accept the reply.** A Bukkit server only delivers a plugin message on a
+  channel the client announced with `minecraft:register`, and drops everything else without a
+  word -- no exception, no log line, no packet. A modern Fabric client never makes that
+  announcement, so the server could hear the client perfectly while the client heard nothing
+  back. The plugin now registers the channel for a player who has already spoken to it on that
+  channel, which is proof enough that they speak it.
+
+  Measured on Paper 26.2 with a Fabric client and voxy: 16 regions, 27 MB, 5928 chunks handed to
+  the renderer. The symptom this replaces was `0 files, 0 bytes` with a live token beside it.
+
 ### Changed
 
 - **The plugin's startup message no longer says it cannot serve LOD**, because it can.
+
+- **One region scan, shared by every platform** (`CsLodIndexScan`). "Which regions can this
+  player see?" has to give the same answer on a Fabric server and a Paper server, and a second
+  copy of that rule would have drifted with nothing to catch it -- the symptom being a client that
+  fetches the wrong regions on one platform only. The loaders and the plugin now call the same
+  code, and sixteen tests pin the range, settle, ordering and cap behaviour.
 
 
 ## [3.14.0] - 2026-08-26

@@ -12,9 +12,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -62,7 +60,7 @@ import org.slf4j.LoggerFactory;
  *       region, and nothing about that needs the tick. The main thread now does one thing: take a snapshot
  *       of who is asking, where they are standing and what they can draw ({@link Request}), and hand it to
  *       the scan thread. The reply hops back to the main thread to be sent.</li>
- *   <li><b>The answer is bounded in BYTES, not just in regions.</b> {@link #MAX_REGIONS_PER_REQUEST} alone
+ *   <li><b>The answer is bounded in BYTES, not just in regions.</b> {@link CsLodIndexScan#MAX_REGIONS} alone
  *       was never a bound on anything that mattered -- 4096 regions x 7 MB is ~28 GB.</li>
  * </ol>
  *
@@ -74,34 +72,6 @@ public final class CsLodServerNet {
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private static final CsLodTokens TOKENS = new CsLodTokens();
-
-    /**
-     * SERVER POLICY caps on what one client may ask for. Not wire constants -- they live here rather than
-     * in CsLodProtocol because they are this server's limits, not part of the format.
-     *
-     * <p>Every number below arrives FROM THE NETWORK, from a player who has authenticated but is otherwise
-     * untrusted. An unbounded region count would be handed straight to {@code new ArrayList<>(count)},
-     * which allocates that array immediately -- a one-packet OOM; a negative one throws out of the tick
-     * task. An unbounded radius would hand back an index of the entire store, however large it is.
-     */
-    private static final int MAX_REGIONS_PER_REQUEST = 4096;
-
-    /**
-     * And a cap on the BYTES an index may describe. This is the bound that was missing.
-     *
-     * <p>{@link #MAX_REGIONS_PER_REQUEST} bounds the COUNT, which is not the quantity anyone cares about:
-     * a CSLOD region on a real store averages 4.6 MB and reaches 7.4 MB, so "at most 4096 regions" is "at
-     * most about 28 GB" -- a limit that has never once been the binding constraint on anything. It did not
-     * bound the old index's reads (that was the bug), and it does not bound what we are telling a client to
-     * go and download now.
-     *
-     * <p>2 GiB. No LOD renderer draws two gigabytes of terrain from where it is standing, so this cannot
-     * refuse an honest client; what it refuses is the pathological one -- a maximum-radius request against a
-     * fully-pregenerated world -- and even then it refuses it POLITELY: the index is sorted NEAREST FIRST
-     * and truncated, so the client is handed the terrain closest to it, which is the terrain it can see. It
-     * re-asks as it travels and the rest arrives. A truncated index is late, never lossy.
-     */
-    private static final long MAX_INDEX_BYTES = 2L * 1024L * 1024L * 1024L;
 
     /** ~16k blocks: further than any LOD renderer draws, and it bounds the index we build. */
     private static final int MAX_RADIUS_BLOCKS = 16384;
@@ -499,11 +469,11 @@ public final class CsLodServerNet {
     private static void inBand(final ServerPlayer player, final DataInputStream in) throws IOException {
         final String requested = in.readUTF();
         final int count = in.readInt();
-        // Bound BEFORE sizing anything: count came off the wire (see MAX_REGIONS_PER_REQUEST). A client
+        // Bound BEFORE sizing anything: count came off the wire (see CsLodIndexScan.MAX_REGIONS). A client
         // with more than this left to fetch simply asks again -- the index tells it what it is missing.
-        if (count < 0 || count > MAX_REGIONS_PER_REQUEST) {
+        if (count < 0 || count > CsLodIndexScan.MAX_REGIONS) {
             LOGGER.warn("Chunksmith: ignoring an in-band LOD request from {} for {} regions (max {})",
-                    nameOf(player), count, MAX_REGIONS_PER_REQUEST);
+                    nameOf(player), count, CsLodIndexScan.MAX_REGIONS);
             return;
         }
         final List<CsLodMessages.RegionEntry> wanted = new ArrayList<>(count);
@@ -747,16 +717,23 @@ public final class CsLodServerNet {
             if (dir == null) {
                 return;
             }
-            final List<CsLodMessages.RegionEntry> regions = scan(dir, request);
+            final CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
+                    new CsLodIndexScan.Request(request.dimension(), request.px(), request.pz(),
+                            request.radius()), System.currentTimeMillis());
+            if (scanned.capped()) {
+                LOGGER.warn("Chunksmith: LOD index for {} capped at {} of {} regions ({} MB of a {} MB"
+                                + " budget, radius {}). The client re-requests as the player moves, so it"
+                                + " gets the rest as it travels -- nearest regions first.",
+                        request.name(), scanned.regions().size(), scanned.found(),
+                        scanned.bytes() / (1024 * 1024), CsLodIndexScan.MAX_BYTES / (1024 * 1024),
+                        request.radius());
+            }
+            final List<CsLodMessages.RegionEntry> regions = scanned.regions();
 
             final byte[] message;
             if (request.summaryOnly()) {
-                long aggregate = 0L;
-                for (final CsLodMessages.RegionEntry entry : regions) {
-                    aggregate = CsLodSummary.fold(aggregate, entry.regionX(), entry.regionZ(), entry.hash());
-                }
                 message = CsLodMessages.encode(new CsLodMessages.RegionSummary(
-                        request.dimension(), regions.size(), aggregate));
+                        request.dimension(), regions.size(), CsLodIndexScan.aggregate(regions)));
                 LOGGER.debug("Chunksmith: LOD sync summary for {} -- {} regions of {}",
                         request.name(), regions.size(), request.dimension());
             } else {
@@ -784,113 +761,6 @@ public final class CsLodServerNet {
     }
 
     /**
-     * The one scan, shared by the index and the summary -- and they MUST share it.
-     *
-     * <p>If the summary were computed over a different set than the index, the sync would compare two
-     * answers to two different questions and disagree forever: every poll would find a "difference", pull a
-     * full index, find nothing to fetch, and do it all again on the next interval. The whole value of the
-     * sync is that an idle poll is idle, so there is exactly one definition of "the regions this player can
-     * see", and this is it.
-     *
-     * <p>Per region, in this order, cheapest first:
-     * <ol>
-     *   <li>the NAME must parse as one of ours ({@code r.<x>.<z>.cslod}) -- a string test, no syscall;</li>
-     *   <li>it must be {@link #inRange} of the player -- integer arithmetic, no syscall. Doing this BEFORE
-     *       the stat is the difference between statting 81 files and statting all 340;</li>
-     *   <li>ONE {@code readAttributes} gives us mtime and size together -- one {@code statx}, not two. That
-     *       is the only syscall per region, and it is all we need for both the settle check and the
-     *       freshness token;</li>
-     *   <li>it must be SETTLED -- a region the pregen is still appending to has header slots pointing past
-     *       the end of what a client would receive. Ten seconds untouched (see {@link CsLodStoreScan}).</li>
-     * </ol>
-     *
-     * <p>Then sorted NEAREST FIRST and truncated to the caps. Sorting is what makes the truncation
-     * deterministic -- {@code Files.list} order is whatever the filesystem says, so an un-sorted cap would
-     * return a different subset on each call and the summary would never match the index. It also makes the
-     * truncation KIND: the regions a client loses to the cap are the furthest ones, which are the ones it
-     * can least see, and it gets them as it walks toward them.
-     */
-    private static List<CsLodMessages.RegionEntry> scan(final Path dir, final Request request)
-            throws IOException {
-        final List<CsLodMessages.RegionEntry> found = new ArrayList<>();
-        if (!Files.isDirectory(dir)) {
-            return found;
-        }
-        final long now = System.currentTimeMillis();
-        try (var files = Files.list(dir)) {
-            for (final Path file : files.toList()) {
-                final String name = file.getFileName().toString();
-                if (!name.endsWith(CsLodStoreScan.REGION_SUFFIX)) {
-                    continue;
-                }
-                final String[] parts = name.split("\\.");
-                if (parts.length != 4) {
-                    continue;
-                }
-                final int regionX;
-                final int regionZ;
-                try {
-                    regionX = Integer.parseInt(parts[1]);
-                    regionZ = Integer.parseInt(parts[2]);
-                } catch (final NumberFormatException ignored) {
-                    continue;   // not one of ours
-                }
-                if (!inRange(request, regionX, regionZ)) {
-                    continue;
-                }
-                final BasicFileAttributes attrs;
-                try {
-                    attrs = Files.readAttributes(file, BasicFileAttributes.class);
-                } catch (final IOException e) {
-                    continue;   // it went away under us; the client re-asks
-                }
-                if (!attrs.isRegularFile()) {
-                    continue;
-                }
-                // A file we cannot vouch for is a file we do not serve -- same rule as CsLodStoreScan, and
-                // now answered from attributes we already have rather than a second stat.
-                if (now - attrs.lastModifiedTime().toMillis() < CsLodStoreScan.SETTLE_MILLIS) {
-                    continue;
-                }
-                found.add(new CsLodMessages.RegionEntry(regionX, regionZ,
-                        CsLodRegionHash.of(attrs.lastModifiedTime().toMillis(), attrs.size()),
-                        attrs.size()));
-            }
-        }
-
-        found.sort(Comparator
-                .comparingLong((CsLodMessages.RegionEntry e) -> distanceSquared(request, e.regionX(), e.regionZ()))
-                .thenComparingInt(CsLodMessages.RegionEntry::regionX)
-                .thenComparingInt(CsLodMessages.RegionEntry::regionZ));
-
-        return cap(found, request);
-    }
-
-    /**
-     * Apply BOTH caps -- the region count and the byte budget -- to a nearest-first list.
-     *
-     * <p>The byte budget is the one that was missing (see {@link #MAX_INDEX_BYTES}), and it is the one that
-     * actually binds: a 4096-region cap on a store of 4.6 MB regions permits ~18 GB.
-     */
-    private static List<CsLodMessages.RegionEntry> cap(final List<CsLodMessages.RegionEntry> found,
-                                                       final Request request) {
-        long bytes = 0L;
-        for (int i = 0; i < found.size(); i++) {
-            final long next = bytes + found.get(i).sizeBytes();
-            if (i >= MAX_REGIONS_PER_REQUEST || next > MAX_INDEX_BYTES) {
-                LOGGER.warn("Chunksmith: LOD index for {} capped at {} of {} regions ({} MB of a {} MB"
-                                + " budget, radius {}). The client re-requests as the player moves, so it"
-                                + " gets the rest as it travels -- nearest regions first.",
-                        request.name(), i, found.size(), bytes / (1024 * 1024),
-                        MAX_INDEX_BYTES / (1024 * 1024), request.radius());
-                return List.copyOf(found.subList(0, i));
-            }
-            bytes = next;
-        }
-        return found;
-    }
-
-    /**
      * Resolve a wire dimension id to a directory INSIDE the store, or null if it is malformed or tries to
      * escape. Two gates, same as {@code CsLodHttpServer.resolve}: the shape must match {@link #DIM_DIR},
      * AND the normalized result must still start with the store root (which catches a "." / ".." that the
@@ -902,34 +772,6 @@ public final class CsLodServerNet {
         }
         final Path dir = root.resolve(dimension).normalize();
         return dir.startsWith(root) ? dir : null;
-    }
-
-    /**
-     * Is this region within the radius the client's renderer can actually DRAW, measured from the player?
-     *
-     * <p>The client tells us its configured LOD distance in the handshake, and we follow it -- lower or
-     * higher. Sending beyond it is bandwidth spent on terrain the player will never see; sending less leaves
-     * visible holes. A store can be hundreds of megabytes, and shipping all of it to someone whose renderer
-     * draws 256 blocks would be indefensible.
-     *
-     * <p>A region is 32 chunks = 512 blocks square, so we test the region's BOX against the radius, not its
-     * corner -- a region only partly inside the radius still contains terrain the player can see.
-     */
-    private static boolean inRange(final Request request, final int regionX, final int regionZ) {
-        return distanceSquared(request, regionX, regionZ)
-                <= (long) request.radius() * request.radius();
-    }
-
-    /** Squared distance from the player to the NEAREST POINT of a region's box. Also the sort key. */
-    private static long distanceSquared(final Request request, final int regionX, final int regionZ) {
-        final int minX = regionX * 512;
-        final int minZ = regionZ * 512;
-        final int maxX = minX + 511;
-        final int maxZ = minZ + 511;
-
-        final int dx = Math.max(0, Math.max(minX - request.px(), request.px() - maxX));
-        final int dz = Math.max(0, Math.max(minZ - request.pz(), request.pz() - maxZ));
-        return (long) dx * dx + (long) dz * dz;
     }
 
     /**
