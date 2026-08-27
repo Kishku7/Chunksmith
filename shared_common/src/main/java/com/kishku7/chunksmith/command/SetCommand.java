@@ -71,8 +71,16 @@ public class SetCommand implements ChunksmithCommand {
         }
 
         if (!setting.write(config, value.get())) {
-            sender.sendMessagePrefixed(TranslationKey.ERROR_SET_VALUE, value.get(), setting.name(),
-                    expected(setting));
+            // A setting that knows WHY it refused says so. The generic message can only name the
+            // expected KIND, which reads as nonsense when the value was the right kind and wrong
+            // anyway ("25565 is not a valid integer").
+            final String why = setting.explainRefusal(config, value.get());
+            if (why != null) {
+                sender.sendMessagePrefixed(TranslationKey.ERROR_SET_REFUSED, setting.name(), why);
+            } else {
+                sender.sendMessagePrefixed(TranslationKey.ERROR_SET_VALUE, value.get(), setting.name(),
+                        expected(setting));
+            }
             return;
         }
 

@@ -27,6 +27,7 @@ public final class CommandLiteral {
     public static final String RADIUS_Z = "radiusZ";
     public static final String RELOAD = "reload";
     public static final String SELECTION = "selection";
+    public static final String STATUS = "status";
     public static final String SET = "set";
     public static final String SHAPE = "shape";
     public static final String SILENT = "silent";

@@ -47,22 +47,51 @@ public final class ConfigSetting {
         boolean write(Config config, String raw);
     }
 
+    /**
+     * Explains a refusal in the setting's own terms, or null to use the generic message.
+     *
+     * <p>The generic message can only report the KIND a value should have been, which is right
+     * for a typo and actively misleading for a value that is the right shape and still wrong --
+     * a port number that happens to be the game's own port is the standing example.
+     */
+    @FunctionalInterface
+    public interface Explainer {
+        /** @return why this raw value was refused, or null if there is nothing specific to say */
+        String explain(Config config, String raw);
+    }
+
     private final String name;
     private final Kind kind;
     private final Function<Config, String> reader;
     private final Writer writer;
     private final Predicate<Config> supported;
+    private final Explainer explainer;
 
     ConfigSetting(final String name,
                   final Kind kind,
                   final Function<Config, String> reader,
                   final Writer writer,
                   final Predicate<Config> supported) {
+        this(name, kind, reader, writer, supported, null);
+    }
+
+    ConfigSetting(final String name,
+                  final Kind kind,
+                  final Function<Config, String> reader,
+                  final Writer writer,
+                  final Predicate<Config> supported,
+                  final Explainer explainer) {
         this.name = name;
         this.kind = kind;
         this.reader = reader;
         this.writer = writer;
         this.supported = supported;
+        this.explainer = explainer;
+    }
+
+    /** Why this value was refused, in this setting's own terms, or null for the generic message. */
+    public String explainRefusal(final Config config, final String raw) {
+        return explainer == null ? null : explainer.explain(config, raw);
     }
 
     public String name() {

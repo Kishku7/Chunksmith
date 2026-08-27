@@ -1,6 +1,6 @@
 package com.kishku7.chunksmith.command;
 
-import com.kishku7.chunksmith.lod.net.CsLodRebind;
+import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
@@ -73,7 +73,7 @@ public final class ConfigSettings {
                         return true;
                     }),
             bool("lodDhOverride", Config::isLodDhOverrideEnabled, Config::setLodDhOverrideEnabled),
-            of("lodBackchannelPort", ConfigSetting.Kind.INTEGER,
+            port("lodBackchannelPort", ConfigSetting.Kind.INTEGER,
                     config -> String.valueOf(config.getLodBackchannelPort()),
                     (config, raw) -> {
                         final Optional<Long> value = Input.tryLong(raw);
@@ -86,11 +86,20 @@ public final class ConfigSettings {
                         if (asked < Integer.MIN_VALUE || asked > Integer.MAX_VALUE) {
                             return false;
                         }
+                        // REFUSE the game's own port here, before it is stored. The bind refuses it
+                        // too, but a bind happens AFTER the write: accepting it would save a value
+                        // that kills the backchannel, answer "done", and keep it dead across every
+                        // restart until somebody thought to look. Found by driving this on a live
+                        // server, not by reading it.
+                        final java.util.OptionalInt game = CsLodControl.gamePort();
+                        if (asked != 0 && game.isPresent() && asked == game.getAsInt()) {
+                            return false;
+                        }
                         config.setLodBackchannelPort((int) asked);
                         // Take effect NOW. The whole point of the key is to help an operator who
                         // cannot casually restart; a port that only moves on the next boot would
                         // solve their problem in theory and not in practice.
-                        CsLodRebind.apply();
+                        CsLodControl.apply();
                         return true;
                     }),
             settle(bool("pregenSettle", Config::isPregenSettleEnabled, Config::setPregenSettleEnabled)),
@@ -137,6 +146,29 @@ public final class ConfigSettings {
 
     private interface LongSetter {
         void set(Config config, long value);
+    }
+
+    /**
+     * The backchannel port, which can be refused for reasons a type name cannot express.
+     */
+    private static ConfigSetting port(final String name,
+                                      final ConfigSetting.Kind kind,
+                                      final java.util.function.Function<Config, String> reader,
+                                      final ConfigSetting.Writer writer) {
+        return new ConfigSetting(name, kind, reader, writer, config -> true,
+                (config, raw) -> {
+                    final Optional<Long> asked = Input.tryLong(raw);
+                    if (asked.isEmpty()) {
+                        return null;   // a word where a number goes: the generic message is right
+                    }
+                    final long value = asked.get();
+                    final java.util.OptionalInt game = CsLodControl.gamePort();
+                    if (value != 0 && game.isPresent() && value == game.getAsInt()) {
+                        return "that is the port the game itself is listening on. Pick another"
+                                + " port, or use 0 to derive it (" + (game.getAsInt() + 1) + ").";
+                    }
+                    return null;
+                });
     }
 
     private static ConfigSetting of(final String name,

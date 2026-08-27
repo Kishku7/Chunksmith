@@ -81,6 +81,18 @@ public class Version implements Comparable<Version> {
         return major == version.major && minor == version.minor && patch == version.patch;
     }
 
+    /**
+     * {@code major.minor.patch}, or {@code invalid} for {@link #INVALID}.
+     *
+     * <p>A value class with equals and hashCode and no toString is a trap: the first thing that
+     * renders one prints an object identity instead. {@code /cs status} did exactly that on a
+     * live server -- "Chunksmith com.kishku7.chunksmith.util.Version@8154".
+     */
+    @Override
+    public String toString() {
+        return isValid() ? (major + "." + minor + "." + patch) : "invalid";
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(major, minor, patch);

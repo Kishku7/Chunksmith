@@ -115,6 +115,10 @@ public final class TranslationKey {
     public static final String TASK_VERIFY_FAILED = "task_verify_failed";
     public static final String TASK_STOPPED = "task_stopped";
     public static final String TASK_UPDATE = "task_update";
+    public static final String ERROR_SET_REFUSED = "error_set_refused";
+    public static final String FORMAT_STATUS_VERSION = "format_status_version";
+    public static final String FORMAT_STATUS_NO_TASKS = "format_status_no_tasks";
+    public static final String FORMAT_STATUS_LOD = "format_status_lod";
     public static final String WRAP_BOTH = "wrap_both";
     public static final String WRAP_DEFAULT = "wrap_default";
     public static final String WRAP_EARTH = "wrap_earth";

@@ -2,6 +2,7 @@ package com.kishku7.chunksmith.lod.net;
 
 import com.kishku7.chunksmith.command.ConfigSetting;
 import com.kishku7.chunksmith.command.ConfigSettings;
+import com.kishku7.chunksmith.platform.Config;
 import org.junit.Test;
 
 import java.util.OptionalInt;
@@ -90,32 +91,127 @@ public class CsLodPortResolutionTest {
     public void rebindIsANoOpWhenNothingHasRegistered() {
         // Bukkit, or before a server exists. It must report "nothing to rebind" rather than claim a
         // port moved -- a setting that silently does nothing is the failure this issue is about.
-        CsLodRebind.clear();
-        final OptionalInt result = CsLodRebind.apply();
-        assertFalse("with no action registered, apply() must be empty, not 0", result.isPresent());
+        CsLodControl.clear();
+        assertFalse("with no action registered, apply() must be empty, not 0",
+                CsLodControl.apply().isPresent());
+        assertFalse("and it must not invent a game port either", CsLodControl.gamePort().isPresent());
+        assertTrue("describe() must be absent, not an empty string that reads like a real answer",
+                CsLodControl.describe().isEmpty());
     }
 
     @Test
     public void rebindCallsTheRegisteredActionAndReportsItsPort() {
         final int[] calls = {0};
-        CsLodRebind.register(() -> {
+        CsLodControl.register(() -> {
             calls[0]++;
             return 30000;
-        });
+        }, () -> 25565, () -> "backchannel: port 30000 (configured)");
         try {
-            final OptionalInt result = CsLodRebind.apply();
+            final OptionalInt result = CsLodControl.apply();
             assertTrue(result.isPresent());
             assertEquals(30000, result.getAsInt());
             assertEquals(1, calls[0]);
+            assertEquals(25565, CsLodControl.gamePort().orElseThrow());
+            assertEquals("backchannel: port 30000 (configured)", CsLodControl.describe().orElseThrow());
         } finally {
-            CsLodRebind.clear();
+            CsLodControl.clear();
         }
     }
 
     @Test
     public void clearStopsAStoppedServerFromEverBeingRebound() {
-        CsLodRebind.register(() -> 1);
-        CsLodRebind.clear();
-        assertFalse(CsLodRebind.apply().isPresent());
+        CsLodControl.register(() -> 1, () -> 25565, () -> "x");
+        CsLodControl.clear();
+        assertFalse(CsLodControl.apply().isPresent());
+    }
+
+    // --- the game-port refusal (found by driving a live server, not by reading the code) -----------
+
+    @Test
+    public void theGamesOwnPortIsRefusedBeforeItIsStored() {
+        // The bind refuses it too, but a bind happens AFTER the write. Accepting it here stored a
+        // value that killed the backchannel, answered "done", and kept it dead across every restart.
+        CsLodControl.register(() -> 0, () -> 25565, () -> "x");
+        try {
+            final int[] seen = {0, -1};
+            assertFalse("setting the game's own port must be REFUSED, not accepted",
+                    port().write(recording(seen), "25565"));
+            assertEquals("nothing may be written when it is refused", 0, seen[0]);
+        } finally {
+            CsLodControl.clear();
+        }
+    }
+
+    @Test
+    public void aLegalPortIsStillAcceptedWhileAServerIsRunning() {
+        CsLodControl.register(() -> 30000, () -> 25565, () -> "x");
+        try {
+            final int[] seen = {0, -1};
+            assertTrue(port().write(recording(seen), "30000"));
+            assertEquals(1, seen[0]);
+            assertEquals(30000, seen[1]);
+        } finally {
+            CsLodControl.clear();
+        }
+    }
+
+    @Test
+    public void zeroIsAcceptedEvenWhileAServerIsRunning() {
+        // 0 means "derive" and must never be caught by the game-port guard.
+        CsLodControl.register(() -> 25566, () -> 25565, () -> "x");
+        try {
+            final int[] seen = {0, -1};
+            assertTrue(port().write(recording(seen), "0"));
+            assertEquals(0, seen[1]);
+        } finally {
+            CsLodControl.clear();
+        }
+    }
+
+    @Test
+    public void aWordWhereAPortBelongsIsRefused() {
+        final int[] seen = {0, -1};
+        assertFalse(port().write(recording(seen), "nonsense"));
+        assertEquals(0, seen[0]);
+    }
+
+    private static ConfigSetting port() {
+        return ConfigSettings.find("lodBackchannelPort").orElseThrow();
+    }
+
+    /**
+     * A Config that records only what this test cares about.
+     *
+     * <p>A proxy rather than a hand-written stub: Config carries around forty methods and none of
+     * the other thirty-nine have anything to do with a port, so implementing them would be noise
+     * that has to be maintained every time the interface grows.
+     *
+     * @param seen {@code [writeCount, lastPortWritten]}
+     */
+    private static Config recording(final int[] seen) {
+        return (Config) java.lang.reflect.Proxy.newProxyInstance(
+                Config.class.getClassLoader(),
+                new Class<?>[]{Config.class},
+                (proxy, method, args) -> {
+                    if ("setLodBackchannelPort".equals(method.getName())) {
+                        seen[0]++;
+                        seen[1] = (Integer) args[0];
+                        return null;
+                    }
+                    final Class<?> returnType = method.getReturnType();
+                    if (returnType == boolean.class) {
+                        return Boolean.FALSE;
+                    }
+                    if (returnType == int.class) {
+                        return 0;
+                    }
+                    if (returnType == long.class) {
+                        return 0L;
+                    }
+                    if (returnType == double.class) {
+                        return 0.0d;
+                    }
+                    return null;
+                });
     }
 }

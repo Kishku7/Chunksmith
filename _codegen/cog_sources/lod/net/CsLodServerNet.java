@@ -1,6 +1,7 @@
 package com.kishku7.chunksmith.lod.net;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
+import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.lod.LodSupport;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -231,8 +232,12 @@ public final class CsLodServerNet {
         // (lodBackchannelPort) -- see mod_support #19. A bind failure is not fatal: the client falls
         // back to the in-band channel, and CsLodHttpServer warns loudly enough to be found in a log.
         http.start(current.getLocalIp(), current.getPort(), configuredPort());
-        // From here, `/cs set lodBackchannelPort` can move the listener without a restart.
-        CsLodRebind.register(CsLodServerNet::rebind);
+        // From here, `/cs set lodBackchannelPort` can move the listener without a restart, refuse
+        // the game's own port before storing it, and describe itself to `/cs status`.
+        CsLodControl.register(
+                CsLodServerNet::rebind,
+                current::getPort,
+                () -> http == null ? "backchannel: not running (in-band fallback)" : http.describe());
     }
 
     /** The operator's chosen backchannel port, or 0 to derive it. 0 whenever the mod is not loaded. */
@@ -324,7 +329,7 @@ public final class CsLodServerNet {
     public static void onServerStopped() {
         // Before anything else: a rebind that fired after this point would resurrect a listener for a
         // server that is going away.
-        CsLodRebind.clear();
+        CsLodControl.clear();
         if (http != null) {
             http.stop();
             http = null;

@@ -120,5 +120,9 @@
   "wrap_none": "none",
   "wrap_radial": "radial",
   "wrap_x": "x",
-  "wrap_z": "z"
+  "wrap_z": "z",
+  "format_status_version": "Chunksmith %s",
+  "format_status_no_tasks": "Pre-generation: nothing running.",
+  "format_status_lod": "LOD: %s",
+  "error_set_refused": "Cannot set %s: %s"
 }

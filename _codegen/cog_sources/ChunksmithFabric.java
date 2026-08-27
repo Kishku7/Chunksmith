@@ -179,6 +179,7 @@ public class ChunksmithFabric implements ModInitializer {
                 argument(CommandLiteral.SHAPE, string()).suggests(SuggestionProviders.SHAPES));
         registerArguments(command, literal(CommandLiteral.SILENT));
         registerArguments(command, literal(CommandLiteral.SPAWN));
+        registerArguments(command, literal(CommandLiteral.STATUS));
         registerArguments(command, literal(CommandLiteral.START),
                 argument(CommandLiteral.WORLD, dimension()),
                 argument(CommandLiteral.SHAPE, string()).suggests(SuggestionProviders.SHAPES),

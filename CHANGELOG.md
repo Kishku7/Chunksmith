@@ -18,7 +18,20 @@
   begin with (the server has always advertised it on connect), so changing it costs a player
   nothing -- they do not need to know it happened.
 
+- **`/cs status` -- one command that says what Chunksmith is doing.** Pre-gen state and the LOD
+  backchannel together, because those are the two halves of the mod and the two questions operators
+  actually arrive with: "is it generating?" and "why are my players getting no LOD?". The second
+  answer previously lived in `/cslod status`, which does not appear in `/cs help`, so it was
+  effectively hidden from the people who needed it.
+
 ### Fixed
+
+- **Setting the backchannel to the game's own port silently disabled it, and stuck.** The bind
+  refused the port -- correctly, and said so -- but the value had already been written to the config
+  and the command answered "lodBackchannelPort is now 25565". The result was an operator told the
+  setting had worked, a backchannel that was off, and a config that kept it off through every
+  restart until somebody thought to look. It is refused now at the moment it is typed, nothing is
+  saved, and the command says it was rejected.
 
 - **A paused single-player pre-gen made no progress at all, and said nothing about it.** Since
   3.3.0. Pausing is how people run a big pre-gen -- the menu is open, nothing else is competing,
