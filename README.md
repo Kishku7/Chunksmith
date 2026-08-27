@@ -139,12 +139,29 @@ any one LOD mod's private shape. From that single store we can serve **every** L
 
 LOD ships on the cells where a renderer actually exists: Fabric 1.20.1 / 1.21.1 / 1.21.11 / 26.x,
 NeoForge 1.21.1 / 1.21.11 / 26.1 / 26.2, Forge 1.20.1 (DH everywhere on that list, needs >= 2.3.0-b;
-voxy only on Fabric 1.21.11 + 26.x). The Bukkit/Paper/Folia plugin GENERATES a CSLOD store
-(`CsLodExtractor`, `LodSupport`) but cannot SERVE it: it registers no plugin-messaging channel and
-has no `CsLodHttpServer`, no `ServerHello` and no tokens, so a client connected to a plugin server
-never learns there is anything to fetch. Server-side generation only, deliberately, as a later
-phase (mod_support #18 was a user hitting exactly this). Gates: `_codegen/compat.py` (`has_lod` /
-`has_dh` / `has_voxy`).
+voxy only on Fabric 1.21.11 + 26.x). Those gates are about the RENDERER, which is a client-side
+thing -- they say where a Chunksmith *client* can draw LOD, not where a server can produce or send
+it. Gates: `_codegen/compat.py` (`has_lod` / `has_dh` / `has_voxy`).
+
+The Bukkit/Paper/Folia plugin both GENERATES a CSLOD store (`CsLodExtractor`, `LodSupport`) and,
+**as of 3.15.0, SERVES it** (`CsLodServerBukkit`): it registers the `chunksmith:lod` plugin channel,
+starts the `CsLodHttpServer` backchannel, mints tokens, and answers `ServerHello`, the region index
+and the periodic sync request -- the same wire protocol the mod speaks, off the same shared
+`CsLodIndexScan`. It lives in `Plugin/shared_plugin/`, so all three plugin lines (1.20.x / 1.21.x /
+26.x) have it; there is no per-line gate. This closed mod_support #18, and #22 is an unrelated user
+independently confirming it on Purpur.
+
+Two things to know when reading that code:
+
+- **A Bukkit server drops a plugin message on a channel the client never announced** via
+  `minecraft:register`, silently -- no exception, no log, no packet. A modern Fabric client does not
+  send that announcement, so the plugin registers the outgoing channel for any player who has already
+  spoken to it on that channel. Without that step the server hears the client perfectly and the client
+  hears nothing back, which is indistinguishable from working on the server side.
+- **The plugin has no in-band fallback yet.** When the backchannel port cannot be bound or reached,
+  the mod drips the same bytes down the game connection; the plugin does not, so a blocked port means
+  players get nothing rather than something slow. It is logged plainly. This is the one real gap
+  against the mod.
 
 ### Why a neutral format
 
