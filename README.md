@@ -13,9 +13,16 @@ derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 **Environment:** required on the server (or in singleplayer, where "server" is the integrated
 server running inside your own game); the client install is **optional**. Pre-generation alone
 needs nothing on the client. But if you want **multiplayer LOD** - players seeing pregenerated
-Distant Horizons / voxy terrain at a distance without having walked it - the same jar has to be
-installed on the client too, no separate mod. See [LOD: see what you pregenerated](#lod-see-what-you-pregenerated)
+Distant Horizons / voxy terrain at a distance without having walked it - Chunksmith has to be on
+the client too, no separate mod. See [LOD: see what you pregenerated](#lod-see-what-you-pregenerated)
 below, especially [One mod, all of it](#one-mod-all-of-it).
+
+**Running the plugin with modded clients works.** A Paper / Spigot / Purpur / Folia server with the
+Chunksmith **plugin**, and players on Fabric or NeoForge with the Chunksmith **mod** plus Distant
+Horizons or voxy, is a supported setup: the plugin serves LOD to those clients, from **3.15.0**
+onwards. You do not need a modded server to get multiplayer LOD. (Before 3.15.0 the plugin built the
+LOD data but had no way to send it, so this looked broken - if you are on an older build, update the
+server.)
 
 **Source code:** [`CSv3` branch](https://github.com/Kishku7/Chunksmith/tree/CSv3) - the 3.x line, where
 current development happens. The 2.x line is frozen on
@@ -80,6 +87,16 @@ itself.** Put the same jar on the server and on the client. The server keeps the
 downloads what it needs and feeds it to that player's Distant Horizons or voxy. **There is no companion
 mod any more.**
 
+**This works on a plugin server too, from `3.15.0`.** If your server runs Paper, Spigot, Purpur or
+Folia with the Chunksmith **plugin**, and your players run Fabric or NeoForge with the Chunksmith
+**mod** and a renderer, they get the same distant terrain. The plugin registers the same network
+channel, opens the same backchannel port and answers the same requests as the modded server does -
+there is nothing extra to configure, and the server itself needs no renderer. One difference worth
+knowing: **the plugin has no in-band fallback yet.** The mod, if the backchannel port cannot be
+reached, sends the data down the game connection instead - slower, but it arrives. The plugin does
+not do that, so on a plugin server a blocked port means no LOD rather than slow LOD. It says so in
+the log. Open the port, or set one your host allows with `lod-backchannel-port` in `config.yml`.
+
 It arrives at network speed. The store is already plain region files, so the server does not stream them
 - it **serves** them, over an HTTP backchannel on the game port + 1, opened automatically with nothing for
 you to configure. If that port cannot be bound or cannot be reached, Chunksmith says so and drips the same
@@ -129,7 +146,8 @@ yet.
 | What you are doing | What you install |
 |---|---|
 | Singleplayer | **Chunksmith.** That is all - it always was. |
-| Playing on a server | **Chunksmith, on the server and on the client.** Same jar. |
+| Playing on a modded server | **Chunksmith, on the server and on the client.** Same jar. |
+| Playing on a Paper / Spigot / Purpur / Folia server | **The Chunksmith plugin on the server, the Chunksmith mod on your client** (plus your renderer). Supported from **3.15.0**; the plugin serves LOD to modded clients. |
 | Running a server, pre-generation only | **Chunksmith on the server.** Nothing new loads; a dedicated server never touches the client half. |
 
 > **The standalone Chunksmith-Client mod is discontinued.** Its job is now part of Chunksmith, and as of
@@ -188,9 +206,15 @@ cannot feed. **voxy is Fabric-only** (upstream builds no NeoForge or Forge jar) 
 **1.21.11, 26.1 and 26.2**. **Distant Horizons works everywhere** on the list - Chunksmith needs **DH
 2.3.0-b or newer**, with no upper bound. **Neither renderer has shipped a 26.3 build yet**, so the 26.3
 mod carries everything except LOD; it will start feeding them the day they release, with no change
-needed here. The Paper / Spigot / Folia plugin has **no LOD**: there is no client-side renderer to hand
-data to on that platform. The remaining mod versions (1.20.4, 1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10,
+needed here. The remaining mod versions (1.20.4, 1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10,
 26.3) carry everything except LOD.
+
+That table is about the **renderer**, which is a client-side thing - it says where a Chunksmith
+client can *draw* LOD. It is not a limit on what a server can *send*. **The Paper / Spigot / Purpur /
+Folia plugin generates and serves LOD on all three of its lines (1.20.x / 1.21.x / 26.x)**, from
+3.15.0 on. The server draws nothing and needs no renderer; what decides whether a given player sees
+distant terrain is that player's own client - their Minecraft version, their loader, and whether it
+is a row in the table above.
 
 ### voxy forks
 
