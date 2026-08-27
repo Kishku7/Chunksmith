@@ -97,10 +97,6 @@
   workaround. The store is still written and is still worth having: it becomes servable the moment
   that server moves to the mod build.
 
-- **`/cs status` reports the effective backchannel port**, including whether it was derived or set,
-  so the answer to "what port should I be opening?" comes from the server rather than from
-  arithmetic.
-
 ## [3.13.0] - 2026-08-21
 
 The first release since 3.4.1. Versions 3.5.0 through 3.12.0 were built and tested in-house but

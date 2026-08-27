@@ -305,6 +305,7 @@ correctly either way -- and setting any one of them writes the file, keys and al
 Every setting in `config/chunksmith/config.json` can be read and changed from the server console or
 in-game, without editing the file and without a restart:
 
+    /cs status                       // what Chunksmith is doing: pre-gen state + the LOD backchannel
     /cs set                          // list every setting and the value in force
     /cs set <name>                   // show one
     /cs set <name> <value>           // change it, and save it
