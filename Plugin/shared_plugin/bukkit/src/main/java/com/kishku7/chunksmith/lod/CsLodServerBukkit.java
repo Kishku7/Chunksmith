@@ -35,7 +35,6 @@ import com.kishku7.chunksmith.ChunksmithProvider;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-// TODO: in-band fallback
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
  *
@@ -236,6 +235,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         }
     }
 
+    // TODO: no in-band path here yet -- a blocked port just means no LOD
     private static void hello(final Player player) {
         final List<String> dims = dimensions();
         LOGGER.info("Chunksmith: LOD hello from " + player.getName()

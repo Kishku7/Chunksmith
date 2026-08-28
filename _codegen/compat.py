@@ -1,8 +1,8 @@
 """ChunkSmith cross-version "era brain" for Cog code generation.
 
 Given an MC version string (mcver), this module returns the correct per-era code
-fragments for each mixin/accessor drift point identified in the drift matrix
-the drift matrix. Cog source files import this module and call
+fragments for each mixin/accessor drift point in the drift matrix. Cog source
+files import this module and call
 its helpers inside //[[[cog ... //]]] blocks so ONE shared_minecraft source can be
 direct-compiled correctly for every MC version.
 
