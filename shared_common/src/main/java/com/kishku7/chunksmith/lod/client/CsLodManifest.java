@@ -49,7 +49,6 @@ public final class CsLodManifest {
     /** The sidecar's name, inside the dimension directory, next to the regions it describes. */
     static final String FILE_NAME = ".manifest";
 
-    /** What the server told us about one region we hold. */
     public record Entry(long hash, long sizeBytes) {
     }
 
@@ -82,12 +81,10 @@ public final class CsLodManifest {
         this.entries.put(key(regionX, regionZ), new Entry(hash, sizeBytes));
     }
 
-    /** What the server said about this region last time we stored it, or null if we have never stored it. */
     public Entry get(final int regionX, final int regionZ) {
         return this.entries.get(key(regionX, regionZ));
     }
 
-    /** Forget a region -- it is gone from disk, or it failed to store. */
     public void remove(final int regionX, final int regionZ) {
         this.entries.remove(key(regionX, regionZ));
     }

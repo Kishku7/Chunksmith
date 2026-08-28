@@ -232,25 +232,18 @@ public final class ChunkSettleWindow {
         }
     }
 
-    /**
-     * Has this window been drained? A drained window is finished and holds nothing; the tick pass uses
-     * this to stop iterating it rather than keeping a reference to a window nobody will offer to again.
-     */
     public boolean isDrained() {
         return this.drained;
     }
 
-    /** How many chunks are held right now -- the live size of the frontier. */
     public int heldCount() {
         return this.held.size();
     }
 
-    /** How many positions carry bookkeeping right now. Asserted by the test to prove it stays bounded. */
     public int trackedCount() {
         return this.arrived.size();
     }
 
-    /** How many tickets this window has released. Counters, because a silent leak looks like success. */
     public long releasedCount() {
         return this.releasedCount;
     }

@@ -124,7 +124,6 @@ public final class ChunkResidency {
         return value;
     }
 
-    /** True when the platform is reporting at all -- i.e. the residency signal can be used. */
     public static boolean isSupported() {
         return loadedChunks() >= 0L;
     }
@@ -149,7 +148,6 @@ public final class ChunkResidency {
         return Math.max(0L, now - base);
     }
 
-    /** A run is starting: remember what the server was holding before we touched it. */
     public static void noteTaskStart() {
         noteTaskStart(System.currentTimeMillis());
     }
@@ -188,7 +186,6 @@ public final class ChunkResidency {
                 UnloadDiagnostics.describe() + " | our tickets: " + TicketLedger.describe()));
     }
 
-    /** True while a finished run still owes the server a drain. */
     public static boolean isDraining() {
         return draining;
     }
@@ -254,7 +251,6 @@ public final class ChunkResidency {
         generationHeld = held;
     }
 
-    /** True while a Chunksmith gate is holding dispatch. */
     public static boolean isGenerationHeld() {
         return generationHeld;
     }

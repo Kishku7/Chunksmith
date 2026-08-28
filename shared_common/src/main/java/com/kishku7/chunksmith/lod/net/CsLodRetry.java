@@ -59,7 +59,6 @@ public final class CsLodRetry {
         lastAttemptMillis = nowMillis;
     }
 
-    /** Is another ask due? */
     public synchronized boolean due(final long nowMillis) {
         return nowMillis - lastAttemptMillis >= delayMillis;
     }
@@ -78,12 +77,10 @@ public final class CsLodRetry {
         attempts = 0;
     }
 
-    /** How many times we have re-asked. Purely so the log can say so in plain words. */
     public synchronized int attempts() {
         return attempts;
     }
 
-    /** The interval that will be waited before the next ask. */
     public synchronized long delayMillis() {
         return delayMillis;
     }

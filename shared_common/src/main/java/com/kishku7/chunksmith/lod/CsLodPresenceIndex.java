@@ -103,7 +103,6 @@ public final class CsLodPresenceIndex {
         this.root = root;
     }
 
-    /** The directory this index reports on. */
     public Path getRoot() {
         return root;
     }
@@ -145,27 +144,22 @@ public final class CsLodPresenceIndex {
         return count;
     }
 
-    /** Drop every cached bitmap. Next query re-reads from disk. */
     public synchronized void invalidate() {
         bitmaps.clear();
     }
 
-    /** Region files whose header we actually read. */
     public long getRegionsLoaded() {
         return regionsLoaded.get();
     }
 
-    /** Total header bytes read from disk. */
     public long getHeaderBytesRead() {
         return headerBytesRead.get();
     }
 
-    /** Total nanoseconds spent reading headers -- the entire disk cost of the presence check. */
     public long getLoadNanos() {
         return loadNanos.get();
     }
 
-    /** How many chunks were asked about. */
     public long getQueries() {
         return queries.get();
     }
@@ -194,7 +188,6 @@ public final class CsLodPresenceIndex {
         }
     }
 
-    /** Snapshot the cost counters, to be handed back to {@link #describeCostSince} later. */
     public Cost cost() {
         return new Cost(queries.get(), regionsLoaded.get(), headerBytesRead.get(), loadNanos.get());
     }

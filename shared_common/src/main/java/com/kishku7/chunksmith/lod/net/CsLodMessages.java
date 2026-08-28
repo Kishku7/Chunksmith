@@ -238,8 +238,6 @@ public final class CsLodMessages {
      * so it is deliberately slow and deliberately polite: the server drips a bounded number of slices per
      * tick. Gameplay wins; LOD fills the gaps. A player on this path waits longer -- which is the honest
      * cost of not opening a port, and is exactly why the backchannel exists.
-     *
-     * @param last true on the final slice of this region
      */
     public record RegionSlice(String dimension, int regionX, int regionZ, boolean last, byte[] data) {
     }
@@ -275,12 +273,10 @@ public final class CsLodMessages {
         return new RegionSlice(dimension, x, z, last, data);
     }
 
-    /** Everything you asked for has been sent. */
     public static byte[] done() {
         return new byte[]{CsLodProtocol.S2C_DONE};
     }
 
-    /** Stop. The client can always stop the flow. */
     public static byte[] cancel() {
         return new byte[]{CsLodProtocol.C2S_CANCEL};
     }
@@ -323,7 +319,6 @@ public final class CsLodMessages {
         return new ClientSetting(action, in.readUTF(), in.readUTF());
     }
 
-    /** Read the leading message id. */
     public static DataInputStream reader(final byte[] payload) {
         return new DataInputStream(new ByteArrayInputStream(payload));
     }

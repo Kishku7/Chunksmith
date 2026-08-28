@@ -71,7 +71,6 @@ public final class CsLodChunk {
         return chunkZ;
     }
 
-    /** Absolute section index of the lowest section (level min build height / 16). */
     public int getMinSectionY() {
         return minSectionY;
     }
@@ -81,7 +80,6 @@ public final class CsLodChunk {
         return blockPalette;
     }
 
-    /** Biome ids, e.g. {@code minecraft:plains}. */
     public List<String> getBiomePalette() {
         return biomePalette;
     }

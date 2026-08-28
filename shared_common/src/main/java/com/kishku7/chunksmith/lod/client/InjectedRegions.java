@@ -82,11 +82,6 @@ public final class InjectedRegions {
      * decide, so this deliberately has no return value and no atomicity story. It is the session starting
      * from what the last one actually did instead of from nothing, which is the whole of the fix for a join
      * that re-drew terrain the renderer had never forgotten.
-     *
-     * <p>It goes through the same map the live claims use, so everything downstream -- the token-moved
-     * case, {@link #release}, {@link #clear} -- behaves identically whether a claim came from disk or from
-     * this session. There is exactly one notion of "already drawn", and this is how last session's entries
-     * join it.
      */
     public void seed(final String dimension, final int regionX, final int regionZ, final long hash) {
         this.injected.put(key(dimension, regionX, regionZ), hash);
@@ -108,7 +103,6 @@ public final class InjectedRegions {
         this.injected.remove(key(dimension, regionX, regionZ));
     }
 
-    /** Has this exact (dimension, region) been injected, in ANY version? */
     public boolean contains(final String dimension, final int regionX, final int regionZ) {
         return this.injected.containsKey(key(dimension, regionX, regionZ));
     }
@@ -121,12 +115,10 @@ public final class InjectedRegions {
         return this.injected.get(key(dimension, regionX, regionZ));
     }
 
-    /** How many (dimension, region) pairs are held. */
     public int size() {
         return this.injected.size();
     }
 
-    /** Forget everything. Called on disconnect -- the store is keyed by server, and so is this. */
     public void clear() {
         this.injected.clear();
     }

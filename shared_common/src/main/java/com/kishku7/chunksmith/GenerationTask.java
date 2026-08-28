@@ -1047,17 +1047,14 @@ public class GenerationTask implements Runnable {
         return finishedChunks.get();
     }
 
-    /** Chunks that did not exist and were generated (their LOD is built by the load hook on the way past). */
     public long getGeneratedChunks() {
         return generatedChunks.get();
     }
 
-    /** Chunks that already existed but had no CSLOD record, so were loaded purely to build the LOD. */
     public long getLodOnlyChunks() {
         return lodOnlyChunks.get();
     }
 
-    /** Chunks skipped outright -- already generated, and (when LOD is on) already carrying a LOD. */
     public long getSkippedChunks() {
         return skippedChunks.get();
     }
@@ -1147,7 +1144,6 @@ public class GenerationTask implements Runnable {
             return rate;
         }
 
-        /** Chunks that already existed and cost nothing. */
         public long getSkipped() {
             return skipped;
         }

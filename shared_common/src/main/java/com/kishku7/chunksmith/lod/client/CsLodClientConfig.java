@@ -179,25 +179,19 @@ public final class CsLodClientConfig {
         return "syncing with the server every " + clamped + "s";
     }
 
-    /**
-     * The interval, in MILLISECONDS, already clamped. This is the only way the rest of the mod may obtain
-     * it -- there is no accessor that can return an unclamped value.
-     */
+    /** The interval, in MILLISECONDS, already clamped. */
     public static long syncIntervalMillis() {
         return syncSeconds * 1000L;
     }
 
-    /** The interval in seconds, already clamped. */
     public static int syncIntervalSeconds() {
         return syncSeconds;
     }
 
-    /** True when the player has asked for one session of full re-injection. See {@link #KEY_REINJECT}. */
     public static boolean reinjectOnJoin() {
         return reinject;
     }
 
-    /** Has {@link #load} run? Only used to keep the tick loop from polling before we know the interval. */
     public static boolean isLoaded() {
         return loaded;
     }
@@ -236,7 +230,6 @@ public final class CsLodClientConfig {
         loaded = true;
     }
 
-    /** Test seam: set the re-inject switch directly, as though it had been read from a file. */
     static void setReinjectForTesting(final boolean value) {
         reinject = value;
     }
