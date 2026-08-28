@@ -8,8 +8,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Stops Distant Horizons from silently DISCARDING the LOD data we push it.
- *
  * <p>On a DH-enabled server with real-time updates on (the default),
  * {@code DhClientLevel.shouldProcessChunkUpdate} drops any chunk update for a position DH has seen in the
  * last ten minutes -- and {@code overwriteChunkDataAsync} still returns success (see {@link DhPushGuard}).

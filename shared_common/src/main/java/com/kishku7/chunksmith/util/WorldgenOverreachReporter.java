@@ -9,31 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Diagnostic collector for vanilla "Detected setBlock in a far chunk" worldgen overreaches.
- * <p>
- * A worldgen feature/structure that tries to {@code setBlock} outside the current generation
- * step's write radius is refused by vanilla and (normally) logged once per block, producing
- * bursts of 100-200 lines. Chunksmith suppresses those at the source and routes the structured
- * event here instead.
- * <p>
- * Reports are collapsed to single, comprehensive lines:
- * <ul>
- *   <li>A burst (one structure spilling out of one chunk's one gen step) shares the key
- *       (dimension, source chunk, step, feature) and is aggregated into ONE detailed line,
- *       flushed after a short debounce once the burst goes silent.</li>
- *   <li>Repeats of the same feature across many chunks are throttled: the first is detailed,
- *       subsequent ones are counted into a per-feature rollup emitted periodically, and a
- *       one-line summary per feature is printed when generation finishes.</li>
- * </ul>
- * Two feed paths, both funnelling into the same aggregation:
- * <ul>
- *   <li>{@link #record} - STRUCTURED, from the Fabric/NeoForge mixin: full data (source chunk,
- *       dimension, writeRadius) captured directly off the {@code WorldGenRegion}.</li>
- *   <li>{@link #recordFromMessage} - BEST-EFFORT, from the plugin's Log4j filter on
- *       Spigot/Paper/Folia, where there is no mixin: the vanilla log line is parsed for what it
- *       carries (feature, step, far chunk, Y). Source chunk / dimension / writeRadius are not in
- *       the message, so those are omitted from the best-effort line.</li>
- * </ul>
  * {@link #record}/{@link #recordFromMessage} run on worldgen worker threads; {@link #tick} runs on
  * the server thread (mixin) or a plugin scheduler tick.
  */
@@ -73,7 +48,6 @@ public final class WorldgenOverreachReporter {
         this.rollupMillis = Math.max(1_000L, rollupMillis);
     }
 
-    /** Record one refused far-chunk setBlock with full structured data (mixin path). */
     public void record(final String feature, final String step, final String dimension,
                        final int sourceChunkX, final int sourceChunkZ,
                        final int farChunkX, final int farChunkZ, final int y, final int writeRadius) {
@@ -84,11 +58,6 @@ public final class WorldgenOverreachReporter {
         accumulate(key, f, s, d, sourceChunkX, sourceChunkZ, writeRadius, false, farChunkX, farChunkZ, y);
     }
 
-    /**
-     * Parse a vanilla far-chunk log line and record it (plugin best-effort path). Only the data the
-     * line carries is available: feature, step, far chunk, Y. Returns true if the line was a
-     * far-chunk overreach (and was consumed), false otherwise.
-     */
     public boolean recordFromMessage(final String message) {
         if (message == null || !message.contains(FAR_CHUNK_MARKER)) {
             return false;
@@ -116,11 +85,9 @@ public final class WorldgenOverreachReporter {
             if (mf.find()) {
                 feature = mf.group(1).trim();
             }
-            // No dimension/source chunk/writeRadius in the line -> collapse by feature+step only.
             final String key = "best|" + feature + '|' + step;
             accumulate(key, feature, step, null, Integer.MIN_VALUE, Integer.MIN_VALUE, -1, true, farX, farZ, y);
         } catch (final RuntimeException ignored) {
-            // Malformed/parse failure: still consumed (it was a far-chunk line), just not aggregated.
         }
         return true;
     }
@@ -147,7 +114,6 @@ public final class WorldgenOverreachReporter {
         }
     }
 
-    /** Flush ready bursts, emit rollups, and summarize at end-of-run. Called once per server tick. */
     public void tick(final boolean taskRunning) {
         if (!enabled) {
             return;
@@ -159,7 +125,6 @@ public final class WorldgenOverreachReporter {
         flushIdle(now, false);
         emitRollups(now);
         if (wasRunning && !taskRunning) {
-            // generation just finished: force-flush everything and print summaries
             flushIdle(now, true);
             summarizeAndReset();
         }

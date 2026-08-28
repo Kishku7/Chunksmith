@@ -11,8 +11,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 /**
- * Learn which chunks a selection ALREADY has, in bulk, before the pre-gen dispatches anything.
- *
  * <p><b>Why this exists.</b> {@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD:
  * {@code setGenerated} is only called for chunks THIS run generated. So on the run that matters --
  * restart the server, re-run a selection over ground you already pregenerated -- every chunk falls
@@ -21,16 +19,6 @@ import java.util.Optional;
  * 100 percent already generated: about seven seconds to decide there was nothing to do. That is linear,
  * so a resumed hundred-thousand-chunk selection spends MINUTES learning what a handful of file headers
  * would have said (mod_support #17).
- *
- * <p><b>What it does instead.</b> A region file's header describes all 1024 of its chunks, so a
- * selection costs one read per REGION rather than one round-trip per CHUNK -- about nine files instead
- * of 5929 futures. Only chunks the header says exist are decompressed, and only as far as {@code Status}
- * ({@link ChunkFilter} makes the reader stop there).
- *
- * <p><b>Only {@code minecraft:full} counts</b> -- a chunk at an earlier status is NOT generated as far
- * as a pre-gen is concerned, and marking it so would silently skip half-built ground (the same class of
- * failure as mod_support #13). And it fails SOFT: anything unreadable -- a region file mid-write, an
- * unknown compression scheme, an oversized chunk in a sidecar -- is left unseeded and takes today's path.
  */
 public final class GeneratedChunkScan {
 
@@ -39,11 +27,6 @@ public final class GeneratedChunkScan {
     private GeneratedChunkScan() {
     }
 
-    /**
-     * Seed {@code state} with every {@code minecraft:full} chunk inside the given chunk box.
-     *
-     * @return how many chunks were marked generated
-     */
     public static long seed(final Path regionDirectory,
                             final RegionCache.WorldState state,
                             final int minChunkX, final int minChunkZ,
@@ -54,8 +37,6 @@ public final class GeneratedChunkScan {
             return 0L;
         }
 
-        // Region bounds derived from the chunk box: 32 chunks to a region, floor-divided so negative
-        // coordinates land in the right region rather than being truncated toward zero.
         final int minRegionX = minChunkX >> 5;
         final int minRegionZ = minChunkZ >> 5;
         final int maxRegionX = maxChunkX >> 5;
@@ -102,7 +83,6 @@ public final class GeneratedChunkScan {
         return seeded;
     }
 
-    /** {@code r.<x>.<z>.mca} -> {x, z}, or null if the name is not one. */
     private static int[] regionCoordinates(final String name) {
         final int end = name.indexOf(".mca");
         if (end < 2) {

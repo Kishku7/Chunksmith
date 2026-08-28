@@ -2,10 +2,6 @@ package com.kishku7.chunksmith.lod.client.render;
 
 import com.seibel.distanthorizons.api.DhApi;
 
-/**
- * Reads Distant Horizons' ACTUAL configured render distance. Hard-references DH, so it is only ever
- * loaded once DH is known present.
- */
 public final class DhRadius {
 
     private DhRadius() {

@@ -29,7 +29,6 @@ public abstract class BlockAttachedEntityMixin {
         try {
             StructureFaultReporter.get().recordBlockAttached(storedPos == null);
         } catch (final Throwable ignored) {
-            // Diagnostics must never break entity loading / worldgen.
         }
     }
 }

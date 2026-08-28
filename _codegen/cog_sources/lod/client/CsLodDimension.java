@@ -4,8 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
 
 /**
- * WHICH DIMENSION IS THE PLAYER IN, right now -- named exactly the way the server names its store.
- *
  * <p>This one string is the whole address of a CSLOD record. A region coordinate on its own is meaningless:
  * region (0,0) exists in the overworld, in the Nether and in the End, and they are three different places.
  * Every read, every write and every injection is scoped by this key -- {@code chunksmith/lod/&lt;server&gt;/
@@ -21,9 +19,6 @@ import net.minecraft.world.level.Level;
  * {@code :} and {@code /} replaced by {@code _}, e.g. {@code minecraft_overworld},
  * {@code minecraft_the_nether}. That is the directory name the server writes, the name it puts in the
  * region index, and the name the client stores under. One derivation, both sides.
- *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
- * under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodDimension {
 
@@ -40,7 +35,6 @@ public final class CsLodDimension {
         return level == null ? "" : of(level);
     }
 
-    /** The key for a specific level. */
     public static String of(final Level level) {
         //[[[cog
         // import cog, compat

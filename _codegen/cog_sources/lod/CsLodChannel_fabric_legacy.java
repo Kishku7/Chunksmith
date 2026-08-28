@@ -18,19 +18,15 @@ import net.minecraft.server.level.ServerPlayer;
  *
  * <p>{@code ResourceLocation(String,String)} is still public here (privatized at 1.21 in favour of
  * {@code fromNamespaceAndPath}), so the ctor form is correct and this file needs no Cog.
- *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodChannel {
 
-    /** Public: the CLIENT half ({@code lod.client.ClientPlatform}) attaches its receiver to this id. */
     public static final ResourceLocation ID =
             new ResourceLocation(CsLodProtocol.NAMESPACE, CsLodProtocol.CHANNEL);
 
     private CsLodChannel() {
     }
 
-    /** Register the channel + the disconnect hook. Called at mod init, before any server exists. */
     public static void register() {
         ServerPlayNetworking.registerGlobalReceiver(ID, (server, player, handler, buf, responseSender) -> {
             // Read on the NETTY thread. The buffer is released the instant this handler returns, so the

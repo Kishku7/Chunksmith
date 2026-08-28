@@ -10,15 +10,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.BooleanSupplier;
 
 /**
- * The paused single-player tick -- the one tick that does NOT reach {@code MinecraftServer}.
- *
  * <p>{@code IntegratedServer.tickServer} sets {@code paused = Minecraft.isPaused() ||
  * players.isEmpty()} and, when paused, calls {@code tickPaused()} and returns WITHOUT calling
  * {@code super.tickServer}. Every hook Chunksmith hangs on {@code MinecraftServer.tickServer} is
  * therefore dead for the whole time a player has the menu open -- which is exactly when players
  * leave a pre-gen running, because a paused game gives the generator the whole machine.
- *
- * <p>So this class is where anything a paused pre-gen depends on has to be driven from.
  */
 @Mixin(IntegratedServer.class)
 public abstract class IntegratedServerMixin implements MinecraftServerExtension {

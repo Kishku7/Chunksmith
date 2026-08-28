@@ -3,8 +3,6 @@ package com.kishku7.chunksmith.lod.client.render;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Marks the thread that is currently pushing OUR data into Distant Horizons.
- *
  * <p><b>Why this exists.</b> {@code DhClientLevel.shouldProcessChunkUpdate} -- consulted by
  * {@code SharedApi.applyChunkUpdate}, which is where {@code overwriteChunkDataAsync} lands -- reads:
  *
@@ -35,7 +33,6 @@ public final class DhPushGuard {
     private DhPushGuard() {
     }
 
-    /** Run a push with the gate bypassed for THIS thread only. */
     public static <T> T pushing(final java.util.function.Supplier<T> push) {
         PUSHING.set(Boolean.TRUE);
         try {
@@ -53,7 +50,6 @@ public final class DhPushGuard {
         forced.incrementAndGet();
     }
 
-    /** How many pushes we carried past the gate. Zero on a non-DH server is normal; see the class doc. */
     public static long forcedCount() {
         return forced.get();
     }

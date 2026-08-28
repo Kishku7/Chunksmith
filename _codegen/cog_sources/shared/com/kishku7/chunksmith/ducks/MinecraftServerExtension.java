@@ -8,8 +8,6 @@ public interface MinecraftServerExtension {
     void chunksmith$markChunkSystemHousekeeping();
 
     /**
-     * Queue one piece of CHUNK-TICKET work to run at Chunksmith's ticket safe point.
-     *
      * <p><b>Why (mod_support #16, 2026-08-12).</b> Being on the server thread is not enough. For the
      * whole of {@code ServerChunkCache.tickChunks} the server thread is inside one fastutil walk of
      * {@code simulationChunkTracker.chunks}. A ticket add or remove queues a level update, and the
@@ -25,8 +23,6 @@ public interface MinecraftServerExtension {
     void chunksmith$atTicketSafePoint(Runnable task);
 
     /**
-     * Run the queued ticket work NOW, on the calling (server) thread.
-     *
      * <p>For ONE caller: the paused integrated server. The ordinary drain rides
      * {@code MinecraftServer.tickServer} HEAD, which {@code IntegratedServer.tickServer} never
      * reaches while paused -- so the queue filled, nothing emptied it, and nothing threw
@@ -38,10 +34,6 @@ public interface MinecraftServerExtension {
      */
     void chunksmith$drainTicketSafePointNow();
 
-    /**
-     * True only during the safe-point drain, on the server thread. The one condition under which
-     * chunk-ticket work may be done inline instead of queued.
-     */
     boolean chunksmith$onTicketSafePoint();
 
     /**

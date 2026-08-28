@@ -27,9 +27,6 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
  * construction on BOTH sides -- the only window in which Forge's network registry accepts a new
  * SimpleChannel -- and that is the mod's ONE registration of {@code chunksmith:lod}. This class installs the
  * client SINK on it.
- *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod/client. Edit ONLY there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class LodClientInit {

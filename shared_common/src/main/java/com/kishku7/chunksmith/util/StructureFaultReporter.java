@@ -18,27 +18,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Collects vanilla worldgen "fault" errors (currently the
- * {@code Block-attached entity at invalid position} spam), SUPPRESSES the raw per-fault log lines,
- * attributes each fault to the structure / datapack being placed, and periodically writes a
- * human-readable sub-report FILE (separate from the server log).
- * <p>
- * This class is platform-agnostic: it imports only the JDK + SLF4J. The Minecraft-specific bits
- * (resolving the structure id, intercepting the vanilla log call) live in the Fabric/NeoForge
- * mixins and the Bukkit Log4j filter, which feed primitives/strings in here.
- * <p>
- * Feed paths:
- * <ul>
- *   <li>{@link #pushContext}/{@link #popContext} + {@link #recordBlockAttached} - STRUCTURED, from
- *       the mixin platforms. The structure-placement mixin pushes the active structure id + chunk;
- *       the entity-load mixin records the fault, which is attributed to whatever context is on top.</li>
- *   <li>{@link #recordBlockAttachedBestEffort} - from the Bukkit Log4j filter, where there is no
- *       mixin: the fault is counted but cannot be attributed (no structure context, no chunk).</li>
- * </ul>
- * The design is intentionally generic (a fault has a type + culprit + chunk) so more vanilla
- * worldgen error types can be funnelled in later.
- */
 public final class StructureFaultReporter {
     private static final StructureFaultReporter INSTANCE = new StructureFaultReporter();
 
@@ -46,7 +25,6 @@ public final class StructureFaultReporter {
         return INSTANCE;
     }
 
-    /** Marker for vanilla's BlockAttachedEntity invalid-position error (used by the Bukkit filter). */
     public static final String BLOCK_ATTACHED_MARKER = "Block-attached entity at invalid position";
 
     private static final String TYPE_MISSING = "block-attached entity: missing anchor (no block_pos / legacy TileX format)";
@@ -84,7 +62,6 @@ public final class StructureFaultReporter {
         this.maxSampleChunks = Math.max(1, maxSampleChunks);
     }
 
-    // structure-placement context (mixin platforms)
 
     public void pushContext(final String structureId, final int chunkX, final int chunkZ) {
         if (!enabled) {
@@ -104,7 +81,6 @@ public final class StructureFaultReporter {
     }
 
 
-    /** Structured record from the mixin path. {@code missingAnchor} = the {@code null}/legacy case. */
     public void recordBlockAttached(final boolean missingAnchor) {
         if (!enabled) {
             return;
@@ -114,10 +90,6 @@ public final class StructureFaultReporter {
         record(namespaceOf(structure), missingAnchor ? TYPE_MISSING : TYPE_FAR, structure, ctx);
     }
 
-    /**
-     * Best-effort record from the Bukkit Log4j filter. Returns true if the message was a
-     * block-attached fault (and should be suppressed), false otherwise.
-     */
     public boolean recordBlockAttachedBestEffort(final String message) {
         if (message == null || !message.contains(BLOCK_ATTACHED_MARKER)) {
             return false;
@@ -134,9 +106,7 @@ public final class StructureFaultReporter {
         totalFaults.incrementAndGet();
     }
 
-    // periodic file output
 
-    /** Called once per server tick (mixin) or scheduler tick (plugin). */
     public void tick(final boolean taskRunning) {
         if (!enabled || reportFile == null) {
             return;
@@ -157,7 +127,6 @@ public final class StructureFaultReporter {
         }
     }
 
-    /** Force a write now (e.g. on shutdown / end of run). */
     public void flush(final boolean taskRunning) {
         if (enabled && reportFile != null && totalFaults.get() > 0L) {
             writeReport(taskRunning);

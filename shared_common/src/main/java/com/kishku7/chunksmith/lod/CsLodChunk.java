@@ -3,10 +3,6 @@ package com.kishku7.chunksmith.lod;
 import java.util.List;
 
 /**
- * One chunk of CSLOD data: the neutral, mod-independent LOD source ChunkSmith emits during pregen.
- * Deliberately MC-free -- plain arrays and strings -- so the codec, the region store and the wire protocol
- * all speak the same thing.
- *
  * <p><b>Why these fields and not others.</b> The format must satisfy the UNION of what voxy and Distant
  * Horizons need, and DH is the demanding one:
  * <ul>
@@ -15,22 +11,15 @@ import java.util.List;
  *   <li><b>Sky light and block light kept SEPARATE</b> (voxy blends them into one byte; DH will not).</li>
  *   <li><b>Light for AIR voxels, all the way to the build ceiling</b> -- DH renders black LODs otherwise,
  *       which is why empty sections are still carried (they collapse to a few bytes).</li>
- *   <li><b>Absolute section Y</b>, gap-free columns.</li>
  * </ul>
  * Voxy needs a strict subset, and mips levels 1-4 itself on insert, so we only ever persist LOD-0.
- *
- * <p>Block indices are per-voxel (4096 per section). Biome indices are 4x4x4 (64 per section) -- exactly how
- * Minecraft stores them, so it is lossless.
  */
 public final class CsLodChunk {
 
-    /** Voxels per 16x16x16 section. */
     public static final int BLOCKS_PER_SECTION = 16 * 16 * 16;
 
-    /** Biome cells per section: Minecraft stores biomes at 4x4x4 granularity. */
     public static final int BIOMES_PER_SECTION = 4 * 4 * 4;
 
-    /** Bytes in a nibble-per-voxel light array (4096 voxels / 2 per byte). */
     public static final int LIGHT_BYTES = BLOCKS_PER_SECTION / 2;
 
     private final String dimension;
@@ -73,7 +62,6 @@ public final class CsLodChunk {
         return minSectionY;
     }
 
-    /** Block STATE strings, e.g. {@code minecraft:oak_stairs[facing=east,waterlogged=true]}. */
     public List<String> getBlockPalette() {
         return blockPalette;
     }
@@ -82,14 +70,11 @@ public final class CsLodChunk {
         return biomePalette;
     }
 
-    /** Sections, bottom-up, starting at {@link #getMinSectionY()}. Gap-free. */
     public List<Section> getSections() {
         return sections;
     }
 
     /**
-     * One 16x16x16 section.
-     *
      * <p>A uniform array is stored as a single palette index rather than 4096 (or 64) entries -- which is
      * what makes carrying light to the build ceiling affordable, since everything above the terrain is
      * uniform air with uniform sky light. Index order is YZX (y * 256 + z * 16 + x) for blocks and
@@ -156,7 +141,6 @@ public final class CsLodChunk {
             return uniformBlockLight;
         }
 
-        /** Read a nibble out of a 2048-byte packed light array. */
         public static int nibble(final byte[] packed, final int index) {
             final int b = packed[index >> 1] & 0xFF;
             return (index & 1) == 0 ? (b & 0x0F) : (b >> 4);

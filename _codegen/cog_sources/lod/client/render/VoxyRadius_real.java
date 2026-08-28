@@ -8,9 +8,6 @@ import me.cortex.voxy.client.config.VoxyConfig;
 /**
  * Reads voxy's ACTUAL configured render distance -- upstream's, or any fork's.
  *
- * <p>Hard-references the voxy CLASS (never its fields), so it is only ever loaded once voxy is known
- * present -- the same guard pattern as {@link DhRadius}.
- *
  * <p>voxy stores this as {@code VoxyConfig.CONFIG.sectionRenderDistance}, in voxy SECTIONS: one section
  * is 32 chunks = 512 blocks. Confirmed three ways in voxy 0.2.16-beta itself, not assumed:
  * {@code HierarchicalOcclusionTraverser} uploads {@code pow(sectionRenderDistance * 16 * 32, 2)} as a
@@ -48,10 +45,6 @@ public final class VoxyRadius {
     private VoxyRadius() {
     }
 
-    /**
-     * voxy's render distance in BLOCKS, or 0 if unreadable or voxy's renderer is off. Call at handshake
-     * time, never at init -- see the class doc.
-     */
     public static int blocks() {
         final Object config;
         try {
@@ -68,7 +61,6 @@ public final class VoxyRadius {
                             + " version.");
             return 0;
         }
-        // Type-tolerant (float/int/double/long); it warns for itself, and stays quiet when voxy is off.
         return VoxyConfigReader.radiusBlocks(config);
     }
 }
