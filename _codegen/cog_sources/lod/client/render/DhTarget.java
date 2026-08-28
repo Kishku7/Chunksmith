@@ -74,7 +74,7 @@ public final class DhTarget {
             return "Distant Horizons " + DhApi.getModVersion()
                     + " (API " + DhApi.getApiMajorVersion() + "." + DhApi.getApiMinorVersion()
                     + "." + DhApi.getApiPatchVersion() + ")";
-        } catch (final RuntimeException | LinkageError e) {
+        } catch (RuntimeException | LinkageError e) {
             return "Distant Horizons (version unreadable: " + e + ")";
         }
     }
@@ -87,7 +87,7 @@ public final class DhTarget {
      * Gives up on DH for the session. A {@link LinkageError} means the installed DH lacks a method or type we
      * compiled against, a DH problem, and no reason to take the player's game or their voxy with it.
      */
-    static void disable(final Throwable cause) {
+    static void disable(Throwable cause) {
         if (disabled) {
             return;
         }
@@ -105,7 +105,7 @@ public final class DhTarget {
         bound = true;
         DhApi.events.bind(DhApiLevelLoadEvent.class, new DhApiLevelLoadEvent() {
             @Override
-            public void onLevelLoad(final DhApiEventParam<DhApiLevelLoadEvent.EventParam> event) {
+            public void onLevelLoad(DhApiEventParam<DhApiLevelLoadEvent.EventParam> event) {
                 final IDhApiLevelWrapper wrapper = event.value.levelWrapper;
                 final Object raw = wrapper.getWrappedMcObject();
                 if (raw != null) {
@@ -115,7 +115,7 @@ public final class DhTarget {
         });
     }
 
-    public static boolean available(final Level level) {
+    public static boolean available(Level level) {
         return !disabled && WRAPPERS.containsKey(level);
     }
 
@@ -124,7 +124,7 @@ public final class DhTarget {
      *
      * @return true if DH accepted this record.
      */
-    public static boolean inject(final Level level, final CsLodChunk record) {
+    public static boolean inject(Level level, CsLodChunk record) {
         if (disabled) {
             return false;
         }
@@ -155,7 +155,7 @@ public final class DhTarget {
         try {
             result = DhPushGuard.pushing(() ->
                     DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(wrapper, new Object[]{chunk, level}));
-        } catch (final LinkageError e) {
+        } catch (LinkageError e) {
             disable(e);
             failed.incrementAndGet();
             return false;
@@ -175,7 +175,7 @@ public final class DhTarget {
         if (wait > 0) {
             try {
                 Thread.sleep(wait / 1_000_000L, (int) (wait % 1_000_000L));
-            } catch (final InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }

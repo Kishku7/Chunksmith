@@ -80,6 +80,7 @@ def era(mcver):
 
 
 def _stub(name, mcver):
+    # TODO: ancient + transitional eras
     raise NotImplementedError(
         "compat.%s not implemented for era '%s' (mcver=%s); "
         "only modern_pre11 (1.21.8) and modern_11plus (26) are wired."

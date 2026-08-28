@@ -41,7 +41,7 @@ public class WorldChunkIterator implements ChunkIterator {
     private final Path regionPath;
     private final String name;
 
-    public WorldChunkIterator(final Selection selection) {
+    public WorldChunkIterator(Selection selection) {
         this.chunky = selection.chunky();
         final int centerRegionX = selection.centerRegionX();
         final int centerRegionZ = selection.centerRegionZ();
@@ -111,13 +111,13 @@ public class WorldChunkIterator implements ChunkIterator {
                     .toList();
             final long totalRegions = regions.size();
             final AtomicLong finishedRegions = new AtomicLong();
-            for (final Path region : regions) {
+            for (Path region : regions) {
                 final ChunkCoordinate regionCoordinate = ChunkCoordinate.fromRegionFile(region.getFileName().toString())
                         .orElseThrow(IllegalStateException::new);
                 final int regionX = regionCoordinate.x();
                 final int regionZ = regionCoordinate.z();
                 final RegionFile regionFile = new RegionFile(region.toFile(), ChunkFilter.of(TagType.STRING, "Status"));
-                for (final ChunkCoordinate offset : Hilbert.chunkCoordinateOffsets()) {
+                for (ChunkCoordinate offset : Hilbert.chunkCoordinateOffsets()) {
                     final ChunkCoordinate chunkCoordinate = new ChunkCoordinate((regionX << 5) + offset.x(), (regionZ << 5) + offset.z());
                     if (chunkCoordinate.x() < minChunkX || chunkCoordinate.x() > maxChunkX || chunkCoordinate.z() < minChunkZ || chunkCoordinate.z() > maxChunkZ) {
                         continue;

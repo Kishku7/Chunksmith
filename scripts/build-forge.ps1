@@ -5,6 +5,7 @@
 # Usage:
 #   pwsh scripts/build-forge.ps1               # build every Forge cell
 #   pwsh scripts/build-forge.ps1 1.20.1        # build one cell
+# TODO: FG6 plugin no longer resolves, forge maven missing
 param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Only)
 $ErrorActionPreference = "Stop"
 $repo   = Split-Path $PSScriptRoot -Parent

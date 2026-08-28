@@ -21,15 +21,15 @@ public final class Translator {
     private Translator() {
     }
 
-    public static void setLanguage(final String language) {
+    public static void setLanguage(String language) {
         translations = load(language);
     }
 
-    public static boolean isValidLanguage(final String language) {
+    public static boolean isValidLanguage(String language) {
         return Translator.class.getClassLoader().getResource("lang/" + language + ".json") != null;
     }
 
-    public static String translateKey(final String key, final boolean prefixed, final Object... args) {
+    public static String translateKey(String key, boolean prefixed, Object... args) {
         final StringBuilder translation = new StringBuilder();
         final String message = translations.getOrDefault(key, fallbackTranslations.getOrDefault(key, key));
         if (prefixed) {
@@ -39,15 +39,15 @@ public final class Translator {
         return translation.toString();
     }
 
-    public static String translate(final String key, final Object... args) {
+    public static String translate(String key, Object... args) {
         return translateKey(key, false, args);
     }
 
-    public static void addCustomTranslation(final String key, final String message) {
+    public static void addCustomTranslation(String key, String message) {
         fallbackTranslations.put(key, message);
     }
 
-    private static Map<String, String> load(final String language) {
+    private static Map<String, String> load(String language) {
         final InputStream input = Translator.class.getClassLoader().getResourceAsStream("lang/" + language + ".json");
         if (input != null) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {

@@ -4,12 +4,12 @@ public final class ChunkFilter {
     private final byte type;
     private final String name;
 
-    private ChunkFilter(final byte type, final String name) {
+    private ChunkFilter(byte type, String name) {
         this.type = type;
         this.name = name;
     }
 
-    public static ChunkFilter of(final byte type, final String name) {
+    public static ChunkFilter of(byte type, String name) {
         return new ChunkFilter(type, name);
     }
 

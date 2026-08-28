@@ -90,11 +90,11 @@ public final class CsLodChannel {
      * Sets the client-side receive sink. Called by the client bootstrap only (guarded on
      * {@code FMLEnvironment.dist == Dist.CLIENT}).
      */
-    public static void setClientSink(final Consumer<byte[]> sink) {
+    public static void setClientSink(Consumer<byte[]> sink) {
         clientSink = sink;
     }
 
-    public static void send(final ServerPlayer player, final byte[] data) {
+    public static void send(ServerPlayer player, byte[] data) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new Message(data));
     }
 
@@ -103,12 +103,12 @@ public final class CsLodChannel {
      *
      * @return true when the remote end has our channel registered
      */
-    public static boolean isRemotePresent(final Connection connection) {
+    public static boolean isRemotePresent(Connection connection) {
         return CHANNEL.isRemotePresent(connection);
     }
 
     /** Sends raw protocol bytes to the connected server. Client-side use only. */
-    public static void sendToServer(final byte[] data) {
+    public static void sendToServer(byte[] data) {
         CHANNEL.sendToServer(new Message(data));
     }
 
@@ -117,19 +117,19 @@ public final class CsLodChannel {
 
         private final byte[] data;
 
-        Message(final byte[] data) {
+        Message(byte[] data) {
             this.data = data;
         }
 
-        Message(final FriendlyByteBuf buf) {
+        Message(FriendlyByteBuf buf) {
             this.data = buf.readByteArray();
         }
 
-        void encode(final FriendlyByteBuf buf) {
+        void encode(FriendlyByteBuf buf) {
             buf.writeByteArray(this.data);
         }
 
-        void handle(final Supplier<NetworkEvent.Context> supplier) {
+        void handle(Supplier<NetworkEvent.Context> supplier) {
             final NetworkEvent.Context context = supplier.get();
             context.enqueueWork(() -> {
                 final ServerPlayer sender = context.getSender();
@@ -160,7 +160,7 @@ public final class CsLodChannel {
 
         /** Drops the player's backchannel token when they log out. */
         @SubscribeEvent
-        public static void onLoggedOut(final PlayerEvent.PlayerLoggedOutEvent event) {
+        public static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
             CsLodServerNet.onDisconnect(event.getEntity().getUUID());
         }
     }

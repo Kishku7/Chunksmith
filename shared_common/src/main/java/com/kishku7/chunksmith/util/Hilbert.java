@@ -350,7 +350,7 @@ public final class Hilbert {
     private Hilbert() {
     }
 
-    public static ChunkCoordinate regionDistanceToChunkCoordinateOffset(final int distance) {
+    public static ChunkCoordinate regionDistanceToChunkCoordinateOffset(int distance) {
         return regionChunkCoordinateOffsets[distance];
     }
 

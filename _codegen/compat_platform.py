@@ -5,6 +5,7 @@ non-cog master in the mod). They are now owned here and materialised into each c
 gen/ by cog-gen, exactly like every other source file.
 
 WHY WHOLE-FILE VARIANTS RATHER THAN INLINE PREDICATES: the adapters carry real MC-era
+# TODO: 2 qualified refs here, needs the hash oracle rebaselined
 drift (FabricWorld alone had 9 distinct bodies across 10 cells, NeoForgeWorld 11 across
 16) and on 26 the *World classes are a STRUCTURAL fork, not a rename set -- different
 interfaces implemented, extra fields, an extra ticket block. Whole-file era emitters are
