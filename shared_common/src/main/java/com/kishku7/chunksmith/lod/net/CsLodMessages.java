@@ -12,11 +12,11 @@ import java.util.List;
  * Encoding for the in-band messages.
  *
  * <p>Plain bytes, no Minecraft types: the payload class on each side is a one-line wrapper around a
- * {@code byte[]} and ALL the protocol lives here, so the Chunksmith server and Chunksmith-Client -- two
+ * {@code byte[]} and all the protocol lives here, so the Chunksmith server and Chunksmith-Client -- two
  * mods in two repos -- share one implementation without sharing a loader.
  *
  * <p>Every decoder below validates each count/length it reads off the wire against the ceilings in
- * {@link CsLodProtocol} BEFORE allocating anything: a tiny hostile packet claiming a huge count would
+ * {@link CsLodProtocol} before allocating anything: a tiny hostile packet claiming a huge count would
  * otherwise OOM the receiver on the first allocation. On a violation it throws {@link IOException}, which
  * the callers already log-and-drop as a malformed message.
  */
@@ -27,7 +27,7 @@ public final class CsLodMessages {
 
     // client hello
 
-    /** What the client tells us on join: its protocol version, and WHICH RENDERERS it actually has. */
+    /** What the client tells us on join: its protocol version, and which renderers it actually has. */
     public record ClientHello(int protocolVersion, boolean hasVoxy, boolean hasDh, int radiusBlocks) {
     }
 
@@ -38,7 +38,7 @@ public final class CsLodMessages {
             out.writeInt(hello.protocolVersion());
             out.writeBoolean(hello.hasVoxy());
             out.writeBoolean(hello.hasDh());
-            // The radius the CLIENT's renderer is configured for; the server follows it, lower OR higher.
+            // The radius the client's renderer is configured for; the server follows it, lower or higher.
             out.writeInt(hello.radiusBlocks());
         }
         return raw.toByteArray();
@@ -54,8 +54,8 @@ public final class CsLodMessages {
      * What the server answers with.
      *
      * @param backchannelPort the HTTP port, or 0 when there is none -- then the client uses the in-band
-     *                        fallback. The ADDRESS is the host it is already connected to.
-     * @param token           authenticates the client to the backchannel. Issued over THIS channel, which
+     *                        fallback. The address is the host it is already connected to.
+     * @param token           authenticates the client to the backchannel. Issued over this channel, which
      *                        the player has already authenticated with Mojang.
      */
     public record ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
@@ -84,7 +84,7 @@ public final class CsLodMessages {
         final int port = in.readInt();
         final String token = in.readUTF();
         final int count = in.readInt();
-        // Bound BEFORE allocating: count is off the wire from an untrusted server.
+        // Bound before allocating: count is off the wire from an untrusted server.
         if (count < 0 || count > CsLodProtocol.MAX_HELLO_DIMENSIONS) {
             throw new IOException("CSLOD hello: dimension count " + count + " out of range [0, "
                     + CsLodProtocol.MAX_HELLO_DIMENSIONS + "]");
@@ -126,7 +126,7 @@ public final class CsLodMessages {
     public static RegionIndex decodeRegionIndex(final DataInputStream in) throws IOException {
         final String dimension = in.readUTF();
         final int count = in.readInt();
-        // Bound BEFORE allocating: count is off the wire from an untrusted server.
+        // The count is off the wire from an untrusted server, so bound it before allocating.
         if (count < 0 || count > CsLodProtocol.MAX_INDEX_REGIONS) {
             throw new IOException("CSLOD index: region count " + count + " out of range [0, "
                     + CsLodProtocol.MAX_INDEX_REGIONS + "]");
@@ -172,7 +172,7 @@ public final class CsLodMessages {
     }
 
     /**
-     * Decode a summary. Nothing here is allocated FROM the wire -- the count is a number we compare, never a
+     * Decode a summary. Nothing here is allocated from the wire -- the count is a number we compare, never a
      * size -- so unlike the index there is no ceiling to enforce. It is still range-checked, because a
      * negative count is not a thing an honest server sends.
      */
@@ -198,7 +198,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    /** Ask for regions IN-BAND (the fallback, when the backchannel is unreachable). */
+    /** Ask for regions in-band (the fallback, when the backchannel is unreachable). */
     public static byte[] requestRegions(final String dimension, final List<RegionEntry> wanted) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
@@ -217,7 +217,7 @@ public final class CsLodMessages {
 
     /**
      * One slice of a region file, sent in-band: the fallback for a server with no open backchannel port. It
-     * rides the SAME connection as gameplay, so the server drips a bounded number of slices per tick and a
+     * rides the same connection as gameplay, so the server drips a bounded number of slices per tick and a
      * player on this path waits longer.
      */
     public record RegionSlice(String dimension, int regionX, int regionZ, boolean last, byte[] data) {
@@ -243,7 +243,7 @@ public final class CsLodMessages {
         final int z = in.readInt();
         final boolean last = in.readBoolean();
         final int length = in.readInt();
-        // Bound BEFORE allocating: length is off the wire from an untrusted server. An honest slice is at
+        // Bound before allocating: length is off the wire from an untrusted server. An honest slice is at
         // most the 24 KiB drip (see MAX_SLICE_BYTES); do not new byte[length] on a hostile huge value.
         if (length < 0 || length > CsLodProtocol.MAX_SLICE_BYTES) {
             throw new IOException("CSLOD slice: payload length " + length + " out of range [0, "

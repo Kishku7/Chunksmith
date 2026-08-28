@@ -6,19 +6,19 @@ import org.slf4j.LoggerFactory;
 /**
  * How many chunks the server is holding in memory, and whether a pregen still owes the server a drain.
  *
- * <p>Every other throttle signal Chunksmith has measures how fast work goes IN -- tick time, per-chunk
- * latency, the write queue, the LOD sink. None measured what had piled up and not gone OUT. On a live
+ * <p>Every other throttle signal Chunksmith has measures how fast work goes in -- tick time, per-chunk
+ * latency, the write queue, the LOD sink. None measured what had piled up and not gone out. On a live
  * server a pregen ran with 75,045 chunk holders resident, ten times the sweep frontier the run could
  * need, and nothing in the mod could see it.
  *
  * <p>3.5.0 then got two things wrong, both measured on Zion 2026-08-20. Absolute counts turned out to be
  * meaningless: a cap of "20,000 resident" tripped on a server whose ordinary resident set was already
- * near it, so the gate closed on the baseline and never opened. The question is how many WE have added
- * -- hence {@link #baseline()}, captured at run start, and a gate reading the DELTA.
+ * near it, so the gate closed on the baseline and never opened. The question is how many we have added
+ * -- hence {@link #baseline()}, captured at run start, and a gate reading the delta.
  *
- * <p>And the backlog outlives the task. 3.5.0 drove the unload pass only while a task was ACTIVE; when
+ * <p>And the backlog outlives the task. 3.5.0 drove the unload pass only while a task was active; when
  * it paused, the remainder fell to vanilla's budgeted pass, which does nothing once the tick is over
- * budget -- which it is precisely BECAUSE of the retained chunks. Measured: 39,064 chunks still resident
+ * budget -- which it is precisely because of the retained chunks. Measured: 39,064 chunks still resident
  * nineteen minutes after the pregen stopped, no players online, 51 ms per tick, heap pinned at 8.7 GB,
  * permanent until a restart. So {@link #isDraining()} keeps the pass running until they go.
  *
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class ChunkResidency {
 
-    // slf4j, NOT java.util.logging. The loaders route slf4j into the game's own log; JUL output goes
+    // slf4j, not java.util.logging. The loaders route slf4j into the game's own log; JUL output goes
     // nowhere anybody looks, which is why 3.5.3's drain lifecycle lines never appeared on the server
     // even though the code ran. (GsonConfig and TaskScheduler still use JUL and are equally invisible.)
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
@@ -41,7 +41,7 @@ public final class ChunkResidency {
 
     /**
      * How much of the run's own growth may remain before a drain is called done. Not zero: chunks a
-     * PLAYER is holding, and chunks the world legitimately keeps, are counted in the same number, and
+     * player is holding, and chunks the world legitimately keeps, are counted in the same number, and
      * demanding an exact return to baseline would arm the unload pass for ever on a server in use.
      */
     private static final long DRAIN_MARGIN = 512L;
@@ -72,8 +72,8 @@ public final class ChunkResidency {
     /**
      * Publish the current resident chunk count. Server thread, once per tick.
      *
-     * <p>Published ALWAYS, not only while a run is active: after 3.5.0 the number was cleared the moment
-     * a task ended, which is exactly when the backlog it left behind most needed watching.
+     * <p>Published on every tick, not only while a run is active: after 3.5.0 the number was cleared the
+     * moment a task ended, which is exactly when the backlog it left behind most needed watching.
      *
      * @param loaded total chunk holders across every level, or negative when the platform cannot say
      */
@@ -163,8 +163,8 @@ public final class ChunkResidency {
         final long current = loadedChunksAt(now);
         drainBestSeen = current < 0L ? Long.MAX_VALUE : current;
         drainStartedAt = current;
-        // A drain that nobody can see is a drain nobody can debug: 3.5.1 was correct and INVISIBLE.
-        // Say what is happening, once at each end. Two lines per run is not log spam.
+        // Say what is happening, once at each end. 3.5.1 was correct and silent, which made a drain
+        // impossible to debug from a server log; two lines per run is not log spam.
         LOGGER.info(String.format(
                 "Chunksmith: pregen finished; draining its chunks. %d resident, %d of them added by this run. %s",
                 current, Math.max(0L, current - baseline),
@@ -217,13 +217,13 @@ public final class ChunkResidency {
     }
 
     /**
-     * Generation has stopped dispatching because one of OUR gates closed -- residency or heap.
+     * Generation has stopped dispatching because one of our gates closed -- residency or heap.
      *
      * <p>Two things follow, both missing when the gate was first tested on a real server. The unload
      * pass should get the full budget: nothing is being generated, and unloading is the only thing that
      * can reopen the gate. And the settle frontier must be let go -- with dispatch stopped no neighbour
-     * is ever coming, so the frontier freezes at its cap and PREVENTS the very recovery the gate is
-     * waiting for. Measured: 25,638 resident, held for 120 s, count UP by 196.
+     * is ever coming, so the frontier freezes at its cap and prevents the very recovery the gate is
+     * waiting for. Measured: 25,638 resident, held for 120 s, count up by 196.
      */
     public static void noteGenerationHeld(final boolean held) {
         generationHeld = held;
@@ -298,7 +298,7 @@ public final class ChunkResidency {
 
     /**
      * One line describing the whole signal, for {@code /cs debug}. Never throws, never blocks. Contains
-     * NO literal percent sign: {@code Sender.sendMessagePrefixed} runs its message through
+     * no literal percent sign: {@code Sender.sendMessagePrefixed} runs its message through
      * {@code String.format}, so a stray sign throws -- which shipped in 3.5.2 and broke the command.
      */
     public static String describe() {

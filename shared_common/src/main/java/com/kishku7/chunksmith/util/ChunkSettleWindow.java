@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Keeps a just-generated chunk LOADED for a moment after we are done with it, so that other mods which
+ * Keeps a just-generated chunk loaded for a moment after we are done with it, so that other mods which
  * react to a chunk being generated still have something to work with.
  *
  * <p>A pregen drops a chunk's ticket the instant the future completes, which is what keeps its memory
@@ -19,25 +19,25 @@ import java.util.Map;
  * NeoForge 1.21.1 pregen that scored <b>309 spawn attempts, 309 deferrals, zero villages</b>
  * (mod_support #14). The same shape of bug applies to anything acting on a chunk after we moved on.
  *
- * <p>The condition is not "my chunk is loaded" but "my chunk AND ITS NEIGHBOURS are loaded", and
+ * <p>The condition is not "my chunk is loaded" but "my chunk and its neighbours are loaded", and
  * Chunksmith sweeps in a spatial pattern, so a chunk's north and south neighbours can be a whole ring
  * apart in generation order -- hundreds or thousands of chunks -- and a fixed-size FIFO of recent chunks
  * would hold the wrong ones. So the rule is spatial, not temporal: a chunk's ticket is released once all
  * eight of its neighbours have also been generated, plus a short delay so the other mod's tick gets a
- * turn. What is held is therefore the SWEEP FRONTIER and nothing else.
+ * turn. What is held is therefore the sweep frontier and nothing else.
  *
  * <p>Bookkeeping is bounded to match. A set of every generated chunk would grow with the whole run
  * (millions of entries on a big pregen) to answer a question only ever asked about the frontier, so each
- * position carries a COUNT of how many of its nine have arrived instead, and an entry is dropped the
+ * position carries a count of how many of its nine have arrived instead, and an entry is dropped the
  * moment it can no longer be needed.
  *
  * <p>The frontier still needs a hard cap, because the neighbourhood rule bounds it only while every
- * position in it eventually gets all nine. A chunk the run SKIPS -- already generated with its LOD
+ * position in it eventually gets all nine. A chunk the run skips -- already generated with its LOD
  * present, or outside the shape -- is never offered, so the chunks beside it are held for the whole run:
  * a resumed or partly pregenerated world leaks steadily, and that is the common case. A genuinely huge
  * selection also has a genuinely huge perimeter. Both were live on the pregen that left a server holding
  * far more chunks than the run could ever need (see {@link ChunkResidency}), so past {@code maxHeld} the
- * OLDEST held chunk is released -- age is exactly the evidence that a chunk's neighbourhood is not
+ * oldest held chunk is released -- age is exactly the evidence that a chunk's neighbourhood is not
  * coming.
  *
  * <p>A held chunk does not cost one chunk. The ticket is at FULL level and the distance manager
@@ -59,7 +59,7 @@ public final class ChunkSettleWindow {
 
     /**
      * Chunk -> the ticket release we have not run yet. The frontier. Insertion-ordered on purpose:
-     * eviction is oldest-first and the iteration order IS the age order, which a plain HashMap could
+     * eviction is oldest-first and the iteration order is the age order, which a plain HashMap could
      * not answer without a second structure.
      */
     private final Map<Long, Runnable> held = new LinkedHashMap<>();
@@ -148,7 +148,7 @@ public final class ChunkSettleWindow {
     /**
      * Release everything held right now, but keep the window usable.
      *
-     * <p>For when a throttle gate has HELD generation. A neighbourhood closes only when new chunks
+     * <p>For when a throttle gate has held generation. A neighbourhood closes only when new chunks
      * arrive, so with dispatch stopped the frontier sits at its cap holding the very tickets that stop
      * the unloading the gate is waiting for -- the alternative is a run that cannot restart. Unlike
      * {@link #drain} this does NOT retire the window.
@@ -162,7 +162,7 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * Release EVERYTHING still held, due or not, and forget the bookkeeping. Called when a task
+     * Release everything still held, due or not, and forget the bookkeeping. Called when a task
      * finishes, is cancelled, or the server is stopping: the frontier then has no more neighbours
      * coming, so waiting would leak every ticket on the edge of the run.
      */
@@ -215,7 +215,7 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * How many were released EARLY because the frontier hit its cap. Its own counter rather than folded
+     * How many were released early because the frontier hit its cap. Its own counter rather than folded
      * into {@code releasedCount} because a large number here means the frontier is not behaving the way
      * the neighbourhood rule assumes, which an operator should be able to see rather than infer.
      */

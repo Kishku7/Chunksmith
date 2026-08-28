@@ -16,25 +16,25 @@ import net.minecraft.network.Connection;
 import java.util.function.Consumer;
 
 /**
- * The in-band channel seam -- classic FORGE (MC 1.20.1 / Forge 47).
+ * The in-band channel seam -- classic Forge (MC 1.20.1 / Forge 47).
  *
  * <p>Forge 47 predates {@code CustomPacketPayload} entirely and has its own transport: a versioned
  * {@link SimpleChannel} built through {@code NetworkRegistry}. The channel must be built while the
- * network registry is still OPEN, which is why this class is a MOD-bus {@code @EventBusSubscriber} --
- * FML class-loads every subscriber during mod construction, and the static initializer below runs then.
+ * network registry is still open. Hence the mod-bus {@code @EventBusSubscriber} on this class: FML
+ * class-loads every subscriber during mod construction, and the static initializer below runs then.
  *
- * <p>The WIRE is byte-identical to every other cell: channel {@code chunksmith:lod}, one raw
+ * <p>The wire is byte-identical to every other cell: channel {@code chunksmith:lod}, one raw
  * length-prefixed byte block ({@code writeByteArray} is the same varint+bytes encoding the modern
  * StreamCodec emits). Forge's handshake adds a harmless protocol-version check of its own on top.
  *
- * <p>The channel is OPTIONAL: a player who does NOT run Chunksmith must still be able to join a
- * Chunksmith server. Both accepted-version predicates go through
+ * <p>A player who does NOT run Chunksmith must still be able to join a Chunksmith server, so the channel
+ * is optional. Both accepted-version predicates go through
  * {@link NetworkRegistry#acceptMissingOr(String)}, which also accepts the {@code ABSENT}/
  * {@code ACCEPTVANILLA} sentinels the FML login handshake passes for a peer that lacks the channel. A
- * BARE {@code PROTOCOL::equals} returns false for those, marking the channel REQUIRED and making the
- * server REFUSE any client without Chunksmith -- the client-forcing bug fixed in 3.1.0-beta-5.
+ * bare {@code PROTOCOL::equals} returns false for those, marks the channel required, and makes the server
+ * refuse any client without Chunksmith -- the client-forcing bug fixed in 3.1.0-beta-5.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith", bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class CsLodChannel {
@@ -49,7 +49,7 @@ public final class CsLodChannel {
             .simpleChannel();
 
     /**
-     * Forge 47 PATCHES {@code new ResourceLocation(String,String)} to deprecated-for-removal (vanilla
+     * Forge 47 patches {@code new ResourceLocation(String,String)} to deprecated-for-removal (vanilla
      * 1.20.1 does not -- the identical call on the Fabric 1.20.1 cell compiles warning-free), and MC 1.20.1
      * has no non-nullable replacement: {@code fromNamespaceAndPath} arrives at MC 1.21 (Forge backported it
      * at 49.2 / MC 1.20.4), and {@code tryBuild}/{@code tryParse} return null, which for two compile-time
@@ -69,9 +69,9 @@ public final class CsLodChannel {
     }
 
     /**
-     * Where an inbound message goes when it came FROM a server -- set by the client half at client setup,
+     * Where an inbound message goes when it came from a server -- set by the client half at client setup,
      * {@code null} everywhere else. The side-guard: {@code Message.handle} runs on both sides but its body
-     * names NO client class. On a dedicated server nothing ever sets this, that branch is dead, and
+     * names no client class. On a dedicated server nothing ever sets this, that branch is dead, and
      * {@code lod.client.*} is never class-loaded.
      */
     private static volatile Consumer<byte[]> clientSink;
@@ -86,7 +86,7 @@ public final class CsLodChannel {
     public static void register() {
     }
 
-    /** Called by the CLIENT bootstrap only (guarded on {@code FMLEnvironment.dist == Dist.CLIENT}). */
+    /** Called by the client bootstrap only (guarded on {@code FMLEnvironment.dist == Dist.CLIENT}). */
     public static void setClientSink(final Consumer<byte[]> sink) {
         clientSink = sink;
     }
@@ -130,7 +130,7 @@ public final class CsLodChannel {
                     CsLodServerNet.receive(sender, this.data);
                     return;
                 }
-                // No sender: this came FROM a server, so we are the client. Drain into the sink the
+                // No sender: this came from a server, so we are the client. Drain into the sink the
                 // client half installed -- null on a dedicated server, where this branch cannot be reached.
                 final Consumer<byte[]> sink = clientSink;
                 if (sink != null) {
@@ -142,8 +142,8 @@ public final class CsLodChannel {
     }
 
     /**
-     * The disconnect hook. Forge's logout event is a GAME-bus event, and this class is on the MOD bus, so
-     * it lives in its own nested subscriber rather than forcing a second bus registration on the class.
+     * Forge's logout event is a game-bus event and this class is on the mod bus, so the disconnect hook
+     * lives in its own nested subscriber rather than forcing a second bus registration on the class.
      */
     @Mod.EventBusSubscriber(modid = "chunksmith")
     public static final class Disconnects {
@@ -151,7 +151,7 @@ public final class CsLodChannel {
         private Disconnects() {
         }
 
-        /** A token must never outlive the session that earned it. */
+        /** Drops the player's backchannel token when they log out. */
         @SubscribeEvent
         public static void onLoggedOut(final PlayerEvent.PlayerLoggedOutEvent event) {
             CsLodServerNet.onDisconnect(event.getEntity().getUUID());

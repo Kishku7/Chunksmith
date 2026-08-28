@@ -3,14 +3,14 @@ package com.kishku7.chunksmith.lod.net;
 /**
  * Shared constants for the Chunksmith LOD protocol.
  *
- * <p>MC-agnostic on purpose: BOTH the Chunksmith server and Chunksmith-Client (a separate mod, separate
+ * <p>MC-agnostic on purpose: both the Chunksmith server and Chunksmith-Client (a separate mod, separate
  * repo) speak this, so it must not depend on anything loader- or version-specific.
  *
  * <p>Two transports, one protocol: in-band ({@link #CHANNEL}) shares the game connection and must yield to
  * gameplay; the HTTP backchannel at {@link #httpPort game port + 1} is the fast path.
  *
- * <p>Authentication: the in-band handshake rides a connection the player has ALREADY authenticated with
- * Mojang, so the server issues a short-lived random TOKEN bound to (uuid, ip, expiry) which the client
+ * <p>Authentication: the in-band handshake rides a connection the player has already authenticated with
+ * Mojang, so the server issues a short-lived random token bound to (uuid, ip, expiry) which the client
  * presents to the HTTP endpoint. A UUID or a name proves nothing on its own -- both are public.
  */
 public final class CsLodProtocol {
@@ -22,16 +22,16 @@ public final class CsLodProtocol {
     public static final String CHANNEL = "lod";
 
     /**
-     * Bump on ANY wire change. Both ends refuse a mismatch rather than guessing.
+     * Bump on any wire change. Both ends refuse a mismatch rather than guessing.
      *
-     * <p><b>v2 (3.1.0-beta-4).</b> {@code S2C_INDEX}'s LAYOUT is unchanged from v1; the MEANING of its
-     * {@code long} hash is not. v1 was a CRC32 of the region file's contents computed independently by BOTH
+     * <p><b>v2 (3.1.0-beta-4).</b> {@code S2C_INDEX}'s layout is unchanged from v1; the meaning of its
+     * {@code long} hash is not. v1 was a CRC32 of the region file's contents computed independently by both
      * ends -- see {@link CsLodRegionHash} for what that cost a live production server. v2 is an opaque
-     * freshness token derived from the server's (mtime, size), which the client REMEMBERS rather than
+     * freshness token derived from the server's (mtime, size), which the client remembers rather than
      * recomputes. A v1 client would find every region stale every time and re-download the whole in-radius
      * store every five seconds, so the handshake refuses instead: v1 -> v2 still gets a v2
-     * {@code S2C_HELLO} with {@code storeAvailable=false} so it can NAME the mismatch, and v2 -> v1 gets
-     * silence, reported after {@code CsLodClientNet.HELLO_TIMEOUT_MILLIS}. v2 also ADDS
+     * {@code S2C_HELLO} with {@code storeAvailable=false} so it can name the mismatch, and v2 -> v1 gets
+     * silence, reported after {@code CsLodClientNet.HELLO_TIMEOUT_MILLIS}. v2 also adds
      * {@link #C2S_REQUEST_SUMMARY} / {@link #S2C_SUMMARY}, which alone would not have forced a bump.
      */
     public static final int VERSION = 2;
@@ -45,15 +45,15 @@ public final class CsLodProtocol {
     /** How long a handshake token stays valid. Refreshed by the in-band channel while the player is on. */
     public static final long TOKEN_TTL_MILLIS = 10 * 60 * 1000L;
 
-    /** Default LOD radius, in BLOCKS, when the client cannot tell us what its renderer is set to. */
+    /** Default LOD radius, in blocks, when the client cannot tell us what its renderer is set to. */
     public static final int DEFAULT_RADIUS_BLOCKS = 256;
 
     // decode-time input ceilings (DoS guard)
     //
-    // Every count/length below is read straight off the wire from a peer we do NOT trust -- a hostile server
-    // can send a client packet, a hostile client a server packet -- so a decoder MUST refuse an out-of-range
-    // count BEFORE it allocates, or one tiny packet claiming a huge count OOM-kills the receiver. Validation
-    // ONLY: the wire/disk format is byte-for-byte unchanged and VERSION does NOT move.
+    // Every count/length below is read straight off the wire from a peer we do not trust -- a hostile server
+    // can send a client packet, a hostile client a server packet -- so a decoder must refuse an out-of-range
+    // count before it allocates, or one tiny packet claiming a huge count OOM-kills the receiver. Validation
+    // only: the wire/disk format is byte-for-byte unchanged and VERSION does not move.
 
     /** Max dimensions in an {@code S2C_HELLO}. Vanilla has 3; a heavily-modded server lists a few dozen. */
     public static final int MAX_HELLO_DIMENSIONS = 4096;
@@ -130,11 +130,11 @@ public final class CsLodProtocol {
 
     public static final byte S2C_DONE = 104;
     /**
-     * S2C: act on the player's OWN LOD-client settings -- list them, show one, or set one (3.3.0).
+     * S2C: act on the player's own LOD-client settings -- list them, show one, or set one (3.3.0).
      *
      * <p>{@code /cslod set} is typed at a server, but the settings live in the player's
-     * {@code config/chunksmith-lod.properties} on their CLIENT, which on a dedicated server does not exist.
-     * So the server forwards and the CLIENT reads, writes and prints its own reply. Purely additive, so no
+     * {@code config/chunksmith-lod.properties} on their client, which on a dedicated server does not exist.
+     * So the server forwards and the client reads, writes and prints its own reply. Purely additive, so no
      * {@link #VERSION} bump -- an older client drops the unknown id, which is why the server checks
      * {@code CsLodServerNet.hasLodClient} first.
      */
@@ -153,7 +153,7 @@ public final class CsLodProtocol {
     }
 
     /**
-     * The backchannel port, DERIVED from the game port. Game on 25565 -> HTTP on 25566; only the default
+     * The backchannel port, derived from the game port. Game on 25565 -> HTTP on 25566; only the default
      * -- an operator may name one (mod_support #19), see {@link #httpPort(int, int)}.
      *
      * @return the backchannel port, or 0 if the game port is at the top of the range (no room for +1)
@@ -166,7 +166,7 @@ public final class CsLodProtocol {
     /**
      * Resolve the backchannel port an operator actually gets: their configured port if they named one,
      * otherwise {@link #httpPort(int) the derived one}. A configured port that collides with the game port
-     * is REFUSED rather than honoured -- binding it cannot succeed anyway, and refusing lets the caller
+     * is refused rather than honoured -- binding it cannot succeed anyway, and refusing lets the caller
      * report a cause instead of an anonymous bind failure.
      *
      * @return the port to bind, or 0 if there is none to be had

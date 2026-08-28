@@ -60,18 +60,18 @@ import java.util.concurrent.atomic.AtomicLong;
  * restart, and a blocking save of the backlog can stall the main thread past the 60-second tick
  * watchdog and crash the server.
  *
- * <p>ROOT CAUSE (vanilla {@code PersistentEntitySectionManager}): worldgen entities enter via
+ * <p>Root cause, in vanilla {@code PersistentEntitySectionManager}: worldgen entities enter via
  * {@code addWorldGenChunkEntities}, leaving the chunk's entity load-status {@code FRESH}.
  * {@code storeChunkSections} refuses to free a FRESH chunk's entities until an async disk-read
- * round-trip completes ({@code requestChunkLoad(); return false;}). That read exists only to MERGE any
+ * round-trip completes ({@code requestChunkLoad(); return false;}). That read exists only to merge any
  * already-persisted entities before the store overwrites the region entry. During heavy pre-gen the
  * world disk is saturated by chunk writes, so the unload reads stall and entities pile up.
  *
- * <p>FIX: when the chunk has NO persisted entity data there is nothing to merge, so the read is pure
+ * <p>When the chunk has no persisted entity data there is nothing to merge, and the read is pure
  * overhead. We {@code @Redirect} the {@code loadEntities} call inside {@code requestChunkLoad} and
- * decide whether real data exists. CORRECTNESS HINGES on making that decision against a consistent
- * view, so the probe runs on the IOWorker's own single-threaded executor -- the one thread that mutates
- * {@code pendingWrites} and owns the region files. There it checks BOTH:
+ * decide whether real data exists. That decision has to be made against a consistent view, so the probe
+ * runs on the IOWorker's own single-threaded executor -- the one thread that mutates
+ * {@code pendingWrites} and owns the region files. There it checks both:
  * <ul>
  *   <li>{@code pendingWrites} -- entities already stored this session but not yet flushed to disk; a
  *       plain on-disk read would miss these and the next store would clobber them, and</li>
@@ -82,24 +82,24 @@ import java.util.concurrent.atomic.AtomicLong;
  * read+merge, so no entity is ever lost. Only a provably-empty chunk skips the read (returns an
  * immediately-completed empty result), which is where the RAM/stall win comes from.
  *
- * <p>COG DRIFT: TWO independent axes cross here (drift matrix section 2c), giving three live body
+ * <p>Cog drift: two independent axes cross here (drift matrix section 2c), giving three live body
  * shapes.
  * <ul>
- *   <li>AXIS A -- executor primitive: LEGACY (1.20.1 .. 1.21.3) drains the worker's single thread via a
+ *   <li>AXIS A -- executor primitive: legacy (1.20.1 .. 1.21.3) drains the worker's single thread via a
  *       {@code ProcessorMailbox} ({@code mailbox.tell(new StrictQueue.IntRunnable(...))} + our own
- *       future); MODERN (1.21.4 .. 26) uses a {@code PriorityConsecutiveExecutor}
+ *       future); modern (1.21.4 .. 26) uses a {@code PriorityConsecutiveExecutor}
  *       ({@code executor.scheduleWithResult(...)} returns the future directly). The {@code pendingWrites}
  *       local type ({@code Map} vs {@code SequencedMap}) follows this axis.</li>
- *   <li>AXIS B -- worker reach: ANCIENT (1.20.1/1.20.4) reads {@code EntityStorage.worker} DIRECTLY
- *       (no SimpleRegionStorage layer); TRANSITIONAL+ goes EntityStorage -> SimpleRegionStorage ->
+ *   <li>AXIS B -- worker reach: ancient (1.20.1/1.20.4) reads {@code EntityStorage.worker} directly
+ *       (no SimpleRegionStorage layer); transitional+ goes EntityStorage -> SimpleRegionStorage ->
  *       worker.</li>
  * </ul>
  * Both submit onto the exact same single thread that owns {@code pendingWrites}, so behaviour is
  * identical across all shapes; only the plumbing differs. Cog emits the correct shape per version
  * (compat.use_mailbox_executor + compat.entity_storage_uses_srs).
  *
- * <p>DIAGNOSTICS: the {@code @Inject} into {@code tick} is gated behind {@link Debug#ENABLED} (toggled
- * by {@code /cs debug}); default OFF means it is a no-op and emits nothing.
+ * <p>Diagnostics: the {@code @Inject} into {@code tick} is gated behind {@link Debug#ENABLED} (toggled
+ * by {@code /cs debug}); default off means it is a no-op and emits nothing.
  */
 @Mixin(PersistentEntitySectionManager.class)
 public abstract class PersistentEntitySectionManagerMixin {
@@ -228,7 +228,7 @@ public abstract class PersistentEntitySectionManagerMixin {
     }
 
     /**
-     * True iff the entity region file for this chunk exists AND its 4096-byte offset table marks this
+     * True iff the entity region file for this chunk exists and its 4096-byte offset table marks this
      * chunk's slot as present. MUST be called on the IOWorker executor thread so the read is serialized
      * against region writes (no torn header) and never creates a region file (Files.exists gate).
      */

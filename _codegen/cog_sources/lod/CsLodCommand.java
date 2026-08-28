@@ -30,26 +30,26 @@ import java.io.IOException;
  * {@code /cslod} -- operator commands for the CSLOD store.
  *
  * <ul>
- *   <li>{@code set} -- the PLAYER'S OWN client settings; the only subcommand a non-operator may run.</li>
+ *   <li>{@code set} -- the player's own client settings; the only subcommand a non-operator may run.</li>
  *   <li>{@code status} -- where the store is, how big, and whether the backchannel is up.</li>
  *   <li>{@code token <player>} -- mint a backchannel token by hand.</li>
  *   <li>{@code dhpush} -- replay the store into Distant Horizons. Present on every LOD cell: DH ships a
  *       build for all of them.</li>
- *   <li>{@code inject} -- replay the store into voxy. ONLY where a voxy jar exists to compile against
+ *   <li>{@code inject} -- replay the store into voxy. Only where a voxy jar exists to compile against
  *       (Fabric 1.21.11 + Fabric 26).</li>
  * </ul>
  *
- * <p>Both backfills are SINGLEPLAYER: the renderer engines are client-side, so on a dedicated server they
- * report "not available" and the store is served over the backchannel to Chunksmith-Client instead.
+ * <p>Both backfills are singleplayer-only: the renderer engines are client-side, so on a dedicated server
+ * they report "not available" and the store is served over the backchannel to Chunksmith-Client instead.
  *
- * <p>Loader-blind: this class only BUILDS the brigadier node; each loader's {@code LodInit} registers it
+ * <p>Loader-blind: this class only builds the brigadier node; each loader's {@code LodInit} registers it
  * (Fabric via CommandRegistrationCallback, NeoForge/Forge via RegisterCommandsEvent).
  *
  * <p>Its own root command rather than folded into {@code /chunksmith}: the shared command tree lives in
  * shared_common and is wired to TranslationKey + the lang files, which the LOD feature has no business
  * reaching into.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodCommand {
 
@@ -64,9 +64,9 @@ public final class CsLodCommand {
         //]]]
         //[[[end]]]
 
-        // The ROOT is deliberately UNGATED (3.3.0): /cslod set changes the PLAYER'S OWN client settings,
+        // The root is deliberately ungated (3.3.0): /cslod set changes the player's own client settings,
         // so a gamemaster gate on the root would stop an ordinary player changing their own config. Every
-        // OPERATOR subcommand carries the gate itself instead, and brigadier hides a node whose requires()
+        // operator subcommand carries the gate itself instead, and brigadier hides a node whose requires()
         // fails, so a normal player sees /cslod set and nothing else.
         final LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("cslod");
 
@@ -74,7 +74,7 @@ public final class CsLodCommand {
             final ServerLevel level = context.getSource().getLevel();
             final Path store = LodSupport.storeRoot(level);
             final long bytes = sizeOf(store);
-            // The record COUNT, not just the byte size: the number an operator compares against their
+            // The record count, not just the byte size: the number an operator compares against their
             // chunk count to answer "does my store actually cover my world?". Header reads only (8 KB per
             // region, no record decode), so it is safe to run from a command.
             long records;
@@ -199,10 +199,10 @@ public final class CsLodCommand {
                             return 1;
                         })));
 
-        // Referencing CsLodClientSettings from server-side code is NOT a side-guard breach: it and
+        // Referencing CsLodClientSettings from server-side code is not a side-guard breach: it and
         // CsLodClientConfig name no net.minecraft.client type at all -- they are java.util.Properties and
         // two static fields. What must never be reached from here is the renderer/download half, and none
-        // of it is. NO permission gate: config/chunksmith-lod.properties is the player's own file, on
+        // of it is. No permission gate: config/chunksmith-lod.properties is the player's own file, on
         // their own machine; the command forwards and the client answers.
         root.then(Commands.literal("set")
                 .executes(context -> clientSetting(context.getSource(),
@@ -219,7 +219,7 @@ public final class CsLodCommand {
                                 StringArgumentType.getString(context, "name"), ""))
                         .then(Commands.argument("value", StringArgumentType.word())
                                 .suggests((context, builder) -> {
-                                    // Completions come from the SETTING, so they cannot drift from it.
+                                    // Completions come from the setting, so they cannot drift from it.
                                     final var setting = CsLodClientSettings.find(
                                             StringArgumentType.getString(context, "name"));
                                     if (setting.isPresent()) {
@@ -239,10 +239,11 @@ public final class CsLodCommand {
 
     /**
      * Forward a client-settings request to the player's own client. Deliberately SILENT on success: the
-     * client prints the answer because it is the side that reads and writes the file. The refusal path is
-     * the point of {@link CsLodServerNet#hasLodClient} -- an unknown message id is dropped silently at the
-     * far end, so without the check a player on a vanilla client would type the command, see nothing, and
-     * have no way to tell success from an empty room.
+     * client prints the answer, because it is the side that reads and writes the file.
+     *
+     * <p>{@link CsLodServerNet#hasLodClient} exists for the refusal path. An unknown message id is dropped
+     * silently at the far end, so without the check a player on a vanilla client would type the command,
+     * see nothing, and have no way to tell success from an empty room.
      */
     private static int clientSetting(final CommandSourceStack source,
                                      final byte action,
@@ -250,7 +251,7 @@ public final class CsLodCommand {
                                      final String value) throws CommandSyntaxException {
         final ServerPlayer player = source.getPlayerOrException();
         if (!CsLodServerNet.hasLodClient(player)) {
-            // The "no renderer" half of this message is GONE (3.4.0): the client now introduces itself
+            // The "no renderer" half of this message is gone (3.4.0): the client now introduces itself
             // whether or not it has voxy or Distant Horizons, precisely so these settings stay reachable,
             // so blaming a missing renderer would now be a wrong answer. What is left is the honest
             // remainder -- no hello means either no Chunksmith on that client, or a different LOD protocol
@@ -272,9 +273,9 @@ public final class CsLodCommand {
     }
 
     /**
-     * The renderer fields of the status line. A cell reports ONLY the renderers it can actually feed: where
-     * voxy has no build the line says so, rather than "not available" for something that could never be
-     * available.
+     * The renderer fields of the status line. A cell reports only the renderers it can actually feed:
+     * where voxy has no build the line says so, rather than "not available" for something that could
+     * never be available.
      */
     private static String renderers() {
         //[[[cog

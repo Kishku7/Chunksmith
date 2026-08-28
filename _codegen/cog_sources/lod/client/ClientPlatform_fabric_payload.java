@@ -12,23 +12,23 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * The CLIENT-side platform facade -- FABRIC, modern payload era (MC 1.20.5+).
+ * The client-side platform facade -- Fabric, modern payload era (MC 1.20.5+).
  *
  * <p>Seam class: same package, same name, same static signatures on every loader and every MC version, so
  * the shared LOD-client tree calls {@code ClientPlatform.x()} and names no loader type. The facade is the
- * ONLY place a loader symbol appears.
+ * only place a loader symbol appears.
  *
- * <p><b>THE ONE REGISTRATION.</b> This class does NOT register the payload TYPE. It cannot, and that is the
- * whole point of the merge. Before 3.1.0 the LOD client was a separate mod, and BOTH mods registered
- * {@code chunksmith:lod} in {@code PayloadTypeRegistry} -- so a player who had both (a self-hoster who plays
- * singleplayer AND joins a friend's Chunksmith server) got
+ * <p>This class does NOT register the payload type. It cannot, and that is what the 3.1.0 merge bought.
+ * Before it the LOD client was a separate mod, and both mods registered {@code chunksmith:lod} in
+ * {@code PayloadTypeRegistry} -- so a player who had both (a self-hoster who plays singleplayer and joins
+ * a friend's Chunksmith server) got
  * {@code IllegalArgumentException: Packet type ... [id=chunksmith:lod] is already registered!} and a hard
- * crash on startup. Now there is ONE mod, and the type is registered EXACTLY ONCE, by
- * {@link CsLodChannel#register()}, from the COMMON mod init that runs on both sides. What happens here is a
- * RECEIVER registration against that already-registered type -- a different registry, and one that only
+ * crash on startup. One mod now, and the type is registered exactly once, by
+ * {@link CsLodChannel#register()}, from the common mod init that runs on both sides. What happens here is
+ * a receiver registration against that already-registered type -- a different registry, and one that only
  * exists on a client.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod/client. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod/client. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 @Environment(EnvType.CLIENT)
@@ -54,8 +54,8 @@ public final class ClientPlatform {
      *
      * <p>On Fabric that is the client-init entrypoint itself: client initializers run after the mod list is
      * built, and Distant Horizons' own initializer has run by the time it fires its level-load event. So
-     * this is an immediate call. NeoForge and Forge defer it to {@code FMLClientSetupEvent}, because mod
-     * CONSTRUCTION there can run before DH's own, and {@code DhApi.events} would not be there yet.
+     * this is an immediate call. NeoForge and Forge defer it to {@code FMLClientSetupEvent}, where mod
+     * construction can run before DH's own and {@code DhApi.events} would not be there yet.
      */
     public static void onClientSetup(final Runnable action) {
         action.run();
@@ -64,7 +64,7 @@ public final class ClientPlatform {
     /**
      * Hand every server payload to {@code onPayload}, on the client thread.
      *
-     * <p>Receiver only -- see the class doc. {@code CsLodChannel.Payload.TYPE} is the SAME type object the
+     * <p>Receiver only -- see the class doc. {@code CsLodChannel.Payload.TYPE} is the same type object the
      * common init registered; asking for it here neither creates nor re-registers anything.
      */
     public static void registerClientNetworking(final Consumer<byte[]> onPayload) {

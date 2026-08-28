@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  *
  * <p><b>Why this exists.</b> A plugin channel rides the same connection as gameplay, so pushing hundreds of
  * megabytes through it starves the game loop -- and it re-compresses payloads that are already compressed.
- * The CSLOD store is ALREADY plain region files, so the server does not stream anything: it serves them,
+ * The CSLOD store is already plain region files, so the server does not stream anything: it serves them,
  * with range requests, resume and parallel connections, and the game pipeline untouched.
  *
  * <p><b>The address follows the game; the port is the operator's if they want it.</b> The interface is
@@ -40,18 +40,18 @@ import java.util.regex.Pattern;
  * <p><b>Hardening.</b> This is a port opened on someone's game server, so:
  * <ul>
  *   <li>GET/HEAD only. No writes, no directory listing.</li>
- *   <li>Serves ONLY from the store root: a strict regex on the path, then canonicalize and re-check it is
+ *   <li>Serves only from the store root: a strict regex on the path, then canonicalize and re-check it is
  *       inside the root, so {@code ..}, absolute paths and symlinks cannot escape.</li>
  *   <li>Token required, bound to (uuid, ip, expiry), revoked on disconnect.</li>
  *   <li>Per-IP concurrency cap, request/header size caps, and idle timeouts.</li>
- *   <li><b>Fails CLOSED to 404</b> -- never 403, which would confirm that a file exists.</li>
+ *   <li><b>Fails closed to 404</b> -- never 403, which would confirm that a file exists.</li>
  * </ul>
  */
 public final class CsLodHttpServer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
-    /** The ONLY filename shape we will ever serve. Anything else is a 404. */
+    /** The only filename shape we will ever serve. Anything else is a 404. */
     private static final Pattern REGION_FILE = Pattern.compile("r\\.-?\\d{1,7}\\.-?\\d{1,7}\\.cslod");
 
     /** A dimension directory as written by the store: {@code minecraft_overworld}. */
@@ -101,7 +101,7 @@ public final class CsLodHttpServer {
     /**
      * Bind and start.
      *
-     * @param bindAddress    the address the GAME is bound to (empty/null = all interfaces, same as the game)
+     * @param bindAddress    the address the game is bound to (empty/null = all interfaces, same as the game)
      * @param configuredPort the operator's chosen port, or 0 to derive {@code gamePort + 1}
      * @return the bound port, or 0 if the backchannel is unavailable (in which case: fall back in-band)
      */
@@ -114,7 +114,7 @@ public final class CsLodHttpServer {
                         + "; falling back to the in-band channel (slower). Set lodBackchannelPort"
                         + " to name a port explicitly.");
             } else {
-                // Refused before we ever tried to bind, so say WHICH rule refused it. An operator who
+                // Refused before we ever tried to bind, so say which rule refused it. An operator who
                 // typed their game port here would otherwise get a bind failure with no cause.
                 LOGGER.warn("Chunksmith: lodBackchannelPort " + configuredPort + " cannot be used"
                         + (configuredPort == gamePort
@@ -232,9 +232,9 @@ public final class CsLodHttpServer {
     }
 
     /**
-     * Map a request path to a file INSIDE the store, or null. Two independent gates: the shape must match
-     * {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, AND the canonicalized result must still live under the
-     * store root. Either alone would probably do; both mean a traversal bug needs two mistakes, not one.
+     * Map a request path to a file inside the store, or null. Two independent gates: the shape must match
+     * {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, and the canonicalized result must still live under the
+     * store root. Either alone would probably do; both are cheap.
      */
     private Path resolve(final String requestPath) {
         if (requestPath == null || !requestPath.startsWith(CsLodProtocol.HTTP_PREFIX)) {
@@ -248,7 +248,7 @@ public final class CsLodHttpServer {
         if (!DIM_DIR.matcher(parts[0]).matches() || !REGION_FILE.matcher(parts[1]).matches()) {
             return null;
         }
-        // Resolve the dimension FIRST, then containment-check against that dimension's own root. Both
+        // Resolve the dimension first, then containment-check against that dimension's own root. Both
         // gates are unchanged in strength.
         final Path dimensionRoot = roots.rootFor(parts[0]);
         if (dimensionRoot == null) {
@@ -350,7 +350,7 @@ public final class CsLodHttpServer {
         inFlightByIp.computeIfPresent(ip, (key, current) -> current <= 1 ? null : current - 1);
     }
 
-    /** Fail CLOSED: 404 for everything, so a probe cannot learn what exists. */
+    /** Fail closed: 404 for everything, so a probe cannot learn what exists. */
     private void fail(final HttpExchange exchange) throws IOException {
         rejected.incrementAndGet();
         exchange.sendResponseHeaders(404, -1);

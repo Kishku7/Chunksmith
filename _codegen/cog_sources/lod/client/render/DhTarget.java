@@ -21,20 +21,21 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Feeds downloaded CSLOD records into the player's Distant Horizons.
  *
- * <p>We PUSH; DH does not pull from us. DH's world-generator override is built only by a SERVER
- * level -- a multiplayer client gets a {@code RemoteWorldRetrievalQueue}, so {@code generateApiChunk} is
- * NEVER CALLED there. So the client pushes instead, through {@code terrainRepo.overwriteChunkDataAsync}
+ * <p>We push; DH does not pull from us. DH's world-generator override is built only by a server level --
+ * a multiplayer client gets a {@code RemoteWorldRetrievalQueue}, so {@code generateApiChunk} is NEVER
+ * called there. The client pushes instead, through {@code terrainRepo.overwriteChunkDataAsync}
  * -> {@code SharedApi.applyChunkUpdate}: the same path DH uses when a player edits a block. It writes at
  * gen step LIGHT, persists, and re-renders on its own.
  *
- * <p>DH bakes the light itself -- its ChunkWrapper never touches Minecraft's light engine, and the push
- * path calls its own lighting engine unconditionally. So a synthesized chunk needs NO pre-lighting; it
- * needs correct block states with AIR EXPLICITLY PRESENT, which CSLOD's gap-free columns guarantee.
+ * <p>A synthesized chunk needs no pre-lighting. DH bakes the light itself -- its ChunkWrapper never
+ * touches Minecraft's light engine, and the push path calls its own lighting engine unconditionally.
+ * What it does need is correct block states with air explicitly present, which CSLOD's gap-free columns
+ * guarantee.
  *
- * <p><b>Resolve the wrapper for THIS level, never "the last one".</b> DH loads EVERY dimension at startup,
- * and does NOT validate the dimension of data you hand it: it will happily accept, persist and downsample
- * overworld chunks into the End's database and report success for every one. (It did exactly that, 1089
- * times, before this was caught.)
+ * <p><b>Resolve the wrapper for this level, never "the last one".</b> DH loads every dimension at
+ * startup and does not validate the dimension of data you hand it: it will happily accept, persist and
+ * downsample overworld chunks into the End's database and report success for every one. (It did exactly
+ * that, 1089 times, before this was caught.)
  */
 public final class DhTarget {
 
@@ -42,10 +43,10 @@ public final class DhTarget {
      * Minimum gap between pushes. Measured safe at ~50 chunks/s over a 4225-chunk push, 100% retention.
      *
      * <p>Not arbitrary: DH's {@code ChunkUpdateQueueManager.addItemToQueue()} calls {@code popFurthest()}
-     * when its queue overflows, evicting the entry FURTHEST FROM THE PLAYER -- precisely the distant
+     * when its queue overflows, evicting the entry furthest from the player -- precisely the distant
      * pregenerated terrain we are delivering. It is an overflow guard, not a distance filter, so it fires
-     * only when pushes outrun DH's chunk-to-LOD builder. "Distant Horizons overloaded" in the log is a
-     * DATA-LOSS signal, not a warning.
+     * only when pushes outrun DH's chunk-to-LOD builder. "Distant Horizons overloaded" in the log means
+     * data was lost, not that something was slow.
      */
     private static final long MIN_PUSH_INTERVAL_NANOS = 10_000_000L;   // ~100 chunks/s ceiling
 
@@ -66,7 +67,7 @@ public final class DhTarget {
 
     /**
      * Distant Horizons' own version + the API version it implements, for the log at join. We compile
-     * against the standalone {@code distanthorizonsapi} artifact and support a WIDE range of DH releases,
+     * against the standalone {@code distanthorizonsapi} artifact and support a wide range of DH releases,
      * so "which DH did the player actually have" is the first question any bug report raises.
      */
     public static String version() {
@@ -139,7 +140,7 @@ public final class DhTarget {
 
         pace();
 
-        // Marked as OURS for the whole call: DhClientLevelMixin forces the dedupe gate open for this
+        // Marked as ours for the whole call: DhClientLevelMixin forces the dedupe gate open for this
         // flag, so a DH server's ten-minute dedupe cannot eat the push while still reporting success (see
         // DhPushGuard).
         //
@@ -181,10 +182,10 @@ public final class DhTarget {
     /**
      * pushed / failed.
      *
-     * <p>{@code DhApiResult.success} means QUEUED, not WRITTEN, so these counters cannot prove retention.
+     * <p>{@code DhApiResult.success} means queued, not written, so these counters cannot prove retention.
      * Two ways the data still disappears: DH's queue overflows and {@code popFurthest()} evicts the entry
-     * furthest from the player, i.e. ours (hence the pacing above); and on a DH-ENABLED server with
-     * real-time updates on, {@code shouldProcessChunkUpdate} silently DISCARDS an update for any position
+     * furthest from the player, i.e. ours (hence the pacing above); and on a DH-enabled server with
+     * real-time updates on, {@code shouldProcessChunkUpdate} silently discards an update for any position
      * seen in the last ten minutes while still returning success (the gate the mixin turns off). Count
      * rows in DH's database to check retention.
      */

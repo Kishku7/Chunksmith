@@ -20,8 +20,8 @@ import java.util.Locale;
 
 public final class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    // slf4j, NOT java.util.logging. The loaders do not route JUL to the game log, so every one
-    // of the range warnings below was INVISIBLE to operators -- a config value silently clamped
+    // slf4j, not java.util.logging. The loaders do not route JUL to the game log, so every one
+    // of the range warnings below was invisible to operators -- a config value silently clamped
     // with the explanation going nowhere. Same bug class that hid the drain diagnostics until
     // ChunkResidency was switched over.
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
@@ -39,14 +39,14 @@ public final class GsonConfig implements Config {
     private static final long MAX_QUEUED_WRITES_MIN = 50L;
     private static final long MAX_QUEUED_WRITES_MAX = 1_000_000L;
     private static final long MAX_QUEUED_WRITES_DEFAULT = 800L;
-    // Maximum chunks a run may ADD to the resident set before dispatch is held off. 0 disables.
-    // Measured as a DELTA against residency at task start (3.5.1); the 3.5.0 absolute form tripped on
+    // Maximum chunks a run may add to the resident set before dispatch is held off. 0 disables.
+    // Measured as a delta against residency at task start (3.5.1); the 3.5.0 absolute form tripped on
     // whatever the server already had. A legitimate sweep frontier is roughly 16x the selection radius
     // in chunks, so 20000 clears a ~1200-chunk-radius run untouched, while the runaway this bounds
     // added ~55000 over baseline on a 470-chunk-radius selection. Hysteresis resumes dispatch at half.
     private static final long MAX_ADDED_CHUNKS_MIN = 1_000L;
     private static final long MAX_ADDED_CHUNKS_MAX = 5_000_000L;
-    // DEFAULT 0 = OFF as of 3.5.5. A chunk count cannot be tuned to mean the same thing on two
+    // Default 0 (off) as of 3.5.5. A chunk count cannot be tuned to mean the same thing on two
     // worlds -- a chunk is worth wildly different amounts of heap depending on the entities and block
     // entities that came with it -- and on a live server this gate closed at 22,000 chunks while the
     // heap sat at 40 percent, stuttering a perfectly healthy run to 60 chunks per two minutes. Memory
@@ -63,7 +63,7 @@ public final class GsonConfig implements Config {
     private static final int AUTO_PAUSE_GRACE_MIN = 10;
     private static final int AUTO_PAUSE_GRACE_MAX = 3600;
     private static final int AUTO_PAUSE_GRACE_DEFAULT = 120;
-    // How much tick time a pre-gen may ADD on top of whatever the server already costs. See
+    // How much tick time a pre-gen may add on top of whatever the server already costs. See
     // Config#getThrottleTickBudgetMillis: an absolute target is unusable on a server whose idle
     // baseline already sits at it. 25 ms is a quarter of a 100 ms tick and was measured to be more
     // than the whole run was costing (10 ms) on the server that exposed this.
@@ -112,7 +112,7 @@ public final class GsonConfig implements Config {
     private static final long SETTLE_DELAY_MAX = 600L;
     private static final int SETTLE_RADIUS_DEFAULT = 7;
     private static final int SETTLE_RADIUS_MAX = 16;
-    // Hard ceiling on the settle frontier, counted in TICKETS -- but paid for in TICKETS x HALO. A ticket
+    // Hard ceiling on the settle frontier, counted in tickets -- but paid for in tickets x halo. A ticket
     // held at FULL level does not hold one chunk: vanilla's distance manager propagates the level outward
     // a ring at a time, so roughly 25 resident chunks come with each held ticket at pre-gen clustering.
     // ChunkSettleWindow carries that measurement.
@@ -405,7 +405,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public void setPregenSettleDelayTicks(final long ticks) {
-        // Clamp on the WAY IN as well as the way out. The getter clamps because a hand-edited file can
+        // Clamp on the way in as well as the way out. The getter clamps because a hand-edited file can
         // hold anything; doing it here too means the file never contains a value we would refuse to read
         // back, so what /cs settle reports and what the file says can never disagree.
         configModel.pregenSettleDelayTicks = Math.max(0L, Math.min(SETTLE_DELAY_MAX, ticks));
@@ -440,7 +440,7 @@ public final class GsonConfig implements Config {
         return raw;
     }
 
-    // Every setter below clamps to the SAME range its getter enforces, then saves. Clamping only on
+    // Every setter below clamps to the same range its getter enforces, then saves. Clamping only on
     // read would let the file hold a number the mod refuses to honour, so the file and `/cs set` would
     // disagree about what is in force -- and the file is what an operator inspects when something is wrong.
 
@@ -585,9 +585,9 @@ public final class GsonConfig implements Config {
 
     @Override
     public void setLodBackchannelPort(final int port) {
-        // Out-of-range collapses to DERIVE rather than clamping to the nearest legal port. Clamping
-        // would answer "set it to 80" with "it is now 1024", which is a different server than the
-        // one that was asked for; deriving is at least the documented default and is what the
+        // An out-of-range port falls back to deriving one, rather than clamping to the nearest legal
+        // port. Clamping would answer "set it to 80" with "it is now 1024", which is a different server
+        // than the one that was asked for; deriving is at least the documented default and is what the
         // getter already reports for the same input.
         configModel.lodBackchannelPort =
                 (port < BACKCHANNEL_PORT_MIN || port > BACKCHANNEL_PORT_MAX)
@@ -637,7 +637,7 @@ public final class GsonConfig implements Config {
         private Long throttleCeilingMillis = CEILING_DEFAULT;
         private Boolean autoPauseOnOverload = true;
         private Integer autoPauseGraceSeconds = AUTO_PAUSE_GRACE_DEFAULT;
-        // TRISTATE, written as the string "auto" by default. Declared String, not Boolean, ON PURPOSE:
+        // A tristate, written as the string "auto" by default. Declared String, not Boolean, on purpose:
         // Gson's String adapter coerces a JSON boolean to "true"/"false", so a config that already says
         // `"lodEnabled": false` (or true) from an older Chunksmith still parses, still means exactly what
         // it said, and is never rewritten behind the operator's back.
@@ -647,7 +647,7 @@ public final class GsonConfig implements Config {
         private Boolean lodDhOverride = false;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
-        // ON by default: dropping a chunk the instant it is generated silently breaks every mod that
+        // On by default: dropping a chunk the instant it is generated silently breaks every mod that
         // builds on newly generated land (mod_support #14). Off is for a pure terrain pregen.
         private Boolean pregenSettle = true;
         private Long pregenSettleDelayTicks = SETTLE_DELAY_DEFAULT;

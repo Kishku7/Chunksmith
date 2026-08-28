@@ -22,20 +22,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>Gates, in order:
  * <ol>
- *   <li><b>{@code lodEnabled} -- a TRISTATE, default {@code auto}.</b> See {@link #decide}; the decision
- *       is LOGGED once, at server start, by {@link #announce(MinecraftServer)}.</li>
+ *   <li><b>{@code lodEnabled} -- a tristate, default {@code auto}.</b> See {@link #decide}; the decision
+ *       is logged once, at server start, by {@link #announce(MinecraftServer)}.</li>
  *   <li><b>CSLOD store</b> -- always on when LOD is enabled. The durable, mod-independent artifact: it
  *       outlives voxy's storage format, and it is what feeds Distant Horizons and remote clients.</li>
- *   <li><b>voxy</b> -- only where a voxy jar exists to compile against AND voxy is actually installed:
- *       Fabric 1.21.11 and Fabric 26 only. voxy is Fabric-ONLY and was never published for 1.20.1 or
- *       1.21.1, so every other cell carries the store path alone -- which is what a DEDICATED server
+ *   <li><b>voxy</b> -- only where a voxy jar exists to compile against and voxy is actually installed:
+ *       Fabric 1.21.11 and Fabric 26 only. voxy is Fabric-only and was never published for 1.20.1 or
+ *       1.21.1, so every other cell carries the store path alone -- which is what a dedicated server
  *       needs anyway, voxy's engine being client-side.</li>
  * </ol>
  *
- * <p><b>Distant Horizons is not a sink.</b> DH PULLS (through the world-generator override) and is PUSHED
+ * <p><b>Distant Horizons is not a sink.</b> DH pulls (through the world-generator override) and is pushed
  * to on demand ({@code /cslod dhpush}); it is never fed from this hot path. See {@link CsLodDhSupport}.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class LodSupport {
 
@@ -89,7 +89,7 @@ public final class LodSupport {
 
     /**
      * Offer a freshly generated chunk. Called from the generation hook on the main thread, while the chunk
-     * is still ticket-pinned: extraction happens HERE, synchronously, because the chunk is unloaded the
+     * is still ticket-pinned: extraction happens here, synchronously, because the chunk is unloaded the
      * moment the ticket is released. Everything downstream of extraction is asynchronous.
      */
     public static void offer(final ServerLevel level, final LevelChunk chunk) {
@@ -177,7 +177,7 @@ public final class LodSupport {
     }
 
     /**
-     * {@code <world>/chunksmith/lod} -- the store ROOT. This is the ONLY tree the backchannel ever serves,
+     * {@code <world>/chunksmith/lod} -- the store root. The backchannel serves this tree and nothing else,
      * so it is the boundary every request path is canonicalized against.
      */
     public static Path storeRootBase(final MinecraftServer server) {
@@ -191,9 +191,9 @@ public final class LodSupport {
     }
 
     /**
-     * The store DIRECTORY NAME for a level -- and the name that goes on the wire: this server's store
+     * The store directory name for a level -- and the name that goes on the wire: this server's store
      * directory, the dimension field of the region index, the client's own store directory, and the key
-     * the client's injector checks the level against. Derived in ONE place so the two sides cannot
+     * the client's injector checks the level against. Derived in one place so the two sides cannot
      * disagree.
      */
     public static String dimensionKey(final ServerLevel level) {
@@ -230,9 +230,9 @@ public final class LodSupport {
      * sources themselves, not off a wiki:
      * <ul>
      *   <li>{@code distanthorizons} -- all loaders, every MC line we ship LOD on.</li>
-     *   <li>{@code voxy} -- upstream voxy AND five of the six known forks (m3t4f1v3, j-shelfwood,
+     *   <li>{@code voxy} -- upstream voxy and five of the six known forks (m3t4f1v3, j-shelfwood,
      *       realBritakee, JustinTHChapman, NHblock714), every one of which keeps the upstream mod id.</li>
-     *   <li>{@code neovoxy} -- the ONE fork that renamed itself (meansabine/neo-voxy).</li>
+     *   <li>{@code neovoxy} -- the one fork that renamed itself (meansabine/neo-voxy).</li>
      * </ul>
      */
     private static final String[] RENDERER_IDS = {"distanthorizons", "voxy", "neovoxy"};
@@ -264,10 +264,10 @@ public final class LodSupport {
     }
 
     /**
-     * Resolve the tristate. PURE -- it decides, it does not log; {@link #announce(MinecraftServer)} owns
-     * the one log line.
+     * Resolve the tristate. It decides, it does not log; {@link #announce(MinecraftServer)} owns the one
+     * log line.
      *
-     * <p>{@code auto} is ON on a DEDICATED server even with no renderer installed, and that is deliberate:
+     * <p>{@code auto} is on for a dedicated server even with no renderer installed, and that is deliberate:
      * a dedicated server cannot run voxy (client-only) and does not need DH, yet it is precisely where the
      * CSLOD store has to exist -- it is the thing Chunksmith-Client downloads. The cost is bounded, paid
      * only during a pregen the operator started (~5.8 KB per chunk on disk), and one config line ends it.
@@ -278,7 +278,7 @@ public final class LodSupport {
      * 34.2 cps with it off over matched windows -- no measurable difference, and the OFF run was slightly
      * slower, which is terrain noise. Extraction runs on the server thread, and once dispatch width was
      * raised the server thread stopped being the bottleneck: it profiled at ~10 percent utilised, with
-     * extraction 70 percent OF THAT. Re-measure before putting a scary number back.
+     * extraction 70 percent of that. Re-measure before putting a scary number back.
      */
     public static boolean decide(final Config config,
                                  final MinecraftServer server) {
@@ -297,7 +297,7 @@ public final class LodSupport {
 
     /** The live decision, or false when Chunksmith is not up yet. */
     public static boolean lodEnabled(final MinecraftServer server) {
-        // ChunksmithProvider.get() THROWS when unloaded, so gate on isLoaded() first.
+        // ChunksmithProvider.get() throws when unloaded, so gate on isLoaded() first.
         return ChunksmithProvider.isLoaded()
                 && decide(ChunksmithProvider.get().getConfig(), server);
     }

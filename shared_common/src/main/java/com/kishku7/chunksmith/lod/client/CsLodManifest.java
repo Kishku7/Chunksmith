@@ -14,17 +14,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * What the SERVER said about each region we hold -- the client's side of the cache check.
+ * What the server said about each region we hold -- the client's side of the cache check.
  *
- * <p>Until 3.1.0-beta-4 the region hash was a CRC32 of the file's CONTENTS, which both ends could
+ * <p>Until 3.1.0-beta-4 the region hash was a CRC32 of the file's contents, which both ends could
  * compute independently -- and that symmetry is what made it a server killer (see
- * {@code CsLodRegionHash}). The token is now derived from the SERVER's (mtime, size), which the client
- * cannot reproduce: it is OPAQUE, and the client's job is to REMEMBER it, not recompute it. The client
- * had the same bug in its own half -- the SAME 340-file, 1.5 GB {@code readAllBytes} sweep, on every
+ * {@code CsLodRegionHash}). The token is now derived from the server's (mtime, size), which the client
+ * cannot reproduce, so the client's job is to remember it rather than recompute it. The client
+ * had the same bug in its own half -- the same 340-file, 1.5 GB {@code readAllBytes} sweep, on every
  * index, in {@code CsLodCache.have} and {@code CsLodDownloader.haveAlready}.
  *
  * <p>Format: one line per region, {@code x,z=token,size}, plain ASCII, written atomically via a
- * {@code .part} file and a move. Malformed lines are SKIPPED, not fatal -- the worst a corrupt manifest
+ * {@code .part} file and a move. Malformed lines are skipped, not fatal -- the worst a corrupt manifest
  * can do is make us re-download regions we already had.
  *
  * <p>Upgrading from 3.1.0-beta-3: an existing store has region files but no manifest, so every region
@@ -63,7 +63,7 @@ public final class CsLodManifest {
         return manifest;
     }
 
-    /** Record what the server said about a region we have just stored. Call AFTER the file is in place. */
+    /** Record what the server said about a region we have just stored, once the file is in place. */
     public void put(final int regionX, final int regionZ, final long hash, final long sizeBytes) {
         this.entries.put(key(regionX, regionZ), new Entry(hash, sizeBytes));
     }
@@ -83,11 +83,11 @@ public final class CsLodManifest {
     /**
      * Do we hold this region, exactly as the server currently describes it?
      *
-     * <p>Three questions, cheapest first, and NONE of them reads the file: do we have an entry; does it
-     * carry the token the server advertises NOW; is the file still on disk at the length we recorded. The
+     * <p>Three questions, cheapest first, and not one of them reads the file: do we have an entry; does it
+     * carry the token the server advertises now; is the file still on disk at the length we recorded. The
      * last is the only syscall, and it is what catches a region deleted or truncated underneath us.
      *
-     * @param dimensionDir the directory the regions live in -- ALREADY gated through {@link CsLodStore}
+     * @param dimensionDir the directory the regions live in -- already gated through {@link CsLodStore}
      */
     public boolean holds(final Path dimensionDir, final CsLodMessages.RegionEntry advertised) {
         final Entry mine = get(advertised.regionX(), advertised.regionZ());
@@ -109,14 +109,14 @@ public final class CsLodManifest {
     }
 
     /**
-     * Fold the regions we ACTUALLY HOLD, out of the ones the server last told us about, into the same
+     * Fold the regions we actually hold, out of the ones the server last told us about, into the same
      * (count, aggregate) shape the server folds its own set into.
      *
-     * <p>The set folded over is deliberately the SERVER'S LAST INDEX, not a listing of our own directory.
-     * The server excludes regions its pregen is still writing; folding over our own directory would keep
-     * counting our stale copies of them, disagree forever, and pull a full index every interval for the
-     * whole length of a pregen. A region in the index we do NOT hold simply does not contribute, so the
-     * aggregate AND the count both drop -- which covers "the server grew", "the client lost regions" and
+     * <p>The set folded over is the server's last index, deliberately, and not a listing of our own
+     * directory. The server excludes regions its pregen is still writing; folding over our own directory
+     * would keep counting our stale copies of them, disagree forever, and pull a full index every interval
+     * for the whole length of a pregen. A region in the index we do not hold simply does not contribute, so
+     * the aggregate and the count both drop -- which covers "the server grew", "the client lost regions" and
      * "a region changed" alike.
      *
      * @param advertised the entries of the last index the server sent us

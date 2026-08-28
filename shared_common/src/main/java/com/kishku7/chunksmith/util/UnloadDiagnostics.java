@@ -9,12 +9,12 @@ package com.kishku7.chunksmith.util;
  * budget at all, and the {@code unloadQueue} drain runs
  * {@code while (unloadQueue.size() - 2000 > 0 || haveTime())}, so vanilla drains to 2000 entries even
  * when {@code haveTime} is false. A starved budget cannot produce 30 chunks; the chunks were never
- * ELIGIBLE, because something still held their ticket level.
+ * eligible, because something still held their ticket level.
  *
  * <p>Nothing in the mod could distinguish those two cases, which is why the wrong one was worked on for
  * three releases. {@code visible} is holders resident; {@code toDrop} is holders the distance manager
- * has decided are no longer needed, so ZERO there while {@code visible} is large means the problem is
- * TICKETS, not throughput; {@code unloadQueue} is eligible work waiting, so large means throughput;
+ * has decided are no longer needed, so zero there while {@code visible} is large means the problem is
+ * tickets, not throughput; {@code unloadQueue} is eligible work waiting, so large means throughput;
  * {@code pendingUnloads} is holders waiting on their save; {@code hasTickets} is whether the distance
  * manager holds any ticket at all.
  *
@@ -31,9 +31,9 @@ public final class UnloadDiagnostics {
     private static volatile long pendingUnloads;
     private static volatile boolean hasTickets;
 
-    // Resident chunks bucketed by TICKET LEVEL, sampled on a slow cadence. Low level means something
+    // Resident chunks bucketed by ticket level, sampled on a slow cadence. Low level means something
     // holds the chunk at a live status; high means nothing wants it and it is waiting to be dropped.
-    // Our own ledger already proved OUR tickets are not the holder (a few hundred outstanding against
+    // Our own ledger already proved our tickets are not the holder (a few hundred outstanding against
     // eleven thousand resident), so this histogram says which of the two remaining answers it is.
     private static volatile long levelTicking;    // <= 33: full / entity-ticking
     private static volatile long levelLoaded;     // 34..43: still loaded, borders
@@ -113,7 +113,7 @@ public final class UnloadDiagnostics {
         } else {
             // Not a leak by itself: every FULL chunk needs a ring of worldgen context, so a pre-gen
             // keeps that ring resident for its whole frontier. Compare 'ticking' against the dispatch
-            // limit and the settle cap: if THAT is bounded, this band is the frontier, not a leak.
+            // limit and the settle cap: if that is bounded, this band is the frontier, not a leak.
             verdict = "mostly worldgen context around the frontier -- judge by 'ticking', not this";
         }
         return String.format("ticking=%d loaded=%d droppable=%d age=%ds -- %s",
@@ -144,7 +144,7 @@ public final class UnloadDiagnostics {
         if (!supported) {
             return "unavailable on this platform";
         }
-        // NO VERDICT ON toDrop == 0. ChunkMap.processUnloads empties toDrop every tick in a loop that
+        // No verdict on toDrop == 0. ChunkMap.processUnloads empties toDrop every tick in a loop that
         // consults no budget, so sampling it reads zero on a healthy server exactly as often as on a
         // sick one. The 3.5.5 build printed "NOTHING IS ELIGIBLE TO UNLOAD" from that zero and it
         // proved nothing. TicketLedger is what actually answers the question.

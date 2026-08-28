@@ -12,25 +12,25 @@ import java.util.List;
  * "Which regions can this player see, and how fresh is each one?" -- the one answer, for every platform.
  *
  * <p>A pure function of a directory and a position: no game object, no state, no logging. The mod loaders
- * and the Bukkit/Paper plugin need the SAME answer, and only the reading of a player's position and
+ * and the Bukkit/Paper plugin need the same answer, and only the reading of a player's position and
  * dimension ever differed. The plugin grew an index responder for mod_support #18, and copying the scan out
  * of the mod's {@code CsLodServerNet} would have created two definitions of "in range" that must agree
  * forever with no test that they do -- they would drift, and the symptom would be a client fetching the
  * wrong regions on one platform only.
  *
- * <p><b>The consistency rule this file inherits.</b> The full index and the periodic sync summary MUST be
- * computed over the SAME set. If they were not, an idle poll would find a difference, pull a full index,
+ * <p><b>The consistency rule this file inherits.</b> The full index and the periodic sync summary are
+ * computed over the same set. If they were not, an idle poll would find a difference, pull a full index,
  * discover nothing to fetch, and do it all again on the next interval, forever. So there is one scan, and a
  * summary is that scan folded to two numbers -- never a second, cheaper walk.
  *
- * <p>Per region, cheapest test first: the NAME must parse as one of ours ({@code r.<x>.<z>.cslod}, a string
- * test); it must be {@link #inRange} of the player (integer arithmetic -- doing this BEFORE the stat is the
- * difference between statting 81 files and statting all 340); ONE {@code readAttributes} gives mtime and
- * size together, one {@code statx} rather than two; and it must be SETTLED, because a region the pregen is
+ * <p>Per region, cheapest test first: the name must parse as one of ours ({@code r.<x>.<z>.cslod}, a string
+ * test); it must be {@link #inRange} of the player (integer arithmetic -- doing this before the stat is the
+ * difference between statting 81 files and statting all 340); one {@code readAttributes} gives mtime and
+ * size together, one {@code statx} rather than two; and it must be settled, because a region the pregen is
  * still appending to has header slots pointing past the end of what a client would receive (ten seconds
  * untouched, see {@link CsLodStoreScan}).
  *
- * <p>Then sorted NEAREST FIRST and truncated to the caps. Sorting is what makes the truncation
+ * <p>Then sorted nearest first and truncated to the caps. Sorting is what makes the truncation
  * deterministic -- {@code Files.list} order is whatever the filesystem says, so an un-sorted cap would
  * return a different subset on each call and the summary would never match the index.
  */
@@ -79,7 +79,7 @@ public final class CsLodIndexScan {
      * file. A directory that does not exist is not an error: it is a store that has not been pregenerated
      * yet, and the honest answer is an empty list.
      *
-     * @param dimensionDir the directory holding {@code r.<x>.<z>.cslod} files for ONE dimension
+     * @param dimensionDir the directory holding {@code r.<x>.<z>.cslod} files for one dimension
      * @param nowMillis    the clock, injected so the settle rule is testable
      */
     public static Result scan(final Path dimensionDir, final Request request, final long nowMillis)
@@ -147,7 +147,7 @@ public final class CsLodIndexScan {
         return aggregate;
     }
 
-    /** Apply BOTH caps -- the region count and the byte budget -- to a nearest-first list. */
+    /** Apply both caps -- the region count and the byte budget -- to a nearest-first list. */
     private static Result cap(final List<CsLodMessages.RegionEntry> found) {
         long bytes = 0L;
         for (int i = 0; i < found.size(); i++) {
@@ -161,10 +161,10 @@ public final class CsLodIndexScan {
     }
 
     /**
-     * Is this region within the radius the client's renderer can actually DRAW, measured from the
+     * Is this region within the radius the client's renderer can actually draw, measured from the
      * player? The client tells us its configured LOD distance in the handshake and we follow it, lower
      * or higher: past it is bandwidth spent on terrain nobody sees, short of it leaves visible holes.
-     * A region is 512 blocks square, so the test is against the region's BOX and not its corner -- one
+     * A region is 512 blocks square, so the test is against the region's box and not its corner -- one
      * only partly inside the radius still contains terrain the player can see.
      */
     public static boolean inRange(final Request request, final int regionX, final int regionZ) {
@@ -172,7 +172,7 @@ public final class CsLodIndexScan {
                 <= (long) request.radiusBlocks() * request.radiusBlocks();
     }
 
-    /** Squared distance from the player to the NEAREST POINT of a region's box. Also the sort key. */
+    /** Squared distance from the player to the nearest point of a region's box. Also the sort key. */
     public static long distanceSquared(final Request request, final int regionX, final int regionZ) {
         final int minX = regionX * REGION_BLOCKS;
         final int minZ = regionZ * REGION_BLOCKS;
