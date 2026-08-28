@@ -5,7 +5,6 @@
 # Usage:
 #   pwsh scripts/build-forge.ps1               # build every Forge cell
 #   pwsh scripts/build-forge.ps1 1.20.1        # build one cell
-# TODO: FG6 plugin no longer resolves, forge maven missing
 param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Only)
 $ErrorActionPreference = "Stop"
 $repo   = Split-Path $PSScriptRoot -Parent
@@ -47,6 +46,7 @@ foreach ($v in $targets) {
   & $cogGen -Cell "$loader/$v" -McVer $v -Loader $loader
   if ($LASTEXITCODE -ne 0) { throw "cog-gen FAILED for $loader/$v" }
   Push-Location $cellPath
+  # TODO: FG6 plugin stopped resolving, forge maven is missing from pluginManagement
   & ".\gradlew.bat" clean build --no-daemon
   $rc = $LASTEXITCODE; Pop-Location
   if ($rc -ne 0) { throw "Build FAILED for $loader/$v" }
