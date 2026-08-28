@@ -10,28 +10,24 @@ import java.util.OptionalDouble;
 /**
  * Reads a voxy config object -- upstream's OR any fork's -- WITHOUT compiling against its field types.
  *
- * <p><b>This is the one place Chunksmith uses reflection on voxy, and it is deliberate.</b> Everything else
- * we touch in voxy ({@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()},
- * {@code WorldIdentifier.of}) was verified identical across upstream and all six forks with {@code javap},
- * so it is called directly -- reflection there would cost a lookup per chunk and buy nothing. The CONFIG is
- * different: it is the one place fork drift has actually been OBSERVED.
+ * <p><b>The one place Chunksmith uses reflection on voxy, and it is deliberate.</b> Everything else we touch
+ * ({@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()}, {@code WorldIdentifier.of}) was
+ * verified identical across upstream and all six forks with {@code javap}, so it is called directly. The
+ * CONFIG is the one place fork drift has actually been OBSERVED.
  *
  * <p><b>The observed drift.</b> Upstream voxy declares {@code public float sectionRenderDistance}. The
  * srjefers fork -- rebased from voxy 0.2.8-alpha, which typed it as an {@code int} -- ships
  * {@code public int sectionRenderDistance}. A field's TYPE is part of its JVM resolution: our compiled
  * {@code getfield ... : F} does not match a field declared {@code I}, so the JVM throws
- * {@code NoSuchFieldError} -- a {@link LinkageError}. We used to catch that and return 0, which meant the
- * server fell back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS} (256 blocks) for a player whose voxy was
- * set to draw 8192. A 32x collapse, in silence.
+ * {@code NoSuchFieldError} -- a {@link LinkageError}. We used to catch that and return 0, so the server fell
+ * back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS} (256 blocks) for a player whose voxy was set to draw
+ * 8192. A 32x collapse, in silence.
  *
- * <p>So: look the field up by NAME, ask it what type it actually is, and read it as whatever it is --
- * {@code float}, {@code int}, {@code double}, {@code long}, {@code short}, {@code byte}. The units are the
- * same in every version of voxy (the field counts voxy SECTIONS; a section is 32 chunks = 512 blocks), only
- * the storage type drifted. And if the field is genuinely gone, SAY SO -- see {@link LodWarnings}.
- *
- * <p>Lives in shared_common, not in the voxy seam, for two reasons: it names no voxy type (it takes an
- * {@code Object}), and that makes the whole type-tolerant read unit-testable against fake config objects
- * -- which is exactly how the int/float/absent cases are covered without a Minecraft runtime.
+ * <p>So: look the field up by NAME, ask it what type it actually is, and read it as whatever it is. The
+ * units are the same in every version of voxy (the field counts voxy SECTIONS; a section is 32 chunks = 512
+ * blocks), only the storage type drifted. If the field is genuinely gone, SAY SO -- see {@link LodWarnings}.
+ * It names no voxy type (it takes an {@code Object}), which is what makes the int/float/absent cases
+ * testable without a Minecraft runtime.
  */
 public final class VoxyConfigReader {
 
@@ -50,11 +46,9 @@ public final class VoxyConfigReader {
     /**
      * voxy's configured render distance in BLOCKS, or 0 when there is nothing to read.
      *
-     * <p>Returns 0 -- QUIETLY -- when the config is not there yet, or when the player has simply switched
-     * voxy's renderer off. Those are not faults and must not be shouted about.
-     *
-     * <p>Returns 0 -- LOUDLY, once -- when voxy IS there and configured on, but its render-distance field
-     * cannot be found or is not a number. That is fork drift, and the player deserves to know their radius
+     * <p>0 QUIETLY when the config is not there yet or the player has switched voxy's renderer off -- those
+     * are not faults. 0 LOUDLY, once, when voxy IS there and configured on but its render-distance field
+     * cannot be found or is not a number: that is fork drift, and the player deserves to know their radius
      * just fell back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}.
      *
      * @param config the voxy {@code VoxyConfig.CONFIG} instance, or null
@@ -94,8 +88,7 @@ public final class VoxyConfigReader {
     /**
      * Read a numeric field of ANY primitive numeric type, by name.
      *
-     * @return its value widened to a double, or empty when the field does not exist, is not a number, or
-     *     cannot be read
+     * @return its value widened to a double, or empty when it does not exist or is not a number
      */
     public static OptionalDouble number(final Object instance, final String name) {
         final Field field = field(instance, name);
@@ -105,8 +98,8 @@ public final class VoxyConfigReader {
         try {
             final Object value = field.get(instance);
             if (value instanceof Number) {
-                // Covers float, int, double, long, short, byte -- and their boxed forms, if a fork ever
-                // makes the field an Integer/Float. Character and boolean are not Numbers and fall through.
+                // Covers float, int, double, long, short, byte and their boxed forms. Character and
+                // boolean are not Numbers and fall through.
                 return OptionalDouble.of(((Number) value).doubleValue());
             }
             return OptionalDouble.empty();
@@ -119,7 +112,7 @@ public final class VoxyConfigReader {
      * Read a boolean field by name.
      *
      * @param fallback what to answer when the field is absent or is not a boolean -- absence is NOT a
-     *     "false"; a fork that removed a toggle has not turned the feature off
+     *     "false": a fork that removed a toggle has not turned the feature off
      */
     public static boolean flag(final Object instance, final String name, final boolean fallback) {
         final Field field = field(instance, name);
@@ -135,11 +128,9 @@ public final class VoxyConfigReader {
     }
 
     /**
-     * Read a static field off a class, by name. Null when it is absent, not static, or unreadable.
-     *
-     * <p>Used for {@code VoxyConfig.CONFIG} itself: even the holder is fetched by name, so a fork that
-     * renamed or removed it degrades to "no config" instead of throwing a {@code NoSuchFieldError} out of
-     * our own bytecode.
+     * Read a static field off a class, by name. Null when it is absent, not static, or unreadable. Used for
+     * {@code VoxyConfig.CONFIG} itself: even the holder is fetched by name, so a fork that renamed it
+     * degrades to "no config" instead of throwing {@code NoSuchFieldError} out of our own bytecode.
      */
     public static Object staticField(final Class<?> owner, final String name) {
         try {

@@ -13,33 +13,24 @@ import java.util.Optional;
 /**
  * Learn which chunks a selection ALREADY has, in bulk, before the pre-gen dispatches anything.
  *
- * <p><b>Why this exists.</b> {@link RegionCache.WorldState} is an in-memory bitmap and it starts
- * COLD: {@code setGenerated} is only called for chunks THIS run generated. So on the run that
- * matters -- restart the server, re-run a selection over ground you already pregenerated -- the fast
- * in-memory check knows nothing, every chunk falls through to the per-chunk asynchronous
- * {@code world.isChunkGenerated} call, and each one takes a dispatch slot, rides the throttle and
- * runs the whole completion chain just to be told "already there".
+ * <p><b>Why this exists.</b> {@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD:
+ * {@code setGenerated} is only called for chunks THIS run generated. So on the run that matters --
+ * restart the server, re-run a selection over ground you already pregenerated -- every chunk falls
+ * through to the per-chunk asynchronous {@code world.isChunkGenerated} call, taking a dispatch slot and
+ * riding the throttle just to be told "already there". Measured on a 5929-chunk selection that was
+ * 100 percent already generated: about seven seconds to decide there was nothing to do. That is linear,
+ * so a resumed hundred-thousand-chunk selection spends MINUTES learning what a handful of file headers
+ * would have said (mod_support #17).
  *
- * <p>Measured on a 5929-chunk selection that was 100% already generated: about seven seconds to
- * decide there was nothing to do. That is linear, so a resumed hundred-thousand-chunk selection
- * spends MINUTES on round-trips to learn what a handful of file headers would have said
- * (mod_support #17).
- *
- * <p><b>What it does instead.</b> A region file's header describes all 1024 of its chunks, so one
- * selection costs one read per REGION rather than one round-trip per CHUNK -- for that same 5929
- * chunks, about nine files instead of 5929 futures. Chunks the header says are absent are never
- * touched at all; only chunks that exist are decompressed, and only far enough to read {@code Status}
+ * <p><b>What it does instead.</b> A region file's header describes all 1024 of its chunks, so a
+ * selection costs one read per REGION rather than one round-trip per CHUNK -- about nine files instead
+ * of 5929 futures. Only chunks the header says exist are decompressed, and only as far as {@code Status}
  * ({@link ChunkFilter} makes the reader stop there).
  *
- * <p><b>Only {@code minecraft:full} counts.</b> A chunk that exists at some earlier status is NOT
- * generated as far as a pre-gen is concerned, and marking it so would silently skip half-built
- * ground -- the same class of failure as mod_support #13, where a counter said success and the disk
- * said otherwise. Presence in the header is not evidence; the status string is.
- *
- * <p><b>It fails SOFT, by construction.</b> Anything unreadable -- a region file mid-write, an
- * unfamiliar compression scheme, an oversized chunk kept in a sidecar -- is simply left unseeded, and
- * that chunk takes exactly the path it takes today. The worst case of this whole class is the
- * behaviour we already had, which is what makes it safe to run before every pre-gen.
+ * <p><b>Only {@code minecraft:full} counts</b> -- a chunk at an earlier status is NOT generated as far
+ * as a pre-gen is concerned, and marking it so would silently skip half-built ground (the same class of
+ * failure as mod_support #13). And it fails SOFT: anything unreadable -- a region file mid-write, an
+ * unknown compression scheme, an oversized chunk in a sidecar -- is left unseeded and takes today's path.
  */
 public final class GeneratedChunkScan {
 
@@ -99,8 +90,7 @@ public final class GeneratedChunkScan {
                 }
             } catch (final Throwable t) {
                 // Deliberately Throwable: the region reader throws UnsupportedOperationException on a
-                // compression scheme it does not know, and one odd chunk must never take down a
-                // pre-gen. Unseeded means "decide it the slow way", which is today's behaviour.
+                // compression scheme it does not know, and unseeded just means "decide it the slow way".
                 unreadable++;
             }
         }

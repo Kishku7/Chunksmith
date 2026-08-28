@@ -8,40 +8,32 @@ import java.util.function.Predicate;
 /**
  * Says so when a dedicated server is carrying an LOD renderer it does not need.
  *
- * <p><b>The claim.</b> Chunksmith builds its own LOD data (the CSLOD store) as it pregenerates, and
- * serves that store to the player's client, which injects it into whichever renderer the PLAYER has. The
- * renderer is a CLIENT-side mod. A dedicated server does not render anything, so it does not need one.
+ * <p><b>The claim.</b> Chunksmith builds its own LOD data as it pregenerates and serves it to the
+ * player's client, which injects it into whichever renderer the PLAYER has: an LOD renderer is a
+ * CLIENT-side mod, and a dedicated server does not render anything.
  *
  * <p><b>Why say anything at all.</b> Installing Distant Horizons server-side is a reasonable-looking
- * mistake -- it is the mod the feature is "about", and it has a server half, so it looks required. It is
- * not free: on a live server (2026-08-19) a server-side Distant Horizons was running 43 threads, its own
- * world-gen queues, a delayed save cache and a per-dimension update propagator alongside a Chunksmith
- * pregen that was already generating the same terrain. With {@code synchronizeOnLoad} on, it also
- * re-sends LODs the client already has. None of that is a crash, and none of it is a conflict -- which is
- * exactly why nobody notices it. It is duplicated work on the one machine that has none to spare.
+ * mistake -- it is the mod the feature is "about" and it has a server half. It is not free: on a live
+ * server (2026-08-19) a server-side Distant Horizons ran 43 threads, its own world-gen queues, a delayed
+ * save cache and a per-dimension update propagator alongside a Chunksmith pregen already generating the
+ * same terrain, and with {@code synchronizeOnLoad} on it re-sent LODs the client already had.
  *
- * <p><b>What this is not.</b> It is not a refusal and it is not a {@code breaks} declaration. Distant
- * Horizons is a renderer we FEED, never one we break, and an operator with a reason to run it server-side
- * (serving vanilla DH clients that do not have Chunksmith) is entitled to. So: one line, once, at
- * startup, saying what is installed and what it is costing. Then get out of the way.
+ * <p>It is not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we FEED,
+ * and an operator serving vanilla DH clients is entitled to run it. So: one line, once, at startup.
  *
- * <p>Deliberately MC-free and loader-free -- it takes a "is this mod present" predicate and gives back a
- * string -- so the rule is unit-testable and identical on every loader.
+ * <p>MC-free and loader-free -- a predicate in, a string out -- so the rule is unit-testable.
  */
 public final class ServerSideRendererAdvisory {
 
     /**
-     * Renderer mod ids worth mentioning: the ones Chunksmith can actually feed on the client.
-     *
-     * <p>Same id on every loader that ships them. Anything not on this list is somebody else's mod and
-     * none of our business.
+     * Renderer mod ids worth mentioning: the ones Chunksmith can actually feed on the client. Same id on
+     * every loader that ships them; anything not on this list is somebody else's mod.
      */
     private static final List<String> RENDERER_IDS = List.of("distanthorizons", "voxy");
 
     private ServerSideRendererAdvisory() {
     }
 
-    /** The renderer ids this class knows how to advise about. */
     public static List<String> rendererIds() {
         return RENDERER_IDS;
     }
@@ -49,9 +41,8 @@ public final class ServerSideRendererAdvisory {
     /**
      * The advisory line, or empty when there is nothing to say.
      *
-     * @param dedicated  true only on a dedicated server. An integrated server (single player, or a LAN
-     *                   world) is running inside a client that DOES need a renderer, so there is never
-     *                   anything to advise there -- and saying it would be flatly wrong.
+     * @param dedicated  true only on a dedicated server. An integrated server runs inside a client that
+     *                   DOES need a renderer, so saying this there would be flatly wrong
      * @param modPresent asks whether a mod id is installed
      */
     public static Optional<String> message(final boolean dedicated, final Predicate<String> modPresent) {

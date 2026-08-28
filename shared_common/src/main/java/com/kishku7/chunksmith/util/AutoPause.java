@@ -3,23 +3,17 @@ package com.kishku7.chunksmith.util;
 /**
  * Stops a pre-gen when the server cannot sustain it, and starts it again when it can.
  *
- * <p><b>The policy.</b> Decided 2026-08-20, choosing between "keep crawling", "pause with a clear
- * message and resume when healthy", and "push through regardless": the middle one, as the DEFAULT,
- * changeable on the fly. This class is that decision.
+ * <p><b>The policy.</b> Decided 2026-08-20 between "keep crawling", "pause with a clear message and
+ * resume when healthy", and "push through regardless": the middle one, as the DEFAULT, changeable live.
  *
  * <p><b>Why crawling is the wrong default.</b> On a server that cannot keep up, a gated pre-gen does
- * not stop -- it stutters. Measured on a live server: 60 chunks in two minutes, roughly 0.9 per
- * second, with the never-wedge valve opening every 120 seconds for about a second of work. That is
- * indistinguishable from a hang to anyone watching, it keeps the server under load the whole time,
- * and it produces no useful progress. A run that stops and SAYS why is strictly better than one that
- * limps invisibly, and one that starts itself again when the pressure lifts costs the operator
- * nothing.
+ * not stop -- it stutters. Measured on a live server: 60 chunks in two minutes, roughly 0.9 per second,
+ * with the never-wedge valve opening every 120 seconds for about a second of work. That is
+ * indistinguishable from a hang, keeps the server under load throughout, and makes no useful progress.
  *
  * <p><b>Both directions need patience.</b> Pausing on the first bad second would stop a run for a
  * passing autosave; resuming on the first good second would restart it into the same wall. So each
- * direction requires the condition to hold CONTINUOUSLY for the grace period, and any moment to the
- * contrary resets the clock. One knob controls both, because an operator who wants a hair trigger
- * wants it symmetrically.
+ * direction requires the condition to hold CONTINUOUSLY for the grace period, on one shared knob.
  *
  * <p>MC-free and clock-injectable, so the state machine is testable without a server.
  */
@@ -54,13 +48,10 @@ public final class AutoPause {
     /**
      * Report whether the server is currently unable to sustain the run.
      *
-     * <p><b>Not just "our gate is closed".</b> That was the first version of this and it was too
-     * narrow: on a live server with the chunk gate off and the heap under its threshold, nothing of
-     * ours ever closed while the server logged twelve "Can't keep up" warnings and generation fell to
-     * 5 chunks per second. Auto-pause could not see the very situation it exists for. The condition
-     * is "cannot sustain", which is either of our gates holding OR the tick running far past the
-     * target the throttle steers to -- load that has nothing to do with us still means a pre-gen
-     * should not be adding to it.
+     * <p><b>Not just "our gate is closed".</b> Too narrow: on a live server with the chunk gate off and
+     * the heap under its threshold, nothing of ours ever closed while the server logged twelve "Can't
+     * keep up" warnings and generation fell to 5 chunks per second. The condition is "cannot sustain":
+     * either gate holding, OR the tick running far past the target the throttle steers to.
      */
     public static void noteStruggling(final boolean struggling, final long now) {
         if (!struggling) {
@@ -75,7 +66,6 @@ public final class AutoPause {
         return enabled && !autoPaused && gatedSince != 0L && now - gatedSince >= graceMillis;
     }
 
-    /** How long the server has been struggling, in seconds, for the message. */
     public static long strugglingSeconds(final long now) {
         return gatedSince == 0L ? 0L : Math.max(0L, (now - gatedSince) / 1000L);
     }
@@ -110,7 +100,6 @@ public final class AutoPause {
         return enabled && autoPaused && healthySince != 0L && now - healthySince >= graceMillis;
     }
 
-    /** Called once the resume has actually been issued. */
     public static void clearAutoPaused() {
         autoPaused = false;
         pausedWorld = null;

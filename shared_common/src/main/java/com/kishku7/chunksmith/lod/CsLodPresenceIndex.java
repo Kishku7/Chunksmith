@@ -9,37 +9,23 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * "Does this chunk already have a CSLOD record?" -- answered without decoding anything.
+ * "Does this chunk already have a CSLOD record?" -- answered without decoding anything, so a pregen re-run
+ * FILLS LOD HOLES instead of skipping already-generated chunks forever (they are never loaded, so the LOD
+ * hook never sees them) or rewriting the whole selection ({@code forceLoadExistingChunks: true}).
  *
- * <p>This is what makes a pregen re-run FILL LOD HOLES instead of either skipping them forever
- * (the old behaviour: an already-generated chunk was skipped, was never loaded, so the LOD hook
- * never saw it) or re-writing every chunk in the selection ({@code forceLoadExistingChunks: true},
- * which reloads and rewrites the lot).
+ * <p><b>Why it is cheap.</b> {@link CsLodRegionStore} is Anvil-shaped: every region file opens with a fixed
+ * 8192-byte header of 1024 slots x (i32 offset, i32 length), and a record exists iff its slot has
+ * {@code offset > 0 && length > 0}. One 8 KB sequential read per REGION FILE gives presence for all 1024 of
+ * its chunks -- no per-chunk seek, no record bodies, no second open.
  *
- * <p><b>Why it is cheap.</b> {@link CsLodRegionStore} is Anvil-shaped: every region file opens with a
- * fixed 8192-byte header of 1024 slots x (i32 offset, i32 length). A record exists iff its slot has
- * {@code offset > 0 && length > 0}. So one 8 KB sequential read per REGION FILE yields presence for
- * all 1024 of its chunks -- we never seek per chunk, never re-stat, never touch the record bodies,
- * and never open the file again. That header read is amortised over 1024 chunks; against the cost of
- * loading even one chunk it rounds to nothing.
+ * <p><b>Why it stays correct DURING a run.</b> The store's writer thread is asynchronous, so the on-disk
+ * header lags dispatch by the queue depth. The bitmap, not the disk, is this run's authority:
+ * {@link #markLod(int, int)} sets the bit when the chunk is dispatched down the load path, which is exactly
+ * the path that fires the LOD hook. Regions load from disk once, on first query; a re-read after eviction
+ * can at worst miss async writes and report a chunk absent -- one redundant load, never a missing LOD.
  *
- * <p><b>Why it stays correct DURING a run.</b> The store's writer thread is asynchronous, so the
- * on-disk header lags dispatch by the queue depth. The bitmap, not the disk, is this run's authority:
- * {@link #markLod(int, int)} sets the bit at the moment the chunk is dispatched down the load path
- * (which is exactly the path that fires the LOD hook), so a chunk generated early in a run can never
- * be re-processed later in the same run. Regions are loaded from disk exactly once, on first query.
- *
- * <p>Eviction is safe. The pregen iterates in region order, so the working set is one or two regions;
- * the LRU below is far larger than it needs to be. Even if a region were evicted and re-loaded, the
- * only possible harm is re-reading a header whose async writes have not landed yet -- which would
- * report a chunk as absent and cost one redundant chunk load, never a WRONG or missing LOD.
- *
- * <p>Thread-safety: {@code synchronized}. {@link #hasLod} is called on the pregen dispatch thread and
- * {@link #markLod} on the chunk-completion thread; both are a handful of operations on a
- * {@code long[]} under the lock, which is noise next to a chunk load.
- *
- * <p>This class is MC-agnostic on purpose (it is pure file I/O over our own format), so it lives in
- * shared_common next to the store and is unit-testable without a game.
+ * <p>Thread-safety: {@code synchronized}. {@link #hasLod} runs on the pregen dispatch thread,
+ * {@link #markLod} on the chunk-completion thread.
  */
 public final class CsLodPresenceIndex {
 
@@ -53,10 +39,7 @@ public final class CsLodPresenceIndex {
     /** 1024 slots -> 1024 bits -> 16 longs per region. */
     private static final int BITMAP_LONGS = SLOTS / Long.SIZE;
 
-    /**
-     * How many region bitmaps to keep. Region-ordered iteration needs one or two; 256 regions is
-     * 256 x 128 bytes = 32 KB, which buys total immunity to any iteration order we might ever use.
-     */
+    /** How many region bitmaps to keep. Region-ordered iteration needs one or two; 256 x 128 B = 32 KB. */
     private static final int MAX_CACHED_REGIONS = 256;
 
     private final Path root;
@@ -65,11 +48,8 @@ public final class CsLodPresenceIndex {
     private final RegionLru bitmaps = new RegionLru(MAX_CACHED_REGIONS);
 
     /**
-     * Access-ordered LRU over region bitmaps.
-     *
-     * <p>A named class rather than an anonymous subclass purely so it can carry a
-     * {@code serialVersionUID}: {@link LinkedHashMap} is {@link java.io.Serializable}, and the build
-     * runs {@code -Xlint:all} with zero warnings tolerated.
+     * Access-ordered LRU over region bitmaps. A named class rather than an anonymous subclass purely so it
+     * can carry a {@code serialVersionUID}: the build runs {@code -Xlint:all} with zero warnings tolerated.
      */
     private static final class RegionLru extends LinkedHashMap<Long, long[]> {
 
@@ -96,8 +76,7 @@ public final class CsLodPresenceIndex {
 
     /**
      * @param root the per-dimension CSLOD directory, e.g.
-     *             {@code <world>/chunksmith/lod/minecraft_overworld} -- the same path
-     *             {@code LodSupport.storeRoot(level)} hands to {@link CsLodStoreSink}
+     *             {@code <world>/chunksmith/lod/minecraft_overworld}
      */
     public CsLodPresenceIndex(final Path root) {
         this.root = root;
@@ -110,10 +89,8 @@ public final class CsLodPresenceIndex {
     /**
      * True when a CSLOD record already exists for this chunk.
      *
-     * <p>False on any I/O problem: a header we cannot read is treated as "no LOD here", so the worst a
-     * broken or truncated region file can do is make us rebuild LODs we already had. It can never make
-     * us skip a chunk that has none -- that failure direction is the one that produces the silent holes
-     * this whole feature exists to eliminate.
+     * <p>False on any I/O problem: an unreadable header is "no LOD here", so a broken or truncated region
+     * file can only make us rebuild LODs we had, never make us skip a chunk that has none.
      */
     public synchronized boolean hasLod(final int chunkX, final int chunkZ) {
         queries.incrementAndGet();
@@ -123,11 +100,8 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Record that this chunk is now (or is about to be) backed by a CSLOD record.
-     *
-     * <p>Called at DISPATCH, not at write-completion: the store writes asynchronously, so waiting for
-     * the disk would leave a window in which the same run could re-process the chunk. Dispatch down the
-     * load path is what fires the LOD hook, so it is the honest moment to claim the chunk.
+     * Record that this chunk is now (or is about to be) backed by a CSLOD record. Called at DISPATCH, not
+     * at write-completion -- see the class doc.
      */
     public synchronized void markLod(final int chunkX, final int chunkZ) {
         final long[] bitmap = bitmapFor(regionX(chunkX), regionZ(chunkZ));
@@ -165,12 +139,9 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * An immutable snapshot of the cost counters.
-     *
-     * <p>The index is cached per dimension for the SERVER's lifetime, so its raw counters are cumulative
-     * across every pregen the server has run. A task that reported them directly would claim a cost it
-     * did not pay (a second run would report double the queries). Snapshot at task start, report the
-     * delta -- see {@link #describeCostSince}.
+     * An immutable snapshot of the cost counters. The index is cached per dimension for the SERVER's
+     * lifetime, so its raw counters are cumulative across every pregen it has run: snapshot at task start,
+     * report the delta (see {@link #describeCostSince}).
      */
     public static final class Cost {
 
@@ -193,10 +164,8 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * One line: the real, measured cost of the presence check SINCE {@code before}.
-     *
-     * <p>Reports THIS run, not the server's lifetime -- a number that overstates what a run actually
-     * cost is worse than no number at all.
+     * One line: the real, measured cost of the presence check SINCE {@code before} -- THIS run, not the
+     * server's lifetime.
      */
     public String describeCostSince(final Cost before) {
         final long asked = queries.get() - before.queries;
@@ -210,13 +179,9 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Count every CSLOD record under a store root, by header only.
-     *
-     * <p>The honest number for {@code /cslod status}: it is what an operator compares against the chunk
-     * count to answer "does my store actually cover my world?". Reads 8 KB per region file and decodes
-     * no records, so it is cheap enough to run from a command on a large store.
-     *
-     * <p>Static and stateless, like {@link CsLodRegionStore#forEachChunk}: a second process can call it.
+     * Count every CSLOD record under a store root, by header only -- the honest number for
+     * {@code /cslod status}. Reads 8 KB per region file and decodes no records. Static and stateless like
+     * {@link CsLodRegionStore#forEachChunk}, so a second process can call it.
      */
     public static long countRecords(final Path root) throws IOException {
         if (!Files.isDirectory(root)) {
@@ -268,11 +233,8 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Read one region file's 8 KB header and fold it into a 1024-bit presence bitmap.
-     *
-     * <p>ONE open, ONE sequential read, ONE close. A missing region file is not an error -- it is the
-     * common case on a world that has never had LODs built, and it means "none of these 1024 chunks
-     * has a record".
+     * Read one region file's 8 KB header and fold it into a 1024-bit presence bitmap. A missing region file
+     * is not an error -- it is the common case on a world that has never had LODs built.
      */
     private long[] readHeader(final int regionX, final int regionZ) {
         final long[] bitmap = new long[BITMAP_LONGS];
@@ -285,8 +247,8 @@ public final class CsLodPresenceIndex {
         final byte[] header = new byte[HEADER_BYTES];
         int read = 0;
         try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
-            // A file shorter than the header is a truncated/half-created region: read what is there
-            // and treat the remainder as absent, rather than throwing.
+            // A file shorter than the header is truncated/half-created: read what is there, treat the rest
+            // as absent, rather than throwing.
             final int available = (int) Math.min(HEADER_BYTES, file.length());
             if (available > 0) {
                 file.readFully(header, 0, available);
@@ -306,9 +268,8 @@ public final class CsLodPresenceIndex {
             final int base = slot * SLOT_BYTES;
             final int offset = readInt(header, base);
             final int length = readInt(header, base + 4);
-            // Exactly the presence test CsLodRegionStore.read() and forEachChunkIn() use. Offset 0
-            // is never a real record: the store reserves the first HEADER_BYTES for the header, so
-            // the earliest payload can only start at 8192.
+            // Exactly the presence test CsLodRegionStore.read() and forEachChunkIn() use. Offset 0 is
+            // never real: the store reserves the first HEADER_BYTES, so payloads start at 8192 or later.
             if (offset > 0 && length > 0) {
                 bitmap[slot >>> 6] |= 1L << (slot & 63);
             }

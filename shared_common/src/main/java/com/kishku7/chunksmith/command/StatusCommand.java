@@ -10,19 +10,6 @@ import com.kishku7.chunksmith.util.TranslationKey;
 import java.util.List;
 import java.util.Map;
 
-/**
- * {@code /cs status} -- what is Chunksmith doing right now.
- *
- * <p>The one command to type when something looks wrong. {@code /cs progress} answers "how far
- * along is the run", which is only useful once you already know a run exists; this answers the
- * question before that one, and it answers it whether or not anything is running.
- *
- * <p>It reports the pre-gen state and the LOD backchannel together on purpose. Those are the two
- * halves of the mod, and the questions operators actually arrive with -- "is it generating?" and
- * "why are my players getting no LOD?" -- were previously answered by two different commands, one
- * of which ({@code /cslod status}) is not obvious from {@code /cs help}. mod_support #18 was
- * somebody unable to work out that second answer at all.
- */
 public class StatusCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
@@ -46,9 +33,6 @@ public class StatusCommand implements ChunksmithCommand {
             }
         }
 
-        // Empty on Bukkit and before a server exists. Say which of those it is rather than printing
-        // nothing, because "no line at all" is indistinguishable from "the command is broken" -- and
-        // that ambiguity is what this command exists to remove.
         sender.sendMessage(TranslationKey.FORMAT_STATUS_LOD,
                 CsLodControl.describe().orElse("not available on this platform"));
     }

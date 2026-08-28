@@ -4,25 +4,23 @@ import java.util.List;
 
 /**
  * One chunk of CSLOD data: the neutral, mod-independent LOD source ChunkSmith emits during pregen.
+ * Deliberately MC-free -- plain arrays and strings -- so the codec, the region store and the wire protocol
+ * all speak the same thing.
  *
- * <p>Deliberately MC-free -- plain arrays and strings -- so shared code, the codec, the region store
- * and (later) the wire protocol all speak the same thing, and so the format is not hostage to any
- * consumer's internals.
- *
- * <p><b>Why these fields and not others.</b> The format must satisfy the UNION of what voxy and
- * Distant Horizons need. DH is the demanding one:
+ * <p><b>Why these fields and not others.</b> The format must satisfy the UNION of what voxy and Distant
+ * Horizons need, and DH is the demanding one:
  * <ul>
- *   <li><b>Full block STATE strings</b>, not block ids -- DH has no fluid channel, so water IS a
- *       state; waterlogged / snow layers / stair shapes all matter.</li>
+ *   <li><b>Full block STATE strings</b>, not block ids -- DH has no fluid channel, so water IS a state;
+ *       waterlogged / snow layers / stair shapes all matter.</li>
  *   <li><b>Sky light and block light kept SEPARATE</b> (voxy blends them into one byte; DH will not).</li>
- *   <li><b>Light for AIR voxels, all the way to the build ceiling</b> -- DH renders black LODs
- *       otherwise. This is why empty sections are still carried (they collapse to a few bytes).</li>
+ *   <li><b>Light for AIR voxels, all the way to the build ceiling</b> -- DH renders black LODs otherwise,
+ *       which is why empty sections are still carried (they collapse to a few bytes).</li>
  *   <li><b>Absolute section Y</b>, gap-free columns.</li>
  * </ul>
  * Voxy needs a strict subset, and mips levels 1-4 itself on insert, so we only ever persist LOD-0.
  *
- * <p>Block indices are per-voxel (4096 per section). Biome indices are 4x4x4 (64 per section) --
- * that is exactly how Minecraft stores them, so it is lossless, and consumers expand as needed.
+ * <p>Block indices are per-voxel (4096 per section). Biome indices are 4x4x4 (64 per section) -- exactly how
+ * Minecraft stores them, so it is lossless.
  */
 public final class CsLodChunk {
 
@@ -92,11 +90,10 @@ public final class CsLodChunk {
     /**
      * One 16x16x16 section.
      *
-     * <p>A uniform array is stored as a single palette index rather than 4096 (or 64) entries --
-     * which is what makes carrying light all the way to the build ceiling affordable, since
-     * everything above the terrain is uniform air with uniform sky light.
-     *
-     * <p>Index order is YZX (y * 256 + z * 16 + x) for blocks and (y * 16 + z * 4 + x) for biomes.
+     * <p>A uniform array is stored as a single palette index rather than 4096 (or 64) entries -- which is
+     * what makes carrying light to the build ceiling affordable, since everything above the terrain is
+     * uniform air with uniform sky light. Index order is YZX (y * 256 + z * 16 + x) for blocks and
+     * (y * 16 + z * 4 + x) for biomes.
      */
     public static final class Section {
 

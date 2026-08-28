@@ -5,20 +5,16 @@ package com.kishku7.chunksmith.lod.net;
  *
  * <p>The old client asked the server ONCE, at join, and if the store was empty it stood down for the whole
  * session -- no matter how long the player stayed or how far they travelled. That is exactly backwards for
- * how servers are actually run: an operator starts a hours-long pregen with players already on, the store
+ * how servers are actually run: an operator starts an hours-long pregen with players already on, the store
  * fills up behind them, and every one of them keeps staring at an empty horizon until they think to relog.
  *
- * <p>So the client keeps asking. But "keeps asking" has to be cheap, or we have traded a silent failure for
- * a packet storm: the interval starts short enough that a player who joins seconds before the pregen sees
- * their terrain almost at once, and doubles up to a ceiling so that a player parked on a server which will
- * NEVER have LOD data costs it one tiny packet every couple of minutes and nothing else.
+ * <p>So the client keeps asking, cheaply: the interval starts short enough that a player who joins seconds
+ * before the pregen sees their terrain almost at once, and doubles to a ceiling so that a player parked on a
+ * server which will NEVER have LOD data costs one tiny packet every couple of minutes.
  *
- * <p>This is a safety net, not the mechanism: a Chunksmith server NOTIFIES its waiting players the moment
- * the store becomes servable, so the usual path is instant. The clock is what covers an older server that
- * cannot notify, and a store that is filled by something other than a pregen.
- *
- * <p>Deliberately MC-free and free of any clock of its own -- the caller passes the time in, so the whole
- * policy is unit-testable without waiting for it.
+ * <p>A safety net, not the mechanism: a Chunksmith server NOTIFIES its waiting players the moment the store
+ * becomes servable. The clock covers an older server that cannot notify, and a store filled by something
+ * other than a pregen. The caller passes the time in, so the whole policy is unit-testable.
  */
 public final class CsLodRetry {
 
@@ -50,10 +46,8 @@ public final class CsLodRetry {
     }
 
     /**
-     * Start the clock, without counting an attempt.
-     *
-     * <p>Called when the FIRST ask goes out -- the join handshake. That ask is not a retry, but it is the
-     * moment we last spoke to the server, so it is what the first delay is measured from.
+     * Start the clock, without counting an attempt. Called when the FIRST ask goes out -- the join
+     * handshake. That ask is not a retry, but it is what the first delay is measured from.
      */
     public synchronized void started(final long nowMillis) {
         lastAttemptMillis = nowMillis;

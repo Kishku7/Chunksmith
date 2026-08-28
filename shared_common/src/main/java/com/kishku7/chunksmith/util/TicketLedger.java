@@ -18,12 +18,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * {@code toDrop} set failed as a measurement, because that set is emptied every single tick, so
  * sampling it reads zero on a healthy server and a sick one alike.
  *
- * <p>This is the version that cannot lie. Every {@code addTicketWithRadius} increments, every
- * {@code removeTicketWithRadius} decrements, and the difference is the number of tickets Chunksmith
- * genuinely still holds. Near zero while thousands of chunks sit resident means the hold is not ours
- * and the search moves elsewhere. Tracking the resident count means the removal path is broken. There
- * is no third answer and no sampling artefact.
- *
  * <p>Counters, not gauges: a leak is a difference between two totals, and totals also make a
  * double-release visible, which a gauge would silently absorb.
  */
@@ -32,19 +26,16 @@ public final class TicketLedger {
     private static final AtomicLong added = new AtomicLong();
     private static final AtomicLong removed = new AtomicLong();
 
-    /** Highest outstanding count seen, so a peak is not lost between two samples. */
     private static final AtomicLong peak = new AtomicLong();
 
     private TicketLedger() {
     }
 
-    /** One ticket added. Called immediately after the chunk system accepts it. */
     public static void noteAdd() {
         final long out = added.incrementAndGet() - removed.get();
         peak.accumulateAndGet(out, Math::max);
     }
 
-    /** One ticket handed back. Called immediately after the chunk system accepts the removal. */
     public static void noteRemove() {
         removed.incrementAndGet();
     }
@@ -57,12 +48,6 @@ public final class TicketLedger {
         return removed.get();
     }
 
-    /**
-     * Tickets added and not yet removed.
-     *
-     * <p>May legitimately go NEGATIVE if a release ever runs twice -- which is itself worth knowing,
-     * so it is reported rather than clamped.
-     */
     public static long outstanding() {
         return added.get() - removed.get();
     }
@@ -71,7 +56,6 @@ public final class TicketLedger {
         return peak.get();
     }
 
-    /** Reset at the start of a run, so one run's ledger is never read as another's. */
     public static void reset() {
         added.set(0L);
         removed.set(0L);

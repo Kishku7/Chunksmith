@@ -23,22 +23,16 @@ import java.util.regex.Pattern;
 /**
  * The LOD backchannel: a small, read-only HTTP server that hands out CSLOD region files.
  *
- * <p><b>Why this exists.</b> A plugin channel rides the same connection as gameplay, so pushing hundreds
- * of megabytes through it means starving the game loop -- and it re-compresses payloads that are already
- * compressed. But the CSLOD store is ALREADY plain region files, so the server does not need to stream
- * anything: it just serves them. Range requests, resume, parallel connections, at network speed, with the
- * game pipeline untouched.
+ * <p><b>Why this exists.</b> A plugin channel rides the same connection as gameplay, so pushing hundreds of
+ * megabytes through it starves the game loop -- and it re-compresses payloads that are already compressed.
+ * The CSLOD store is ALREADY plain region files, so the server does not stream anything: it serves them,
+ * with range requests, resume and parallel connections, and the game pipeline untouched.
  *
  * <p><b>The address follows the game; the port is the operator's if they want it.</b> The interface is
- * always the one the game is bound to -- a client is already connected to that host, so there is nothing
- * to negotiate. The port defaults to game port + 1 and can be set explicitly, because a managed host
- * rents a fixed set of ports and will not hand out the one next to the game just because it is tidy
- * (mod_support #19).
- *
- * <p>If the port cannot be bound the mod still runs -- the client falls back to the in-band channel --
- * but it says so at WARN, naming the port. It used to say so at INFO, and the result was operators
- * reporting "Chunksmith is installed on both sides and no LOD ever arrives" with the explanation sitting
- * unread in their log.
+ * always the one the game is bound to -- a client is already connected to that host. The port defaults to
+ * game port + 1 and can be set explicitly, because a managed host rents a fixed set of ports and will not
+ * hand out the one next to the game just because it is tidy (mod_support #19). If it cannot be bound the mod
+ * still runs -- the client falls back in-band -- but it says so at WARN, naming the port.
  *
  * <p>Uses the JDK's own {@link HttpServer}: zero dependencies, consistent with the rest of the LOD stack
  * (no native DB, no native compressor).
@@ -46,8 +40,8 @@ import java.util.regex.Pattern;
  * <p><b>Hardening.</b> This is a port opened on someone's game server, so:
  * <ul>
  *   <li>GET/HEAD only. No writes, no directory listing.</li>
- *   <li>Serves ONLY from the store root. The path is matched against a strict regex, then canonicalized
- *       and re-checked to be inside the root -- so {@code ..}, absolute paths and symlinks cannot escape.</li>
+ *   <li>Serves ONLY from the store root: a strict regex on the path, then canonicalize and re-check it is
+ *       inside the root, so {@code ..}, absolute paths and symlinks cannot escape.</li>
  *   <li>Token required, bound to (uuid, ip, expiry), revoked on disconnect.</li>
  *   <li>Per-IP concurrency cap, request/header size caps, and idle timeouts.</li>
  *   <li><b>Fails CLOSED to 404</b> -- never 403, which would confirm that a file exists.</li>
@@ -67,11 +61,9 @@ public final class CsLodHttpServer {
     private static final int STOP_GRACE_SECONDS = 2;
 
     /**
-     * Where a given dimension's region files live.
-     *
-     * <p>A mod-loader server keeps every dimension under one save root, so the default is simply
-     * {@code root.resolve(dimension)}. Bukkit gives each world its own folder, so there is no
-     * single parent to point at and it supplies its own resolver instead.
+     * Where a given dimension's region files live. A mod-loader server keeps every dimension under one save
+     * root, so the default is {@code root.resolve(dimension)}; Bukkit gives each world its own folder, so
+     * there is no single parent to point at and it supplies its own resolver.
      */
     @FunctionalInterface
     public interface RootResolver {
@@ -92,17 +84,13 @@ public final class CsLodHttpServer {
     private int port;
     private boolean derived = true;
 
-    /**
-     * @param storeRoot the {@code <world>/chunksmith/lod} directory -- dimensions are its subdirectories
-     */
+    /** @param storeRoot the {@code <world>/chunksmith/lod} directory -- dimensions are its subdirectories */
     public CsLodHttpServer(final Path storeRoot, final CsLodTokens tokens, final CsLodTokens.OnlineCheck onlineCheck) {
         this(dimension -> storeRoot.toAbsolutePath().normalize().resolve(dimension),
                 tokens, onlineCheck);
     }
 
-    /**
-     * @param roots resolves a dimension name to the directory holding its region files
-     */
+    /** @param roots resolves a dimension name to the directory holding its region files */
     public CsLodHttpServer(final RootResolver roots, final CsLodTokens tokens,
                            final CsLodTokens.OnlineCheck onlineCheck) {
         this.roots = roots;
@@ -114,7 +102,6 @@ public final class CsLodHttpServer {
      * Bind and start.
      *
      * @param bindAddress    the address the GAME is bound to (empty/null = all interfaces, same as the game)
-     * @param gamePort       the game's port
      * @param configuredPort the operator's chosen port, or 0 to derive {@code gamePort + 1}
      * @return the bound port, or 0 if the backchannel is unavailable (in which case: fall back in-band)
      */
@@ -245,11 +232,9 @@ public final class CsLodHttpServer {
     }
 
     /**
-     * Map a request path to a file INSIDE the store, or null.
-     *
-     * <p>Two independent gates: the shape must match {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, AND the
-     * canonicalized result must still live under the store root. Either one alone would probably do; both
-     * together mean a path-traversal bug needs two mistakes, not one.
+     * Map a request path to a file INSIDE the store, or null. Two independent gates: the shape must match
+     * {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, AND the canonicalized result must still live under the
+     * store root. Either alone would probably do; both mean a traversal bug needs two mistakes, not one.
      */
     private Path resolve(final String requestPath) {
         if (requestPath == null || !requestPath.startsWith(CsLodProtocol.HTTP_PREFIX)) {
@@ -263,9 +248,8 @@ public final class CsLodHttpServer {
         if (!DIM_DIR.matcher(parts[0]).matches() || !REGION_FILE.matcher(parts[1]).matches()) {
             return null;
         }
-        // Resolve the dimension FIRST, then containment-check against that dimension's own root.
-        // The two gates are unchanged in strength: the shape had to match, and the canonical result
-        // still has to sit inside the directory we meant to serve.
+        // Resolve the dimension FIRST, then containment-check against that dimension's own root. Both
+        // gates are unchanged in strength.
         final Path dimensionRoot = roots.rootFor(parts[0]);
         if (dimensionRoot == null) {
             return null;

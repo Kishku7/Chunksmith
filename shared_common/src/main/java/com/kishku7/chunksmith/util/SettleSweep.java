@@ -6,33 +6,24 @@ import java.util.BitSet;
  * Decides WHERE, just behind the generation front, to briefly re-load a neighbourhood so that other mods
  * can finish work they could not do while the pregen was racing past.
  *
- * <p><b>Why a sweep and not simply holding chunks open.</b> {@link ChunkSettleWindow} keeps a chunk loaded
- * until its eight neighbours exist, which is enough for a small structure and costs almost nothing. It is
- * nowhere near enough for a big one: Millenaire villages want a 90-block radius, roughly twelve chunks
- * square, and measured on a real run 5,482 village placements were still refused for want of loaded
- * ground. Widening the hold does not scale -- the held band follows the whole sweep edge, so at a
- * seven-chunk radius a modest pregen would be holding something like eleven thousand chunks at once.
+ * <p><b>Why a sweep and not simply holding chunks open.</b> {@link ChunkSettleWindow} keeps a chunk
+ * loaded until its eight neighbours exist, which is enough for a small structure and nowhere near enough
+ * for a big one: Millenaire villages want a 90-block radius, and on a real run 5,482 village placements
+ * were still refused for want of loaded ground. Widening the hold does not scale -- the held band
+ * follows the whole sweep edge, so at a seven-chunk radius a modest pregen would hold some 11,000 chunks.
  *
- * <p>So instead of holding a wide band open, we let it go and come back: a small window slides along
- * BEHIND the front, loads a neighbourhood, gives the server a moment to tick, and moves on. Peak cost is
- * one window -- a few hundred chunks, less than a normal server keeps loaded -- and it does not grow with
- * the size of the run. Chunks are re-read from disk rather than regenerated, so this is I/O, not worldgen.
+ * <p>So instead we let it go and come back: a small window slides along BEHIND the front, loads a
+ * neighbourhood, gives the server a moment to tick, and moves on. Peak cost is one window and does not
+ * grow with the size of the run. Chunks are re-read from disk rather than regenerated, so this is I/O,
+ * not worldgen. It trails rather than waiting for the end because ground more than a radius behind the
+ * front is finished and will never change, and the square and spiral patterns have no clean rings.
  *
- * <p><b>Why it trails rather than waiting for the end.</b> Ground more than a radius behind the front is
- * finished and will never change, so there is nothing to wait for. Trailing means structures appear while
- * the pregen is still running rather than in a lump at the end, it needs no notion of "layers" (the square
- * and spiral patterns have no clean rings), and a run that is cancelled half way still leaves its
- * completed area properly settled.
+ * <p><b>Stops are on a grid, not every chunk.</b> A window centred every {@code radius} chunks covers
+ * the whole area, at a fraction of the visits: for a 36,000-chunk run at radius 7, roughly 700 stops.
  *
- * <p><b>Stops are on a grid, not every chunk.</b> A window centred every {@code radius} chunks covers the
- * whole area with each point falling inside some window, at a fraction of the visits: for a 36,000-chunk
- * run at radius 7 that is roughly 700 stops rather than 36,000.
- *
- * <p><b>A stop is only eligible once its whole window is generated.</b> Loading a window that overlaps
- * ungenerated ground would not re-read it -- it would GENERATE it, off-pattern and outside the task's
- * accounting. Generated chunks are tracked in a {@link BitSet} over the task's own bounds, which is exact
- * and costs one bit per chunk (a few kilobytes for a large pregen), rather than a set of longs that would
- * grow with the run.
+ * <p><b>A stop is only eligible once its whole window is generated.</b> Loading a window overlapping
+ * ungenerated ground would GENERATE it, off-pattern and outside the task's accounting. Generated chunks
+ * live in a {@link BitSet} over the task bounds: exact, one bit per chunk, a few kB for a large pregen.
  *
  * <p>MC-free by design so the rule can be unit-tested without a server; the caller owns the tickets.
  */
@@ -53,12 +44,8 @@ public final class SettleSweep {
     private int stopsIssued;
 
     /**
-     * @param minChunkX inclusive lower chunk-X bound of the task
-     * @param minChunkZ inclusive lower chunk-Z bound of the task
-     * @param width     bound width in chunks
-     * @param height    bound height in chunks
-     * @param radius    window radius in chunks -- large enough to cover the biggest footprint we want to
-     *                  let another mod build
+     * @param radius window radius in chunks -- large enough to cover the biggest footprint we want to
+     *               let another mod build
      */
     public SettleSweep(final int minChunkX, final int minChunkZ, final int width, final int height,
                        final int radius) {
@@ -80,12 +67,9 @@ public final class SettleSweep {
     }
 
     /**
-     * The next window centre that is ready to visit, or {@code null} if none is ready yet.
-     *
-     * <p>Ready means every chunk in the window has been generated -- see the class doc on why a partially
+     * The next window centre as {@code {chunkX, chunkZ}}, or {@code null} if none is ready yet. Ready
+     * means every chunk in the window has been generated -- see the class doc on why a partially
      * generated window must never be loaded. Returns each stop at most once.
-     *
-     * @return {@code {chunkX, chunkZ}} of the window centre, or null
      */
     public int[] nextStop() {
         final int stops = stopCount();
@@ -111,11 +95,9 @@ public final class SettleSweep {
     }
 
     /**
-     * Is every chunk of this window generated?
-     *
-     * <p>Clamped to the task bounds: a window at the edge of the run legitimately hangs over ground the
-     * task was never asked to generate, and waiting for chunks nobody is going to make would strand every
-     * edge stop forever.
+     * Is every chunk of this window generated? Clamped to the task bounds: an edge window legitimately
+     * hangs over ground the task was never asked to generate, and waiting for chunks nobody will make
+     * would strand every edge stop forever.
      */
     public boolean windowGenerated(final int chunkX, final int chunkZ) {
         for (int x = chunkX - this.radius; x <= chunkX + this.radius; x++) {
@@ -129,17 +111,14 @@ public final class SettleSweep {
         return true;
     }
 
-    /** How many stops the grid has in total. */
     public int stopCount() {
         return stopsPerRow() * stopsPerColumn();
     }
 
-    /** How many stops have been handed out. */
     public int stopsIssued() {
         return this.stopsIssued;
     }
 
-    /** Are all stops done? */
     public boolean isComplete() {
         return this.stopsIssued >= stopCount();
     }

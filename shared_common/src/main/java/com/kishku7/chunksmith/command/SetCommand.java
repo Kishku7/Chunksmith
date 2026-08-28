@@ -9,31 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * {@code /cs set} -- read and write every setting in the config file from in-game.
- *
- * <pre>
- *   /cs set                    list every setting and the value in force
- *   /cs set &lt;key&gt;              show one setting
- *   /cs set &lt;key&gt; &lt;value&gt;      change it, and save it
- * </pre>
- *
- * <p>House rule (2026-08-11): a setting in the config file must be settable from a command. Before
- * this, only {@code silent} and {@code updateInterval} were -- the other nine keys could be changed only by
- * editing the file and restarting the server, which on a live server means not at all.
- *
- * <p>Two behaviours worth knowing, both deliberate:
- *
- * <ul>
- *   <li><b>The value is READ BACK after writing</b>, never echoed. Several settings clamp to a legal range
- *       on write, so what you typed and what is now in force are not always the same thing -- and the
- *       operator needs to see the second one. A clamp therefore looks like a successful set to a different
- *       number, which is exactly what happened.</li>
- *   <li><b>A rejected value is a rejected value.</b> Only a string that cannot be understood at all (a word
- *       where a number goes, a language we do not ship) is refused. Range violations are not refusals --
- *       the config layer clamps them.</li>
- * </ul>
- */
 public class SetCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
@@ -71,9 +46,6 @@ public class SetCommand implements ChunksmithCommand {
         }
 
         if (!setting.write(config, value.get())) {
-            // A setting that knows WHY it refused says so. The generic message can only name the
-            // expected KIND, which reads as nonsense when the value was the right kind and wrong
-            // anyway ("25565 is not a valid integer").
             final String why = setting.explainRefusal(config, value.get());
             if (why != null) {
                 sender.sendMessagePrefixed(TranslationKey.ERROR_SET_REFUSED, setting.name(), why);
@@ -84,7 +56,6 @@ public class SetCommand implements ChunksmithCommand {
             return;
         }
 
-        // Read back rather than echo -- see the class comment.
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SET, setting.name(), setting.read(config));
     }
 
@@ -117,7 +88,6 @@ public class SetCommand implements ChunksmithCommand {
 
     @Override
     public List<String> suggestions(final CommandArguments arguments) {
-        // First argument: the key. Second: whatever that key accepts, when it is a fixed set.
         if (arguments.size() < 2) {
             return new ArrayList<>(ConfigSettings.names());
         }

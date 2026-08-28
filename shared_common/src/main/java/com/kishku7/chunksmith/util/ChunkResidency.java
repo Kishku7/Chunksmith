@@ -5,31 +5,23 @@ package com.kishku7.chunksmith.util;
  *
  * <p><b>Why this exists.</b> Every other throttle signal Chunksmith has measures how fast work goes IN
  * -- tick time, per-chunk latency, the write queue, the LOD sink. None measured what had piled up and
- * not gone OUT. On a live server (2026-08-19) a pregen ran with 75,045 chunk holders resident, roughly
- * ten times the sweep frontier the run could need, and nothing in the mod could see it.
+ * not gone OUT. On a live server (2026-08-19) a pregen ran with 75,045 chunk holders resident, ten
+ * times the sweep frontier the run could need, and nothing in the mod could see it.
  *
- * <p><b>What 3.5.0 got wrong, and this class now carries.</b> Two things, both measured on Zion
- * 2026-08-20:
+ * <p><b>What 3.5.0 got wrong</b>, both measured on Zion 2026-08-20. <i>Absolute counts are
+ * meaningless:</i> a cap of "20,000 resident" tripped on a server whose ordinary resident set was
+ * already near it, so the gate closed on the baseline and never opened. The question is <b>how many
+ * have WE added</b> -- hence {@link #baseline()}, captured at run start, and a gate reading the DELTA.
  *
- * <p><i>Absolute counts are meaningless.</i> A cap of "20,000 resident" tripped on a server whose
- * ordinary resident set was already near that, so the gate closed on the baseline and never opened,
- * stuttering the run at the never-wedge interval. The question was never "how many chunks exist" -- it
- * is <b>how many have WE added</b>. Hence {@link #baseline()}, captured when a run starts, and a gate
- * that reads the DELTA.
+ * <p><i>The backlog outlives the task.</i> 3.5.0 drove the unload pass only while a task was ACTIVE;
+ * when it paused, the remainder fell to vanilla's budgeted pass, which does nothing once the tick is
+ * over budget -- which it is precisely BECAUSE of the retained chunks. Measured: 39,064 chunks still
+ * resident nineteen minutes after the pregen stopped, no players online, 51 ms per tick, heap pinned at
+ * 8.7 GB, permanent until a restart. So {@link #isDraining()} keeps the pass running until they go.
  *
- * <p><i>The backlog outlives the task.</i> 3.5.0 drove the chunk-system unload pass every tick while a
- * task was ACTIVE. When the task paused, that stopped -- and the remaining backlog was left to vanilla's
- * own budgeted pass, which does approximately nothing once the tick is over budget, which it is
- * precisely BECAUSE of the retained chunks. Measured result: 39,064 chunks still resident nineteen
- * minutes after the pregen stopped, with no players online, 51 ms per tick, and the heap pinned at
- * 8.7 GB -- permanent until a restart. A pregen that ends owes the server a drain, so {@link
- * #isDraining()} keeps the unload pass running until the chunks are actually gone.
- *
- * <p><b>Staleness is the point, not a flaw.</b> The value is stamped with the time it was published. A
- * server whose main thread has stopped ticking stops publishing, and its chunks are not unloading
- * either, so a recent-but-frozen reading is still the truth. Only a reading older than {@link
- * #FRESH_MILLIS} is discarded -- by then the server is stopped or wedged far past anything a throttle
- * can help with, and a stale number must not gate a later run.
+ * <p><b>Staleness is the point, not a flaw.</b> A server whose main thread has stopped ticking stops
+ * publishing, and its chunks are not unloading either, so a recent-but-frozen reading is still the
+ * truth. Only a reading older than {@link #FRESH_MILLIS} is discarded, so it cannot gate a later run.
  *
  * <p>Static because there is one server per process; volatile because the generation task reads from a
  * worker thread while the server thread publishes.
@@ -45,11 +37,9 @@ public final class ChunkResidency {
     public static final long FRESH_MILLIS = 60_000L;
 
     /**
-     * How much of the run's own growth may remain before a drain is called done.
-     *
-     * <p>Not zero: chunks a PLAYER is holding, and chunks the world legitimately keeps, are counted in
-     * the same number, and demanding an exact return to baseline would keep the unload pass armed for
-     * ever on any server somebody is actually playing on.
+     * How much of the run's own growth may remain before a drain is called done. Not zero: chunks a
+     * PLAYER is holding, and chunks the world legitimately keeps, are counted in the same number, and
+     * demanding an exact return to baseline would arm the unload pass for ever on a server in use.
      */
     private static final long DRAIN_MARGIN = 512L;
 
@@ -77,10 +67,9 @@ public final class ChunkResidency {
     }
 
     /**
-     * Publish the current resident chunk count. Called from the server thread once per tick.
-     *
-     * <p>Published ALWAYS, not only while a run is active: after 3.5.0 the number was cleared the
-     * moment a task ended, which is exactly when the backlog it left behind most needed watching.
+     * Publish the current resident chunk count. Called from the server thread once per tick. Published
+     * ALWAYS, not only while a run is active: after 3.5.0 the number was cleared the moment a task
+     * ended, which is exactly when the backlog it left behind most needed watching.
      *
      * @param loaded total chunk holders across every level, or negative when the platform cannot say
      */
@@ -89,8 +78,8 @@ public final class ChunkResidency {
     }
 
     /**
-     * Time-injecting overload. The drain has three timing-based exits and every one of them is a
-     * never-wedge guarantee, so they have to be testable without a clock that really passes.
+     * Time-injecting overload. The drain's three timing exits are each a never-wedge guarantee, so they
+     * have to be testable without a clock that really passes.
      */
     static void report(final long loaded, final long now) {
         if (loaded < 0L) {
@@ -104,10 +93,8 @@ public final class ChunkResidency {
     }
 
     /**
-     * The most recent resident chunk count, or -1 when there is no usable reading.
-     *
-     * <p>-1 means "unknown", never "zero": a caller must not read an absent measurement as an empty
-     * server and open the taps.
+     * The most recent resident chunk count, or -1 when there is no usable reading. -1 means "unknown",
+     * never "zero": a caller must not read an absent measurement as an empty server and open the taps.
      */
     public static long loadedChunks() {
         return loadedChunksAt(System.currentTimeMillis());
@@ -129,10 +116,8 @@ public final class ChunkResidency {
     }
 
     /**
-     * Residency when the current run started, or -1 if it was not measurable.
-     *
-     * <p>This is the number the gate subtracts. Everything already resident when a run begins belongs
-     * to the server, not to us, and gating on it would be gating on somebody else's chunks.
+     * Residency when the current run started, or -1 if it was not measurable. This is the number the
+     * gate subtracts: everything already resident when a run begins belongs to the server, not to us.
      */
     public static long baseline() {
         return baseline;
@@ -159,11 +144,9 @@ public final class ChunkResidency {
     }
 
     /**
-     * A run has ended. Keep the unload pass armed until the chunks it loaded have actually gone.
-     *
-     * <p>This is the whole fix for the orphaned backlog. Ending a task is not the same as finishing the
-     * work: the tickets come back immediately, but a released ticket only becomes a freed chunk once
-     * the distance manager has propagated it and the unload pass has run.
+     * A run has ended. Keep the unload pass armed until the chunks it loaded have actually gone. Ending
+     * a task is not finishing the work: a released ticket only becomes a freed chunk once the distance
+     * manager has propagated it and the unload pass has run.
      */
     public static void noteTaskEnd() {
         noteTaskEnd(System.currentTimeMillis());
@@ -176,10 +159,8 @@ public final class ChunkResidency {
         final long current = loadedChunksAt(now);
         drainBestSeen = current < 0L ? Long.MAX_VALUE : current;
         drainStartedAt = current;
-        // A drain that nobody can see is a drain nobody can debug. 3.5.1 was correct and INVISIBLE:
-        // when an idle server did not return to its pre-run tick cost there was no way to tell whether
-        // the drain was still working, had succeeded, or had given up -- only to infer it from tick
-        // times. Say what is happening, once at each end. Two lines per run is not log spam.
+        // A drain that nobody can see is a drain nobody can debug: 3.5.1 was correct and INVISIBLE.
+        // Say what is happening, once at each end. Two lines per run is not log spam.
         LOGGER.info(String.format(
                 "Chunksmith: pregen finished; draining its chunks. %d resident, %d of them added by this run. %s",
                 current, Math.max(0L, current - baseline),
@@ -193,14 +174,11 @@ public final class ChunkResidency {
     /**
      * Tell the drain whether it is currently being given a real budget.
      *
-     * <p>The unload floor is small while players are online, and a drain on the small floor makes
-     * little or no measurable progress -- which the stall detector below would read as "there is
-     * nothing left to unload" and end the drain. That is exactly backwards, and it happened: on
-     * 2026-08-20 a drain gave up while a player was online, the player then left, and the server sat
-     * at 71.5 ms per tick with a full heap until it was restarted, because nothing re-armed it.
-     *
-     * <p>So the no-progress clock only advances while the drain is actually being allowed to work. A
-     * give-up must mean "we tried properly and it would not move", never "we were not trying".
+     * <p>The unload floor is small while players are online, and a drain on that floor makes little
+     * measurable progress -- which the stall detector below would read as "nothing left to unload" and
+     * end the drain. That happened: on 2026-08-20 a drain gave up while a player was online, the player
+     * left, and the server sat at 71.5 ms per tick with a full heap until it was restarted, because
+     * nothing re-armed it. So the no-progress clock only advances while the drain is allowed to work.
      */
     public static void noteDrainBudget(final boolean fullBudget) {
         drainOnFullBudget = fullBudget;
@@ -208,10 +186,8 @@ public final class ChunkResidency {
 
     /**
      * Conditions have improved -- typically the last player has left. Resume draining if the server is
-     * still holding more than the run started with.
-     *
-     * <p>A drain is not a one-shot. Treating it as one is what let a server stay degraded indefinitely
-     * after the thing that was blocking the drain went away.
+     * still holding more than the run started with. A drain is not a one-shot; treating it as one is
+     * what let a server stay degraded indefinitely after the thing blocking the drain went away.
      */
     public static void reconsiderDrain() {
         reconsiderDrain(System.currentTimeMillis());
@@ -237,15 +213,12 @@ public final class ChunkResidency {
     }
 
     /**
-     * Generation has stopped dispatching because one of OUR gates closed -- residency or heap.
-     *
-     * <p>Two things follow from it, and both were missing when the gate was first tested on a real
-     * server. The unload pass should get the full budget: nothing is being generated, so the tick is
-     * free, and unloading is the only thing that can reopen the gate. And the settle frontier must be
-     * let go, because a held chunk is released only once its neighbours exist, and with dispatch
-     * stopped no neighbour is ever coming -- so the frontier freezes at its cap and PREVENTS the very
-     * recovery the gate is waiting for. Measured 2026-08-20: 25,638 resident, held for 120 s, and the
-     * count went UP by 196 rather than falling.
+     * Generation has stopped dispatching because one of OUR gates closed -- residency or heap. Two
+     * things follow, both missing when the gate was first tested on a real server. The unload pass
+     * should get the full budget: nothing is being generated, and unloading is the only thing that can
+     * reopen the gate. And the settle frontier must be let go, because with dispatch stopped no
+     * neighbour is ever coming, so the frontier freezes at its cap and PREVENTS the very recovery the
+     * gate is waiting for. Measured 2026-08-20: 25,638 resident, held for 120 s, count UP by 196.
      */
     public static void noteGenerationHeld(final boolean held) {
         generationHeld = held;
@@ -274,10 +247,9 @@ public final class ChunkResidency {
     /**
      * Decide whether the drain is finished.
      *
-     * <p>Three ways to stop, and all three are needed. Reaching the baseline is success. No progress
-     * for {@link #DRAIN_STALL_MILLIS} means the remainder is pinned by something that is not ours --
-     * players, spawn chunks, another mod's tickets -- and no amount of further unload passes will move
-     * it. The absolute ceiling is the backstop for a world that manages to trickle downward for ever.
+     * <p>Three ways to stop, all needed. Reaching the baseline is success. No progress for {@link
+     * #DRAIN_STALL_MILLIS} means the remainder is pinned by something that is not ours -- players,
+     * spawn chunks, another mod's tickets. The ceiling backstops a world that trickles down for ever.
      */
     private static void evaluateDrain(final long loaded, final long now) {
         final long base = baseline;
@@ -320,12 +292,9 @@ public final class ChunkResidency {
     }
 
     /**
-     * One line describing the whole signal, for {@code /cs debug}. Never throws, never blocks.
-     *
-     * <p>Contains NO literal percent sign, deliberately. {@code Sender.sendMessagePrefixed} runs its
-     * message through {@code String.format}, so a stray {@code %} in the text is read as a format
-     * specifier and throws -- which is exactly what shipped in 3.5.2 and made {@code /cs debug} report
-     * "An unexpected error occurred trying to execute that command".
+     * One line describing the whole signal, for {@code /cs debug}. Never throws, never blocks. Contains
+     * NO literal percent sign: {@code Sender.sendMessagePrefixed} runs its message through
+     * {@code String.format}, so a stray sign throws -- which shipped in 3.5.2 and broke the command.
      */
     public static String describe() {
         final long now = loadedChunks();

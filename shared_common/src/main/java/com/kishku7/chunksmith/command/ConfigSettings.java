@@ -9,16 +9,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/**
- * THE list of settings {@code /cs set} can reach -- one entry per key in the config file.
- *
- * <p>House rule (2026-08-11): every setting in the config file is settable from a command. This list
- * is where that rule is kept honest. Adding a key to the config and not to this list is the bug; keeping
- * them adjacent in one file makes the omission obvious in review instead of invisible.
- *
- * <p>{@code version} is deliberately absent. It is the config SCHEMA number, not an operator setting --
- * letting someone set it would invite a file that claims to be a shape it is not.
- */
 public final class ConfigSettings {
 
     private ConfigSettings() {
@@ -116,7 +106,6 @@ public final class ConfigSettings {
         return ALL;
     }
 
-    /** Case-insensitive, because nobody types {@code forceLoadExistingChunks} correctly the first time. */
     public static Optional<ConfigSetting> find(final String name) {
         for (final ConfigSetting setting : ALL) {
             if (setting.name().equalsIgnoreCase(name)) {
@@ -147,9 +136,6 @@ public final class ConfigSettings {
         void set(Config config, long value);
     }
 
-    /**
-     * The backchannel port, which can be refused for reasons a type name cannot express.
-     */
     private static ConfigSetting port(final String name,
                                       final ConfigSetting.Kind kind,
                                       final java.util.function.Function<Config, String> reader,
@@ -199,7 +185,6 @@ public final class ConfigSettings {
                 config -> true);
     }
 
-    /** Marks a setting as one Bukkit cannot honour, so the command can say so instead of lying. */
     private static ConfigSetting settle(final ConfigSetting base) {
         return new ConfigSetting(base.name(), base.kind(),
                 base::read, base::write, Config::isPregenSettleSupported);

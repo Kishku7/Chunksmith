@@ -3,25 +3,19 @@ package com.kishku7.chunksmith.util;
 /**
  * How full the heap is -- the constraint everything else in this mod has been talking around.
  *
- * <p><b>Why this exists.</b> Chunksmith has spent three releases trying to bound a pregen by COUNTING
- * things: queued writes, LOD-sink depth, resident chunks, chunks added since the run started. Every one
- * of those is a proxy, and every one of them has now been wrong on a real server in a different way.
- * An absolute chunk cap fired on chunks that were never ours; a delta cap did not fire at all while the
- * heap filled, because the run had been resumed on an already-loaded server. The thing that actually
- * ends a pregen badly is not a chunk count -- it is running out of memory, and a chunk is worth wildly
- * different amounts of heap depending on how many entities and block entities came with it. So measure
- * the heap.
+ * <p><b>Why this exists.</b> Chunksmith spent three releases bounding a pregen by COUNTING proxies --
+ * queued writes, LOD-sink depth, resident chunks, chunks added since the run started -- and every one
+ * was wrong on a real server: an absolute chunk cap fired on chunks that were never ours, a delta cap
+ * did not fire at all while the heap filled on a run resumed on an already-loaded server. What actually
+ * ends a pregen badly is running out of memory, and a chunk is worth wildly different amounts of heap.
  *
  * <p><b>Why the reading is trustworthy despite garbage.</b> {@code used = total - free} counts garbage
- * that has not been collected yet, so a single sample can read high on a perfectly healthy server. Two
- * things make this usable anyway. A collector will always run before it lets the heap actually fill, so
- * a heap that STAYS above the threshold across several seconds of samples is holding live data, not
- * garbage. And the gate only ever pauses dispatch: a false positive costs a few seconds of throughput
- * and nothing else, while a false negative costs the server. {@link #CONFIRM_SAMPLES} consecutive
- * samples are required before the gate closes, and it opens again well below the threshold.
+ * not yet collected, so one sample can read high on a healthy server -- but a collector always runs
+ * before the heap fills, so a heap that STAYS high for several seconds holds live data. And the gate
+ * only pauses dispatch, so a false positive costs seconds of throughput while a false negative costs
+ * the server: {@link #CONFIRM_SAMPLES} samples close it, and it opens well below the threshold.
  *
- * <p>Deliberately MC-free and dependency-free -- {@link Runtime} is the whole implementation -- so it is
- * unit-testable and identical on every loader and every Minecraft version.
+ * <p>Deliberately MC-free and dependency-free -- {@link Runtime} is the whole implementation.
  */
 public final class HeapPressure {
 
@@ -36,7 +30,6 @@ public final class HeapPressure {
     private HeapPressure() {
     }
 
-    /** Live heap usage as a percentage of the maximum the JVM is allowed to use. */
     public static double usedPercent() {
         final Runtime runtime = Runtime.getRuntime();
         final long max = runtime.maxMemory();
@@ -47,7 +40,6 @@ public final class HeapPressure {
         return 100.0D * used / max;
     }
 
-    /** Used heap in megabytes, for a message an operator can act on. */
     public static long usedMegabytes() {
         final Runtime runtime = Runtime.getRuntime();
         return (runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L);
@@ -61,9 +53,8 @@ public final class HeapPressure {
     /**
      * Should dispatch be held off right now?
      *
-     * @param currentlyHeld whether the gate is already closed, so the resume margin can be applied
+     * @param currentlyHeld    whether the gate is already closed, so the resume margin can be applied
      * @param thresholdPercent the configured ceiling, or 0 to disable the gate entirely
-     * @return true when generation should stop adding to the heap
      */
     public static boolean shouldHold(final boolean currentlyHeld, final long thresholdPercent) {
         return shouldHold(currentlyHeld, thresholdPercent, usedPercent());
@@ -71,8 +62,7 @@ public final class HeapPressure {
 
     /**
      * Reading-injecting overload. The confirmation streak and the resume margin are the whole point of
-     * this class and they cannot be tested against a live heap, because a test cannot make the JVM sit
-     * at 90% on demand. Everything above is a thin wrapper around this.
+     * this class and cannot be tested against a live heap: a test cannot make the JVM sit at 90 percent.
      */
     static boolean shouldHold(final boolean currentlyHeld, final long thresholdPercent, final double used) {
         if (thresholdPercent <= 0L) {

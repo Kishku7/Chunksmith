@@ -12,9 +12,11 @@ import java.util.Map;
 /**
  * On-disk store for CSLOD chunk records.
  *
- * <p>Anvil-shaped, deliberately: one region file per 32x32 chunks, a fixed header of (offset, length)
- * slots, then the compressed records. Writes append the payload and THEN rewrite the header slot, so
- * a torn write loses at most the one chunk being written -- never the file.
+ * <p>Anvil-shaped, deliberately: one region file per 32x32 chunks, a fixed header of (offset, length) slots,
+ * then the compressed records. Writes append the payload and THEN rewrite the header slot, so a torn write
+ * loses at most the one chunk being written -- never the file. Rewriting a chunk appends a new record and
+ * re-points the slot, leaving the old bytes behind as garbage; pregen writes each chunk once, so in the
+ * normal case there is nothing to reclaim.
  *
  * <pre>
  *   &lt;world&gt;/chunksmith/lod/&lt;dim&gt;/r.&lt;rx&gt;.&lt;rz&gt;.cslod
@@ -24,17 +26,12 @@ import java.util.Map;
  *   body:   Deflate-compressed CsLodCodec records, appended
  * </pre>
  *
- * <p><b>No native dependencies, no locks, no daemon.</b> That is the point: voxy's RocksDB is
- * process-exclusive, DH's SQLite is DH's, and our store has to be readable by a second process (a
- * backfill tool) without fighting either of them.
+ * <p><b>No native dependencies, no locks, no daemon.</b> voxy's RocksDB is process-exclusive and DH's SQLite
+ * is DH's; our store has to be readable by a second process (a backfill tool) without fighting either.
  *
- * <p>Rewriting a chunk appends a new record and re-points the slot; the old bytes are left behind as
- * garbage. Pregen writes each chunk once, so in the normal case there is nothing to reclaim. A
- * compaction pass can come later if a use case ever needs it.
- *
- * <p>A record {@code length} read from a header slot is validated against {@link CsLodProtocol#MAX_RECORD_BYTES}
- * before {@code new byte[length]}: on the in-band path a region file's bytes are streamed from a server we
- * do not trust, so a bogus slot length must not OOM the reader.
+ * <p>A record {@code length} read from a header slot is validated against
+ * {@link CsLodProtocol#MAX_RECORD_BYTES} before {@code new byte[length]}: on the in-band path a region
+ * file's bytes are streamed from a server we do not trust, so a bogus slot length must not OOM the reader.
  */
 public final class CsLodRegionStore {
 
@@ -48,9 +45,7 @@ public final class CsLodRegionStore {
     private final Path root;
     private final Map<Long, RandomAccessFile> open = new HashMap<>();
 
-    /**
-     * @param root the per-dimension directory, e.g. {@code <world>/chunksmith/lod/minecraft_overworld}
-     */
+    /** @param root the per-dimension directory, e.g. {@code <world>/chunksmith/lod/minecraft_overworld} */
     public CsLodRegionStore(final Path root) {
         this.root = root;
     }
@@ -58,8 +53,7 @@ public final class CsLodRegionStore {
     /**
      * Persist one chunk record.
      *
-     * @return the number of COMPRESSED bytes written (so callers can account size without
-     *         re-encoding the record)
+     * @return the number of COMPRESSED bytes written, so callers can account size without re-encoding
      */
     public synchronized int write(final CsLodChunk chunk) throws IOException {
         final byte[] payload = CsLodCodec.encode(chunk);
@@ -110,11 +104,9 @@ public final class CsLodRegionStore {
     }
 
     /**
-     * Walk every record in a CSLOD tree and hand each decoded chunk to the visitor.
-     *
-     * <p>Static and stateless on purpose: this is how a SECOND process (a backfill/verify tool) reads
-     * the store while the game holds nothing. Plain files, no lock, no native DB -- unlike voxy's
-     * process-exclusive RocksDB, which is the whole reason we keep our own store.
+     * Walk every record in a CSLOD tree and hand each decoded chunk to the visitor. Static and stateless on
+     * purpose: this is how a SECOND process (a backfill/verify tool) reads the store while the game holds
+     * nothing.
      *
      * @return the number of records visited
      */
@@ -136,12 +128,10 @@ public final class CsLodRegionStore {
     }
 
     /**
-     * Walk ONE region's records.
-     *
-     * <p>Why this exists: a client that keeps pulling as the player travels must inject only the regions it
-     * just received. Re-walking the whole tree on every refresh would re-decode and re-push terrain the
-     * renderer already has -- on a big store that is minutes of wasted work per move, and with voxy it means
-     * re-ingesting hundreds of thousands of sections. Scope the walk to what actually arrived.
+     * Walk ONE region's records. A client that keeps pulling as the player travels must inject only the
+     * regions it just received: re-walking the whole tree on every refresh re-decodes and re-pushes terrain
+     * the renderer already has -- minutes per move on a big store, and with voxy it means re-ingesting
+     * hundreds of thousands of sections.
      *
      * @return the number of records visited (0 if the region file does not exist)
      */
@@ -164,8 +154,7 @@ public final class CsLodRegionStore {
                 if (offset <= 0 || length <= 0) {
                     continue;
                 }
-                // Bound BEFORE allocating: length comes from a header slot whose bytes may have been
-                // streamed in-band from an untrusted server (see MAX_RECORD_BYTES).
+                // Bound BEFORE allocating: see read() above and MAX_RECORD_BYTES.
                 if (length > CsLodProtocol.MAX_RECORD_BYTES) {
                     throw new IOException("CSLOD region " + region.getFileName() + " slot " + slot
                             + ": record length " + length + " exceeds " + CsLodProtocol.MAX_RECORD_BYTES);

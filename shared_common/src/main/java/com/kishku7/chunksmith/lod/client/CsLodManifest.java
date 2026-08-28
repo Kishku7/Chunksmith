@@ -16,33 +16,23 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * What the SERVER said about each region we hold -- the client's side of the cache check.
  *
- * <p><b>Why this class had to exist.</b> Until 3.1.0-beta-4 the region hash was a CRC32 of the file's
- * CONTENTS, so both ends could compute it independently: the server CRC'd its copy, the client CRC'd its
- * copy, and equal meant cached. That symmetry is exactly what made it a server killer -- the server was
- * reading every region file in the client's radius, on the tick thread, on every index request (see
+ * <p><b>Why it exists.</b> Until 3.1.0-beta-4 the region hash was a CRC32 of the file's CONTENTS, which both
+ * ends could compute independently -- and that symmetry is what made it a server killer (see
  * {@code CsLodRegionHash}). The token is now derived from the SERVER's (mtime, size), which the client
- * cannot reproduce: the mtime of the client's copy is when the CLIENT wrote it. So the token is now OPAQUE
- * to the client, and the client's job is no longer to recompute it but to REMEMBER it.
- *
- * <p>That is all this is: a tiny sidecar, one per dimension, recording {@code (x, z) -> (token, size)} for
- * every region we have successfully stored, exactly as the server described it at the time. The cache check
- * becomes a map lookup plus one {@code size()} stat -- and the client stops reading its own store too. That
- * is not a side benefit: the client was doing the SAME 340-file, 1.5 GB {@code readAllBytes} sweep the
- * server was doing, on every index, in {@code CsLodCache.have} and {@code CsLodDownloader.haveAlready}. The
- * bug had two halves and only one of them was reported.
+ * cannot reproduce: it is OPAQUE, and the client's job is to REMEMBER it, not recompute it. The client had
+ * the same bug in its own half -- the SAME 340-file, 1.5 GB {@code readAllBytes} sweep, on every index, in
+ * {@code CsLodCache.have} and {@code CsLodDownloader.haveAlready}.
  *
  * <p><b>Format.</b> One line per region, {@code x,z=token,size}, plain ASCII, written atomically via a
- * {@code .part} file and a move -- the same discipline the region files themselves use, so a manifest torn
- * by a crash can never be half-read. Unknown or malformed lines are SKIPPED, not fatal: the worst a corrupt
- * manifest can do is make us re-download regions we already had, which is the safe direction.
+ * {@code .part} file and a move. Malformed lines are SKIPPED, not fatal: the worst a corrupt manifest can do
+ * is make us re-download regions we already had.
  *
- * <p><b>Upgrading from 3.1.0-beta-3.</b> An existing client store has region files but no manifest. Every
- * region therefore reads as "not cached" and is fetched once, over the backchannel, on the first index of
- * the first join. For a 340-region / 1.5 GB store on a LAN that is a few seconds; it happens exactly once.
- * Re-downloading is the correct thing to do when we genuinely cannot vouch for what is on disk.
+ * <p><b>Upgrading from 3.1.0-beta-3.</b> An existing store has region files but no manifest, so every region
+ * reads as "not cached" and is re-fetched once over the backchannel on the first index of the first join --
+ * seconds for a 340-region / 1.5 GB store on a LAN.
  *
- * <p>Thread-safe. The downloader writes it from four parallel fetch threads, the in-band reassembler writes
- * it from the client thread, and the sync poll reads it from its own.
+ * <p>Thread-safe: written by four parallel fetch threads and by the in-band reassembler on the client
+ * thread, read by the sync poll.
  */
 public final class CsLodManifest {
 
@@ -60,11 +50,8 @@ public final class CsLodManifest {
     }
 
     /**
-     * Open (or start) the manifest for one dimension of one server's store.
-     *
-     * <p>A store root + a server-supplied dimension id, gated through {@link CsLodStore} like every other
-     * consumer of that field. Returns null when the id is malformed -- the caller must then refuse the
-     * whole operation, exactly as the downloader and the injector do.
+     * Open (or start) the manifest for one dimension of one server's store. Returns null when the dimension
+     * id is malformed -- the caller must then refuse the whole operation, as the downloader and injector do.
      */
     public static CsLodManifest open(final Path storeRoot, final String dimension) {
         final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
@@ -96,11 +83,9 @@ public final class CsLodManifest {
     /**
      * Do we hold this region, exactly as the server currently describes it?
      *
-     * <p>Three questions, cheapest first, and NONE of them reads the file: do we have a manifest entry for
-     * it; does that entry carry the token the server is advertising NOW; and is the file still on disk at
-     * the length we recorded. The last one is the only syscall, and it is what catches a region the player
-     * (or a disk, or a cleanup script) deleted or truncated underneath us -- which is precisely what the
-     * periodic sync is meant to heal.
+     * <p>Three questions, cheapest first, and NONE of them reads the file: do we have an entry; does it
+     * carry the token the server advertises NOW; is the file still on disk at the length we recorded. The
+     * last is the only syscall, and it is what catches a region deleted or truncated underneath us.
      *
      * @param dimensionDir the directory the regions live in -- ALREADY gated through {@link CsLodStore}
      */
@@ -127,20 +112,14 @@ public final class CsLodManifest {
      * Fold the regions we ACTUALLY HOLD, out of the ones the server last told us about, into the same
      * (count, aggregate) shape the server folds its own set into.
      *
-     * <p>This is the client half of the sync compare, and the set it folds over is deliberately the
-     * SERVER'S LAST INDEX, not a listing of our own directory. That is what makes an idle poll idle: the
-     * server excludes regions its pregen is still writing (they are not settled), and if we folded over our
-     * own directory we would keep counting our stale copies of them, disagree with the server forever, and
-     * pull a full index every single interval for the whole length of a pregen. Folding over the last index
-     * means both sides are describing the same question, so "nothing changed" really does compare equal.
+     * <p>The set folded over is deliberately the SERVER'S LAST INDEX, not a listing of our own directory.
+     * The server excludes regions its pregen is still writing; folding over our own directory would keep
+     * counting our stale copies of them, disagree forever, and pull a full index every interval for the
+     * whole length of a pregen. A region in the index we do NOT hold simply does not contribute, so the
+     * aggregate AND the count both drop -- which covers "the server grew", "the client lost regions" and
+     * "a region changed" alike.
      *
-     * <p>A region in the index that we do NOT hold -- never fetched, deleted since, truncated, or whose
-     * token has moved on -- simply does not contribute, so the aggregate AND the count both drop and the
-     * mismatch is detected. That single property covers all three of "the server grew", "the client lost
-     * regions", and "a region changed".
-     *
-     * @param dimensionDir the directory the regions live in -- ALREADY gated through {@link CsLodStore}
-     * @param advertised   the entries of the last index the server sent us
+     * @param advertised the entries of the last index the server sent us
      */
     public CsLodSummary.Snapshot fold(final Path dimensionDir,
                                       final List<CsLodMessages.RegionEntry> advertised) {
@@ -157,11 +136,8 @@ public final class CsLodManifest {
     }
 
     /**
-     * Write the manifest out. Atomic: a {@code .part} plus a move, so a crash mid-write leaves either the
-     * old manifest or the new one, never a torn one.
-     *
-     * <p>Failure is logged by the caller and otherwise survivable -- a manifest we could not write means we
-     * re-download those regions next session, not that we lose them.
+     * Write the manifest out, atomically -- see the class doc. A manifest we could not write means we
+     * re-download those regions next session, so failure is logged by the caller and otherwise survivable.
      */
     public void save() throws IOException {
         final List<String> lines = new ArrayList<>(this.entries.size());
@@ -179,8 +155,8 @@ public final class CsLodManifest {
     }
 
     /**
-     * Read whatever is there. A missing manifest is not an error -- it is a store that predates this
-     * mechanism, or a brand new one, and it simply means we hold nothing we can vouch for.
+     * Read whatever is there. A missing manifest is a store that predates this mechanism, or a brand new
+     * one, and it means we hold nothing we can vouch for.
      */
     private void load() {
         if (!Files.isRegularFile(this.file)) {
