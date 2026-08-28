@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>{@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD: {@code setGenerated} is
+ * {@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD: {@code setGenerated} is
  * only called for chunks THIS run generated. So on the run that matters -- restart the server, re-run a
  * selection over ground you already pregenerated -- every chunk falls through to the per-chunk
  * asynchronous {@code world.isChunkGenerated} call, taking a dispatch slot and riding the throttle just

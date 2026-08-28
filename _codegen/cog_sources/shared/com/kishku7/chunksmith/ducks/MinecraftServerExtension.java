@@ -23,7 +23,7 @@ public interface MinecraftServerExtension {
     void chunksmith$atTicketSafePoint(Runnable task);
 
     /**
-     * <p>For ONE caller: the paused integrated server. The ordinary drain rides
+     * For ONE caller: the paused integrated server. The ordinary drain rides
      * {@code MinecraftServer.tickServer} HEAD, which {@code IntegratedServer.tickServer} never
      * reaches while paused -- so the queue filled, nothing emptied it, and nothing threw
      * (mod_support #17, regression from 3.3.0's safe point). Safe precisely because the server is

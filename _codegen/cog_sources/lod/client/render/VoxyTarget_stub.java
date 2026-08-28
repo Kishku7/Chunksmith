@@ -4,7 +4,7 @@ import com.kishku7.chunksmith.lod.CsLodChunk;
 import net.minecraft.world.level.Level;
 
 /**
- * <p>Two independent reasons this stub exists, both hard. (1) Every non-Fabric cell: it cannot compile --
+ * Two independent reasons this stub exists, both hard. (1) Every non-Fabric cell: it cannot compile --
  * voxy's {@code me.cortex.voxy.commonImpl.VoxyCommon} implements {@code net.fabricmc.api.ModInitializer},
  * so referencing it from a NeoForge or Forge build fails at javac with "cannot access ModInitializer".
  * (2) Fabric 1.20.1 and Fabric 1.21.1: there is nothing to feed -- upstream voxy has NEVER published a

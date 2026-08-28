@@ -31,7 +31,7 @@ JARS HANDLED
 - voxy-0.2.15-beta+1.21.1-m3t4f1v3-fabric.jar (m3t4f1v3 fork, Fabric 1.21.1 cell; Loom 1.12.7 there
   vs 1.16.2 stamped -- same trap, self-built 2026-08-03 from github.com/m3t4f1v3/voxy `multiversion`
   branch since upstream never published a 1.21.1 voxy build on any loader; see
-  Memory/minecraft/lod-ecosystem.md and _codegen/compat.py::has_voxy())
+  the renderer-ecosystem recon and _codegen/compat.py::has_voxy())
 """
 import os
 import shutil

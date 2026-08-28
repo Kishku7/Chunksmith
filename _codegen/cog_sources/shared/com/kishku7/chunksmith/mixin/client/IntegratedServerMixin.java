@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.BooleanSupplier;
 
 /**
- * <p>{@code IntegratedServer.tickServer} sets {@code paused = Minecraft.isPaused() ||
+ * {@code IntegratedServer.tickServer} sets {@code paused = Minecraft.isPaused() ||
  * players.isEmpty()} and, when paused, calls {@code tickPaused()} and returns WITHOUT calling
  * {@code super.tickServer}. Every hook Chunksmith hangs on {@code MinecraftServer.tickServer} is
  * therefore dead for the whole time a player has the menu open -- which is exactly when players

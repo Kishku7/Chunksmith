@@ -7,7 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * <p>A UUID, a name and an IP are each necessary and none of them authenticates. UUIDs and names are
+ * A UUID, a name and an IP are each necessary and none of them authenticates. UUIDs and names are
  * PUBLIC -- anyone can look one up and send it, so they identify but do not prove. An IP false-accepts
  * two players behind one NAT and false-rejects a player roaming onto mobile data. Hence a token.
  */

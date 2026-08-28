@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
 
 /**
- * <p>This one string is the whole address of a CSLOD record. A region coordinate on its own is meaningless:
+ * This one string is the whole address of a CSLOD record. A region coordinate on its own is meaningless:
  * region (0,0) exists in the overworld, in the Nether and in the End, and they are three different places.
  * Every read, every write and every injection is scoped by this key -- {@code chunksmith/lod/&lt;server&gt;/
  * &lt;dimension&gt;/r.x.z.cslod} -- and getting it wrong does not fail, it succeeds against the wrong world.

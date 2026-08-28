@@ -5,7 +5,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.nio.file.Path;
 
 /**
- * <p>One copy per loader; cog-gen picks the right one. This is the FABRIC copy.
+ * One copy per loader; cog-gen picks the right one. This is the FABRIC copy.
  */
 public final class LodPlatform {
 

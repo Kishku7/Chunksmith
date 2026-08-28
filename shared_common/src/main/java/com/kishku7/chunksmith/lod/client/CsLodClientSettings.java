@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * <p>The house rule is that every setting in a config file is settable from a command. 3.2.4 satisfied
+ * The house rule is that every setting in a config file is settable from a command. 3.2.4 satisfied
  * it for {@code config/chunksmith/config.json} via {@code ConfigSettings} + {@code /cs set}, and that
  * coverage test reflects over the JSON config model -- which is exactly why THESE two keys stayed
  * file-only for a release. A second config file needs its own registry and its own coverage test.

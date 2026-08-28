@@ -2,7 +2,7 @@
 
 Given an MC version string (mcver), this module returns the correct per-era code
 fragments for each mixin/accessor drift point identified in the drift matrix
-(Temp/chunksmith-drift-matrix.md). Cog source files import this module and call
+the drift matrix. Cog source files import this module and call
 its helpers inside //[[[cog ... //]]] blocks so ONE shared_minecraft source can be
 direct-compiled correctly for every MC version.
 
@@ -778,7 +778,7 @@ def has_voxy(mcver, loader):
     NeoForge cells already compile against. NeoForgeVoxyCommon extends the shared VoxyCommon
     (same static INSTANCE/FACTORY), so VoxyCommon.getInstance() works unchanged on this loader.
     ARR-derived like every voxy fork: compileOnly soft-dep, never vendored. See
-    Memory/minecraft/lod-ecosystem.md sec. "NEOFORGE/FORGE VOXY: BLOCKER OR GAP" for the recon
+    the renderer-ecosystem recon, sec. "NEOFORGE/FORGE VOXY: BLOCKER OR GAP", for the
     this rests on.
 
     Every other cell gets NO voxy class at all -- a compile-time-absent seam, not a stub.

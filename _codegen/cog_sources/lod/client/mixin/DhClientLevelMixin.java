@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * <p>On a DH-enabled server with real-time updates on (the default),
+ * On a DH-enabled server with real-time updates on (the default),
  * {@code DhClientLevel.shouldProcessChunkUpdate} drops any chunk update for a position DH has seen in the
  * last ten minutes -- and {@code overwriteChunkDataAsync} still returns success (see {@link DhPushGuard}).
  * This forces the gate open for OUR pushes only via a thread-local flag; other updates take DH's own path.

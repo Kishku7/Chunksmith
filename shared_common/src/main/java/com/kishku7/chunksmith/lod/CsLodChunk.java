@@ -3,7 +3,7 @@ package com.kishku7.chunksmith.lod;
 import java.util.List;
 
 /**
- * <p><b>Why these fields and not others.</b> The format must satisfy the UNION of what voxy and Distant
+ * <b>Why these fields and not others.</b> The format must satisfy the UNION of what voxy and Distant
  * Horizons need, and DH is the demanding one:
  * <ul>
  *   <li><b>Full block STATE strings</b>, not block ids -- DH has no fluid channel, so water IS a state;
@@ -75,7 +75,7 @@ public final class CsLodChunk {
     }
 
     /**
-     * <p>A uniform array is stored as a single palette index rather than 4096 (or 64) entries -- which is
+     * A uniform array is stored as a single palette index rather than 4096 (or 64) entries -- which is
      * what makes carrying light to the build ceiling affordable, since everything above the terrain is
      * uniform air with uniform sky light. Index order is YZX (y * 256 + z * 16 + x) for blocks and
      * (y * 16 + z * 4 + x) for biomes.
