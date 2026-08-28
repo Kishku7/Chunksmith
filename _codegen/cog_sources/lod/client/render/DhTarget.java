@@ -23,31 +23,26 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p><b>We PUSH; DH does not pull from us.</b> DH's world-generator override is built only by a SERVER
  * level -- a multiplayer client gets a {@code RemoteWorldRetrievalQueue}, so {@code generateApiChunk} is
- * NEVER CALLED there. An override registered on a multiplayer client would sit there logging happily and
- * doing nothing, forever. So the client pushes instead, through
- * {@code terrainRepo.overwriteChunkDataAsync} -> {@code SharedApi.applyChunkUpdate}: the same path DH uses
- * when a player edits a block. It writes at gen step LIGHT, persists, and re-renders on its own.
+ * NEVER CALLED there. So the client pushes instead, through {@code terrainRepo.overwriteChunkDataAsync}
+ * -> {@code SharedApi.applyChunkUpdate}: the same path DH uses when a player edits a block. It writes at
+ * gen step LIGHT, persists, and re-renders on its own.
  *
  * <p><b>DH bakes the light itself.</b> Its ChunkWrapper never touches Minecraft's light engine -- the push
- * path calls its own lighting engine unconditionally. So a synthesized chunk needs NO pre-lighting and no
- * populated light engine; it needs correct block states with AIR EXPLICITLY PRESENT, which CSLOD's gap-free
- * columns already guarantee.
+ * path calls its own lighting engine unconditionally. So a synthesized chunk needs NO pre-lighting; it
+ * needs correct block states with AIR EXPLICITLY PRESENT, which CSLOD's gap-free columns guarantee.
  *
  * <p><b>Resolve the wrapper for THIS level, never "the last one".</b> DH loads EVERY dimension at startup,
- * so a single "last wrapper" field is always whichever loaded last -- and DH does NOT validate the
- * dimension of data you hand it. It will happily accept, persist and downsample overworld chunks into the
- * End's database and report success for every one. (It did exactly that, 1089 times, before this was
- * caught.)
+ * and does NOT validate the dimension of data you hand it: it will happily accept, persist and downsample
+ * overworld chunks into the End's database and report success for every one. (It did exactly that, 1089
+ * times, before this was caught.)
  */
 public final class DhTarget {
 
     /**
-     * Minimum gap between pushes.
-     *
-     * <p>NOT arbitrary. DH's {@code ChunkUpdateQueueManager.addItemToQueue()} calls {@code popFurthest()}
-     * when its queue overflows -- it evicts the entry FURTHEST FROM THE PLAYER, which is precisely the
-     * distant pregenerated terrain we are trying to deliver. It is an overflow guard, not a distance
-     * filter, so it only fires when pushes outrun DH's chunk-to-LOD builder. Measured safe at ~50
+     * Minimum gap between pushes. NOT arbitrary: DH's {@code ChunkUpdateQueueManager.addItemToQueue()}
+     * calls {@code popFurthest()} when its queue overflows -- it evicts the entry FURTHEST FROM THE PLAYER,
+     * which is precisely the distant pregenerated terrain we are delivering. It is an overflow guard, not a
+     * distance filter, so it only fires when pushes outrun DH's chunk-to-LOD builder. Measured safe at ~50
      * chunks/s over a 4225-chunk push with 100% retention; this pacing keeps us there.
      *
      * <p>If DH ever logs "Distant Horizons overloaded", treat it as a DATA-LOSS signal, not a warning.
@@ -63,21 +58,16 @@ public final class DhTarget {
     private static final AtomicLong failed = new AtomicLong();
     private static volatile boolean bound;
 
-    /**
-     * Set when DH turns out to be link-incompatible at runtime, which disables the DH target for the rest
-     * of the session. See {@link #disable(Throwable)}.
-     */
+    /** Set when DH is link-incompatible at runtime; see {@link #disable(Throwable)}. */
     private static volatile boolean disabled;
 
     private DhTarget() {
     }
 
     /**
-     * Distant Horizons' own version + the API version it implements, for the log at join.
-     *
-     * <p>We compile against the standalone {@code distanthorizonsapi} artifact and support a WIDE range of
-     * DH releases, so "which DH did the player actually have" is the first question any bug report raises.
-     * Answer it in our own log rather than making someone reconstruct it from a crash trace.
+     * Distant Horizons' own version + the API version it implements, for the log at join. We compile
+     * against the standalone {@code distanthorizonsapi} artifact and support a WIDE range of DH releases,
+     * so "which DH did the player actually have" is the first question any bug report raises.
      */
     public static String version() {
         try {
@@ -89,18 +79,15 @@ public final class DhTarget {
         }
     }
 
-    /** True once DH has been ruled out for this session; see {@link #disable(Throwable)}. */
     public static boolean isDisabled() {
         return disabled;
     }
 
     /**
-     * Give up on DH for the rest of the session -- but keep the mod, and voxy, alive.
-     *
-     * <p>A {@link LinkageError} here means the DH actually installed does not have the method/type we
-     * compiled against: a DH far outside the range we claim, or a fork that moved something. That is a DH
-     * problem, not a reason to take the player's game or their voxy rendering down with it. So we say so
-     * plainly, once, and stop touching DH.
+     * Give up on DH for the rest of the session -- but keep the mod, and voxy, alive. A
+     * {@link LinkageError} here means the DH installed lacks the method/type we compiled against (a DH
+     * outside the range we claim, or a fork that moved something) -- a DH problem, not a reason to take
+     * the player's game or their voxy rendering down with it.
      */
     static void disable(final Throwable cause) {
         if (disabled) {
@@ -130,16 +117,11 @@ public final class DhTarget {
         });
     }
 
-    /** True when DH has told us about this specific level, and DH has not been ruled out this session. */
     public static boolean available(final Level level) {
         return !disabled && WRAPPERS.containsKey(level);
     }
 
-    /**
-     * Push one chunk record into DH.
-     *
-     * @return true if DH accepted it
-     */
+    /** @return true if DH accepted this record. */
     public static boolean inject(final Level level, final CsLodChunk record) {
         if (disabled) {
             return false;
@@ -159,16 +141,14 @@ public final class DhTarget {
 
         pace();
 
-        // Marked as OURS for the whole call: DhClientLevelMixin reads this flag inside
-        // shouldProcessChunkUpdate and forces the gate open, so a DH server's ten-minute dedupe cannot eat
-        // the push while still reporting success. DH's dedupe still governs every update that is not ours.
+        // Marked as OURS for the whole call: DhClientLevelMixin forces the dedupe gate open for this
+        // flag, so a DH server's ten-minute dedupe cannot eat the push while still reporting success (see
+        // DhPushGuard).
         //
-        // LinkageError, not Exception: this is the FIRST and only place we call into DH's terrain repo, so
-        // it is where a DH whose API does not match the one we compiled against actually blows up
-        // (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError -- all Errors, none of them
-        // caught by `catch (Exception)`). We claim a wide DH range on the evidence that this signature has
-        // been stable since DH 2.0.0-a; this catch is what makes being WRONG about that a logged
-        // degradation instead of a crash.
+        // LinkageError, not Exception: this is the only place we call into DH's terrain repo, so it is
+        // where a DH whose API does not match ours blows up (NoSuchMethodError / NoClassDefFoundError /
+        // AbstractMethodError -- all Errors, none caught by `catch (Exception)`). We claim a wide DH range
+        // on the evidence that this signature has been stable since DH 2.0.0-a.
         final DhApiResult<Void> result;
         try {
             result = DhPushGuard.pushing(() ->
@@ -203,16 +183,13 @@ public final class DhTarget {
     /**
      * pushed / failed.
      *
-     * <p><b>What a "success" does NOT prove.</b> {@code DhApiResult.success} means QUEUED, not WRITTEN --
-     * so these counters cannot prove retention on their own. Two ways the data still disappears:
-     * <ul>
-     *   <li>DH's queue overflows and {@code popFurthest()} evicts the entry furthest from the player, i.e.
-     *       ours. Hence the pacing above.</li>
-     *   <li>On a DH-ENABLED server with real-time updates on, {@code shouldProcessChunkUpdate} silently
-     *       DISCARDS an update for any position seen in the last ten minutes -- and still returns success.
-     *       That gate is what the mixin turns off.</li>
-     * </ul>
-     * Verify retention by counting rows in DH's database, never by trusting this number.
+     * <p><b>What a "success" does NOT prove.</b> {@code DhApiResult.success} means QUEUED, not WRITTEN, so
+     * these counters cannot prove retention. Two ways the data still disappears: DH's queue overflows and
+     * {@code popFurthest()} evicts the entry furthest from the player, i.e. ours (hence the pacing above);
+     * and on a DH-ENABLED server with real-time updates on, {@code shouldProcessChunkUpdate} silently
+     * DISCARDS an update for any position seen in the last ten minutes while still returning success (the
+     * gate the mixin turns off). Verify retention by counting rows in DH's database, never by trusting
+     * this number.
      */
     public static String describe() {
         return "dh pushed " + pushed.get() + ", failed " + failed.get()

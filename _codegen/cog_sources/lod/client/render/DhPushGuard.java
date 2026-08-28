@@ -13,23 +13,19 @@ import java.util.concurrent.atomic.AtomicLong;
  *   return !networkState.sessionConfig.isRealTimeUpdatesEnabled() || loadedOnceChunks.add(pos);
  * </pre>
  *
- * {@code loadedOnceChunks} is a Guava set with {@code expireAfterWrite(10, MINUTES)}. So on a DH-ENABLED
- * server with real-time updates on (the DEFAULT), any chunk position DH has seen in the last ten minutes
- * makes {@code add()} return false, {@code applyChunkUpdate} returns early -- and the caller STILL returns
- * {@code DhApiResult.createSuccess()}. DH eats the push and tells us it worked. Exactly the terrain around
- * a joining player -- the terrain they are most likely to look at -- is the terrain DH has just seen.
+ * {@code loadedOnceChunks} is a Guava set with {@code expireAfterWrite(10, MINUTES)}, so on a DH-ENABLED
+ * server with real-time updates on (the DEFAULT) any position DH has seen in the last ten minutes makes
+ * {@code add()} return false and {@code applyChunkUpdate} return early -- while the caller STILL returns
+ * {@code DhApiResult.createSuccess()}. DH eats the push and tells us it worked.
  *
- * <p><b>Why a flag and not a config change.</b> The three DH toggles that would avoid this
- * ({@code enableRealTimeUpdates} and friends) are not on DH's public API, so reaching them means reflecting
- * into DH's internal {@code Config$Server} -- which also rewrites the player's saved
- * {@code DistantHorizons.toml}. Deliberate policy: mixin, never mutate the user's config. This flag keeps the
- * mixin surgical -- DH's dedupe still applies to every update that is not ours.
+ * <p><b>Why a flag and not a config change.</b> The DH toggles that would avoid this are not on DH's public
+ * API; reaching them means reflecting into DH's internal {@code Config$Server}, which also rewrites the
+ * player's saved {@code DistantHorizons.toml}. Deliberate policy: mixin, never mutate the user's config.
  *
- * <p>The flag is a ThreadLocal because {@code overwriteChunkDataAsync} calls {@code applyChunkUpdate}
- * synchronously on the calling thread (verified in DH 3.2.0's bytecode) -- "Async" describes DH's internal
- * queueing further down, not the gate. {@link #forced()} counts how often the mixin actually fired: if we
- * push on a DH server and that count is ZERO, the gate ran somewhere we did not expect and the pushes are
- * being eaten again. Never let this fail silently -- that is the whole history of this feature.
+ * <p>ThreadLocal because {@code overwriteChunkDataAsync} calls {@code applyChunkUpdate} synchronously on
+ * the calling thread (verified in DH 3.2.0's bytecode) -- "Async" is DH's internal queueing further down,
+ * not the gate. {@link #forced()} counting ZERO after a push on a DH server means the gate ran somewhere
+ * we did not expect and the pushes are being eaten again.
  */
 public final class DhPushGuard {
 
@@ -49,12 +45,10 @@ public final class DhPushGuard {
         }
     }
 
-    /** Read by the mixin on DhClientLevel. */
     public static boolean isPushing() {
         return PUSHING.get();
     }
 
-    /** Called by the mixin every time it forces an update past DH's dedupe gate. */
     public static void forced() {
         forced.incrementAndGet();
     }

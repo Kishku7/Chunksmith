@@ -14,23 +14,16 @@ import net.minecraft.server.level.ServerPlayer;
  * StreamCodec: the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair. The WIRE is
  * nevertheless byte-identical to the modern cells -- a length-prefixed byte array on channel
  * {@code chunksmith:lod} -- because {@code writeByteArray} is the same varint+bytes encoding the modern
- * StreamCodec emits. One protocol, four registration APIs.
+ * StreamCodec emits.
  *
- * <p>{@code ResourceLocation(String,String)} is still public here (it was privatized at 1.21 in favour
- * of {@code fromNamespaceAndPath}), so the ctor form is correct and this file needs no Cog.
+ * <p>{@code ResourceLocation(String,String)} is still public here (privatized at 1.21 in favour of
+ * {@code fromNamespaceAndPath}), so the ctor form is correct and this file needs no Cog.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodChannel {
 
-    /**
-     * {@code chunksmith:lod} -- the ONE channel id, named in exactly one place.
-     *
-     * <p>Public because the CLIENT half of the mod ({@code lod.client.ClientPlatform}) attaches its
-     * receiver to the same id. Before 3.1.0 the client was a SEPARATE mod carrying its own copy of this
-     * constant; one mod, one constant, is the point of the merge.
-     */
+    /** Public: the CLIENT half ({@code lod.client.ClientPlatform}) attaches its receiver to this id. */
     public static final ResourceLocation ID =
             new ResourceLocation(CsLodProtocol.NAMESPACE, CsLodProtocol.CHANNEL);
 
@@ -52,7 +45,6 @@ public final class CsLodChannel {
                 CsLodServerNet.onDisconnect(handler.getPlayer().getUUID()));
     }
 
-    /** Send raw protocol bytes to a player. */
     public static void send(final ServerPlayer player, final byte[] data) {
         final FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeByteArray(data);

@@ -13,19 +13,15 @@ import net.minecraftforge.fml.common.Mod;
  * The classic-Forge LOD entrypoint (MC 1.20.1 / Forge 47) -- everything LOD, and nothing else.
  *
  * <p>A GAME-bus {@code @Mod.EventBusSubscriber} rather than a hook inside {@code ChunksmithForge}: FML
- * class-loads and registers every subscriber automatically, so a cell WITH the LOD feature wires itself
- * up and a cell WITHOUT it simply does not ship this class. The general entrypoint never learns that LOD
- * exists.
+ * registers every subscriber automatically, so a cell WITHOUT the LOD feature simply does not ship this
+ * class and the general entrypoint never learns that LOD exists. The channel is built by
+ * {@code CsLodChannel}'s static initializer (a MOD-bus subscriber), because Forge's network registry only
+ * accepts a new channel during mod construction.
  *
- * <p>The channel is built by {@code CsLodChannel}'s static initializer (a MOD-bus subscriber), because
- * Forge's network registry only accepts a new channel during mod construction.
+ * <p>{@code TickEvent.ServerTickEvent} did not carry a {@link MinecraftServer} on every Forge 47 build, so
+ * the server is CAPTURED on start rather than read off the tick event.
  *
- * <p>The tick handler needs the {@link MinecraftServer}, and {@code TickEvent.ServerTickEvent} did not
- * carry one on every Forge 47 build -- so the server is CAPTURED on start rather than read off the tick
- * event. Cheap, and it removes an API question from the oldest cell we ship.
- *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {
@@ -41,11 +37,9 @@ public final class LodInit {
     }
 
     /**
-     * Bind Distant Horizons, at the last lifecycle point before it reports its levels.
-     *
-     * <p>{@code ServerAboutToStartEvent} fires BEFORE {@code initServer()} -- so before
-     * {@code createLevels()}, and therefore before DH's level-load event. {@code ServerStartedEvent} would
-     * already be too late to override its generator.
+     * Bind Distant Horizons at the last point before it reports its levels: {@code ServerAboutToStartEvent}
+     * fires BEFORE {@code initServer()}, so before {@code createLevels()} and therefore before DH's
+     * level-load event. {@code ServerStartedEvent} would already be too late to override its generator.
      */
     @SubscribeEvent
     public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
@@ -76,7 +70,6 @@ public final class LodInit {
     public static void onServerStarted(final ServerStartedEvent event) {
         warnOnConflicts();
         server = event.getServer();
-        // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
         LodSupport.announce(event.getServer());
         // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
         // instead of skipping every already-generated chunk (and so never building their LODs).
@@ -85,12 +78,10 @@ public final class LodInit {
     }
 
     /**
-     * The LOD-streamer conflict check, done at RUNTIME on this cell only.
-     *
-     * <p>Every other LOD cell declares these as hard incompatibilities in its manifest (Fabric
-     * {@code breaks}, NeoForge {@code type = "incompatible"}). Forge 47's {@code mods.toml} has NO
-     * incompatible dependency type -- it only understands {@code mandatory = true|false} -- so the
-     * conflict is not expressible there and has to be surfaced in the log instead.
+     * The LOD-streamer conflict check, done at RUNTIME on this cell only: Forge 47's {@code mods.toml} has
+     * NO incompatible dependency type -- only {@code mandatory = true|false} -- so the incompatibility every
+     * other cell declares in its manifest (Fabric {@code breaks}, NeoForge {@code type = "incompatible"})
+     * is not expressible here and has to be surfaced in the log instead.
      */
     private static void warnOnConflicts() {
         for (final String other : new String[] {"lss", "voxyserver", "lodserver"}) {
@@ -102,10 +93,7 @@ public final class LodInit {
             }
         }
         // The standalone Chunksmith-Client, DISCONTINUED at 3.1.0 -- its multiplayer LOD half IS this jar
-        // now. Both register the chunksmith:lod channel, so having both is a duplicate registration. Every
-        // other LOD cell declares this as a hard incompatibility in its manifest (Fabric `breaks`, NeoForge
-        // type="incompatible"); Forge 47's mods.toml has no incompatible dependency type at all -- only
-        // mandatory=true|false -- so on this one cell it can only be said out loud.
+        // now. Both register the chunksmith:lod channel, so having both is a duplicate registration.
         if (net.minecraftforge.fml.ModList.get().isLoaded("chunksmithclient")) {
             org.slf4j.LoggerFactory.getLogger("Chunksmith").error(
                     "Chunksmith-Client is installed alongside Chunksmith 3.1.0+. It is DISCONTINUED: its "
@@ -119,12 +107,11 @@ public final class LodInit {
     public static void onServerStopped(final ServerStoppedEvent event) {
         server = null;
         com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped();
-        // Flush the writer queue and close the region files -- otherwise a pregen that ends at shutdown
-        // would lose whatever was still queued.
+        // Flush the writer queue and close the region files, or a pregen that ends at shutdown loses
+        // whatever was still queued.
         LodSupport.shutdown();
     }
 
-    /** Drip-feed the in-band fallback. A few slices per tick, never a burst. */
     @SubscribeEvent
     public static void onServerTick(final TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {

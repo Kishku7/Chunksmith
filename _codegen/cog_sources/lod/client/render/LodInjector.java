@@ -23,17 +23,13 @@ import java.util.function.Consumer;
 /**
  * Walks the downloaded CSLOD store and hands every record to whichever renderer the player has.
  *
- * <p>This is the last mile: the server generated the data, the client downloaded it, and now it becomes
- * terrain the player can actually see.
- *
- * <p>Runs off the game thread. Rebuilding chunks and pushing them into a renderer is real work, and it must
+ * <p>Runs off the game thread: rebuilding chunks and pushing them into a renderer is real work, and it must
  * never make the game stutter -- the player keeps playing while their horizon fills in behind them.
  */
 public final class LodInjector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
-    /** How long to wait for a renderer to announce itself before giving up. */
     private static final long READY_TIMEOUT_MILLIS = 60_000L;
 
     private static final long READY_POLL_MILLIS = 250L;
@@ -43,29 +39,20 @@ public final class LodInjector {
     private static final AtomicLong dhChunks = new AtomicLong();
 
     /**
-     * Which injection SESSION is current. Bumped when the session a running injection belongs to has
-     * gone away -- a disconnect, a cancel, or a server that has stopped (mod_support #16, 2026-08-12).
+     * Which injection SESSION is current. Bumped when the session a running injection belongs to has gone
+     * away -- a disconnect, a cancel, or a server that has stopped (mod_support #16, 2026-08-12).
      *
-     * <p>A worker captures this value when it starts and stops as soon as it no longer matches, so the
-     * level check below is not the only thing guarding it. That matters because the level check catches
-     * the player CHANGING dimension but not the world ending underneath us: in singleplayer the client
-     * level object can still be there while the integrated server is already shutting down, so the
-     * worker sails on. It was seen logging "injected 17500 chunks" for ~45 seconds AFTER the server had
-     * crashed and printed "Stopping server" -- a daemon thread writing into a renderer for a world that
-     * no longer exists.
+     * <p>A worker captures this value when it starts and stops as soon as it no longer matches. The level
+     * check below is not enough alone: it catches the player CHANGING dimension but not the world ending
+     * underneath us -- in singleplayer the client level can still be there while the integrated server is
+     * shutting down. One was seen logging "injected 17500 chunks" ~45s after "Stopping server".
      *
      * <p><b>A COUNTER, deliberately, and not the boolean it replaces.</b> The boolean was set true by
-     * {@code stop()} on disconnect and cleared by an {@code arm()} that only ONE of the two callers made
-     * -- the in-band fallback. The backchannel is the path almost every player is on, and it never
-     * armed, so the first disconnect of a game session latched the flag true and every join after it
-     * aborted at region 0 while reporting "the player left ..." -- for the remaining life of the
-     * process. The store downloaded perfectly and was thrown away at the last step, and the log line
-     * blamed the player.
-     *
-     * <p>A generation has no pairing to get wrong. A new injection reads the CURRENT value as its own
-     * baseline, so a stop can only ever end the work it was aimed at, and a call site that forgets to
-     * announce itself cannot poison the next session. There is nothing to arm, which is why
-     * {@code arm()} is gone rather than fixed.
+     * {@code stop()} on disconnect and cleared by an {@code arm()} that only ONE of the two callers made --
+     * the in-band fallback. The backchannel is the path almost every player is on, so the first disconnect
+     * of a game session latched the flag true and every join after it aborted at region 0 for the remaining
+     * life of the process. A generation has no pairing to get wrong: a new injection reads the CURRENT
+     * value as its own baseline, so there is nothing to arm and {@code arm()} is gone rather than fixed.
      */
     private static final AtomicInteger SESSION = new AtomicInteger();
 
@@ -78,13 +65,10 @@ public final class LodInjector {
     }
 
     /**
-     * Regions already injected THIS SESSION -- keyed by ({@code dimension}, x, z), never by x/z alone.
-     *
-     * <p>See {@link InjectedRegions}. The short version: region (0,0) is a different place in every
-     * dimension, and keying this set on coordinates alone meant the Nether's (0,0) was skipped forever the
-     * moment the overworld's (0,0) had been drawn.
-     *
-     * <p>Cleared on disconnect: the store is keyed by server, and so is this.
+     * Regions already injected THIS SESSION -- keyed by ({@code dimension}, x, z), never by x/z alone:
+     * region (0,0) is a different place in every dimension, and keying on coordinates alone meant the
+     * Nether's (0,0) was skipped forever the moment the overworld's (0,0) had been drawn. See
+     * {@link InjectedRegions}. Cleared on disconnect: the store is keyed by server, and so is this.
      */
     private static final InjectedRegions INJECTED = new InjectedRegions();
 
@@ -92,31 +76,23 @@ public final class LodInjector {
      * The ON-DISK half of the same question, one per dimension we have injected into this session.
      *
      * <p>{@link #INJECTED} is emptied on disconnect, which meant a JOIN began believing the renderer held
-     * nothing -- so every region in range was decoded and pushed again, into a voxy database and a DH
-     * sqlite that had both persisted every one of them since the last session. That is minutes of CPU per
-     * join for terrain that is already on screen, and on a two-core machine it is the difference between
-     * playable and not (mod_support #15).
-     *
-     * <p>So each dimension's claims are written to a {@code .injected} sidecar and read back at the next
-     * join. This map is only a per-session handle cache -- the file is the record. Cleared on disconnect
-     * with everything else, because the next server gets its own store and its own sidecars.
+     * nothing -- so every region in range was decoded and pushed again into a voxy database and a DH sqlite
+     * that had persisted every one of them. That is minutes of CPU per join for terrain already on screen,
+     * and on a two-core machine the difference between playable and not (mod_support #15). So each
+     * dimension's claims go to a {@code .injected} sidecar; this map is only a per-session handle cache.
      */
     private static final java.util.Map<String, InjectedIndex> PERSISTED =
             new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
-     * Inject specific regions of a downloaded store into every renderer that is present.
+     * Inject specific regions of a downloaded store into every renderer that is present. Skips any region
+     * already injected this session, so this is safe to call on every travel refresh.
      *
-     * <p>Skips any region already injected this session, so this is safe to call on every travel refresh.
-     *
-     * <p><b>The records must belong to the level they are being pushed into.</b> Both renderer adapters
-     * resolve their target from the level we hand them -- DH looks up the wrapper for THIS level, voxy calls
-     * {@code WorldIdentifier.of(level)} -- so if the CALLER hands us the wrong dimension's records, they are
-     * faithfully written into the right renderer for the wrong world, and neither DH nor voxy validates it.
-     * DH will accept, persist, downsample and report success for every single one. (It has: 1089 overworld
-     * chunks into the End's database, and in 3.1.0-beta-2 the overworld's whole store into the Nether.)
-     * So the level is the authority, and this is the gate: if the dimension of these records is not the
-     * dimension of the level in front of us, we do not inject. There is no "close enough" here.
+     * <p><b>The records must belong to the level they are being pushed into.</b> Both adapters resolve
+     * their target from the level we hand them, so the wrong dimension's records are faithfully written
+     * into the right renderer for the wrong world -- and neither DH nor voxy validates it. (It has
+     * happened: 1089 overworld chunks into the End's database, and in 3.1.0-beta-2 the overworld's whole
+     * store into the Nether.) The level is the authority, and this is the gate.
      *
      * @param storeRoot the client's store for this server ({@code .../chunksmith/lod/<server>})
      * @param dimension the dimension these records belong to -- MUST be the level's own dimension
@@ -147,9 +123,8 @@ public final class LodInjector {
         }
 
         // What did the LAST session hand this renderer? Seeded before the first claim of this dimension,
-        // so the claims below start from the truth on disk rather than from an empty map. Without this the
-        // whole in-range store is "new" at every join. Null means a malformed dimension id -- the same
-        // condition the store gate below refuses on, so we simply do not persist for it.
+        // so the claims below start from the truth on disk rather than an empty map -- without it the
+        // whole in-range store is "new" at every join. Null means a malformed dimension id; do not persist.
         final boolean voxyInstalled = Renderers.hasVoxy();
         final boolean dhInstalled = Renderers.hasDh();
         final InjectedIndex index = PERSISTED.computeIfAbsent(dimension, dim -> {
@@ -166,10 +141,9 @@ public final class LodInjector {
             return opened;
         });
 
-        // Claim by (dimension, region, TOKEN). A region we have already drawn is skipped -- unless the
-        // server is now advertising a DIFFERENT version of it, which during a pregen is the NORMAL case for
-        // every region under the player's feet. See InjectedRegions: keying on coordinates alone meant a
-        // re-downloaded, grown region was silently thrown away by the very step that was meant to draw it.
+        // Claim by (dimension, region, TOKEN). An already-drawn region is skipped -- unless the server is
+        // advertising a DIFFERENT version of it, which during a pregen is the NORMAL case under the
+        // player's feet. Keying on coordinates alone threw a re-downloaded, grown region away.
         final java.util.List<CsLodMessages.RegionEntry> fresh = new java.util.ArrayList<>();
         for (final CsLodMessages.RegionEntry region : regions) {
             if (INJECTED.claim(dimension, region.regionX(), region.regionZ(), region.hash())) {
@@ -180,11 +154,10 @@ public final class LodInjector {
             return;
         }
 
-        // WAIT for a renderer to become ready. This is not defensive padding -- it is a REAL RACE, and it
-        // bit us on the first multiplayer run: on a 1 GbE LAN the whole 19 MB store downloads in under a
-        // second, roughly ONE SECOND BEFORE Distant Horizons announces the level. Inject immediately and
-        // there is nothing to inject into: the download succeeds, the injector bails, and the player sees
-        // empty sky while every log line says success. The faster the network, the more reliably it fails.
+        // WAIT for a renderer to become ready. A REAL RACE, not defensive padding: on a 1 GbE LAN the
+        // whole 19 MB store downloads in under a second, roughly ONE SECOND BEFORE Distant Horizons
+        // announces the level. Inject immediately and there is nothing to inject into -- the download
+        // succeeds, the injector bails, and the player sees empty sky while every log line says success.
         if (!awaitRenderer(level)) {
             // Un-mark them: a renderer that shows up later must still get this data.
             for (final CsLodMessages.RegionEntry region : fresh) {
@@ -201,11 +174,9 @@ public final class LodInjector {
         final boolean dh = dhInstalled && DhTarget.available(level);
 
         // Only write a claim down when we are injecting into EVERY renderer the player has. If one is
-        // installed but not ready yet, this pass feeds the other one and the session-only claim still
-        // suppresses a pointless re-push during THIS session -- but nothing goes on disk, because a
-        // persisted claim would tell the next join that the renderer which never received the data
-        // already has it. A slow re-inject is the bug being fixed; a permanent hole in the horizon is
-        // worse than the bug.
+        // installed but not ready, this pass feeds the other and the session-only claim still suppresses a
+        // re-push during THIS session -- but nothing goes on disk, because a persisted claim would tell
+        // the next join that the renderer which never received the data already has it.
         final boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled;
 
         // Name the dimension. It is the one fact that made the difference between "it works" and "there is
@@ -221,11 +192,9 @@ public final class LodInjector {
         for (int i = 0; i < fresh.size(); i++) {
             final CsLodMessages.RegionEntry region = fresh.get(i);
 
-            // A large store is minutes of work on this thread, and the player keeps playing throughout --
-            // they can walk into a portal half way through. The level we were handed is then no longer the
-            // level on screen, and DH/voxy would take the rest of this dimension's records straight into the
-            // new one. Stop, and give the untouched regions back so the re-armed pull injects them into the
-            // level they belong to.
+            // A large store is minutes of work and the player can walk into a portal half way through.
+            // The level we were handed is then not the level on screen, and DH/voxy would take the rest of
+            // this dimension's records into the new one. Stop, and give the untouched regions back.
             final boolean sessionEnded = SESSION.get() != session;
             if (sessionEnded || Minecraft.getInstance().level != level) {
                 for (int j = i; j < fresh.size(); j++) {
@@ -233,10 +202,8 @@ public final class LodInjector {
                     forget(index, fresh.get(j));
                 }
                 flush(index, dimension);
-                // Say WHICH of the two happened. They are different events with different fixes, and
-                // the old wording announced a dimension change for both -- so the session-ended case
-                // spent its whole life telling players they had walked through a portal they had not
-                // walked through, which is how the latched-flag bug above stayed invisible.
+                // Say WHICH of the two happened: they are different events with different fixes, and the
+                // old wording announced a dimension change for both, hiding the latched-flag bug above.
                 LOGGER.info("Chunksmith: stopping the {} LOD injection -- {}. {} region(s) were not"
                                 + " injected and will be re-fetched {}.",
                         dimension,
@@ -260,9 +227,8 @@ public final class LodInjector {
                         progress.accept("injected " + done + " chunks");
                     }
                 });
-                // Recorded PER REGION, as it completes -- not in one write at the end. A session that is
-                // killed half way through a large store must not lose the regions it really did inject,
-                // and must not claim the ones it did not.
+                // Recorded PER REGION as it completes, not in one write at the end: a session killed
+                // half way through must not lose the regions it did inject, or claim ones it did not.
                 if (persist) {
                     index.put(region.regionX(), region.regionZ(), region.hash());
                 }
@@ -288,19 +254,12 @@ public final class LodInjector {
      * Say -- IN OUR OWN WORDS -- when the DH dedupe gate never opened.
      *
      * <p>The mixin on {@code DhClientLevel.shouldProcessChunkUpdate} is what stops a DH server silently
-     * eating our pushes (see {@link DhPushGuard}). Its config is deliberately {@code "required": false},
-     * so if the target ever vanishes Mixin SKIPS it and the game keeps running -- correct behaviour, but
-     * Mixin announces it with wording like "Critical injection failure", which reads FATAL in a user's log
-     * and is not. It also does not say what it means for THIS mod.
-     *
-     * <p>So we check the thing that actually matters: we pushed chunks into a DH that has a live network
-     * session, and the gate was forced ZERO times. That means the mixin did not fire, and DH's ten-minute
-     * dedupe is free to discard our terrain while still reporting success -- the exact silent failure this
-     * whole mechanism exists to prevent. Say so plainly, and say what to do about it.
-     *
-     * <p>Zero forced pushes in SINGLEPLAYER (or on a server without DH) is entirely normal: the gate
-     * returns true on its own when there is no network state, so there is nothing to force. We therefore
-     * only complain when we actually pushed something.
+     * eating our pushes (see {@link DhPushGuard}). Its config is deliberately {@code "required": false}, so
+     * if the target vanishes Mixin SKIPS it and announces that with wording like "Critical injection
+     * failure", which reads FATAL in a user's log and is not. So we check what actually matters: we pushed
+     * chunks into a DH with a live network session and the gate was forced ZERO times, meaning the mixin
+     * did not fire. Zero forced pushes in SINGLEPLAYER (or on a server without DH) is normal -- the gate
+     * returns true on its own with no network state -- so we only complain when we actually pushed.
      */
     private static void reportDhGate(final boolean dh) {
         if (!dh || dhChunks.get() == 0 || DhPushGuard.forcedCount() > 0) {
@@ -322,11 +281,9 @@ public final class LodInjector {
     }
 
     /**
-     * Write the record out.
-     *
-     * <p>Failure is logged and survivable, and the direction it fails in is the safe one: a sidecar we
-     * could not write means the next join re-injects those regions, which is exactly the behaviour this
-     * whole mechanism replaces. Slow, not wrong.
+     * Write the record out. Failure is logged and survivable, and it fails in the safe direction: a
+     * sidecar we could not write means the next join re-injects those regions, which is exactly the
+     * behaviour this mechanism replaces. Slow, not wrong.
      */
     private static void flush(final InjectedIndex index, final String dimension) {
         if (index == null) {
@@ -343,16 +300,14 @@ public final class LodInjector {
     /** Forget what we have injected. Call on disconnect. */
     public static void reset() {
         INJECTED.clear();
-        // The FILES are deliberately left alone -- they are the record the next join reads. Only the
-        // per-session handles go, because the next server has its own store and its own sidecars.
+        // The FILES are deliberately left alone: they are the record the next join reads.
         PERSISTED.clear();
     }
 
     /**
-     * Block until a renderer can actually receive data, or we give up.
-     *
-     * <p>voxy is ready when its engine exists; DH is ready when it has fired its level-load event for THIS
-     * level. Both happen shortly after the world loads -- and on a fast connection our download beats them.
+     * Block until a renderer can actually receive data, or we give up. voxy is ready when its engine
+     * exists; DH when it has fired its level-load event for THIS level. Both happen shortly after the
+     * world loads -- and on a fast connection our download beats them.
      */
     private static boolean awaitRenderer(final Level level) {
         final long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;

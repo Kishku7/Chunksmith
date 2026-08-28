@@ -3,25 +3,15 @@ package com.kishku7.chunksmith.lod.client.render;
 import com.seibel.distanthorizons.api.DhApi;
 
 /**
- * Reads Distant Horizons' ACTUAL configured render distance.
- *
- * <p>Hard-references DH, so only ever loaded once DH is known present.
- *
- * <p>This is what the server follows when deciding how much to send. Guessing would be wrong in both
- * directions: send more than the player can draw and it is bandwidth spent on terrain they will never see;
- * send less and they get visible holes at the edge of their view. The client is the only side that knows,
- * so the client says.
+ * Reads Distant Horizons' ACTUAL configured render distance. Hard-references DH, so it is only ever
+ * loaded once DH is known present.
  */
 public final class DhRadius {
 
     private DhRadius() {
     }
 
-    /**
-     * DH's chunk render distance, in BLOCKS, or 0 if it cannot be read.
-     *
-     * <p>{@code graphics().chunkRenderDistance()} is in CHUNKS; a chunk is 16 blocks.
-     */
+    /** DH's render distance in BLOCKS, or 0 if unreadable. {@code chunkRenderDistance()} is CHUNKS x 16. */
     public static int blocks() {
         try {
             final Integer chunks = DhApi.Delayed.configs.graphics().chunkRenderDistance().getValue();

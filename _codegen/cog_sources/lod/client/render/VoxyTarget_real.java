@@ -16,42 +16,33 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * <p>Hard-references voxy, so it is only ever class-loaded once {@code isModLoaded("voxy")} has passed.
  *
  * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the section and its light
- * DIRECTLY, so voxy gets the REAL light that was captured on the server at generation time -- which is the
- * whole point of storing sky and block light separately in CSLOD.
- *
- * <p><b>rawIngest has NO light gate.</b> Hand it wrong light and it will cheerfully produce BLACK LODs and
- * report success. So the light we ship has to be right, and the only way to know is to look at it.
+ * DIRECTLY, so voxy gets the REAL light captured on the server at generation time -- the whole point of
+ * storing sky and block light separately in CSLOD. <b>rawIngest has NO light gate</b>: hand it wrong light
+ * and it will cheerfully produce BLACK LODs and report success.
  *
  * <p>Throttled on voxy's own queue: its ingest deque is UNBOUNDED and never reports saturation, so an
  * unthrottled replay of a large store would drive the heap into an OOM. (That is the failure that OOMed
  * Voxy WorldGen V2 badly enough that upstream voxy ships a hard `breaks` against it.)
  *
- * <p><b>Called DIRECTLY, not reflectively -- on purpose.</b> Every fork of voxy we could reach was checked
- * with {@code javap} (2026-07-13): {@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()},
+ * <p><b>Called DIRECTLY, not reflectively -- on purpose.</b> Every reachable fork was checked with
+ * {@code javap} (2026-07-13): {@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()},
  * {@code getIngestService().getTaskCount()} and {@code WorldIdentifier.of} have identical signatures in all
- * of them. Zero drift, so there is nothing for reflection to absorb here, and a reflective call on the
- * per-chunk path would cost real time for no benefit. The one place fork drift HAS been observed is voxy's
- * config field, and that is the one place we reflect -- see {@link VoxyRadius}.
- *
- * <p><b>But if that ever stops being true, the player is TOLD.</b> A {@code LinkageError} out of any of
- * these calls means the installed voxy is not the voxy we compiled against. We used to swallow it and hand
- * back "0 sections ingested", which looks exactly like success: the download worked, the log said done, and
- * the horizon stayed empty. Now the first such failure disables the voxy sink for the session and says so,
- * once, in plain words.
+ * of them, so a reflective per-chunk call would cost real time and absorb nothing. The one place fork drift
+ * HAS been observed is voxy's config field, and that is the one place we reflect -- see {@link VoxyRadius}.
+ * If that stops being true, a {@code LinkageError} out of any of these calls disables the voxy sink for the
+ * session and says so once, rather than handing back "0 sections ingested" -- which looks like success.
  */
 public final class VoxyTarget {
 
     /** Pause while voxy's ingest backlog is above this. */
     private static final int QUEUE_LIMIT = 512;
 
-    /** Warn key: voxy is here, but it will not take our data. */
     private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
 
     /**
      * Set once voxy has proved it cannot accept our data. Not a "retry later" flag -- a LinkageError is a
-     * permanent, structural mismatch (the method or field is not in the jar that is loaded), so retrying it
-     * per chunk would just burn CPU and spam the log for a result that cannot change until the player
-     * changes their mods.
+     * permanent, structural mismatch, so retrying per chunk would burn CPU and spam the log for a result
+     * that cannot change until the player changes their mods.
      */
     private static volatile boolean broken;
 
@@ -61,9 +52,8 @@ public final class VoxyTarget {
     /**
      * Whether THIS loader has a voxy adapter at all. True here; false in the NeoForge copy.
      *
-     * <p>{@link com.kishku7.chunksmith.lod.client.Renderers#hasVoxy()} is gated on this, so a NeoForge client
-     * that somehow has a mod called {@code voxy} does not get announced to the server as a voxy client that
-     * we then cannot feed. See the NeoForge seam copy of this class for why it does not exist there.
+     * <p>{@link com.kishku7.chunksmith.lod.client.Renderers#hasVoxy()} is gated on this, so a NeoForge
+     * client that somehow has a mod called {@code voxy} is not announced as one we can then feed.
      */
     public static boolean supported() {
         return true;
@@ -77,19 +67,14 @@ public final class VoxyTarget {
         try {
             return VoxyCommon.getInstance() != null;
         } catch (final LinkageError error) {
-            // voxy is INSTALLED (its mod id is loaded) but we cannot even ask it for its engine. Silence
-            // here means the player sees no distant terrain and no reason why -- the exact failure this
-            // whole warning path exists to kill.
+            // voxy is INSTALLED (its mod id is loaded) but we cannot even ask it for its engine --
+            // silence here means the player sees no distant terrain and no reason why.
             disable(error);
             return false;
         }
     }
 
-    /**
-     * Inject one chunk record.
-     *
-     * @return number of sections ingested; 0 if voxy has been ruled out
-     */
+    /** @return sections ingested; 0 if voxy has been ruled out. */
     public static int inject(final Level level, final CsLodChunk record) {
         if (broken) {
             return 0;
@@ -150,8 +135,7 @@ public final class VoxyTarget {
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        // A LinkageError out of getIngestService()/getTaskCount() is NOT caught here on purpose: it belongs
-        // to the same "this voxy is not our voxy" cause as rawIngest, and inject() catches it one frame up
-        // -- one disable, one warning, not two.
+        // A LinkageError out of getIngestService()/getTaskCount() is deliberately NOT caught here:
+        // inject() catches it one frame up, so it is one disable and one warning, not two.
     }
 }

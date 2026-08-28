@@ -15,14 +15,10 @@ import java.util.function.Consumer;
 /**
  * Replays a CSLOD store into voxy. Drives {@code /cslod inject}.
  *
- * <p>This is the payoff of the neutral format: a world pregenerated with ChunkSmith -- possibly long
- * before voxy was ever installed -- can be turned into voxy LODs after the fact, with no world
- * regeneration and no re-reading of region files.
- *
  * <p>Injection goes through {@link VoxelIngestService#rawIngest}, NOT {@code tryAutoIngestChunk}:
- * rawIngest takes the section and its light directly, so we hand voxy the REAL light that was captured at
- * generation time. (rawIngest has no light gate at all, which is precisely why the light we stored has to
- * be right -- a mistake here yields silently black LODs rather than an error.)
+ * rawIngest takes the section and its light directly, so we hand voxy the REAL light captured at
+ * generation time. rawIngest has no light gate at all, which is precisely why the light we stored has to
+ * be right -- a mistake here yields silently black LODs rather than an error.
  *
  * <p>Throttled on voxy's own queue: its ingest deque is UNBOUNDED and never reports saturation, so a
  * backfill that just hammered it would OOM. We watch {@code getTaskCount()} and wait.
@@ -30,15 +26,12 @@ import java.util.function.Consumer;
  * <p>Generated ONLY where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x. See
  * {@link VoxyLodSink}.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
- * under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodVoxyInjector {
 
-    /** Pause the backfill while voxy's ingest backlog is above this. */
     private static final int VOXY_QUEUE_LIMIT = 512;
 
-    /** Warn key: voxy is here, but it is not the voxy we were built against. */
     private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
 
     private CsLodVoxyInjector() {
@@ -48,35 +41,27 @@ public final class CsLodVoxyInjector {
     public static boolean voxyAvailable() {
         // Ask the LOADER first. voxy is a client-side mod, so the overwhelmingly common case -- every
         // dedicated server there is -- is that it is simply not installed, and then the VoxyCommon
-        // reference below is an unresolvable class: a NoClassDefFoundError, which is a LinkageError, which
-        // the catch beneath would dutifully report as "voxy is installed, but this build of it does not
-        // match ... please report it". It is not installed. Nothing is wrong. Telling every server operator
-        // to file a bug about a voxy fork they do not have is worse than the silence it replaced.
-        //
-        // Past this gate a LinkageError means what the catch says it means: voxy IS here, and it is not the
-        // voxy we compiled against.
+        // reference below is an unresolvable class: a NoClassDefFoundError, a LinkageError, which the catch
+        // beneath would dutifully report as "voxy is installed, but this build of it does not match ...
+        // please report it". Past this gate a LinkageError means what the catch says it means: voxy IS
+        // here, and it is not the voxy we compiled against.
         if (!LodPlatform.isModLoaded("voxy")) {
             return false;
         }
         try {
             return VoxyCommon.getInstance() != null;
         } catch (final LinkageError error) {
-            // voxy is INSTALLED but we cannot even reach its engine. Returning a bare false here used to
-            // make `/cslod inject` say "voxy is not running" -- which is a lie, and sends the player
-            // looking for the wrong problem. Say what actually happened.
+            // voxy is INSTALLED but we cannot reach its engine. A bare false here used to make
+            // `/cslod inject` say "voxy is not running" -- a lie that sends the player at the wrong problem.
             warnIncompatible(error);
             return false;
         }
     }
 
     /**
-     * Announce -- once -- that the installed voxy does not match the one we compiled against.
-     *
-     * <p>A {@link LinkageError} (NoSuchMethodError / NoSuchFieldError / NoClassDefFoundError) out of a voxy
-     * call is not a transient condition: it means the jar that is loaded does not contain the member we
-     * compiled against, which is what a drifting fork looks like from the inside. It is also an Error, so a
-     * {@code catch (Exception)} would never see it. Swallowing it silently is how a player ends up with an
-     * empty horizon and a log full of success.
+     * Announce -- once -- that the installed voxy does not match the one we compiled against. A
+     * {@link LinkageError} out of a voxy call is not a transient condition: the jar that is loaded does not
+     * contain the member we compiled against, which is what a drifting fork looks like from the inside.
      */
     private static void warnIncompatible(final LinkageError error) {
         LodWarnings.once(CAUSE_INCOMPATIBLE,
@@ -87,11 +72,8 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Replay the whole store for one dimension into voxy. Runs on the CALLING thread -- callers should
-     * hand it a background thread, not the server thread.
-     *
-     * @param progress receives human-readable progress lines
-     * @return number of chunks injected
+     * Replay the whole store for one dimension into voxy. Runs on the CALLING thread -- callers must hand
+     * it a background thread, not the server thread.
      */
     public static int inject(final ServerLevel level, final Path storeRoot, final Consumer<String> progress)
             throws IOException {
@@ -112,8 +94,7 @@ public final class CsLodVoxyInjector {
             });
         } catch (final LinkageError error) {
             // rawIngest is our first and only call into voxy's ingest path, so a fork with a different
-            // signature surfaces HERE, as an Error -- which would otherwise unwind straight past the
-            // command's catch(Exception) and end the backfill in total silence.
+            // signature surfaces HERE, as an Error -- past the command's catch(Exception), in total silence.
             warnIncompatible(error);
             progress.accept("ABORTED after " + chunks[0] + " chunks: this voxy will not accept our data ("
                     + error + ")");
@@ -145,7 +126,6 @@ public final class CsLodVoxyInjector {
         return injected;
     }
 
-    /** Rebuild a DataLayer from our packed nibbles, or from a single uniform value. */
     private static DataLayer light(final byte[] packed, final int uniform) {
         if (packed != null) {
             return new DataLayer(packed.clone());

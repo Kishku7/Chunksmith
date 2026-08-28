@@ -13,30 +13,25 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * PUSH a CSLOD record into Distant Horizons, instead of waiting to be pulled. Drives {@code /cslod
- * dhpush}: the backfill for a world that was pregenerated before DH was ever installed.
+ * PUSH a CSLOD record into Distant Horizons instead of waiting to be pulled. Drives {@code /cslod dhpush}:
+ * the backfill for a world that was pregenerated before DH was ever installed.
  *
- * <p><b>Why this exists.</b> The world-generator override only ever fires on a level that has a
- * server: DH's {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a
- * MULTIPLAYER CLIENT gets a {@code RemoteWorldRetrievalQueue} instead -- so {@code generateApiChunk} is
- * never called there. The whole pull design is inapplicable to Chunksmith-Client. The client must PUSH.
+ * <p>The world-generator override only ever fires on a level that has a server -- DH's
+ * {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a MULTIPLAYER CLIENT
+ * gets a {@code RemoteWorldRetrievalQueue} instead, so {@code generateApiChunk} is never called there. The
+ * whole pull design is inapplicable to a client; the client must PUSH. The push lands in
+ * {@code DhApi.Delayed.terrainRepo.overwriteChunkDataAsync} -> {@code SharedApi.applyChunkUpdate}, the same
+ * path DH uses when a player edits a block: it writes at gen step LIGHT, persists, and re-renders itself.
  *
- * <p>The push path is {@code DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(levelWrapper, {chunk, level})}
- * -> {@code SharedApi.applyChunkUpdate}: the same code path DH uses when a player edits a block. It
- * writes at gen step LIGHT, persists, and re-renders on its own.
- *
- * <p><b>What this spike is really testing</b> is not the API call -- it is whether we can SYNTHESIZE a
- * vanilla {@link LevelChunk} from a stored CSLOD record that DH will accept and, crucially, LIGHT
- * correctly. If DH reads light from the level's light engine rather than from the chunk we hand it, a
- * synthesized chunk will come out BLACK, and (as everywhere else in this project) nothing will report an
- * error. So: run it, then LOOK at it.
+ * <p>The open question is not the API call but whether a {@link LevelChunk} SYNTHESIZED from a stored
+ * record is LIT correctly: if DH reads light from the level's light engine rather than from the chunk we
+ * hand it, the chunk comes out BLACK and nothing reports an error. So: run it, then LOOK at it.
  *
  * <p>Known gate, and the reason this may report success and do nothing on a real server:
  * {@code DhClientLevel.shouldProcessChunkUpdate} silently DISCARDS an update for any position seen in the
  * last 10 minutes when connected to a DH server with real-time updates on -- while still returning
- * {@code createSuccess()}. Chunksmith-Client mixins that gate off. Singleplayer -- which is the only place
- * this class runs -- is not affected, so Chunksmith itself never needs to touch DH's internals: PUBLIC API
- * only, no mixin into DH from this mod.
+ * {@code createSuccess()}. Singleplayer, the only place this class runs, is not affected, so Chunksmith
+ * uses DH's PUBLIC API only and never mixins into DH.
  *
  * <p><b>A {@code DhApiResult.success} means QUEUED, not WRITTEN.</b> The counters below cannot prove
  * retention. Verify it by counting rows in DH's SQLite, and by LOOKING at the terrain.
@@ -44,19 +39,13 @@ import java.util.function.Consumer;
  * <p>Version-blind: the only Minecraft symbols are {@code LevelChunk(Level, ChunkPos)} and
  * {@code getSections()}, both stable 1.20.1 -&gt; 26. All the drift is inside {@link CsLodSectionBuilder}.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
- * under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodDhPusher {
 
     private CsLodDhPusher() {
     }
 
-    /**
-     * Replay a CSLOD store into DH by pushing synthesized chunks at it.
-     *
-     * @return number of chunks pushed
-     */
     public static int push(final ServerLevel level,
                            final IDhApiLevelWrapper wrapper,
                            final Path storeRoot,
@@ -69,12 +58,11 @@ public final class CsLodDhPusher {
         final int[] pushed = {0};
         final int[] failed = {0};
 
-        // LinkageError, not Exception. overwriteChunkDataAsync is our FIRST and only call into DH's
-        // terrain repo, so it is where a DH that does not match the API we compiled against actually
-        // blows up -- and it blows up as an Error (NoSuchMethodError / NoClassDefFoundError /
-        // AbstractMethodError), which `catch (Exception)` does NOT catch. Chunksmith claims a wide DH
-        // range on the evidence that this signature has been stable since DH 2.0.0-a; this catch is what
-        // makes being WRONG about that a logged, contained degradation instead of a dead server thread.
+        // LinkageError, not Exception. overwriteChunkDataAsync is our FIRST and only call into DH's terrain
+        // repo, so a DH that does not match the API we compiled against blows up HERE -- and as an Error
+        // (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError), which `catch (Exception)` does
+        // NOT catch. We claim a wide DH range on the evidence that this signature has been stable since DH
+        // 2.0.0-a; this catch makes being WRONG about that a contained degradation, not a dead thread.
         try {
             CsLodRegionStore.forEachChunk(storeRoot, record -> {
                 final LevelChunk chunk = synthesize(level, record);
@@ -106,11 +94,9 @@ public final class CsLodDhPusher {
     }
 
     /**
-     * Build a vanilla {@link LevelChunk} out of a CSLOD record.
-     *
-     * <p>The empty {@code LevelChunk(Level, ChunkPos)} constructor allocates the section array for the
-     * level's height; we fill it with sections rebuilt from the record (the same reconstruction the voxy
-     * injector already does and that P2 proved correct).
+     * The empty {@code LevelChunk(Level, ChunkPos)} constructor allocates the section array for the level's
+     * height; we fill it with sections rebuilt from the record -- the same reconstruction the voxy injector
+     * does and that P2 proved correct.
      */
     private static LevelChunk synthesize(final ServerLevel level, final CsLodChunk record) {
         final LevelChunk chunk = new LevelChunk(level, new ChunkPos(record.getChunkX(), record.getChunkZ()));

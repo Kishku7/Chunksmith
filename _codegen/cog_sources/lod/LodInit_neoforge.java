@@ -13,14 +13,11 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
  * The NeoForge LOD entrypoint -- everything LOD, and nothing else.
  *
  * <p>A GAME-bus {@code @EventBusSubscriber} rather than a hook inside {@code ChunksmithNeoForge}: FML
- * class-loads and registers every subscriber automatically, so a cell WITH the LOD feature wires itself
- * up and a cell WITHOUT it simply does not ship this class. The general entrypoint never learns that LOD
- * exists.
+ * registers every subscriber automatically, so a cell WITHOUT the LOD feature simply does not ship this
+ * class and the general entrypoint never learns that LOD exists. The payload registration is a MOD-bus
+ * event and lives in {@code CsLodChannel}.
  *
- * <p>The payload registration is a MOD-bus event and lives in {@code CsLodChannel}.
- *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {
@@ -36,11 +33,10 @@ public final class LodInit {
     }
 
     /**
-     * Bind Distant Horizons, at the last lifecycle point before it reports its levels.
-     *
-     * <p>{@code ServerAboutToStartEvent} fires from {@code MinecraftServer.runServer} BEFORE
-     * {@code initServer()} -- so before {@code createLevels()}, and therefore before DH's level-load event.
-     * {@code ServerStartedEvent} would already be too late to override its generator.
+     * Bind Distant Horizons at the last point before it reports its levels: {@code ServerAboutToStartEvent}
+     * fires from {@code MinecraftServer.runServer} BEFORE {@code initServer()}, so before
+     * {@code createLevels()} and therefore before DH's level-load event. {@code ServerStartedEvent} would
+     * already be too late to override its generator.
      */
     @SubscribeEvent
     public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
@@ -68,7 +64,6 @@ public final class LodInit {
     /** The HTTP backchannel binds once the server is up and its port is known. */
     @SubscribeEvent
     public static void onServerStarted(final ServerStartedEvent event) {
-        // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
         LodSupport.announce(event.getServer());
         // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
         // instead of skipping every already-generated chunk (and so never building their LODs).
@@ -79,12 +74,11 @@ public final class LodInit {
     @SubscribeEvent
     public static void onServerStopped(final ServerStoppedEvent event) {
         com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped();
-        // Flush the writer queue and close the region files -- otherwise a pregen that ends at shutdown
-        // would lose whatever was still queued.
+        // Flush the writer queue and close the region files, or a pregen that ends at shutdown loses
+        // whatever was still queued.
         LodSupport.shutdown();
     }
 
-    /** Drip-feed the in-band fallback. A few slices per tick, never a burst. */
     @SubscribeEvent
     public static void onServerTick(final ServerTickEvent.Post event) {
         com.kishku7.chunksmith.lod.net.CsLodServerNet.tick(event.getServer());

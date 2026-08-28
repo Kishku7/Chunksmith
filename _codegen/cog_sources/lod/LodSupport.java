@@ -19,26 +19,20 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Gates, in order:
  * <ol>
- *   <li><b>{@code lodEnabled} -- a TRISTATE, default {@code auto}.</b> {@code auto} means Chunksmith
- *       decides: ON when an LOD renderer is in the JVM (Distant Horizons, voxy, or a voxy fork), ON on
- *       a DEDICATED server, OFF otherwise. An explicit {@code true}/{@code false} is an operator
- *       decision and is never overridden. The decision is LOGGED, once, at server start -- see
- *       {@link #announce(MinecraftServer)}.</li>
- *   <li><b>CSLOD store</b> -- always on when LOD is enabled. This is the durable, mod-independent
- *       artifact: it outlives voxy's storage format, and it is what feeds Distant Horizons and
- *       remote clients.</li>
- *   <li><b>voxy</b> -- added only where a voxy jar exists to compile against AND voxy is actually
- *       installed. Fabric 1.21.11 and Fabric 26 only: voxy is Fabric-ONLY and was never published for
- *       1.20.1 or 1.21.1, so every other cell carries the store path alone. That is exactly what a
- *       DEDICATED server needs -- voxy's engine is client-side and cannot run on one anyway.</li>
+ *   <li><b>{@code lodEnabled} -- a TRISTATE, default {@code auto}.</b> See {@link #decide}; the decision
+ *       is LOGGED once, at server start, by {@link #announce(MinecraftServer)}.</li>
+ *   <li><b>CSLOD store</b> -- always on when LOD is enabled. The durable, mod-independent artifact: it
+ *       outlives voxy's storage format, and it is what feeds Distant Horizons and remote clients.</li>
+ *   <li><b>voxy</b> -- only where a voxy jar exists to compile against AND voxy is actually installed:
+ *       Fabric 1.21.11 and Fabric 26 only. voxy is Fabric-ONLY and was never published for 1.20.1 or
+ *       1.21.1, so every other cell carries the store path alone -- which is what a DEDICATED server
+ *       needs anyway, voxy's engine being client-side.</li>
  * </ol>
  *
- * <p><b>Distant Horizons is not a sink.</b> DH PULLS (through the world-generator override) and is
- * PUSHED to on demand ({@code /cslod dhpush}); it is never fed from this hot path. See
- * {@link CsLodDhSupport}.
+ * <p><b>Distant Horizons is not a sink.</b> DH PULLS (through the world-generator override) and is PUSHED
+ * to on demand ({@code /cslod dhpush}); it is never fed from this hot path. See {@link CsLodDhSupport}.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class LodSupport {
 
@@ -56,24 +50,18 @@ public final class LodSupport {
     }
 
     /**
-     * Publish the CSLOD presence provider, so the pregen's skip decision can see the store.
-     *
-     * <p>This is the whole wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in
-     * shared_common and cannot see this class; it asks {@link LodPresence}, and this is what answers.
-     * Wired to server-started by {@code LodInit}, torn down in {@link #shutdown()}.
-     *
-     * <p>Nothing calls this on a plugin cell -- there is no LOD pipeline there -- so the provider stays
-     * null and the pregen behaves exactly as it did before LOD existed.
+     * Publish the CSLOD presence provider, so the pregen's skip decision can see the store -- the whole
+     * wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in shared_common and cannot see
+     * this class; it asks {@link LodPresence}, and this is what answers.
      */
     public static void install(final MinecraftServer server) {
         LodPresence.setProvider(worldName -> presenceIndexFor(server, worldName));
     }
 
     /**
-     * The presence index for a world, or null when LOD generation is off.
-     *
-     * <p>Null is load-bearing: it is how {@code GenerationTask} is told "do not do any of this", which
-     * is what makes {@code lodEnabled: false} restore the old skip behaviour byte for byte.
+     * The presence index for a world, or null when LOD generation is off. Null is load-bearing: it is how
+     * {@code GenerationTask} is told "do not do any of this", which is what makes {@code lodEnabled: false}
+     * restore the old skip behaviour byte for byte.
      */
     public static CsLodPresenceIndex presenceIndexFor(final MinecraftServer server, final String worldName) {
         if (server == null || !lodEnabled(server)) {
@@ -97,11 +85,9 @@ public final class LodSupport {
     }
 
     /**
-     * Offer a freshly generated chunk. Called from the generation hook on the main thread, while the
-     * chunk is still ticket-pinned.
-     *
-     * <p>Extraction happens HERE, synchronously, because the chunk is unloaded the moment the ticket
-     * is released. Everything downstream of extraction is asynchronous.
+     * Offer a freshly generated chunk. Called from the generation hook on the main thread, while the chunk
+     * is still ticket-pinned: extraction happens HERE, synchronously, because the chunk is unloaded the
+     * moment the ticket is released. Everything downstream of extraction is asynchronous.
      */
     public static void offer(final ServerLevel level, final LevelChunk chunk) {
         if (!lodEnabled(level.getServer())) {
@@ -131,9 +117,8 @@ public final class LodSupport {
     }
 
     /**
-     * Flush and close every sink. Wired to the server-stopped lifecycle event by {@code LodInit} (the
-     * per-loader entrypoint) -- otherwise a pregen that ends at shutdown would lose whatever was still
-     * queued.
+     * Flush and close every sink. Wired to the server-stopped lifecycle event by {@code LodInit} --
+     * otherwise a pregen that ends at shutdown would lose whatever was still queued.
      */
     public static void shutdown() {
         for (final LodSink sink : SINKS.values()) {
@@ -203,18 +188,15 @@ public final class LodSupport {
     }
 
     /**
-     * The store DIRECTORY NAME for a level -- and the name that goes on the wire.
-     *
-     * <p>The one string that addresses a dimension's LOD data end to end: this server's store directory, the
-     * dimension field of the region index, the client's own store directory, and the key the client's
-     * injector checks the level against. Derived in ONE place so the two sides cannot disagree; the client's
-     * {@code CsLodDimension} is the mirror of exactly this.
+     * The store DIRECTORY NAME for a level -- and the name that goes on the wire: this server's store
+     * directory, the dimension field of the region index, the client's own store directory, and the key
+     * the client's injector checks the level against. Derived in ONE place so the two sides cannot
+     * disagree.
      */
     public static String dimensionKey(final ServerLevel level) {
         return dimensionId(level).replace(':', '_').replace('/', '_');
     }
 
-    /** The dimension's resource id as a string. */
     private static String dimensionId(final ServerLevel level) {
         //[[[cog
         // import cog, compat
@@ -239,25 +221,16 @@ public final class LodSupport {
         return List.of(sink);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The lodEnabled TRISTATE.
-    // ---------------------------------------------------------------------------------------------
 
     /**
-     * Mod ids that mean "something in this JVM can draw an LOD".
-     *
-     * <p>Read out of the actual published jars / fork sources on 2026-07-12 (see
-     * {@code Memory\minecraft\lod-ecosystem.md}):
+     * Mod ids that mean "something in this JVM can draw an LOD". Read out of the actual published jars /
+     * fork sources on 2026-07-12 (see {@code Memory\minecraft\lod-ecosystem.md}):
      * <ul>
-     *   <li>{@code distanthorizons} -- Distant Horizons, all loaders, every MC line we ship LOD on.</li>
+     *   <li>{@code distanthorizons} -- all loaders, every MC line we ship LOD on.</li>
      *   <li>{@code voxy} -- upstream voxy AND five of the six known forks (m3t4f1v3, j-shelfwood,
      *       realBritakee, JustinTHChapman, NHblock714), every one of which keeps the upstream mod id.</li>
      *   <li>{@code neovoxy} -- the ONE fork that renamed itself (meansabine/neo-voxy).</li>
      * </ul>
-     *
-     * <p>A fork we have never heard of simply does not trip the auto-on. That is a missed convenience,
-     * not a fault: the operator sets {@code lodEnabled: true} and everything works. Nothing here can
-     * crash -- these are strings handed to the loader's own registry lookup.
      */
     private static final String[] RENDERER_IDS = {"distanthorizons", "voxy", "neovoxy"};
 
@@ -268,7 +241,6 @@ public final class LodSupport {
     private static final java.util.concurrent.atomic.AtomicBoolean ANNOUNCED =
             new java.util.concurrent.atomic.AtomicBoolean();
 
-    /** The first renderer mod id found in this JVM, or null if there is none. */
     private static String detectRenderer() {
         if (!rendererResolved) {
             synchronized (LodSupport.class) {
@@ -289,24 +261,21 @@ public final class LodSupport {
     }
 
     /**
-     * Resolve the tristate. PURE -- it decides, it does not log; {@link #announce(MinecraftServer)}
-     * owns the one log line.
+     * Resolve the tristate. PURE -- it decides, it does not log; {@link #announce(MinecraftServer)} owns
+     * the one log line.
      *
-     * <p>{@code auto} is ON on a DEDICATED server even with no renderer installed, and that is
-     * deliberate: a dedicated server cannot run voxy (client-only) and does not need DH, yet it is
-     * precisely where the CSLOD store has to exist -- it is the thing Chunksmith-Client downloads.
-     * Left OFF, the multiplayer half of the feature does nothing until an operator finds a config key,
-     * which is the bug we are fixing. The cost is bounded and only ever paid during a pregen the
-     * operator explicitly started (~5.8 KB per chunk on disk), it is stated in the startup log, and
-     * one line of config turns it off.
+     * <p>{@code auto} is ON on a DEDICATED server even with no renderer installed, and that is deliberate:
+     * a dedicated server cannot run voxy (client-only) and does not need DH, yet it is precisely where the
+     * CSLOD store has to exist -- it is the thing Chunksmith-Client downloads. The cost is bounded, paid
+     * only during a pregen the operator started (~5.8 KB per chunk on disk), and one config line ends it.
      *
      * <p>The wall-clock cost used to be quoted here as ~16 percent. MEASURED on a dedicated server
      * 2026-08-20 and that is NOT true any more: 36.1 cps with LOD on against 34.2 cps with it off over
-     * matched windows -- no measurable difference, and the OFF run was slightly slower, which is
-     * terrain noise. The reason is that extraction runs on the server thread, and once dispatch width
-     * was raised the server thread stopped being the bottleneck: it profiled at ~10 percent utilised,
-     * with extraction 70 percent OF THAT -- a big slice of a small pie. Do not re-introduce a scary
-     * number here without re-measuring it.
+     * matched windows -- no measurable difference, and the OFF run was slightly slower, which is terrain
+     * noise. The reason is that extraction runs on the server thread, and once dispatch width was raised
+     * the server thread stopped being the bottleneck: it profiled at ~10 percent utilised, with extraction
+     * 70 percent OF THAT -- a big slice of a small pie. Do not re-introduce a scary number here without
+     * re-measuring it.
      */
     public static boolean decide(final com.kishku7.chunksmith.platform.Config config,
                                  final MinecraftServer server) {
@@ -331,10 +300,8 @@ public final class LodSupport {
     }
 
     /**
-     * Say, once, out loud, what was decided and why. Wired to server-started by {@code LodInit}.
-     *
-     * <p>A silent default is how you ship a feature nobody can find. There is exactly one of these
-     * lines per server run and it always says which way it went.
+     * Say, once, out loud, what was decided and why. Wired to server-started by {@code LodInit}; exactly
+     * one of these lines per server run, and it always says which way it went.
      */
     public static void announce(final MinecraftServer server) {
         if (!ANNOUNCED.compareAndSet(false, true)) {

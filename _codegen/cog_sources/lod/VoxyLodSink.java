@@ -5,46 +5,37 @@ import me.cortex.voxy.commonImpl.VoxyCommon;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
- * Feeds freshly generated chunks straight into voxy's ingest service.
+ * Feeds freshly generated chunks into voxy's ingest service. Compiled against voxy 0.2.16-beta.
  *
- * <p>This class hard-references voxy types, so it MUST NOT be loaded unless voxy is present --
- * {@link LodSupport} is responsible for that gate. Compiled against voxy 0.2.16-beta.
- *
- * <p>Generated ONLY where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x. voxy is
- * Fabric-only and upstream has never published a 1.20.1 or a 1.21.1 build, so on every other cell this
- * class does not exist at all -- a compile-time-absent seam. The mod never claims a renderer it cannot
- * feed.
- *
- * <p>Scope: singleplayer / integrated server only. Voxy's instance factory is installed by VoxyClient, so
- * on a dedicated server {@code VoxyCommon.getInstance()} is null and there is no engine to ingest into.
- * That case is handled by the streaming path (the LOD client half), not here.
+ * <p>Hard-references voxy types, so it MUST NOT be class-loaded unless voxy is present ({@link LodSupport}
+ * gates that). Generated ONLY where a voxy jar exists to compile against -- Fabric 1.21.11 and Fabric 26.x;
+ * voxy is Fabric-only and upstream has never published a 1.20.1 or a 1.21.1 build, so on every other cell
+ * this class does not exist at all, a compile-time-absent seam. Singleplayer / integrated server only:
+ * voxy's instance factory is installed by VoxyClient, so on a dedicated server
+ * {@code VoxyCommon.getInstance()} is null and the streaming path handles that case instead.
  *
  * <p><b>A voxy that will not take our chunks must not take the pregen down with it.</b> voxy is forked
  * constantly, and a fork that changed {@code tryAutoIngestChunk} would throw a {@code NoSuchMethodError}
  * -- an Error, straight through every {@code catch (Exception)} in the pregen pipeline -- on the FIRST
- * chunk. So the sink absorbs a {@link LinkageError} once, says out loud what happened, and then stands
- * down for the session: the pregen keeps running and still writes the CSLOD store (which is the durable
- * artifact), the player just does not get live voxy ingest. Degrade, and be LOUD about it.
+ * chunk. So the sink absorbs a {@link LinkageError} once, says out loud what happened, and stands down for
+ * the session: the pregen keeps running and still writes the CSLOD store, which is the durable artifact.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
- * under gen/ is overwritten by cog-gen on every build.
+ * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class VoxyLodSink implements LodSink {
 
-    /** Warn key: voxy is here, but it is not the voxy we were built against. */
     private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
 
     /**
-     * Set once voxy has proved it cannot accept our chunks. A LinkageError is structural -- the member is
-     * not in the jar that is loaded -- so it cannot heal, and retrying it per chunk would spam the log for
-     * a result that cannot change.
+     * A LinkageError is structural -- the member is not in the jar that is loaded -- so it cannot heal, and
+     * retrying it per chunk would spam the log for a result that cannot change.
      */
     private volatile boolean broken;
 
     /**
-     * Voxy's ingest gate requires the chunk's light to be real (sections must report
-     * LIGHT_AND_DATA). ChunkSmith generates at ChunkStatus.FULL, which is downstream of the LIGHT
-     * status, so the server light engine has already run and this holds.
+     * Voxy's ingest gate requires the chunk's light to be real (sections must report LIGHT_AND_DATA).
+     * ChunkSmith generates at ChunkStatus.FULL, downstream of LIGHT, so the server light engine has
+     * already run and this holds.
      */
     @Override
     public boolean offer(final Object chunk) {
@@ -57,8 +48,8 @@ public final class VoxyLodSink implements LodSink {
         }
         try {
             if (VoxyCommon.getInstance() == null) {
-                // No engine (dedicated server, or voxy not initialized for this world). Nothing to do,
-                // and refusing here would stall pregen forever.
+                // No engine (dedicated server, or voxy not initialized for this world): refusing here
+                // would stall pregen forever.
                 return true;
             }
             return VoxelIngestService.tryAutoIngestChunk(levelChunk);
@@ -85,7 +76,6 @@ public final class VoxyLodSink implements LodSink {
         }
     }
 
-    /** Rule voxy out for this session, and SAY SO -- once, in words the player can act on. */
     private void standDown(final LinkageError error) {
         broken = true;
         LodWarnings.once(CAUSE_INCOMPATIBLE,
