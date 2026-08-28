@@ -26,9 +26,8 @@ import org.slf4j.LoggerFactory;
  * is not there to be fed and nothing here arms. Hard-references DH types, so it must not be loaded unless
  * DH is present -- {@code LodInit} owns that gate ({@code LodPlatform.isModLoaded("distanthorizons")}).
  *
- * <p><b>Loader-blind.</b> Every DH symbol this class touches is {@code com.seibel.*} and names no
- * Minecraft type and no loader type, so ONE source serves Fabric, NeoForge and Forge. PUBLIC API only --
- * no mixin into DH from this mod.
+ * <p>Every DH symbol this class touches is {@code com.seibel.*} and names no Minecraft type and no loader
+ * type, so ONE source serves Fabric, NeoForge and Forge. PUBLIC API only -- no mixin into DH from this mod.
  *
  * <p>Off by default ({@code lodDhOverride}): overriding DH's generator means DH stops generating for
  * itself, so pregenerated area appears instantly and everything else returns no data -- right for a world
@@ -85,10 +84,7 @@ public final class CsLodDhSupport {
         }
     }
 
-    /**
-     * DH's own version plus the API version it implements. Never allowed to throw: a version string is
-     * diagnostics, and diagnostics must not be the thing that takes the server down.
-     */
+    /** DH's version plus the API version it implements. Never throws -- a version string is diagnostics. */
     public static String version() {
         try {
             return "Distant Horizons " + DhApi.getModVersion()

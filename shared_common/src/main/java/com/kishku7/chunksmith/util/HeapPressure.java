@@ -3,17 +3,17 @@ package com.kishku7.chunksmith.util;
 /**
  * How full the heap is -- the constraint everything else in this mod has been talking around.
  *
- * <p><b>Why this exists.</b> Chunksmith spent three releases bounding a pregen by COUNTING proxies --
- * queued writes, LOD-sink depth, resident chunks, chunks added since the run started -- and every one
- * was wrong on a real server: an absolute chunk cap fired on chunks that were never ours, a delta cap
- * did not fire at all while the heap filled on a run resumed on an already-loaded server. What actually
- * ends a pregen badly is running out of memory, and a chunk is worth wildly different amounts of heap.
+ * <p>Three releases went into bounding a pregen by COUNTING proxies: queued writes, LOD-sink depth,
+ * resident chunks, chunks added since the run started. Every one was wrong on a real server. An absolute
+ * chunk cap fired on chunks that were never ours; a delta cap did not fire at all while the heap filled
+ * on a run resumed on an already-loaded server. What actually ends a pregen badly is running out of
+ * memory, and a chunk is worth wildly different amounts of heap.
  *
- * <p><b>Why the reading is trustworthy despite garbage.</b> {@code used = total - free} counts garbage
- * not yet collected, so one sample can read high on a healthy server -- but a collector always runs
- * before the heap fills, so a heap that STAYS high for several seconds holds live data. And the gate
- * only pauses dispatch, so a false positive costs seconds of throughput while a false negative costs
- * the server: {@link #CONFIRM_SAMPLES} samples close it, and it opens well below the threshold.
+ * <p>{@code used = total - free} counts garbage not yet collected, so one sample can read high on a
+ * healthy server -- but a collector always runs before the heap fills, so a heap that STAYS high for
+ * several seconds holds live data. And the gate only pauses dispatch, so a false positive costs seconds
+ * of throughput while a false negative costs the server: {@link #CONFIRM_SAMPLES} samples close it, and
+ * it opens well below the threshold.
  *
  * <p>Deliberately MC-free and dependency-free -- {@link Runtime} is the whole implementation.
  */

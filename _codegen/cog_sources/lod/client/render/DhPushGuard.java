@@ -4,8 +4,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
- * <p><b>Why this exists.</b> {@code DhClientLevel.shouldProcessChunkUpdate} -- consulted by
- * {@code SharedApi.applyChunkUpdate}, which is where {@code overwriteChunkDataAsync} lands -- reads:
+ * {@code DhClientLevel.shouldProcessChunkUpdate} -- consulted by {@code SharedApi.applyChunkUpdate},
+ * which is where {@code overwriteChunkDataAsync} lands -- reads:
  *
  * <pre>
  *   if (networkState == null || !networkState.isReady()) return true;
@@ -17,8 +17,8 @@ import java.util.function.Supplier;
  * {@code add()} return false and {@code applyChunkUpdate} return early -- while the caller STILL returns
  * {@code DhApiResult.createSuccess()}. DH eats the push and tells us it worked.
  *
- * <p><b>Why a flag and not a config change.</b> The DH toggles that would avoid this are not on DH's public
- * API; reaching them means reflecting into DH's internal {@code Config$Server}, which also rewrites the
+ * <p>A flag, not a config change: the DH toggles that would avoid this are not on DH's public API, and
+ * reaching them means reflecting into DH's internal {@code Config$Server}, which also rewrites the
  * player's saved {@code DistantHorizons.toml}. Deliberate policy: mixin, never mutate the user's config.
  *
  * <p>ThreadLocal because {@code overwriteChunkDataAsync} calls {@code applyChunkUpdate} synchronously on

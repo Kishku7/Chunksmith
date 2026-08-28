@@ -18,14 +18,15 @@ import me.cortex.voxy.client.config.VoxyConfig;
  * 8192 blocks, against the 256-block protocol default we used before we could read this: a voxy player
  * was being sent the one region under their feet.
  *
- * <p><b>Why the read goes through {@link VoxyConfigReader} instead of touching the field directly.</b>
- * The field's TYPE drifts across forks and a compiled field access does not survive it. Upstream declares
+ * <p>The read goes through {@link VoxyConfigReader} rather than touching the field, because the field's
+ * TYPE drifts across forks and a compiled field access does not survive it. Upstream declares
  * {@code float sectionRenderDistance}; the srjefers fork (rebased off voxy 0.2.8-alpha, which used an
  * int) ships {@code public int sectionRenderDistance}, and our compiled {@code getfield ...:F} does not
  * resolve against an {@code I} field. The JVM throws {@code NoSuchFieldError} -- which the old
- * {@code catch (LinkageError)} here swallowed, dropping the player's radius from 8192 blocks to 256. A
- * 32x collapse, reported as success. Proven on the real fork jar, 2026-07-13. The field is now read by
- * NAME as whatever numeric type it is, and a field we cannot read is ANNOUNCED ({@link LodWarnings}).
+ * {@code catch (LinkageError)} here swallowed, dropping the player's radius from 8192 blocks to 256 and
+ * reporting that as success. A 32x collapse, proven on the srjefers jar itself rather than reasoned
+ * about. The field is now read by NAME as whatever numeric type it is, and a field we cannot read is
+ * ANNOUNCED ({@link LodWarnings}).
  *
  * <p><b>NEVER CALL THIS DURING MOD INIT.</b> Class-loading {@link VoxyConfig} from our client-init
  * entrypoint leaves voxy PERMANENTLY INERT -- it never logs "Initializing voxy instance", never creates

@@ -38,18 +38,17 @@ import java.util.Arrays;
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
  *
- * <p><b>Why this did not exist before.</b> The plugin has generated LOD data since 3.2.0, and every
- * piece of the machinery for SENDING it -- the wire format, the token store, the HTTP backchannel --
- * has shipped inside the plugin jar all along, because those classes live in {@code shared_common}.
- * What was missing was the code that connects them: nothing registered a channel, nothing started the
- * HTTP server, nothing answered a client (mod_support #18). This is that missing connection.
+ * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for SENDING it --
+ * the wire format, the token store, the HTTP backchannel -- has shipped inside the plugin jar all
+ * along, because those classes live in {@code shared_common}. What was missing was the code that
+ * connects them: nothing registered a channel, nothing started the HTTP server, nothing answered a
+ * client (mod_support #18). This is that missing connection.
  *
- * <p><b>The exchange, and why a hello alone is not enough.</b> The client drives it: hello, then ask
- * for the region index, then fetch over HTTP whatever the index says it lacks. A server that answers
- * only the hello looks completely healthy -- it logs the greeting, mints a token, names its port --
- * and serves nothing at all, because the client is waiting on an index that never comes. That is
- * exactly what the first cut of this class did, and the counters said {@code 0 files} with a live
- * token to go with them. Both requests are answered here now.
+ * <p>The client drives the exchange: hello, then ask for the region index, then fetch over HTTP whatever
+ * the index says it lacks. A server that answers only the hello looks completely healthy -- it logs the
+ * greeting, mints a token, names its port -- and serves nothing at all, because the client is waiting on
+ * an index that never comes. The first cut of this class did exactly that, with the counters reading
+ * {@code 0 files} beside a live token. Both requests are answered here now.
  *
  * <p><b>Bukkit will not let us reply unless we ask it to.</b> Bukkit keeps a per-player set of the
  * channels the CLIENT announced with a {@code minecraft:register} plugin message, and
@@ -58,15 +57,13 @@ import java.util.Arrays;
  * reaches us) but puts nothing in that set, so the server hears the client and the client never hears
  * the server. See {@link #ensureChannel(Player)}.
  *
- * <p><b>What it deliberately does NOT do.</b> The in-band fallback -- streaming region data down the
- * plugin channel when the HTTP port is unreachable -- is not implemented here. On the mod that path
- * exists because a firewalled port must not mean no LOD at all; here, a client that cannot reach the
- * port simply gets nothing, and the log says which port it should have been able to reach. That is a
- * real limitation and it is written down rather than glossed: the fix for a blocked port is to open
- * it, or to set {@code lod-backchannel-port} to one the host does allow.
+ * <p>Not implemented here: the in-band fallback, streaming region data down the plugin channel when the
+ * HTTP port is unreachable. On the mod that path exists because a firewalled port must not mean no LOD at
+ * all; here a client that cannot reach the port gets nothing, and the log names the port it should have
+ * been able to reach. Open the port, or set {@code lod-backchannel-port} to one the host allows.
  *
- * <p><b>Dimension roots.</b> A mod-loader server keeps every dimension under one save root. Bukkit
- * gives each world its own folder, so this hands {@link CsLodHttpServer} a resolver rather than a
+ * <p>Dimension roots differ from the mod. A mod-loader server keeps every dimension under one save root;
+ * Bukkit gives each world its own folder, so this hands {@link CsLodHttpServer} a resolver rather than a
  * single path, and nobody's existing store has to move. That resolver is also what makes the wire
  * dimension id safe: it is matched against the keys of the worlds that are actually loaded, so a
  * malformed or hostile id resolves to nothing rather than to a path.
@@ -266,12 +263,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * no business on a tick, and the snapshot is the thread boundary: after this method returns, the
      * scan never touches a game object again.
      *
-     * <p><b>The index is served for the dimension the player is STANDING IN</b>, not the one they
-     * asked about. An index is a set of regions filtered by a radius measured from a position, and a
-     * position only means something in one world; answering the overworld's index to somebody in the
-     * Nether returns overworld regions selected by Nether coordinates, which the client will then
-     * draw. A 3.1.0-beta-2 client asks exactly that way, and no patch to this server can change what
-     * is already in a player's mods folder -- but we do not have to honour a request we know is wrong.
+     * <p>The index is served for the dimension the player is STANDING IN, not the one they asked about.
+     * An index is a set of regions filtered by a radius measured from a position, and a position only
+     * means something in one world; answering the overworld's index to somebody in the Nether returns
+     * overworld regions selected by Nether coordinates, which the client will then draw. A 3.1.0-beta-2
+     * client asks exactly that way, and no patch to this server can change what is already in a player's
+     * mods folder.
      */
     private static void dispatch(final Player player, final String requested, final boolean summaryOnly) {
         final String dimension = LodSupport.dimensionKey(player.getWorld());

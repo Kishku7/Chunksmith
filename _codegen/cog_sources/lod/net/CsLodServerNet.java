@@ -507,12 +507,12 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Has this player's client actually spoken the LOD protocol to us? The hello is the only honest signal
-     * that there is a Chunksmith on the other end, and it matters for {@code /cslod set}: an unknown
-     * message id is logged and dropped at the far end silently, so without this check a player on a vanilla
-     * client would type a command and have no way to tell "it worked" from "nothing is listening". <b>A
-     * renderer is not required to be greeted</b> (3.4.0) -- the question is "is there a Chunksmith
-     * listening?", not "is there anything to draw with?".
+     * Has this player's client actually spoken the LOD protocol to us? The hello is the only signal that
+     * there is a Chunksmith on the other end, and it matters for {@code /cslod set}: an unknown message id
+     * is logged and dropped at the far end silently, so without this check a player on a vanilla client
+     * would type a command and have no way to tell "it worked" from "nothing is listening". A renderer is
+     * not required to be greeted (3.4.0) -- the question is whether a Chunksmith is listening, not whether
+     * there is anything to draw with.
      */
     public static boolean hasLodClient(final ServerPlayer player) {
         return GREETED.contains(player.getUUID());

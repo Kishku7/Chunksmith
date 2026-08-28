@@ -3,25 +3,25 @@ package com.kishku7.chunksmith.util;
 /**
  * What the server costs without us, what WE cost, and therefore how hard we may push.
  *
- * <p><b>Why an absolute tick target cannot work.</b> The throttle used to steer on absolute tick time.
- * Measured on a live server, the tick cost <b>74.9 ms with the pre-gen PAUSED</b> against a configured
- * target of 75, so the ramp window was unreachable whatever Chunksmith did: the governor pinned
- * dispatch at its floor permanently and throttled the run to 2 chunks/sec, while the run cost 10 ms.
+ * <p>The throttle used to steer on absolute tick time, which cannot work. Measured on a live server, the
+ * tick cost 74.9 ms with the pre-gen PAUSED against a configured target of 75, so the ramp window was
+ * unreachable whatever Chunksmith did: the governor pinned dispatch at its floor permanently and
+ * throttled the run to 2 chunks/sec, while the run itself cost 10 ms.
  *
- * <p><b>So measure three things instead of assuming one.</b> <b>Baseline</b> -- the tick cost with
- * nothing of ours in flight, a decaying average and never a running minimum: the first attempt tracked
- * the cheapest reading ever seen, so it anchored at 48 ms while the server had moved on to 75, and the
- * effective target silently collapsed back to the old absolute one. <b>Our cost</b> -- the tick cost
+ * <p>So three measurements instead of one assumption. The <i>baseline</i> is the tick cost with nothing
+ * of ours in flight -- a decaying average, and never a running minimum: the first attempt tracked the
+ * cheapest reading ever seen, so it anchored at 48 ms while the server had moved on to 75, and the
+ * effective target silently collapsed back to the old absolute one. <i>Our cost</i> is the tick cost
  * while we ARE working, minus the baseline; measured 13.5 ms on the server that exposed all of this,
- * against a 25 ms figure somebody had picked out of the air. <b>Allowance</b> -- twice our measured
+ * against a 25 ms figure somebody had picked out of the air. The <i>allowance</i> is twice our measured
  * cost, so ordinary variance does not trip the governor and it tracks what the terrain actually costs.
  *
- * <p><b>Players get reserved room, not just the absence of harm.</b> A player's cost is already IN the
+ * <p>Players get reserved room rather than just the absence of harm. A player's cost is already IN the
  * baseline, so a rising baseline stops Chunksmith making things worse -- but gives the player nothing
  * back. Each online player therefore also SHRINKS our allowance by {@code playerReserveMillis}.
  *
- * <p><b>A join or a leave invalidates the baseline immediately.</b> It is a step change in what the
- * server costs, and a decaying average would take far too long to follow it.
+ * <p>A join or a leave invalidates the baseline immediately: it is a step change in what the server
+ * costs, and a decaying average would take far too long to follow it.
  */
 public final class TickBudget {
 
@@ -32,11 +32,12 @@ public final class TickBudget {
     private static final double MIN_ALLOWANCE_MS = 5.0D;
 
     /**
-     * Ceiling on the allowance, as a multiple of the configured floor. <b>Without this the model runs
-     * away, and it did.</b> The allowance is twice our measured cost and a pre-gen pushes until it
-     * REACHES it, so the cost climbs toward the allowance, which doubles it again. Observed live:
-     * ourCost 16.5 ms -> 154 ms, allowance 32.9 ms -> 308 ms in ten minutes, giving a 358 ms target at
-     * which the throttle never backs off and the server sits near 2.8 TPS.
+     * Ceiling on the allowance, as a multiple of the configured floor.
+     *
+     * <p>Runaway without it, and it did run away: the allowance is twice our measured cost and a pre-gen
+     * pushes until it REACHES it, so the cost climbs toward the allowance, which doubles it again. Live,
+     * over ten minutes -- ourCost 16.5 ms -> 154 ms, allowance 32.9 ms -> 308 ms, a 358 ms target, the
+     * throttle never backing off, the server near 2.8 TPS.
      */
     private static final double MAX_ALLOWANCE_FACTOR = 3.0D;
 
@@ -52,11 +53,11 @@ public final class TickBudget {
      * How often to stop dispatching briefly and take a clean baseline reading.
      *
      * <p>The baseline only updates on ticks where Chunksmith has nothing in flight, which during a
-     * running pre-gen is almost never -- so it is measured once at the start and trusted for ever.
-     * Observed live: the baseline read 50.2 ms for fifteen minutes while the server's real cost climbed
-     * past 125 ms under GC pressure, all of it attributed to US -- ourCost "measured" 76.4 ms against a
-     * true ~16 ms, the allowance slammed into its ceiling, the throttle collapsed to 1/50. Two seconds
-     * every two minutes is 1.7 percent.
+     * running pre-gen is almost never -- so without this it is measured once at the start and trusted
+     * for ever. Observed live: the baseline read 50.2 ms for fifteen minutes while the server's real
+     * cost climbed past 125 ms under GC pressure, all of it attributed to US -- ourCost "measured"
+     * 76.4 ms against a true ~16 ms, the allowance slammed into its ceiling, the throttle collapsed to
+     * 1/50. Two seconds every two minutes is 1.7 percent.
      */
     private static final long PROBE_INTERVAL_MS = 60_000L;
 
@@ -68,8 +69,8 @@ public final class TickBudget {
      *
      * <p>Dispatch stopping is not our load stopping: a chunk that just landed is still being saved,
      * still being unloaded, and its garbage still being collected, all on ticks where our in-flight
-     * count already reads zero. Sampling those teaches the baseline our own aftermath. Measured live
-     * 2026-08-20: the baseline read 49ms, then 116.8ms minutes later with no load change. A RUN of idle
+     * count already reads zero. Sampling those teaches the baseline our own aftermath. Measured on a
+     * live server: the baseline read 49ms, then 116.8ms minutes later with no load change. A RUN of idle
      * ticks separates the cases -- a gap between dispatches is one or two ticks, a held probe or a
      * paused run is idle indefinitely.
      */

@@ -28,22 +28,19 @@ import org.slf4j.LoggerFactory;
  * pregenerated. For a pregenerated area DH's LODs therefore appear essentially instantly, with no
  * worldgen cost at all.
  *
- * <p><b>The format was designed for exactly this.</b> DH builds its ids from vanilla registry strings
+ * <p>Nothing is translated on the way out. DH builds its ids from vanilla registry strings
  * ({@code wrapperFactory.getDefaultBlockStateWrapper("minecraft:oak_stairs[...]", level)}), and CSLOD
- * already stores full block STATE strings -- so nothing is translated, re-mapped or looked up through
- * a foreign id table. Sky and block light are stored SEPARATELY for the same reason: DH will not take
- * voxy's blended byte.
+ * already stores full block STATE strings -- no re-mapping, no foreign id table. Sky and block light are
+ * stored SEPARATELY for the same reason: DH will not take voxy's blended byte.
  *
- * <p><b>Light offset.</b> DH samples a column's light from the block ABOVE the surface (y+1), so the
- * data point for a solid block carries the light of the air above it. We apply that offset here.
+ * <p>Light offset: DH samples a column's light from the block ABOVE the surface (y+1), so the data point
+ * for a solid block carries the light of the air above it. We apply that offset here.
  *
- * <p><b>The trade-off, stated plainly.</b> Registering a world-generator override REPLACES DH's own
- * distant generator for this level. Chunks ChunkSmith has not pregenerated come back EMPTY -- DH gets no
- * data for them rather than generating them itself. That is why this is opt-in
- * ({@code lodDhOverride}, default false): it is the right behaviour for a world you have pregenerated
- * and the wrong one for a world you have not.
+ * <p><b>The trade-off.</b> Registering a world-generator override REPLACES DH's own distant generator for
+ * this level, so chunks ChunkSmith has not pregenerated come back EMPTY -- DH gets no data for them rather
+ * than generating them itself. Hence opt-in: {@code lodDhOverride}, default false.
  *
- * <p><b>Loader- and version-blind.</b> Every symbol here is {@code com.seibel.*} or ours; it names no
+ * <p>Loader- and version-blind: every symbol here is {@code com.seibel.*} or ours, and it names no
  * Minecraft type at all, which is why one source compiles unchanged on all eight LOD cells.
  *
  * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
@@ -186,7 +183,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     }
 
     /**
-     * The "no data" answer for a chunk ChunkSmith never pregenerated.
+     * The "no data" answer for a chunk ChunkSmith never pregenerated: a chunk of empty columns.
      *
      * <p>It must NOT be null. {@code AbstractDhApiChunkWorldGenerator.generateApiChunks} feeds our
      * return value straight to DH's result consumer with no null check, and
@@ -195,7 +192,6 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
      * DH's in-progress map forever, {@code isGeneratorBusy()} latches true, and the level's whole
      * world-gen queue dies SILENTLY (no log line at all). DH's own API says so explicitly:
      * "If you want to remove all data from a column please clear the list or pass in an empty list."
-     * So the honest "nothing here" answer is a chunk of empty columns.
      */
     private DhApiChunk emptyChunk(final int chunkX, final int chunkZ) {
         final DhApiChunk chunk = DhApiChunk.create(

@@ -12,12 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The two new v2 messages, ON THE WIRE -- including the sentence the whole design rests on: <b>one idle
- * sync poll is 22 bytes out and 34 bytes back.</b>
+ * The two new v2 messages, ON THE WIRE -- including the number the whole design rests on: one idle sync
+ * poll is 22 bytes out and 34 bytes back.
  *
- * <p>That number is not decoration. It is the reason a 30-second poll from a hundred clients is affordable,
- * and it is asserted here rather than merely claimed in a comment, so that a future change to the message
- * shape has to look this test in the eye.
+ * <p>That is the reason a 30-second poll from a hundred clients is affordable, so it is asserted here
+ * rather than merely claimed in a comment.
  */
 public class CsLodSummaryWireTest {
 

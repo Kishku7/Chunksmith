@@ -7,22 +7,22 @@ import java.util.concurrent.ConcurrentHashMap;
  * Which regions have already been handed to a renderer THIS SESSION -- keyed by DIMENSION as well as by
  * region coordinates, and remembering WHICH VERSION of each one we drew.
  *
- * <p>Every pull returns the whole in-radius set, most of it already drawn, and re-injecting those re-pushes
- * terrain the renderer has -- with voxy, hundreds of thousands of sections.
+ * <p>Every pull returns the whole in-radius set, most of it already drawn, and re-injecting those
+ * re-pushes terrain the renderer has -- with voxy, hundreds of thousands of sections.
  *
- * <p><b>The dimension is part of the key.</b> It used to be a {@code Set<Long>} of packed region x/z alone,
- * and region (0,0) is a DIFFERENT PLACE in every dimension: once the overworld's (0,0) had been injected,
- * the Nether's was considered "already done" and silently skipped forever -- the player walked into the
- * Nether, its LODs never appeared, and every counter and log line reported success.
+ * <p>The key needs the dimension because it used to be a {@code Set<Long>} of packed region x/z alone,
+ * and region (0,0) is a DIFFERENT PLACE in every dimension: once the overworld's (0,0) had been
+ * injected, the Nether's was considered "already done" and silently skipped forever -- the player walked
+ * into the Nether, its LODs never appeared, and every counter and log line reported success.
  *
- * <p><b>The freshness token is part of the VALUE.</b> A pregen keeps GROWING the regions the player is
- * standing on, for hours. Before 3.1.0-beta-4 the injector keyed on (dimension, x, z) alone and threw the
- * re-fetched, bigger file away silently: the far ring of new regions appeared while the terrain under the
- * player's feet stayed frozen at the version they joined on.
+ * <p>The value needs the freshness token because a pregen keeps GROWING the regions the player is
+ * standing on, for hours. Before 3.1.0-beta-4 the injector keyed on (dimension, x, z) alone and threw
+ * the re-fetched, bigger file away silently: the far ring of new regions appeared while the terrain
+ * under the player's feet stayed frozen at the version they joined on.
  *
- * <p>The SESSION half, cleared on disconnect; {@link InjectedIndex} is the on-disk record a join seeds this
- * map from via {@link #seed}. Thread-safe: the injector runs off the game thread and the network handler
- * releases regions from another.
+ * <p>The SESSION half, cleared on disconnect; {@link InjectedIndex} is the on-disk record a join seeds
+ * this map from via {@link #seed}. Thread-safe: the injector runs off the game thread and the network
+ * handler releases regions from another.
  */
 public final class InjectedRegions {
 
@@ -55,7 +55,7 @@ public final class InjectedRegions {
     /**
      * Give a claimed region back, so a later refresh retries it rather than skipping it forever.
      *
-     * <p><b>Releasing FORGETS the region entirely</b> rather than restoring the previous token: restoring it
+     * <p>Releasing forgets the region entirely rather than restoring its previous token; restoring it
      * would let an interrupted upgrade leave us believing we drew what we had not.
      */
     public void release(final String dimension, final int regionX, final int regionZ) {

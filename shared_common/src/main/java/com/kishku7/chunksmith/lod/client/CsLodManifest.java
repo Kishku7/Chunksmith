@@ -16,20 +16,20 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * What the SERVER said about each region we hold -- the client's side of the cache check.
  *
- * <p><b>Why it exists.</b> Until 3.1.0-beta-4 the region hash was a CRC32 of the file's CONTENTS, which both
- * ends could compute independently -- and that symmetry is what made it a server killer (see
+ * <p>Until 3.1.0-beta-4 the region hash was a CRC32 of the file's CONTENTS, which both ends could
+ * compute independently -- and that symmetry is what made it a server killer (see
  * {@code CsLodRegionHash}). The token is now derived from the SERVER's (mtime, size), which the client
- * cannot reproduce: it is OPAQUE, and the client's job is to REMEMBER it, not recompute it. The client had
- * the same bug in its own half -- the SAME 340-file, 1.5 GB {@code readAllBytes} sweep, on every index, in
- * {@code CsLodCache.have} and {@code CsLodDownloader.haveAlready}.
+ * cannot reproduce: it is OPAQUE, and the client's job is to REMEMBER it, not recompute it. The client
+ * had the same bug in its own half -- the SAME 340-file, 1.5 GB {@code readAllBytes} sweep, on every
+ * index, in {@code CsLodCache.have} and {@code CsLodDownloader.haveAlready}.
  *
- * <p><b>Format.</b> One line per region, {@code x,z=token,size}, plain ASCII, written atomically via a
- * {@code .part} file and a move. Malformed lines are SKIPPED, not fatal: the worst a corrupt manifest can do
- * is make us re-download regions we already had.
+ * <p>Format: one line per region, {@code x,z=token,size}, plain ASCII, written atomically via a
+ * {@code .part} file and a move. Malformed lines are SKIPPED, not fatal -- the worst a corrupt manifest
+ * can do is make us re-download regions we already had.
  *
- * <p><b>Upgrading from 3.1.0-beta-3.</b> An existing store has region files but no manifest, so every region
- * reads as "not cached" and is re-fetched once over the backchannel on the first index of the first join --
- * seconds for a 340-region / 1.5 GB store on a LAN.
+ * <p>Upgrading from 3.1.0-beta-3: an existing store has region files but no manifest, so every region
+ * reads as "not cached" and is re-fetched once over the backchannel on the first index of the first join
+ * -- seconds for a 340-region / 1.5 GB store on a LAN.
  *
  * <p>Thread-safe: written by four parallel fetch threads and by the in-band reassembler on the client
  * thread, read by the sync poll.

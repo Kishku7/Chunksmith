@@ -18,13 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Sends region files IN-BAND, a few slices per tick -- the fallback for a server with no open backchannel
  * port.
  *
- * <p><b>This path is slow on purpose.</b> It rides the SAME connection as gameplay, so every byte it sends
- * competes with movement, chunks and entities. The backchannel exists precisely so this is not the normal
- * path: it moves ~55 MB/s at network speed with the game connection untouched, while this dribbles along at
- * a few hundred KB/s. A player on this path waits, and that is the honest cost of not opening a port.
- *
- * <p>So the rule here is: <b>gameplay wins, LOD fills the gaps.</b> A hard cap of a few slices per tick,
- * never a burst, and the client can stop it at any moment.
+ * <p>Slow on purpose. It rides the SAME connection as gameplay, so every byte competes with movement,
+ * chunks and entities: the backchannel moves ~55 MB/s with the game connection untouched, this dribbles
+ * along at a few hundred KB/s. Hard cap of a few slices per tick, never a burst, and the client can stop
+ * it at any moment.
  */
 public final class CsLodInBandSender {
 
@@ -48,11 +45,11 @@ public final class CsLodInBandSender {
     /**
      * Queue a set of regions for a player. Replaces anything already queued for them.
      *
-     * <p><b>Nothing is read here.</b> Only the file LIST is captured; the bytes are pulled a slice at a
-     * time in {@link #tick}, straight off disk. The obvious implementation -- slurp every wanted region
-     * with {@code readAllBytes} and pre-slice it -- put the ENTIRE requested set on the heap, on the
-     * SERVER THREAD, before a single byte went out: a legitimate client asking for a few hundred region
-     * files (a normal first join against a pregenerated world) is hundreds of megabytes and a multi-second
+     * <p>Nothing is read here -- only the file LIST is captured; the bytes are pulled a slice at a time in
+     * {@link #tick}, straight off disk. The obvious implementation, slurping every wanted region with
+     * {@code readAllBytes} and pre-slicing it, put the ENTIRE requested set on the heap, on the SERVER
+     * THREAD, before a single byte went out: a legitimate client asking for a few hundred region files (a
+     * normal first join against a pregenerated world) is hundreds of megabytes and a multi-second
      * main-thread stall, and a hostile one is a free OOM. A cursor costs one open file per player instead.
      */
     public static void queue(final ServerPlayer player, final Path storeRoot, final String dimension,

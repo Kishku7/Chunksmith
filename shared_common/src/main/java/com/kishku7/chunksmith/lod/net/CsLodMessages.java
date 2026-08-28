@@ -265,9 +265,9 @@ public final class CsLodMessages {
     /**
      * A request to act on the player's own LOD-client settings, forwarded from {@code /cslod set}.
      *
-     * <p>Three fields and no list, so there is nothing to bound at decode time beyond what {@code readUTF}
-     * already bounds. {@code name} and {@code value} are empty strings, never null, for the actions that do
-     * not use them: a wire format with an optional field is a wire format with two shapes.
+     * <p>Three fields and no list, so there is nothing to bound at decode time beyond what
+     * {@code readUTF} already bounds. {@code name} and {@code value} are empty strings, never null, for
+     * the actions that do not use them.
      *
      * @param action one of CsLodProtocol.SETTING_LIST / SETTING_SHOW / SETTING_SET
      */

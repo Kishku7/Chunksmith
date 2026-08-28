@@ -15,20 +15,17 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * The guard that keeps the house rule true for the LOD CLIENT's config file.
+ * The guard for the LOD CLIENT's config file: every setting in a config file is settable from a command.
  *
- * <p>Rule (2026-08-11): every setting in a config file is settable from a command.
- * {@code ConfigSettingsCoverageTest} enforces it for {@code config/chunksmith/config.json} by reflecting
- * over the JSON config model. That test was green while these two keys had no command at all -- because
- * the client's {@code chunksmith-lod.properties} is a different file that its reflection can never see.
+ * <p>{@code ConfigSettingsCoverageTest} enforces that rule for {@code config/chunksmith/config.json} by
+ * reflecting over the JSON config model. It was green while these two keys had no command at all,
+ * because the client's {@code chunksmith-lod.properties} is a different file that its reflection can
+ * never see. Hence a second test rather than a line added to the first: a registry per config file, a
+ * coverage test per registry, each naming the surface it covers.
  *
- * <p><b>An automated check only proves what it actually inspects.</b> That is the whole reason this second
- * test exists rather than a line being added to the first one: a registry per config file, a coverage test
- * per registry, each naming the surface it covers.
- *
- * <p>It reads the {@code KEY_*} constants off {@link CsLodClientConfig} by reflection and asserts each one
- * is reachable through {@code /cslod set}. Add a key to the client config and forget the command, and this
- * fails by name.
+ * <p>It reads the {@code KEY_*} constants off {@link CsLodClientConfig} by reflection and asserts each
+ * one is reachable through {@code /cslod set}. Add a key to the client config and forget the command,
+ * and this fails by name.
  */
 public class CsLodClientSettingsCoverageTest {
 

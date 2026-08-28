@@ -13,14 +13,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p><b>Why this exists.</b> {@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD:
- * {@code setGenerated} is only called for chunks THIS run generated. So on the run that matters --
- * restart the server, re-run a selection over ground you already pregenerated -- every chunk falls
- * through to the per-chunk asynchronous {@code world.isChunkGenerated} call, taking a dispatch slot and
- * riding the throttle just to be told "already there". Measured on a 5929-chunk selection that was
- * 100 percent already generated: about seven seconds to decide there was nothing to do. That is linear,
- * so a resumed hundred-thousand-chunk selection spends MINUTES learning what a handful of file headers
- * would have said (mod_support #17).
+ * <p>{@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD: {@code setGenerated} is
+ * only called for chunks THIS run generated. So on the run that matters -- restart the server, re-run a
+ * selection over ground you already pregenerated -- every chunk falls through to the per-chunk
+ * asynchronous {@code world.isChunkGenerated} call, taking a dispatch slot and riding the throttle just
+ * to be told "already there". Measured on a 5929-chunk selection that was 100 percent already generated:
+ * about seven seconds to decide there was nothing to do. That is linear, so a resumed
+ * hundred-thousand-chunk selection spends MINUTES learning what a handful of file headers would have
+ * said (mod_support #17).
  */
 public final class GeneratedChunkScan {
 

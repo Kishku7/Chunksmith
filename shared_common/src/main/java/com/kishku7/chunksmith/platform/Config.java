@@ -86,9 +86,9 @@ public interface Config {
     long getThrottleCeilingMillis();
 
     /**
-     * Pause a run when the server cannot sustain it, and resume it when the server recovers. ON by default
-     * (maintainer decision, 2026-08-20): a gated pre-gen on an overloaded server does not stop, it stutters
-     * -- measured at 60 chunks in two minutes, which looks exactly like a hang.
+     * Pause a run when the server cannot sustain it, and resume it when the server recovers. ON by
+     * default: a gated pre-gen on an overloaded server does not stop, it stutters -- measured at 60
+     * chunks in two minutes, which looks exactly like a hang. {@code AutoPause} records the decision.
      */
     boolean isAutoPauseEnabled();
 
@@ -119,10 +119,10 @@ public interface Config {
      * How many chunk requests Chunksmith keeps in flight at once -- the pipeline's WIDTH, and on a healthy
      * server what actually sets the rate. A chunk request spends almost all of its life WAITING: vanilla
      * walks it up through its generation statuses roughly a hop per tick, so per-chunk latency runs over a
-     * second even when nothing is busy. Measured on a dedicated server (2026-08-20) at 40 percent CPU across
-     * 8 cores, with the server thread spending 0.2ms of a 25ms allowance on us, dispatch was pinned at its
-     * cap for the whole run while every other governor read "idle". Costs memory roughly linearly, which the
-     * heap and residency gates are there to catch. Previously reachable only via the
+     * second even when nothing is busy. Measured on a dedicated server at 40 percent CPU across 8 cores,
+     * with the server thread spending 0.2ms of a 25ms allowance on us, dispatch was pinned at its cap for
+     * the whole run while every other governor read "idle". Costs memory roughly linearly, which the heap
+     * and residency gates are there to catch. Previously reachable only via the
      * {@code chunksmith.maxWorkingCount} system property, still honoured as this key's DEFAULT so existing
      * launch scripts keep working.
      */

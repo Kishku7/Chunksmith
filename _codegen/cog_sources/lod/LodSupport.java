@@ -226,8 +226,8 @@ public final class LodSupport {
 
 
     /**
-     * Mod ids that mean "something in this JVM can draw an LOD". Read out of the actual published jars /
-     * fork sources on 2026-07-12:
+     * Mod ids that mean "something in this JVM can draw an LOD". Read out of the published jars and fork
+     * sources themselves, not off a wiki:
      * <ul>
      *   <li>{@code distanthorizons} -- all loaders, every MC line we ship LOD on.</li>
      *   <li>{@code voxy} -- upstream voxy AND five of the six known forks (m3t4f1v3, j-shelfwood,
@@ -272,13 +272,13 @@ public final class LodSupport {
      * CSLOD store has to exist -- it is the thing Chunksmith-Client downloads. The cost is bounded, paid
      * only during a pregen the operator started (~5.8 KB per chunk on disk), and one config line ends it.
      *
-     * <p>The wall-clock cost used to be quoted here as ~16 percent. MEASURED on a dedicated server
-     * 2026-08-20 and that is NOT true any more: 36.1 cps with LOD on against 34.2 cps with it off over
-     * matched windows -- no measurable difference, and the OFF run was slightly slower, which is terrain
-     * noise. The reason is that extraction runs on the server thread, and once dispatch width was raised
-     * the server thread stopped being the bottleneck: it profiled at ~10 percent utilised, with extraction
-     * 70 percent OF THAT -- a big slice of a small pie. Do not re-introduce a scary number here without
-     * re-measuring it.
+     * <p>The wall-clock cost was quoted here as ~16 percent until it was re-measured on a dedicated server
+     * on 2026-08-20. That date is the one thing that matters about the number: the measurement SUPERSEDES
+     * the old figure, and any claim about LOD cost older than it is stale. 36.1 cps with LOD on against
+     * 34.2 cps with it off over matched windows -- no measurable difference, and the OFF run was slightly
+     * slower, which is terrain noise. Extraction runs on the server thread, and once dispatch width was
+     * raised the server thread stopped being the bottleneck: it profiled at ~10 percent utilised, with
+     * extraction 70 percent OF THAT. Re-measure before putting a scary number back.
      */
     public static boolean decide(final Config config,
                                  final MinecraftServer server) {

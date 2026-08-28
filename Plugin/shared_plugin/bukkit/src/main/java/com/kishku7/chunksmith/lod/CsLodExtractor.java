@@ -17,22 +17,20 @@ import org.bukkit.Keyed;
  * format from a Bukkit {@link ChunkSnapshot} instead of a live NMS LevelChunk, since this platform
  * has no mixin access to LevelChunkSection / LevelLightEngine. Every method used here (getBlockData,
  * getBlockSkyLight, getBlockEmittedLight, getBiome(x,y,z), World#getMinHeight/getMaxHeight,
- * BlockData#getAsString, Biome#getKey) was confirmed against the actual folia-api jar this cell
- * compiles against (javap, 2026-08-03) before writing this class -- not assumed.
+ * BlockData#getAsString, Biome#getKey) was confirmed with javap against the actual folia-api jar this
+ * cell compiles against, not assumed.
  *
- * <p><b>Server-side generation ONLY (2026-08-03, mod_support #9 follow-up).</b> This platform does
- * not yet carry a renderer adapter or a client-streaming channel -- that is Chunksmith-Client's job
- * on Fabric/Forge/NeoForge and does not exist here yet. The store this produces is written to disk
- * and nothing else, deliberately, as a separate and later phase. See LodSupport (Bukkit).
+ * <p>Server-side generation ONLY (mod_support #9 follow-up): no renderer adapter and no client-streaming
+ * channel here yet -- that is Chunksmith-Client's job on Fabric/Forge/NeoForge. The store this produces is
+ * written to disk and nothing else, deliberately, as a separate and later phase. See LodSupport (Bukkit).
  *
- * <p><b>Coordinates.</b> ChunkSnapshot's x/z are chunk-relative (0-15); y is WORLD-absolute (can be
- * negative on 1.18+ worlds), matching {@link World#getMinHeight()} / {@link World#getMaxHeight()}
- * (max is exclusive). Sections are always 16 blocks tall starting at a multiple of 16.
+ * <p>ChunkSnapshot's x/z are chunk-relative (0-15); y is WORLD-absolute (can be negative on 1.18+ worlds),
+ * matching {@link World#getMinHeight()} / {@link World#getMaxHeight()} (max is exclusive). Sections are
+ * always 16 blocks tall starting at a multiple of 16.
  *
- * <p><b>Biome sampling.</b> Bukkit exposes only a per-voxel {@code getBiome(x,y,z)} read, not
- * Minecraft's native 4x4x4 quantized storage. Sampling at each 4x4x4 cell's center reproduces the
- * same granularity the vanilla format actually carries, rather than paying for (and mildly
- * misrepresenting) a full per-voxel array.
+ * <p>Bukkit exposes only a per-voxel {@code getBiome(x,y,z)} read, not Minecraft's native 4x4x4 quantized
+ * storage. Sampling at each 4x4x4 cell's center reproduces the same granularity the vanilla format
+ * actually carries, rather than paying for (and mildly misrepresenting) a full per-voxel array.
  */
 public final class CsLodExtractor {
 
@@ -110,15 +108,14 @@ public final class CsLodExtractor {
                     final int wz = z * 4 + 2;
                     for (int x = 0; x < 4; x++) {
                         final int wx = x * 4 + 2;
-                        // 2026-08-02 (mod_support Bukkit-LOD 1.21.1 crash): Biome changed from a
-                        // plain class to an interface across Paper API generations within the SAME
-                        // 1.21.x compile line -- a jar built against one shape throws
-                        // IncompatibleClassChangeError on a server running the other shape (observed:
-                        // compiled shape vs Paper 1.21.1-133 runtime shape mismatched). Keyed has been
-                        // a stable interface across every generation, and Biome has always implemented
-                        // it, so dispatching getKey() through Keyed instead of Biome directly sidesteps
-                        // the invokeinterface/invokevirtual mismatch regardless of which shape Biome is
-                        // on this particular server build.
+                        // Biome went from a plain class to an interface between Paper API generations
+                        // inside the SAME 1.21.x compile line, so a jar built against one shape throws
+                        // IncompatibleClassChangeError on a server running the other (mod_support
+                        // Bukkit-LOD 1.21.1 crash, 2026-08-02, against Paper 1.21.1-133 -- the date is
+                        // the handle on that crash report, there being no issue number). Keyed has been
+                        // a stable interface across every generation and Biome has always implemented it,
+                        // so dispatching getKey() through Keyed sidesteps the mismatch whichever shape
+                        // Biome has on a given server build.
                         final Keyed biome = snap.getBiome(wx, wy, wz);
                         final int id = biomes.id(biome.getKey().toString());
                         biomeIndices[b++] = id;

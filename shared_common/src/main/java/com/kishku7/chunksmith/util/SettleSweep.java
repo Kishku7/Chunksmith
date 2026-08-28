@@ -6,11 +6,11 @@ import java.util.BitSet;
  * Decides WHERE, just behind the generation front, to briefly re-load a neighbourhood so that other mods
  * can finish work they could not do while the pregen was racing past.
  *
- * <p><b>Why a sweep and not simply holding chunks open.</b> {@link ChunkSettleWindow} keeps a chunk
- * loaded until its eight neighbours exist, which is enough for a small structure and nowhere near enough
- * for a big one: Millenaire villages want a 90-block radius, and on a real run 5,482 village placements
- * were still refused for want of loaded ground. Widening the hold does not scale -- the held band
- * follows the whole sweep edge, so at a seven-chunk radius a modest pregen would hold some 11,000 chunks.
+ * <p>{@link ChunkSettleWindow} keeps a chunk loaded until its eight neighbours exist, which is enough
+ * for a small structure and nowhere near enough for a big one: Millenaire villages want a 90-block
+ * radius, and on a real run 5,482 village placements were still refused for want of loaded ground.
+ * Widening the hold does not scale -- the held band follows the whole sweep edge, so at a seven-chunk
+ * radius a modest pregen would hold some 11,000 chunks.
  *
  * <p>So instead we let it go and come back: a small window slides along BEHIND the front, loads a
  * neighbourhood, gives the server a moment to tick, and moves on. Peak cost is one window and does not
@@ -18,12 +18,12 @@ import java.util.BitSet;
  * not worldgen. It trails rather than waiting for the end because ground more than a radius behind the
  * front is finished and will never change, and the square and spiral patterns have no clean rings.
  *
- * <p><b>Stops are on a grid, not every chunk.</b> A window centred every {@code radius} chunks covers
- * the whole area, at a fraction of the visits: for a 36,000-chunk run at radius 7, roughly 700 stops.
- *
- * <p><b>A stop is only eligible once its whole window is generated.</b> Loading a window overlapping
- * ungenerated ground would GENERATE it, off-pattern and outside the task's accounting. Generated chunks
- * live in a {@link BitSet} over the task bounds: exact, one bit per chunk, a few kB for a large pregen.
+ * <p>Stops sit on a grid rather than at every chunk -- a window centred every {@code radius} chunks
+ * covers the whole area at a fraction of the visits: for a 36,000-chunk run at radius 7, roughly 700
+ * stops. A stop becomes eligible only once its whole window is generated, because loading a window that
+ * overlaps ungenerated ground would GENERATE it, off-pattern and outside the task's accounting.
+ * Generated chunks live in a {@link BitSet} over the task bounds: exact, one bit per chunk, a few kB for
+ * a large pregen.
  *
  * <p>MC-free by design so the rule can be unit-tested without a server; the caller owns the tickets.
  */

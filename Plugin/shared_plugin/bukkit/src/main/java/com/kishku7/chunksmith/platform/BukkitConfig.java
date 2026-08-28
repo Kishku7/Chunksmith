@@ -129,15 +129,12 @@ public final class BukkitConfig implements Config {
     }
 
     /**
-     * CHANGED (2026-08-03, mod_support #9 follow-up): this platform now carries a
-     * server-side CSLOD generator + store (see lod.CsLodExtractor / lod.LodSupport in this source
-     * tree) -- there is just no renderer feed / client-streaming channel wired up to it YET (that is
-     * a separate, later phase). So AUTO is no longer a lie here: a Bukkit / Paper / Folia process is
-     * ALWAYS the dedicated-server case (there is no Bukkit singleplayer / integrated-server concept),
-     * which is exactly the case the mod-loader decide() already treats as ON regardless of a local
-     * renderer. Default is ON; an operator sets lod-enabled: false in config.yml to turn it off.
-     * Accepts auto (default; behaves as ON on this platform), true, or false -- same tristate parsing
-     * as every other platform.
+     * AUTO means ON here (mod_support #9 follow-up). A Bukkit/Paper/Folia process is always the
+     * dedicated-server case, which the mod-loader {@code decide()} already treats as ON regardless of a
+     * local renderer -- and this platform does now carry the server-side CSLOD generator and store (see
+     * lod.CsLodExtractor / lod.LodSupport), just no renderer feed or client-streaming channel yet.
+     * Accepts auto, true or false, parsed exactly as on every other platform; an operator sets
+     * lod-enabled: false in config.yml to turn it off.
      */
     @Override
     public LodMode getLodMode() {

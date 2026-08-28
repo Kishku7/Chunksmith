@@ -546,19 +546,19 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Chunk-residency backpressure -- the bound on what is already IN memory.
+     * Chunk-residency backpressure: the bound on what is already IN memory.
      *
-     * <p>Every other signal here measures the rate work arrives: tick time, per-chunk latency, the
-     * write queue, the LOD sink. None of them can see the resident chunk set, and on the run that
-     * {@link ChunkResidency} documents every one of those signals read "slow down" while the set grew
-     * to many times the sweep frontier -- which is precisely what stopped it draining.
+     * <p>Tick time, per-chunk latency, the write queue and the LOD sink all measure how fast work
+     * arrives. None of them can see the resident chunk set, and on the run {@link ChunkResidency}
+     * documents every one of them read "slow down" while the set grew to many times the sweep frontier
+     * -- which is precisely what stopped it draining.
      *
-     * <p>The loop is the problem, not the number: vanilla's unload pass is budgeted by the server's own
-     * per-tick time allowance, so a server that has fallen behind unloads almost nothing; a bigger
-     * resident set costs more to tick; it falls further behind. Backing dispatch off does not break that
-     * -- it feeds it, because a settle window's releases are driven by new arrivals. So residency gets a
-     * signal of its own and a HARD gate: past the cap, dispatch nothing at all until the server has
-     * unloaded back to half of it. That is the one action that actually lets the loop unwind.
+     * <p>It is a feedback loop rather than a threshold. Vanilla's unload pass is budgeted by the
+     * server's own per-tick time allowance, so a server that has fallen behind unloads almost nothing;
+     * a bigger resident set costs more to tick; it falls further behind. Backing dispatch off feeds the
+     * loop instead of breaking it, because a settle window's releases are driven by new arrivals. Hence
+     * a signal of its own and a HARD gate: past the cap, dispatch nothing at all until the server has
+     * unloaded back to half of it.
      *
      * <p>No-op when the platform does not report residency, and when the operator has set the cap to 0.
      */
@@ -573,8 +573,8 @@ public class GenerationTask implements Runnable {
         }
         // The DELTA, not the absolute count. 3.5.0 gated on "how many chunks exist", which on a server
         // whose ordinary resident set was already near the cap meant the gate closed on somebody else's
-        // chunks and never opened -- measured on a live server 2026-08-20, where it stuttered a run at
-        // the never-wedge interval. What a pregen can be held responsible for is what it ADDED.
+        // chunks and never opened -- live, that stuttered a run at the never-wedge interval. What a
+        // pregen can be held responsible for is what it ADDED.
         final long added = ChunkResidency.addedChunks();
         if (added < 0L) {
             // The platform is not reporting, the reading went stale, or we never got a baseline.

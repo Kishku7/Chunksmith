@@ -17,19 +17,19 @@ import java.util.logging.Logger;
  * world and drives the generation hook, mirroring that class's structure and the SAME
  * {@code lodEnabled} tristate semantics -- but see the scope note below.
  *
- * <p><b>Server-side generation ONLY (2026-08-03, mod_support #9 follow-up / #11 sibling work).</b>
- * There is no renderer adapter and no client-streaming channel here yet -- that is
- * Chunksmith-Client's job on the mod loaders and does not exist on the Plugin platform. This class
- * only ever creates a {@link CsLodStoreSink}: the durable CSLOD store gets built, and nothing
- * consumes it yet. Deliberately incomplete; the streaming half is a separate, later phase.
+ * <p>Server-side generation ONLY (mod_support #9 follow-up / #11 sibling work). There is no renderer
+ * adapter and no client-streaming channel here yet -- that is Chunksmith-Client's job on the mod loaders
+ * and does not exist on the Plugin platform. This class only ever creates a {@link CsLodStoreSink}: the
+ * durable CSLOD store gets built, and nothing consumes it yet. Deliberately incomplete; the streaming
+ * half is a separate, later phase.
  *
- * <p><b>The dedicated-server carve-out, simplified.</b> The mod-loader {@code decide()} treats
+ * <p>The dedicated-server carve-out is simpler here. The mod-loader {@code decide()} treats
  * {@code AUTO} as ON when either a renderer is detected in the JVM, OR the server is a dedicated
  * server (a dedicated server cannot run voxy and does not need DH locally, but the CSLOD store is
  * exactly what a remote client downloads). A Bukkit/Paper/Folia process IS ALWAYS the dedicated-server
  * case -- there is no Bukkit integrated-server / singleplayer concept -- so here {@code AUTO} simply
  * means ON, unconditionally. No renderer detection is attempted (nothing can run one on this
- * platform), matching the 2026-08-03 scoping direction: generation now, client support later.
+ * platform), matching the same scoping direction: generation now, client support later.
  */
 public final class LodSupport {
 
@@ -112,11 +112,10 @@ public final class LodSupport {
             return;
         }
         if (lodEnabled(config)) {
-            // State the CONSEQUENCE for the operator, not the shape of the code. The old wording
-            // ("no renderer feed on this platform yet") is true and useless: of course a server does
-            // not render. What an operator needs to know is that their PLAYERS get nothing, and that
-            // no client-side mod they install will change it -- mod_support #18 was somebody working
-            // that out the hard way, with this line already in their log.
+            // Say what it means for the operator, not what the code does. The old wording ("no renderer
+            // feed on this platform yet") was true and useless: what they need to know is that their
+            // PLAYERS get nothing and no client-side mod will change that. mod_support #18 was somebody
+            // working that out the hard way with this line already in their log.
             LOGGER.info("Chunksmith: LOD generation ON -- writing a CSLOD store, and serving it to"
                     + " players who have Chunksmith installed. Watch for the backchannel line just"
                     + " below: that port has to be reachable by your players, or they get no LOD."

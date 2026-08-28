@@ -9,16 +9,16 @@ import net.minecraft.world.level.Level;
  * Every read, every write and every injection is scoped by this key -- {@code chunksmith/lod/&lt;server&gt;/
  * &lt;dimension&gt;/r.x.z.cslod} -- and getting it wrong does not fail, it succeeds against the wrong world.
  *
- * <p><b>It shipped wrong once.</b> Chunksmith 3.1.0-beta-2's client took the dimension from the FIRST entry
- * of the server's hello list and never looked at it again, so a player who walked through a Nether portal
- * kept pulling the OVERWORLD's records and the injector pushed them into the level the player was now in.
- * Overworld terrain -- grass, oceans -- rendered in the Nether sky, and every log line said success. The
- * client must ask the LEVEL, on every tick, and never remember an answer across a dimension change.
+ * <p>3.1.0-beta-2's client took the dimension from the FIRST entry of the server's hello list and never
+ * looked at it again, so a player who walked through a Nether portal kept pulling the OVERWORLD's records
+ * and the injector pushed them into the level the player was now in. Grass and oceans in the Nether sky,
+ * and every log line reporting success. Ask the LEVEL, every tick; never remember an answer across a
+ * dimension change.
  *
  * <p>The value matches the server's {@code LodSupport.dimensionKey}: the dimension's resource id with
  * {@code :} and {@code /} replaced by {@code _}, e.g. {@code minecraft_overworld},
  * {@code minecraft_the_nether}. That is the directory name the server writes, the name it puts in the
- * region index, and the name the client stores under. One derivation, both sides.
+ * region index, and the name the client stores under.
  */
 public final class CsLodDimension {
 

@@ -11,9 +11,8 @@ import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
 /**
- * Feeds downloaded CSLOD records into the player's voxy.
- *
- * <p>Hard-references voxy, so it is only ever class-loaded once {@code isModLoaded("voxy")} has passed.
+ * Feeds downloaded CSLOD records into the player's voxy. Hard-references voxy, so it is only ever
+ * class-loaded once {@code isModLoaded("voxy")} has passed.
  *
  * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the section and its light
  * DIRECTLY, so voxy gets the REAL light captured on the server at generation time -- the whole point of
@@ -24,13 +23,13 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * unthrottled replay of a large store would drive the heap into an OOM. (That is the failure that OOMed
  * Voxy WorldGen V2 badly enough that upstream voxy ships a hard `breaks` against it.)
  *
- * <p><b>Called DIRECTLY, not reflectively -- on purpose.</b> Every reachable fork was checked with
- * {@code javap} (2026-07-13): {@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()},
- * {@code getIngestService().getTaskCount()} and {@code WorldIdentifier.of} have identical signatures in all
- * of them, so a reflective per-chunk call would cost real time and absorb nothing. The one place fork drift
- * HAS been observed is voxy's config field, and that is the one place we reflect -- see {@link VoxyRadius}.
- * If that stops being true, a {@code LinkageError} out of any of these calls disables the voxy sink for the
- * session and says so once, rather than handing back "0 sections ingested" -- which looks like success.
+ * <p>These calls are direct, not reflective. {@code VoxelIngestService.rawIngest},
+ * {@code VoxyCommon.getInstance()}, {@code getIngestService().getTaskCount()} and
+ * {@code WorldIdentifier.of} have identical signatures in every fork jar the {@code Renderers} roster
+ * names, all checked with {@code javap}, so a reflective per-chunk call would cost real time and absorb
+ * nothing. The one place fork drift HAS been observed is voxy's config field, and that is the one place we
+ * reflect -- see {@link VoxyRadius}. If that stops being true, a {@code LinkageError} out of any of these
+ * calls disables the voxy sink for the session and says so once.
  */
 public final class VoxyTarget {
 

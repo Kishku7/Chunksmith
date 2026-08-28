@@ -47,8 +47,8 @@ public final class Input {
      * "true" and never reports a problem. Through {@code /cs set} that meant a typo did not fail, it
      * silently turned the setting OFF: {@code /cs set silent yes} disabled silent mode and said it had
      * been set. The 3.2.4 notes claim a value that cannot be understood is refused rather than quietly
-     * becoming a default -- true for the numbers, not for the booleans. Found 2026-08-12 by the /cslod
-     * set coverage test asserting the documented behaviour and getting the real one.
+     * becoming a default -- true for the numbers, not for the booleans. Found by the {@code /cslod set}
+     * coverage test, asserting the documented behaviour and getting the real one.
      *
      * <p>{@code TaskLoader} reads a STORED property through here with {@code orElse(false)}, which is
      * unchanged by this: a malformed stored value was false before and is false now.

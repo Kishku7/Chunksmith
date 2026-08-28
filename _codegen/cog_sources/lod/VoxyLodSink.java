@@ -14,11 +14,10 @@ import net.minecraft.world.level.chunk.LevelChunk;
  * voxy's instance factory is installed by VoxyClient, so on a dedicated server
  * {@code VoxyCommon.getInstance()} is null and the streaming path handles that case instead.
  *
- * <p><b>A voxy that will not take our chunks must not take the pregen down with it.</b> voxy is forked
- * constantly, and a fork that changed {@code tryAutoIngestChunk} would throw a {@code NoSuchMethodError}
- * -- an Error, straight through every {@code catch (Exception)} in the pregen pipeline -- on the FIRST
- * chunk. So the sink absorbs a {@link LinkageError} once, says out loud what happened, and stands down for
- * the session: the pregen keeps running and still writes the CSLOD store, which is the durable artifact.
+ * <p>voxy is forked constantly, and a fork that changed {@code tryAutoIngestChunk} would throw a
+ * {@code NoSuchMethodError} -- an Error, straight through every {@code catch (Exception)} in the pregen
+ * pipeline -- on the FIRST chunk. So the sink absorbs a {@link LinkageError} once, says out loud what
+ * happened, and stands down for the session: the pregen keeps running and still writes the CSLOD store.
  *
  * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */

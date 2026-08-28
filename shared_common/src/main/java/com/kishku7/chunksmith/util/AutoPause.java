@@ -3,17 +3,16 @@ package com.kishku7.chunksmith.util;
 /**
  * Stops a pre-gen when the server cannot sustain it, and starts it again when it can.
  *
- * <p><b>The policy.</b> Decided 2026-08-20 between "keep crawling", "pause with a clear message and
- * resume when healthy", and "push through regardless": the middle one, as the DEFAULT, changeable live.
+ * <p>Decided 2026-08-20 between "keep crawling", "pause with a clear message and resume when healthy",
+ * and "push through regardless": the middle one, as the DEFAULT, changeable live. Crawling is the wrong
+ * default because a gated pre-gen on a server that cannot keep up does not stop -- it stutters. Measured
+ * on a live server: 60 chunks in two minutes, roughly 0.9 per second, with the never-wedge valve opening
+ * every 120 seconds for about a second of work. That is indistinguishable from a hang, keeps the server
+ * under load throughout, and makes no useful progress.
  *
- * <p><b>Why crawling is the wrong default.</b> On a server that cannot keep up, a gated pre-gen does
- * not stop -- it stutters. Measured on a live server: 60 chunks in two minutes, roughly 0.9 per second,
- * with the never-wedge valve opening every 120 seconds for about a second of work. That is
- * indistinguishable from a hang, keeps the server under load throughout, and makes no useful progress.
- *
- * <p><b>Both directions need patience.</b> Pausing on the first bad second would stop a run for a
- * passing autosave; resuming on the first good second would restart it into the same wall. So each
- * direction requires the condition to hold CONTINUOUSLY for the grace period, on one shared knob.
+ * <p>Both directions need patience: pausing on the first bad second would stop a run for a passing
+ * autosave, and resuming on the first good second would restart it into the same wall. So each direction
+ * requires the condition to hold CONTINUOUSLY for the grace period, on one shared knob.
  *
  * <p>MC-free and clock-injectable, so the state machine is testable without a server.
  */
@@ -48,10 +47,10 @@ public final class AutoPause {
     /**
      * Report whether the server is currently unable to sustain the run.
      *
-     * <p><b>Not just "our gate is closed".</b> Too narrow: on a live server with the chunk gate off and
-     * the heap under its threshold, nothing of ours ever closed while the server logged twelve "Can't
-     * keep up" warnings and generation fell to 5 chunks per second. The condition is "cannot sustain":
-     * either gate holding, OR the tick running far past the target the throttle steers to.
+     * <p>"Our gate is closed" was too narrow. On a live server with the chunk gate off and the heap
+     * under its threshold, nothing of ours ever closed while the server logged twelve "Can't keep up"
+     * warnings and generation fell to 5 chunks per second. So: either gate holding, OR the tick running
+     * far past the target the throttle steers to.
      */
     public static void noteStruggling(final boolean struggling, final long now) {
         if (!struggling) {

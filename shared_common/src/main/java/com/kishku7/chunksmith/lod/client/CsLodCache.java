@@ -5,17 +5,16 @@ import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import java.nio.file.Path;
 
 /**
- * The "do I already have this?" check, shared by BOTH transports. The rule does not change with the
- * transport: whether regions arrive over HTTP at 55 MB/s or dribble down the game connection, we ask only
- * for what we are missing. A re-join fetches nothing.
+ * The "do I already have this?" check, shared by BOTH transports. Whether regions arrive over HTTP at
+ * 55 MB/s or dribble down the game connection, we ask only for what we are missing; a re-join fetches
+ * nothing.
  *
- * <p><b>What this used to do, and why it stopped.</b> It read the whole region file and CRC32'd it against
- * the server's content hash -- the client's half of the bug that took a live server to 100% RAM: on a
- * 340-region store, ~1.5 GB slurped off its own disk into multi-megabyte (G1-humongous) byte arrays on
- * EVERY index, and an index arrives every five seconds while the player travels.
- *
- * <p>Now the freshness token is opaque (see {@code CsLodRegionHash}) and the client simply remembers what
- * the server told it about each region it stored ({@link CsLodManifest}). Nothing is read.
+ * <p>It used to read the whole region file and CRC32 it against the server's content hash -- the
+ * client's half of the bug that took a live server to 100% RAM. On a 340-region store that was ~1.5 GB
+ * slurped off its own disk into multi-megabyte (G1-humongous) byte arrays on EVERY index, and an index
+ * arrives every five seconds while the player travels. The freshness token is opaque now (see
+ * {@code CsLodRegionHash}) and the client simply remembers what the server told it about each region it
+ * stored ({@link CsLodManifest}). Nothing is read.
  */
 public final class CsLodCache {
 

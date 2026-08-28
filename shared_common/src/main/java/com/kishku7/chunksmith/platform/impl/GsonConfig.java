@@ -22,8 +22,8 @@ public final class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     // slf4j, NOT java.util.logging. The loaders do not route JUL to the game log, so every one
     // of the range warnings below was INVISIBLE to operators -- a config value silently clamped
-    // with the explanation going nowhere. Same bug class that hid the drain diagnostics on
-    // 2026-08-20 until ChunkResidency was switched over.
+    // with the explanation going nowhere. Same bug class that hid the drain diagnostics until
+    // ChunkResidency was switched over.
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
     // Target ms/tick the throttle steers toward. A healthy 20 TPS server measures ~50 ms,
     // so the floor of this range is 50; the default leaves a small margin above it.
@@ -90,10 +90,10 @@ public final class GsonConfig implements Config {
     /**
      * Default pipeline width, scaled to the box.
      *
-     * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated server
-     * (2026-08-20) 50 gave 31.6 cps while 200 gave 43.9 -- a 39 percent gain -- with residency and heap
-     * no worse, and no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because the real
-     * ceiling past that point is vanilla promoting roughly 2.2 chunks per tick at 20 tps.
+     * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated server,
+     * 50 gave 31.6 cps while 200 gave 43.9 -- a 39 percent gain -- with residency and heap no worse, and
+     * no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because the real ceiling past
+     * that point is vanilla promoting roughly 2.2 chunks per tick at 20 tps.
      *
      * <p>So the knee is around 25 per core rather than a fixed number, and a fixed 200 would be wrong
      * on a 2-core VPS for the same reason 50 was wrong on an 8-core box. Floor stays at the historic 50

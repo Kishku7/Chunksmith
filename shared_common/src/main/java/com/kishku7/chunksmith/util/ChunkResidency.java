@@ -6,25 +6,25 @@ import org.slf4j.LoggerFactory;
 /**
  * How many chunks the server is holding in memory, and whether a pregen still owes the server a drain.
  *
- * <p><b>Why this exists.</b> Every other throttle signal Chunksmith has measures how fast work goes IN
- * -- tick time, per-chunk latency, the write queue, the LOD sink. None measured what had piled up and
- * not gone OUT. On a live server (2026-08-19) a pregen ran with 75,045 chunk holders resident, ten
- * times the sweep frontier the run could need, and nothing in the mod could see it.
+ * <p>Every other throttle signal Chunksmith has measures how fast work goes IN -- tick time, per-chunk
+ * latency, the write queue, the LOD sink. None measured what had piled up and not gone OUT. On a live
+ * server a pregen ran with 75,045 chunk holders resident, ten times the sweep frontier the run could
+ * need, and nothing in the mod could see it.
  *
- * <p><b>What 3.5.0 got wrong</b>, both measured on Zion 2026-08-20. <i>Absolute counts are
- * meaningless:</i> a cap of "20,000 resident" tripped on a server whose ordinary resident set was
- * already near it, so the gate closed on the baseline and never opened. The question is <b>how many
- * have WE added</b> -- hence {@link #baseline()}, captured at run start, and a gate reading the DELTA.
+ * <p>3.5.0 then got two things wrong, both measured on Zion 2026-08-20. Absolute counts turned out to be
+ * meaningless: a cap of "20,000 resident" tripped on a server whose ordinary resident set was already
+ * near it, so the gate closed on the baseline and never opened. The question is how many WE have added
+ * -- hence {@link #baseline()}, captured at run start, and a gate reading the DELTA.
  *
- * <p><i>The backlog outlives the task.</i> 3.5.0 drove the unload pass only while a task was ACTIVE;
- * when it paused, the remainder fell to vanilla's budgeted pass, which does nothing once the tick is
- * over budget -- which it is precisely BECAUSE of the retained chunks. Measured: 39,064 chunks still
- * resident nineteen minutes after the pregen stopped, no players online, 51 ms per tick, heap pinned at
- * 8.7 GB, permanent until a restart. So {@link #isDraining()} keeps the pass running until they go.
+ * <p>And the backlog outlives the task. 3.5.0 drove the unload pass only while a task was ACTIVE; when
+ * it paused, the remainder fell to vanilla's budgeted pass, which does nothing once the tick is over
+ * budget -- which it is precisely BECAUSE of the retained chunks. Measured: 39,064 chunks still resident
+ * nineteen minutes after the pregen stopped, no players online, 51 ms per tick, heap pinned at 8.7 GB,
+ * permanent until a restart. So {@link #isDraining()} keeps the pass running until they go.
  *
- * <p><b>Staleness is the point, not a flaw.</b> A server whose main thread has stopped ticking stops
- * publishing, and its chunks are not unloading either, so a recent-but-frozen reading is still the
- * truth. Only a reading older than {@link #FRESH_MILLIS} is discarded, so it cannot gate a later run.
+ * <p>A stale reading is deliberately not discarded. A server whose main thread has stopped ticking stops
+ * publishing, and its chunks are not unloading either, so a recent-but-frozen reading is still the truth.
+ * Only a reading older than {@link #FRESH_MILLIS} is thrown away, so it cannot gate a later run.
  *
  * <p>Static because there is one server per process; volatile because the generation task reads from a
  * worker thread while the server thread publishes.
@@ -70,9 +70,10 @@ public final class ChunkResidency {
     }
 
     /**
-     * Publish the current resident chunk count. Called from the server thread once per tick. Published
-     * ALWAYS, not only while a run is active: after 3.5.0 the number was cleared the moment a task
-     * ended, which is exactly when the backlog it left behind most needed watching.
+     * Publish the current resident chunk count. Server thread, once per tick.
+     *
+     * <p>Published ALWAYS, not only while a run is active: after 3.5.0 the number was cleared the moment
+     * a task ended, which is exactly when the backlog it left behind most needed watching.
      *
      * @param loaded total chunk holders across every level, or negative when the platform cannot say
      */
@@ -178,10 +179,10 @@ public final class ChunkResidency {
      * Tell the drain whether it is currently being given a real budget.
      *
      * <p>The unload floor is small while players are online, and a drain on that floor makes little
-     * measurable progress -- which the stall detector below would read as "nothing left to unload" and
-     * end the drain. That happened: on 2026-08-20 a drain gave up while a player was online, the player
-     * left, and the server sat at 71.5 ms per tick with a full heap until it was restarted, because
-     * nothing re-armed it. So the no-progress clock only advances while the drain is allowed to work.
+     * measurable progress -- which the stall detector below reads as "nothing left to unload". It gave
+     * up for exactly that reason once while a player was online; the player left, and the server sat at
+     * 71.5 ms per tick with a full heap until it was restarted, because nothing re-armed it. So the
+     * no-progress clock only advances while the drain is allowed to work.
      */
     public static void noteDrainBudget(final boolean fullBudget) {
         drainOnFullBudget = fullBudget;
@@ -216,12 +217,13 @@ public final class ChunkResidency {
     }
 
     /**
-     * Generation has stopped dispatching because one of OUR gates closed -- residency or heap. Two
-     * things follow, both missing when the gate was first tested on a real server. The unload pass
-     * should get the full budget: nothing is being generated, and unloading is the only thing that can
-     * reopen the gate. And the settle frontier must be let go, because with dispatch stopped no
-     * neighbour is ever coming, so the frontier freezes at its cap and PREVENTS the very recovery the
-     * gate is waiting for. Measured 2026-08-20: 25,638 resident, held for 120 s, count UP by 196.
+     * Generation has stopped dispatching because one of OUR gates closed -- residency or heap.
+     *
+     * <p>Two things follow, both missing when the gate was first tested on a real server. The unload
+     * pass should get the full budget: nothing is being generated, and unloading is the only thing that
+     * can reopen the gate. And the settle frontier must be let go -- with dispatch stopped no neighbour
+     * is ever coming, so the frontier freezes at its cap and PREVENTS the very recovery the gate is
+     * waiting for. Measured: 25,638 resident, held for 120 s, count UP by 196.
      */
     public static void noteGenerationHeld(final boolean held) {
         generationHeld = held;

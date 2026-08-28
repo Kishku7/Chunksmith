@@ -11,39 +11,39 @@ import java.util.Map;
  * Keeps a just-generated chunk LOADED for a moment after we are done with it, so that other mods which
  * react to a chunk being generated still have something to work with.
  *
- * <p><b>Why this exists.</b> A pregen drops a chunk's ticket the instant the future completes, which is
- * what keeps its memory flat. A mod that hooks "a new chunk appeared" and acts on a later server tick
- * then finds the chunk -- and everything around it -- already gone, so it defers, and keeps deferring
- * for the whole run. Measured: Millenaire queues a candidate on {@code ChunkEvent.Load} and checks
+ * <p>A pregen drops a chunk's ticket the instant the future completes, which is what keeps its memory
+ * flat. A mod that hooks "a new chunk appeared" and acts on a later server tick then finds the chunk --
+ * and everything around it -- already gone, so it defers, and keeps deferring for the whole run.
+ * Measured: Millenaire queues a candidate on {@code ChunkEvent.Load} and checks
  * {@code level.hasChunksAt(pos +/- villageRadius)} on a later tick; against Chunksmith 3.2.4 on a
  * NeoForge 1.21.1 pregen that scored <b>309 spawn attempts, 309 deferrals, zero villages</b>
  * (mod_support #14). The same shape of bug applies to anything acting on a chunk after we moved on.
  *
- * <p><b>What is held.</b> The condition is not "my chunk is loaded" but "my chunk AND ITS NEIGHBOURS
- * are loaded", and Chunksmith sweeps in a spatial pattern, so a chunk's north and south neighbours can
- * be a whole ring apart in generation order -- hundreds or thousands of chunks -- and a fixed-size FIFO
- * of recent chunks would hold the wrong ones. So the rule is spatial, not temporal: <b>a chunk's ticket
- * is released once all eight of its neighbours have also been generated</b>, plus a short delay so the
- * other mod's tick gets a turn. What is held is therefore the SWEEP FRONTIER and nothing else.
+ * <p>The condition is not "my chunk is loaded" but "my chunk AND ITS NEIGHBOURS are loaded", and
+ * Chunksmith sweeps in a spatial pattern, so a chunk's north and south neighbours can be a whole ring
+ * apart in generation order -- hundreds or thousands of chunks -- and a fixed-size FIFO of recent chunks
+ * would hold the wrong ones. So the rule is spatial, not temporal: a chunk's ticket is released once all
+ * eight of its neighbours have also been generated, plus a short delay so the other mod's tick gets a
+ * turn. What is held is therefore the SWEEP FRONTIER and nothing else.
  *
- * <p><b>Bounded bookkeeping.</b> A set of every generated chunk would grow with the whole run (millions
- * of entries on a big pregen) to answer a question only ever asked about the frontier. Instead each
- * position carries a COUNT of how many of its nine have arrived, and an entry is dropped the moment it
- * can no longer be needed.
+ * <p>Bookkeeping is bounded to match. A set of every generated chunk would grow with the whole run
+ * (millions of entries on a big pregen) to answer a question only ever asked about the frontier, so each
+ * position carries a COUNT of how many of its nine have arrived instead, and an entry is dropped the
+ * moment it can no longer be needed.
  *
- * <p><b>Why the frontier still needs a hard cap.</b> The neighbourhood rule bounds the frontier only
- * while every position in it eventually gets all nine. A chunk the run SKIPS -- already generated with
- * its LOD present, or outside the shape -- is never offered, so the chunks beside it are held for the
- * whole run: a resumed or partly pregenerated world leaks steadily, and that is the common case. And a
- * genuinely huge selection has a genuinely huge perimeter. Both were live on the pregen that left a
- * server holding far more chunks than the run could ever need (see {@link ChunkResidency}), so past
- * {@code maxHeld} the OLDEST held chunk is released -- age is exactly the evidence that a chunk's
- * neighbourhood is not coming.
+ * <p>The frontier still needs a hard cap, because the neighbourhood rule bounds it only while every
+ * position in it eventually gets all nine. A chunk the run SKIPS -- already generated with its LOD
+ * present, or outside the shape -- is never offered, so the chunks beside it are held for the whole run:
+ * a resumed or partly pregenerated world leaks steadily, and that is the common case. A genuinely huge
+ * selection also has a genuinely huge perimeter. Both were live on the pregen that left a server holding
+ * far more chunks than the run could ever need (see {@link ChunkResidency}), so past {@code maxHeld} the
+ * OLDEST held chunk is released -- age is exactly the evidence that a chunk's neighbourhood is not
+ * coming.
  *
- * <p><b>What a held chunk actually costs.</b> Not one chunk. The ticket is at FULL level and the
- * distance manager propagates that level outward a ring at a time, so each held ticket keeps about 25
- * chunks resident with it -- measured on a live pre-gen (20 held -> 3,507 resident; ~400 held -> 10,167
- * resident). That multiplier is why the cap is a small number and why raising it is a memory decision.
+ * <p>A held chunk does not cost one chunk. The ticket is at FULL level and the distance manager
+ * propagates that level outward a ring at a time, so each held ticket keeps about 25 chunks resident
+ * with it -- measured on a live pre-gen (20 held -> 3,507 resident; ~400 held -> 10,167 resident). That
+ * multiplier is why the cap is a small number and why raising it is a memory decision.
  *
  * <p>Deliberately MC-free (a chunk is a packed long, a release is a {@link Runnable}) so it can be
  * unit-tested without a server. Not thread-safe by construction: every call is made from the server
@@ -102,7 +102,7 @@ public final class ChunkSettleWindow {
      * Hand over a generated chunk and the release that would normally have run immediately.
      *
      * <p>Every path out of this object -- including {@link #drain} -- ends in that release running
-     * exactly once. A ticket that is never released is a chunk that never unloads.
+     * exactly once, or the chunk never unloads.
      *
      * @param now the current game tick, used only to time the delay
      */

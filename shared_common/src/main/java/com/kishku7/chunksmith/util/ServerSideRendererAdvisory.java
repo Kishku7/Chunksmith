@@ -8,18 +8,18 @@ import java.util.function.Predicate;
 /**
  * Says so when a dedicated server is carrying an LOD renderer it does not need.
  *
- * <p><b>The claim.</b> Chunksmith builds its own LOD data as it pregenerates and serves it to the
- * player's client, which injects it into whichever renderer the PLAYER has: an LOD renderer is a
- * CLIENT-side mod, and a dedicated server does not render anything.
+ * <p>Chunksmith builds its own LOD data as it pregenerates and serves it to the player's client, which
+ * injects it into whichever renderer the PLAYER has. An LOD renderer is a CLIENT-side mod, and a
+ * dedicated server does not render anything.
  *
- * <p><b>Why say anything at all.</b> Installing Distant Horizons server-side is a reasonable-looking
- * mistake -- it is the mod the feature is "about" and it has a server half. It is not free: on a live
- * server (2026-08-19) a server-side Distant Horizons ran 43 threads, its own world-gen queues, a delayed
- * save cache and a per-dimension update propagator alongside a Chunksmith pregen already generating the
- * same terrain, and with {@code synchronizeOnLoad} on it re-sent LODs the client already had.
+ * <p>Installing Distant Horizons server-side is a reasonable-looking mistake -- it is the mod the
+ * feature is "about" and it has a server half -- and it is not free. On a live server a server-side
+ * Distant Horizons ran 43 threads, its own world-gen queues, a delayed save cache and a per-dimension
+ * update propagator alongside a Chunksmith pregen already generating the same terrain, and with
+ * {@code synchronizeOnLoad} on it re-sent LODs the client already had.
  *
- * <p>It is not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we FEED,
- * and an operator serving vanilla DH clients is entitled to run it. So: one line, once, at startup.
+ * <p>Still not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we FEED,
+ * and an operator serving vanilla DH clients is entitled to run it. One line, once, at startup.
  *
  * <p>MC-free and loader-free -- a predicate in, a string out -- so the rule is unit-testable.
  */

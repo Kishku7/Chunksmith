@@ -358,25 +358,18 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             final long deadline = System.nanoTime() + floor;
             final BooleanSupplier budget = () -> haveTime.getAsBoolean() || System.nanoTime() < deadline;
             for (ServerLevel level : this.getAllLevels()) {
-                // NOT guarded on C2ME, deliberately (mod_support #16, 2026-08-12). A guard was tried
-                // here on the theory that this call was the ticket-map race; the C2ME cancel gate
-                // (Server_Tests/cs-c2me-cancel-gate) proved it was NOT -- the crash reproduced with the
-                // guard in place, arriving instead through vanilla ServerChunkCache.pollTask, i.e. the
-                // map was already corrupt. The real cause was ticket mutation reaching the chunk
-                // system from the server EXECUTOR, mid-iteration; that is now confined to the ticket
-                // safe point at tickServer HEAD (see chunksmith$onTickHead).
+                // Deliberately not guarded on C2ME (mod_support #16). Server_Tests/cs-c2me-cancel-gate
+                // reproduced the crash with the guard in place, arriving instead through vanilla
+                // ServerChunkCache.pollTask -- so the ticket map was already corrupt. The cause was ticket
+                // mutation reaching the chunk system from the server EXECUTOR mid-iteration, now confined
+                // to the ticket safe point at tickServer HEAD (see chunksmith$onTickHead).
                 ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable
-                // FIX (2026-08-02, mod_support #11): was invokeTick(() -> true) -- "ASAP", ignoring the
-                // haveTime this method already receives. That told vanilla's unload pass it always has
-                // unlimited time, so ChunkMap.tick()/processUnloads() ran fully unbounded on the main
-                // thread every tick housekeeping fired. Harmless on a small backlog; on a large one
-                // (reported: ~13k+ queued unloads after a big pre-gen radius) it pinned the server
-                // thread near 100% CPU inside ChunkMap.scheduleUnload for 60+ minutes, starving command
-                // processing. haveTime is vanilla's own tickServer(BooleanSupplier hasTimeLeft) budget --
-                // the same signal vanilla's own unload processing respects everywhere else. Passing it
-                // through here (instead of a hardcoded true) makes the unload pass self-limit per tick
-                // and drain a large backlog incrementally across many ticks instead of forcing it all
-                // through in one synchronous call.
+                // mod_support #11: this was invokeTick(() -> true), i.e. "unlimited time", ignoring the
+                // haveTime the method already receives. ~13k queued unloads after a big pre-gen radius
+                // then pinned the server thread near 100% CPU inside ChunkMap.scheduleUnload for 60+
+                // minutes, starving command processing. haveTime is vanilla's own
+                // tickServer(BooleanSupplier hasTimeLeft) budget, so passing it through drains a large
+                // backlog across many ticks instead of forcing it through one synchronous call.
                 ((ChunkMapMixin) level.getChunkSource().chunkMap).invokeTick(budget); // bounded: vanilla's budget, floored so a starved tick still unloads
                 //[[[cog
                 // import cog, compat

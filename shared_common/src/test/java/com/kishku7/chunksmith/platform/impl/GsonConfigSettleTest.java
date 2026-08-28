@@ -15,10 +15,9 @@ import static org.junit.Assert.assertTrue;
 /**
  * The settle settings as seen through {@code /cs settle}.
  *
- * <p>House rule (2026-08-11): every key in the config file has a command that can set it. That is
- * only true if the SETTER half works, and a setter has two jobs the getter does not -- it has to survive a
- * restart, and it has to refuse a value the getter would later clamp. If a command reports a value the
- * file does not hold, the operator is being lied to.
+ * <p>The house rule -- every key in the config file has a command that can set it -- is only true if the
+ * SETTER half works, and a setter has two jobs the getter does not: survive a restart, and refuse a
+ * value the getter would later clamp.
  *
  * <p>These tests drive {@link GsonConfig} directly rather than the command, because that is where both
  * jobs actually live; the command only forwards and reads back.

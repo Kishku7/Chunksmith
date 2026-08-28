@@ -13,10 +13,11 @@ import com.kishku7.chunksmith.lod.client.render.VoxyTarget;
  * <p>Mod ids: {@code voxy} (upstream and every fork) and {@code distanthorizons} (Fabric and NeoForge,
  * ships for 26.1.2 and 26.2). Every voxy fork we could reach keeps the id {@code voxy} and is identical to
  * upstream on the voxel layout, mapper scheme, section key, storage version, package root and ingest
- * signatures, so ONE adapter covers them all -- verified by running the real fork jars (upstream, ggonzaDNG
- * mia-edition, NHblock714, Paulem79, srjefers, Vulkan-Voxy), 2026-07-13. The one place they DID drift --
- * the type of voxy's render-distance config field -- is now read type-tolerantly; see
- * {@code VoxyConfigReader}.
+ * signatures, so ONE adapter covers them all. That is a snapshot of the fork field as it stood on
+ * 2026-07-13, and it is the roster the other voxy classes lean on: upstream, ggonzaDNG mia-edition,
+ * NHblock714, Paulem79, srjefers and Vulkan-Voxy, each one run as a real jar. New forks keep appearing;
+ * re-run the set before trusting the claim. The one place they DID drift -- the type of voxy's
+ * render-distance config field -- is now read type-tolerantly; see {@code VoxyConfigReader}.
  *
  * <p><b>voxy is Fabric-only.</b> Its {@code VoxyCommon} implements {@code net.fabricmc.api.ModInitializer},
  * so the adapter cannot even COMPILE against a NeoForge build, and no fork has ever shipped for any 26.x
@@ -53,17 +54,17 @@ public final class Renderers {
     /**
      * How far the player's renderer is actually configured to draw, in blocks.
      *
-     * <p>The rule: use the renderer's configured LOD distance, whether it is LOWER or HIGHER than
+     * <p>Use the renderer's configured LOD distance, whether it is LOWER or HIGHER than
      * {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}, and fall back to that default only if neither renderer
-     * can be read. When BOTH are installed we take the LARGER of the two -- the smaller renderer ignores
-     * what it cannot draw, whereas shipping only the smaller radius leaves the further-drawing one with
-     * holes. DH reports {@code graphics().chunkRenderDistance()} in chunks, voxy
+     * can be read. With both installed, take the LARGER: the smaller renderer ignores what it cannot draw,
+     * whereas shipping only the smaller radius leaves the further-drawing one with holes. DH reports
+     * {@code graphics().chunkRenderDistance()} in chunks, voxy
      * {@code VoxyConfig.CONFIG.sectionRenderDistance} in 512-block sections.
      *
-     * <p><b>And when the number cannot be read, SAY SO.</b> These {@code LinkageError} catches used to be
-     * silent {@code ignored} blocks; a voxy fork that re-typed one config field then collapsed a player's
-     * radius from 8192 blocks to 256 with nothing in the log (see {@code VoxyRadius}). Both readers
-     * announce their own failures now -- these catches are the last net, for our own seam class failing.
+     * <p>The {@code LinkageError} catches below used to be silent {@code ignored} blocks, which is how a
+     * re-typed voxy config field collapsed a player's radius from 8192 blocks to 256 with nothing in the
+     * log (see {@code VoxyRadius}). Both readers announce their own failures now; these catches are the
+     * last net, for our own seam class failing.
      */
     public static int configuredRadiusBlocks() {
         int blocks = 0;

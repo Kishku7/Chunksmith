@@ -3,10 +3,10 @@ package com.kishku7.chunksmith.util;
 /**
  * What the chunk system is actually doing about unloading, in five numbers.
  *
- * <p><b>Why this exists.</b> On 2026-08-20 a drain ran for its full ten-minute ceiling and freed
- * <b>30 chunks out of 22,067</b>, with the pregen paused, after three releases spent making the unload
- * pass faster on the assumption it was starved of budget. {@code ChunkMap.processUnloads} settled it:
- * the {@code toDrop} loop consults no budget at all, and the {@code unloadQueue} drain runs
+ * <p>A drain once ran for its full ten-minute ceiling and freed <b>30 chunks out of 22,067</b>, with the
+ * pregen paused, after three releases spent making the unload pass faster on the assumption it was
+ * starved of budget. {@code ChunkMap.processUnloads} settled it: the {@code toDrop} loop consults no
+ * budget at all, and the {@code unloadQueue} drain runs
  * {@code while (unloadQueue.size() - 2000 > 0 || haveTime())}, so vanilla drains to 2000 entries even
  * when {@code haveTime} is false. A starved budget cannot produce 30 chunks; the chunks were never
  * ELIGIBLE, because something still held their ticket level.

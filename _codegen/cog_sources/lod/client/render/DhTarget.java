@@ -21,13 +21,13 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Feeds downloaded CSLOD records into the player's Distant Horizons.
  *
- * <p><b>We PUSH; DH does not pull from us.</b> DH's world-generator override is built only by a SERVER
+ * <p>We PUSH; DH does not pull from us. DH's world-generator override is built only by a SERVER
  * level -- a multiplayer client gets a {@code RemoteWorldRetrievalQueue}, so {@code generateApiChunk} is
  * NEVER CALLED there. So the client pushes instead, through {@code terrainRepo.overwriteChunkDataAsync}
  * -> {@code SharedApi.applyChunkUpdate}: the same path DH uses when a player edits a block. It writes at
  * gen step LIGHT, persists, and re-renders on its own.
  *
- * <p><b>DH bakes the light itself.</b> Its ChunkWrapper never touches Minecraft's light engine -- the push
+ * <p>DH bakes the light itself -- its ChunkWrapper never touches Minecraft's light engine, and the push
  * path calls its own lighting engine unconditionally. So a synthesized chunk needs NO pre-lighting; it
  * needs correct block states with AIR EXPLICITLY PRESENT, which CSLOD's gap-free columns guarantee.
  *
@@ -39,13 +39,13 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class DhTarget {
 
     /**
-     * Minimum gap between pushes. NOT arbitrary: DH's {@code ChunkUpdateQueueManager.addItemToQueue()}
-     * calls {@code popFurthest()} when its queue overflows -- it evicts the entry FURTHEST FROM THE PLAYER,
-     * which is precisely the distant pregenerated terrain we are delivering. It is an overflow guard, not a
-     * distance filter, so it only fires when pushes outrun DH's chunk-to-LOD builder. Measured safe at ~50
-     * chunks/s over a 4225-chunk push with 100% retention; this pacing keeps us there.
+     * Minimum gap between pushes. Measured safe at ~50 chunks/s over a 4225-chunk push, 100% retention.
      *
-     * <p>If DH ever logs "Distant Horizons overloaded", treat it as a DATA-LOSS signal, not a warning.
+     * <p>Not arbitrary: DH's {@code ChunkUpdateQueueManager.addItemToQueue()} calls {@code popFurthest()}
+     * when its queue overflows, evicting the entry FURTHEST FROM THE PLAYER -- precisely the distant
+     * pregenerated terrain we are delivering. It is an overflow guard, not a distance filter, so it fires
+     * only when pushes outrun DH's chunk-to-LOD builder. "Distant Horizons overloaded" in the log is a
+     * DATA-LOSS signal, not a warning.
      */
     private static final long MIN_PUSH_INTERVAL_NANOS = 10_000_000L;   // ~100 chunks/s ceiling
 
@@ -84,10 +84,8 @@ public final class DhTarget {
     }
 
     /**
-     * Give up on DH for the rest of the session -- but keep the mod, and voxy, alive. A
-     * {@link LinkageError} here means the DH installed lacks the method/type we compiled against (a DH
-     * outside the range we claim, or a fork that moved something) -- a DH problem, not a reason to take
-     * the player's game or their voxy rendering down with it.
+     * Give up on DH for the session. A {@link LinkageError} means the installed DH lacks a method or type
+     * we compiled against -- a DH problem, and no reason to take the player's game or their voxy with it.
      */
     static void disable(final Throwable cause) {
         if (disabled) {
@@ -183,13 +181,12 @@ public final class DhTarget {
     /**
      * pushed / failed.
      *
-     * <p><b>What a "success" does NOT prove.</b> {@code DhApiResult.success} means QUEUED, not WRITTEN, so
-     * these counters cannot prove retention. Two ways the data still disappears: DH's queue overflows and
-     * {@code popFurthest()} evicts the entry furthest from the player, i.e. ours (hence the pacing above);
-     * and on a DH-ENABLED server with real-time updates on, {@code shouldProcessChunkUpdate} silently
-     * DISCARDS an update for any position seen in the last ten minutes while still returning success (the
-     * gate the mixin turns off). Verify retention by counting rows in DH's database, never by trusting
-     * this number.
+     * <p>{@code DhApiResult.success} means QUEUED, not WRITTEN, so these counters cannot prove retention.
+     * Two ways the data still disappears: DH's queue overflows and {@code popFurthest()} evicts the entry
+     * furthest from the player, i.e. ours (hence the pacing above); and on a DH-ENABLED server with
+     * real-time updates on, {@code shouldProcessChunkUpdate} silently DISCARDS an update for any position
+     * seen in the last ten minutes while still returning success (the gate the mixin turns off). Count
+     * rows in DH's database to check retention.
      */
     public static String describe() {
         return "dh pushed " + pushed.get() + ", failed " + failed.get()

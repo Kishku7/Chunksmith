@@ -44,19 +44,19 @@ public final class LodInjector {
 
     /**
      * Which injection SESSION is current. Bumped when the session a running injection belongs to has gone
-     * away -- a disconnect, a cancel, or a server that has stopped (mod_support #16, 2026-08-12).
+     * away -- a disconnect, a cancel, or a server that has stopped (mod_support #16).
      *
      * <p>A worker captures this value when it starts and stops as soon as it no longer matches. The level
      * check below is not enough alone: it catches the player CHANGING dimension but not the world ending
      * underneath us -- in singleplayer the client level can still be there while the integrated server is
      * shutting down. One was seen logging "injected 17500 chunks" ~45s after "Stopping server".
      *
-     * <p><b>A COUNTER, deliberately, and not the boolean it replaces.</b> The boolean was set true by
-     * {@code stop()} on disconnect and cleared by an {@code arm()} that only ONE of the two callers made --
-     * the in-band fallback. The backchannel is the path almost every player is on, so the first disconnect
-     * of a game session latched the flag true and every join after it aborted at region 0 for the remaining
-     * life of the process. A generation has no pairing to get wrong: a new injection reads the CURRENT
-     * value as its own baseline, so there is nothing to arm and {@code arm()} is gone rather than fixed.
+     * <p>A counter rather than the boolean it replaces. The boolean was set true by {@code stop()} on
+     * disconnect and cleared by an {@code arm()} that only ONE of the two callers made -- the in-band
+     * fallback. The backchannel is the path almost every player is on, so the first disconnect of a game
+     * session latched the flag true and every join after it aborted at region 0 for the remaining life of
+     * the process. A generation has no pairing to get wrong: a new injection reads the CURRENT value as
+     * its own baseline, so there is nothing to arm and {@code arm()} is gone rather than fixed.
      */
     private static final AtomicInteger SESSION = new AtomicInteger();
 
@@ -91,11 +91,11 @@ public final class LodInjector {
      * Inject specific regions of a downloaded store into every renderer that is present. Skips any region
      * already injected this session, so this is safe to call on every travel refresh.
      *
-     * <p><b>The records must belong to the level they are being pushed into.</b> Both adapters resolve
-     * their target from the level we hand them, so the wrong dimension's records are faithfully written
-     * into the right renderer for the wrong world -- and neither DH nor voxy validates it. (It has
-     * happened: 1089 overworld chunks into the End's database, and in 3.1.0-beta-2 the overworld's whole
-     * store into the Nether.) The level is the authority, and this is the gate.
+     * <p>The records must belong to the level they are being pushed into, and this is where that is
+     * checked. Both adapters resolve their target from the level we hand them, so the wrong dimension's
+     * records are faithfully written into the right renderer for the wrong world -- and neither DH nor
+     * voxy validates it. (It has happened: 1089 overworld chunks into the End's database, and in
+     * 3.1.0-beta-2 the overworld's whole store into the Nether.)
      *
      * @param storeRoot the client's store for this server ({@code .../chunksmith/lod/<server>})
      * @param dimension the dimension these records belong to -- MUST be the level's own dimension

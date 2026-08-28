@@ -8,8 +8,8 @@ public interface MinecraftServerExtension {
     void chunksmith$markChunkSystemHousekeeping();
 
     /**
-     * <p><b>Why (mod_support #16, 2026-08-12).</b> Being on the server thread is not enough. For the
-     * whole of {@code ServerChunkCache.tickChunks} the server thread is inside one fastutil walk of
+     * Being on the server thread is not enough (mod_support #16). For the whole of
+     * {@code ServerChunkCache.tickChunks} the server thread is inside one fastutil walk of
      * {@code simulationChunkTracker.chunks}. A ticket add or remove queues a level update, and the
      * next pump of the chunk-source executor applies it -- {@code MainThreadExecutor.pollTask()}
      * runs {@code runDistanceManagerUpdates()} first -- both inside the walk, so the map is

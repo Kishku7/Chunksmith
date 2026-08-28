@@ -54,12 +54,12 @@ public final class CsLodClientConfig {
     public static final int DEFAULT_SYNC_SECONDS = 300;
 
     /**
-     * The floor. Thirty seconds.
+     * Thirty seconds -- the sync floor.
      *
-     * <p>Not a guess: it is the smallest interval at which the sync cannot become the problem it solves. One
-     * poll is one readdir plus one stat per in-range region on a background thread -- for a 340-region store
-     * with a 4-region radius that is ~86 syscalls and zero bytes of file content. At 30 s, a hundred clients
-     * cost the server about three of those per second.
+     * <p>One poll is one readdir plus one stat per in-range region, on a background thread: for a
+     * 340-region store with a 4-region radius, ~86 syscalls and zero bytes of file content. At 30 s a
+     * hundred clients cost the server about three of those per second. Below that the sync starts
+     * becoming the problem it solves.
      */
     public static final int MIN_SYNC_SECONDS = 30;
 
@@ -98,10 +98,9 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Read the config, writing it with defaults if it is not there yet.
-     *
-     * <p>Every failure mode ends at the default: an unreadable file, a missing key, a value that is not a
-     * number. A config problem must never be the reason a player gets no terrain.
+     * Read the config, writing it with defaults if it is not there yet. Every failure mode ends at the
+     * default -- an unreadable file, a missing key, a value that is not a number -- because a config
+     * problem must never be the reason a player gets no terrain.
      *
      * @return the message to log -- one line, said once, and it names the clamp when the clamp bit
      */

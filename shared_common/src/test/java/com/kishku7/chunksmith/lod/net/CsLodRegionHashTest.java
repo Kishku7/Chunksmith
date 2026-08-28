@@ -10,10 +10,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The freshness token that replaced {@code crc.update(Files.readAllBytes(file))}.
- *
- * <p>The contract the client depends on is exactly one sentence: <b>a region that changed must produce a
- * different token.</b> Everything below is that sentence, pinned.
+ * The freshness token that replaced {@code crc.update(Files.readAllBytes(file))}. The contract the
+ * client depends on is one sentence -- a region that changed must produce a different token -- and
+ * everything below pins it.
  */
 public class CsLodRegionHashTest {
 

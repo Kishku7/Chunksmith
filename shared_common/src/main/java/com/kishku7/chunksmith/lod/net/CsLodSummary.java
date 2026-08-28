@@ -3,18 +3,18 @@ package com.kishku7.chunksmith.lod.net;
 /**
  * The cheap "has anything changed?" question -- a whole region index folded into (count, aggregate).
  *
- * <p>This is what makes the periodic checksum sync affordable. The sync exists for the player standing
- * STILL, who otherwise sees nothing new until they relog: the travel refresh only fires on movement.
+ * <p>It is what makes the periodic checksum sync affordable. The sync exists for the player standing
+ * STILL, who otherwise sees nothing new until they relog, because the travel refresh only fires on
+ * movement. So the client asks for a summary: two numbers, compared against the same two computed over
+ * what it holds, and only when they differ does it pay for a full index. Unchanged: 22 bytes out,
+ * 34 bytes back.
  *
- * <p>So the client asks for a SUMMARY: two numbers, compared against the same two computed over what it
- * holds, and only when they differ does it pay for a full index. Unchanged: 22 bytes out, 34 bytes back.
- *
- * <p><b>The fold must be order-independent</b> -- the server enumerates from {@code Files.list} and the
- * client from the last index it was given, so identical sets differ in order: hence XOR, not a checksum.
- *
- * <p>XOR of RAW hashes would be a bad aggregate: equal tokens cancel to zero and swapping two regions'
- * coordinates is invisible. So each region is bound to its OWN COORDINATES and avalanched --
- * {@code token(x, z, hash)} -- and those are XORed; the count is carried alongside as a second check.
+ * <p>The fold has to be order-independent, since the server enumerates from {@code Files.list} and the
+ * client from the last index it was given -- identical sets, different order. Hence XOR rather than a
+ * checksum. XOR of RAW hashes would be a bad aggregate, though: equal tokens cancel to zero and swapping
+ * two regions' coordinates is invisible. Each region is therefore bound to its OWN COORDINATES and
+ * avalanched -- {@code token(x, z, hash)} -- and those are XORed, with the count carried alongside as a
+ * second check.
  */
 public final class CsLodSummary {
 

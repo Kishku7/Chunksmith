@@ -15,10 +15,8 @@ import java.util.Locale;
 /**
  * The guard that keeps the house rule true over time.
  *
- * <p>Rule (2026-08-11): every setting in the config file is settable from a command. That rule was
- * broken the moment it was written -- nine of eleven keys had no command -- because nothing checked. A rule
- * enforced only by memory is a rule that decays silently at the exact moment somebody is busy shipping
- * something else.
+ * <p>Rule (2026-08-11): every setting in the config file is settable from a command. It was broken the
+ * moment it was written -- nine of eleven keys had no command -- because nothing checked.
  *
  * <p>So this test reads the config MODEL by reflection and asserts that every field in it is either
  * reachable through {@code /cs set} or on a short, explicit exclusion list. Add a key to the config and

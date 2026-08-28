@@ -161,13 +161,11 @@ public final class CsLodIndexScan {
     }
 
     /**
-     * Is this region within the radius the client's renderer can actually DRAW, measured from the player?
-     *
-     * <p>The client tells us its configured LOD distance in the handshake and we follow it, lower or higher:
-     * sending beyond it is bandwidth spent on terrain nobody sees, sending less leaves visible holes.
-     *
-     * <p>A region is 512 blocks square, so we test the region's BOX against the radius, not its corner -- a
-     * region only partly inside the radius still contains terrain the player can see.
+     * Is this region within the radius the client's renderer can actually DRAW, measured from the
+     * player? The client tells us its configured LOD distance in the handshake and we follow it, lower
+     * or higher: past it is bandwidth spent on terrain nobody sees, short of it leaves visible holes.
+     * A region is 512 blocks square, so the test is against the region's BOX and not its corner -- one
+     * only partly inside the radius still contains terrain the player can see.
      */
     public static boolean inRange(final Request request, final int regionX, final int regionZ) {
         return distanceSquared(request, regionX, regionZ)
