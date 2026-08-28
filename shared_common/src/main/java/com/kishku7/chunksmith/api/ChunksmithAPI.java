@@ -5,24 +5,13 @@ import com.kishku7.chunksmith.api.event.task.GenerationProgressEvent;
 
 import java.util.function.Consumer;
 
-/**
- * The Chunksmith API
- */
+/** The Chunksmith API. */
 @SuppressWarnings("unused")
 public interface ChunksmithAPI {
-    /**
-     * Gets the current API version.
-     *
-     * @return The api version
-     */
+    /** The API version this build implements. */
     int version();
 
-    /**
-     * Gets whether a generation task is currently running for a world.
-     *
-     * @param world The world identifier
-     * @return If a task is running in that world
-     */
+    /** Whether a generation task is currently running in the given world. */
     boolean isRunning(final String world);
 
     /**
@@ -39,41 +28,18 @@ public interface ChunksmithAPI {
      */
     boolean startTask(final String world, final String shape, final double centerX, final double centerZ, final double radiusX, final double radiusZ, final String pattern);
 
-    /**
-     * Pauses a generation task in a world.
-     *
-     * @param world The world identifier
-     * @return If the task was paused
-     */
+    /** Pauses the generation task in the given world; returns whether it was paused. */
     boolean pauseTask(final String world);
 
-    /**
-     * Continues a generation task in a world.
-     *
-     * @param world The world identifier
-     * @return If the task was continued
-     */
+    /** Continues the generation task in the given world; returns whether it was continued. */
     boolean continueTask(final String world);
 
-    /**
-     * Cancels a generation task in a world.
-     *
-     * @param world The world identifier
-     * @return If the task was cancelled
-     */
+    /** Cancels the generation task in the given world; returns whether it was cancelled. */
     boolean cancelTask(final String world);
 
-    /**
-     * Register a listener for generation progress events.
-     *
-     * @param listener The listener
-     */
+    /** Registers a listener for generation progress events. */
     void onGenerationProgress(final Consumer<GenerationProgressEvent> listener);
 
-    /**
-     * Register a listener for generation complete events.
-     *
-     * @param listener The listener
-     */
+    /** Registers a listener for generation complete events. */
     void onGenerationComplete(final Consumer<GenerationCompleteEvent> listener);
 }

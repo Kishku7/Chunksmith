@@ -8,7 +8,6 @@ package com.kishku7.chunksmith.util;
  * server, the tick cost <b>74.9 ms with the pre-gen PAUSED</b> against a configured target of 75. The
  * ramp window was unreachable no matter what Chunksmith did, so the governor pinned dispatch at its
  * floor permanently and throttled the run to 2 chunks/sec -- while the run itself was costing 10 ms.
- * It was blaming itself for load it did not cause.
  *
  * <p><b>So measure three things instead of assuming one.</b>
  *
@@ -25,17 +24,12 @@ package com.kishku7.chunksmith.util;
  *       rather than a number that was right once.
  * </ul>
  *
- * <p><b>Players get reserved room, not just the absence of harm.</b> A player's cost is already IN
- * the baseline, so a rising baseline stops Chunksmith making things worse -- but it does not give the
- * player anything back. Each online player therefore also SHRINKS our allowance by
- * {@code playerReserveMillis}. Empty server: full allowance. Somebody playing: we actively give
- * ground. That is the difference between not-worsening and yielding.
+ * <p><b>Players get reserved room, not just the absence of harm.</b> A player's cost is already IN the
+ * baseline, so a rising baseline stops Chunksmith making things worse -- but it does not give the player
+ * anything back. Each online player therefore also SHRINKS our allowance by {@code playerReserveMillis}.
  *
- * <p><b>A player joining or leaving invalidates the baseline immediately.</b> It is a step change in
- * what the server costs, and a decaying average would take far too long to follow it -- during which
- * the throttle would be steering by a number that is simply wrong.
- *
- * <p>MC-free and clock-injectable so all of it is testable without a server.
+ * <p><b>A join or a leave invalidates the baseline immediately.</b> It is a step change in what the
+ * server costs, and a decaying average would take far too long to follow it.
  */
 public final class TickBudget {
 
@@ -48,15 +42,12 @@ public final class TickBudget {
     /**
      * Ceiling on the allowance, as a multiple of the configured floor.
      *
-     * <p><b>Without this the model runs away, and it did.</b> The allowance is twice our measured
-     * cost, and a pre-gen pushes until it REACHES its allowance -- so the cost climbs toward the
-     * allowance, which doubles it again. Observed live: ourCost 16.5 ms -> 154 ms and allowance
-     * 32.9 ms -> 308 ms in ten minutes, giving a 358 ms target at which the throttle would never back
-     * off and the server sits near 2.8 TPS.
-     *
-     * <p>"Twice the measured cost" is a sound HEADROOM rule, but only where the measurement is not
-     * itself driven by the result. Clamping the allowance breaks the loop: once it stops rising, the
-     * cost stops being pushed upward and settles at what the work genuinely costs.
+     * <p><b>Without this the model runs away, and it did.</b> The allowance is twice our measured cost,
+     * and a pre-gen pushes until it REACHES its allowance -- so the cost climbs toward the allowance,
+     * which doubles it again. Observed live: ourCost 16.5 ms -> 154 ms and allowance 32.9 ms -> 308 ms in
+     * ten minutes, giving a 358 ms target at which the throttle would never back off and the server sits
+     * near 2.8 TPS. Clamping the allowance breaks the loop: once it stops rising, the cost stops being
+     * pushed upward and settles at what the work genuinely costs.
      */
     private static final double MAX_ALLOWANCE_FACTOR = 3.0D;
 
@@ -79,9 +70,8 @@ public final class TickBudget {
      * "measured" 76.4 ms against a true ~16 ms, the allowance slammed into its ceiling, and the
      * throttle collapsed to 1/50 steering by a number that had been wrong for a quarter of an hour.
      *
-     * <p>There is no way to separate "the server got slower" from "we got more expensive" without
-     * occasionally stopping to look. Two seconds every two minutes is about 1.7 percent of throughput
-     * for a signal that is otherwise guesswork.
+     * <p>Nothing separates "the server got slower" from "we got more expensive" without occasionally
+     * stopping to look. Two seconds every two minutes is about 1.7 percent of throughput.
      */
     private static final long PROBE_INTERVAL_MS = 60_000L;
 
@@ -99,10 +89,9 @@ public final class TickBudget {
      * of 800 available. The throttle target is derived from this number, so a wrong baseline steers
      * everything downstream.
      *
-     * <p>Requiring a RUN of idle ticks separates the two cases without the caller having to say which
-     * it is in. A gap between two dispatches is one or two ticks and never qualifies. A held probe, a
-     * paused run, or a server with no pregen at all is idle indefinitely and qualifies immediately
-     * after the tail drains -- which is the whole point, because those readings are the honest ones.
+     * <p>Requiring a RUN of idle ticks separates the two cases without the caller having to say which it
+     * is in: a gap between two dispatches is one or two ticks and never qualifies, while a held probe, a
+     * paused run, or a server with no pregen is idle indefinitely and qualifies once the tail drains.
      */
     private static final int IDLE_TICKS_BEFORE_TRUSTED = 15;
 
@@ -131,9 +120,8 @@ public final class TickBudget {
      */
     public static void sample(final double mspt, final boolean ourWorkInFlight, final int players) {
         if (players != lastPlayerCount) {
-            // A join or a leave is a STEP CHANGE in what the server costs. Following it with a
-            // decaying average would mean steering by a stale number for many seconds, so throw the
-            // learned values away and re-measure. They come back within a few samples.
+            // A join or a leave is a STEP CHANGE in what the server costs, so throw the learned values
+            // away and re-measure rather than steer by a stale number. They return within a few samples.
             //
             // DO NOT return here. The first call of a run always trips this branch (lastPlayerCount
             // starts at -1), and the ONLY moment a run has nothing in flight is that same first call,
@@ -149,18 +137,10 @@ public final class TickBudget {
             return;
         }
         if (!ourWorkInFlight) {
-            // NOT every idle tick is a baseline tick. "Nothing in flight" is true for a moment between
-            // one chunk completing and the next dispatching, and that moment is still paying for the
-            // chunk that just landed -- its save, its unload pass, the GC of what it allocated. Feeding
-            // those samples in teaches the baseline our own aftermath and then attributes it to the
-            // server. Measured live 2026-08-20: baseline read 49ms, then 116.8ms minutes later with no
-            // load change at all, no keep-up warnings, and the box at 225% of 800% CPU. The throttle
-            // target is derived from this number, so a wrong baseline steers everything downstream.
-            //
-            // A baseline reading is only worth having when dispatch was deliberately HELD long enough
-            // for that tail to drain -- that is what the probe is for. The one exception is the very
-            // first sample of a run, taken before anything has been dispatched, where idle really is
-            // idle and it is the only reading available until the first probe comes round.
+            // NOT every idle tick is a baseline tick: the moment between one chunk completing and the
+            // next dispatching is still paying for the chunk that just landed -- its save, its unload
+            // pass, the GC of what it allocated. See IDLE_TICKS_BEFORE_TRUSTED for the measured cost of
+            // getting this wrong. The exception is a run's very first sample, where idle really is idle.
             if (++consecutiveIdleTicks < IDLE_TICKS_BEFORE_TRUSTED && baselineMspt >= 0.0D) {
                 return;
             }
@@ -220,7 +200,6 @@ public final class TickBudget {
         return Math.min(adaptive, (double) ceilingMillis);
     }
 
-    /** True when the adaptive target is being held back by the absolute ceiling. */
     public static boolean atCeiling() {
         return ceilingMillis > 0L && baselineMspt >= 0.0D
                 && baselineMspt + allowance() > (double) ceilingMillis;

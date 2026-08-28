@@ -6,21 +6,14 @@ package com.kishku7.chunksmith.lod.net;
  * <p>MC-agnostic on purpose: BOTH the Chunksmith server and Chunksmith-Client (a separate mod, separate
  * repo) speak this, so it must not depend on anything loader- or version-specific.
  *
- * <p>Two transports, one protocol:
- * <ul>
- *   <li><b>In-band</b> ({@link #CHANNEL}) -- always available. Handshake and control ride here, and it is
- *       also the DATA fallback when the backchannel is unreachable. It shares the game connection, so it
- *       must yield to gameplay.</li>
- *   <li><b>HTTP backchannel</b> -- the fast path. The store is already plain region files, so the server
- *       does not stream: it SERVES them, with range requests, resume and parallel connections. The
- *       address is DERIVED, never configured: the game's own interface, at {@link #httpPort game port
- *       + 1}.</li>
- * </ul>
+ * <p>Two transports, one protocol. In-band ({@link #CHANNEL}) is always available -- handshake, control, and
+ * DATA when the backchannel is unreachable -- and it shares the game connection, so it must yield to
+ * gameplay. The HTTP backchannel is the fast path: the store is already plain region files, so the server
+ * SERVES them, with range requests, resume and parallel connections, at {@link #httpPort game port + 1}.
  *
  * <p>Authentication: the in-band handshake rides a connection the player has ALREADY authenticated with
- * Mojang, so the server issues a short-lived random TOKEN over it, bound to (uuid, ip, expiry). The
- * client presents that token to the HTTP endpoint. A UUID or a name proves nothing on its own -- both are
- * public -- so the token is what makes the identity checks mean anything.
+ * Mojang, so the server issues a short-lived random TOKEN bound to (uuid, ip, expiry) which the client
+ * presents to the HTTP endpoint. A UUID or a name proves nothing on its own -- both are public.
  */
 public final class CsLodProtocol {
 
@@ -33,44 +26,17 @@ public final class CsLodProtocol {
     /**
      * Bump on ANY wire change. Both ends refuse a mismatch rather than guessing.
      *
-     * <p><b>v2 (3.1.0-beta-4) -- and this one had to move, even though the LAYOUT did not.</b>
-     *
-     * <p>The bytes of {@code S2C_INDEX} are identical to v1: a dimension, a count, and per region an x, a z,
-     * a {@code long} hash and a {@code long} size. What changed is what that {@code long} hash MEANS. In v1
-     * it was a CRC32 of the region file's contents, and BOTH ends computed it independently -- which is
-     * precisely what made the server read every region file in a client's radius, on the tick thread, on
-     * every index request, and is what took a live production server to 100% RAM (see {@link CsLodRegionHash}).
-     * In v2 it is an opaque freshness token derived from the server's (mtime, size). The server no longer
-     * reads the bytes; the client no longer recomputes the token, it REMEMBERS the one it was given.
-     *
-     * <p>A silent semantic change to a field both ends compute is the worst kind, and leaving VERSION at 1
-     * would have shipped exactly that. A v1 client talking to a v2 server would CRC its local copy, compare
-     * it against a number that is not a CRC of anything, and conclude -- correctly, by its own rules, and
-     * every single time -- that every region it holds is stale. It would then re-download the entire
-     * in-radius store on every travel refresh, i.e. every five seconds while the player moves. We would have
-     * fixed a memory storm by shipping a bandwidth storm, and the v1 client would have no way of knowing.
-     *
-     * <p>There is no compatibility trick that avoids this: the v1 client's cache check IS "CRC32 of my bytes
-     * == the server's number", and the only number that can satisfy it is the content CRC we are refusing to
-     * compute. So the two protocols genuinely cannot interoperate, and the honest thing -- the thing this
-     * field exists for -- is to say so. A refused handshake is a player who is told, in one log line, to
-     * update their mod. A silently churning one is a server that gets a bandwidth bill nobody can explain.
-     *
-     * <p>Both directions are clean, and both are explicit rather than accidental:
-     * <ul>
-     *   <li><b>v1 client -> v2 server:</b> the server refuses in {@code hello()} AND answers with a v2
-     *       {@code S2C_HELLO} carrying {@code storeAvailable=false}, so the old client's own version check
-     *       fires and it can NAME the mismatch in its log instead of sitting in silence wondering why no
-     *       terrain ever arrived. No token is minted, no store is scanned, nothing is served.</li>
-     *   <li><b>v2 client -> v1 server:</b> the old server's {@code hello()} sees v2, logs "not serving", and
-     *       sends nothing at all. The new client hears nothing back, and after
-     *       {@code CsLodClientNet.HELLO_TIMEOUT_MILLIS} says so once, in plain words, rather than staying
-     *       mute forever.</li>
-     * </ul>
-     *
-     * <p>v2 also ADDS two packet ids ({@link #C2S_REQUEST_SUMMARY} / {@link #S2C_SUMMARY}) for the periodic
-     * sync. Those alone would not have forced a bump -- an unknown id is already logged and dropped by both
-     * ends -- but they are part of the same release and are covered by the same number.
+     * <p><b>v2 (3.1.0-beta-4).</b> {@code S2C_INDEX}'s LAYOUT is unchanged from v1; the MEANING of its
+     * {@code long} hash is not. v1 was a CRC32 of the region file's contents computed independently by BOTH
+     * ends -- which made the server read every region file in a client's radius, on the tick thread, on
+     * every index request, and took a live production server to 100% RAM (see {@link CsLodRegionHash}). v2
+     * is an opaque freshness token derived from the server's (mtime, size), which the client REMEMBERS
+     * rather than recomputes. A v1 client would CRC its own bytes against a number that is not a CRC of
+     * anything, find every region stale every time, and re-download the whole in-radius store every five
+     * seconds while the player moves -- so the handshake refuses instead: v1 -> v2 still gets a v2
+     * {@code S2C_HELLO} with {@code storeAvailable=false} so it can NAME the mismatch, and v2 -> v1 gets
+     * silence, reported after {@code CsLodClientNet.HELLO_TIMEOUT_MILLIS}. v2 also ADDS
+     * {@link #C2S_REQUEST_SUMMARY} / {@link #S2C_SUMMARY}, which alone would not have forced a bump.
      */
     public static final int VERSION = 2;
 
@@ -88,60 +54,48 @@ public final class CsLodProtocol {
 
     // decode-time input ceilings (DoS guard)
     //
-    // Every count/length below is read straight off the wire (or off a region file whose bytes may have
-    // arrived over the wire) from a peer we do NOT trust: a hostile or simply buggy server can send a
-    // client packet, and a hostile client can send a server packet. A decoder MUST refuse an
-    // out-of-range count BEFORE it allocates anything -- otherwise one tiny packet claiming a huge count
-    // OOM-kills the receiver (or throws NegativeArraySize/IllegalArgument out of a tick task) before a
-    // single byte of real data arrives. These are validation ONLY: an honest peer's messages are all far
-    // under these caps, so the wire/disk format is byte-for-byte unchanged and VERSION does NOT move.
-    // Each ceiling is derived below from what a LEGITIMATE message can actually contain, with generous
-    // headroom so no honest message is ever refused.
+    // Every count/length below is read straight off the wire from a peer we do NOT trust -- a hostile server
+    // can send a client packet, a hostile client a server packet -- so a decoder MUST refuse an out-of-range
+    // count BEFORE it allocates, or one tiny packet claiming a huge count OOM-kills the receiver. Validation
+    // ONLY: the wire/disk format is byte-for-byte unchanged and VERSION does NOT move. Each ceiling is
+    // derived from what a LEGITIMATE message can contain, with generous headroom.
 
     /**
-     * Max dimensions listed in an {@code S2C_HELLO}. Vanilla has 3 (overworld/nether/end); datapacks and
-     * mods add more, but even a heavily-modded server lists at most a few dozen. 4096 is orders of
-     * magnitude above any real dimension count.
+     * Max dimensions in an {@code S2C_HELLO}. Vanilla has 3 and even a heavily-modded server lists a few
+     * dozen, so 4096 is orders of magnitude above any real dimension count.
      */
     public static final int MAX_HELLO_DIMENSIONS = 4096;
 
     /**
-     * Max region entries in a single {@code S2C_INDEX}. The server only indexes regions inside the
-     * client's clamped LOD radius (server MAX_RADIUS_BLOCKS 16384 -> ceil(16384/512)*2+1 = 65 regions per
-     * side -> ~4225 regions), and a per-request fetch is itself capped at 4096. 65536 (a 256-region-per-
-     * side grid == a 128k-block-wide world) is ~15x headroom over the largest honest index.
+     * Max region entries in a single {@code S2C_INDEX}. The server indexes only regions inside the client's
+     * clamped radius (MAX_RADIUS_BLOCKS 16384 -> ceil(16384/512)*2+1 = 65 per side -> ~4225 regions) and a
+     * per-request fetch is itself capped at 4096; 65536 is ~15x headroom over the largest honest index.
      */
     public static final int MAX_INDEX_REGIONS = 65536;
 
     /**
      * Max byte length of one in-band {@code S2C_CHUNK} slice. The sender drips fixed 24 KiB slices
-     * (CsLodInBandSender.SLICE_BYTES = 24 * 1024). 1 MiB is ~42x headroom -- it absorbs any future
-     * slice-size change while still refusing the multi-GB length that would OOM the receiver.
+     * (CsLodInBandSender.SLICE_BYTES = 24 * 1024); 1 MiB is ~42x headroom and still refuses a multi-GB length.
      */
     public static final int MAX_SLICE_BYTES = 1 << 20;
 
     /**
      * Max entries in one CSLOD palette (block or biome). Palette indices are serialized as 1 byte
-     * (palette &lt;= 256) or 2 bytes ({@code CsLodCodec.indexWidth}), so at most 65536 entries are ever
-     * addressable -- a larger palette is unreadable by definition. This is the exact ceiling, not an
-     * estimate.
+     * (palette &lt;= 256) or 2 bytes ({@code CsLodCodec.indexWidth}), so 65536 is the exact ceiling.
      */
     public static final int MAX_PALETTE_SIZE = 65536;
 
     /**
-     * Max sections in one CSLOD record. Section count rides a single unsigned byte on the wire, so it is
-     * already bounded to 255; the engine's own hard height limit (world height &lt;= 4064 blocks -> 254
-     * sections) sits just under that. 256 documents the ceiling and guards a future width change; it can
-     * never refuse an honest record.
+     * Max sections in one CSLOD record. The count rides a single unsigned byte, so it is already bounded to
+     * 255, and the height limit (&lt;= 4064 blocks -> 254 sections) sits under that; 256 guards a width change.
      */
     public static final int MAX_SECTIONS = 256;
 
     /**
-     * Max byte length of one stored CSLOD record (a compressed chunk). The uncompressed worst case is
-     * ~254 sections x ~12.4 KiB + palettes (~6 MiB); the stored payload is Deflate-compressed and so
-     * smaller. 32 MiB is ~5x headroom over that worst case. This bounds the {@code new byte[length]} in
-     * the region store, where {@code length} comes from a region-file header whose bytes may have been
-     * streamed in-band from an untrusted server.
+     * Max byte length of one stored CSLOD record. Uncompressed worst case ~254 sections x ~12.4 KiB +
+     * palettes (~6 MiB), Deflate-compressed on disk, so 32 MiB is ~5x headroom. Bounds the
+     * {@code new byte[length]} in the region store, where {@code length} comes from a region-file header
+     * whose bytes may have been streamed in-band from an untrusted server.
      */
     public static final int MAX_RECORD_BYTES = 32 << 20;
 
@@ -162,18 +116,15 @@ public final class CsLodProtocol {
     /**
      * C2S: has anything changed? -- the periodic sync (v2).
      *
-     * <p>The whole message is an id and a dimension name: 22 bytes for {@code minecraft_overworld}. It is
-     * deliberately NOT "send me the index", because an index is the expensive thing and asking for one every
-     * few minutes, from every client, is how you rebuild the problem you just fixed. The server answers with
-     * {@link #S2C_SUMMARY} -- two numbers -- and the client pays for a real index only when those two numbers
-     * disagree with what it holds.
+     * <p>An id and a dimension name: 22 bytes. Deliberately NOT "send me the index" -- the index is the
+     * expensive thing, and asking for one every few minutes from every client is how you rebuild the problem
+     * you just fixed. The client pays for a real index only when {@link #S2C_SUMMARY}'s two numbers disagree.
      */
     public static final byte C2S_REQUEST_SUMMARY = 5;
 
     /**
-     * S2C: the region index, folded to (count, aggregate) -- the answer to {@link #C2S_REQUEST_SUMMARY} (v2).
-     *
-     * <p>34 bytes. See {@link CsLodSummary} for why the aggregate is an order-independent XOR of avalanched
+     * S2C: the region index folded to (count, aggregate) -- the answer to {@link #C2S_REQUEST_SUMMARY} (v2).
+     * 34 bytes. See {@link CsLodSummary} for why the aggregate is an order-independent XOR of avalanched
      * per-region tokens rather than a running checksum.
      */
     public static final byte S2C_SUMMARY = 105;
@@ -187,30 +138,22 @@ public final class CsLodProtocol {
     /** S2C: an in-band chunk record (the fallback path). */
     public static final byte S2C_CHUNK = 103;
 
-    /** S2C: that is everything you asked for. */
     public static final byte S2C_DONE = 104;
     /**
      * S2C: act on the player's OWN LOD-client settings -- list them, show one, or set one (3.3.0).
      *
-     * <p>{@code /cslod set} is typed at a server, but the settings it names live in the player's
-     * {@code config/chunksmith-lod.properties} on their CLIENT, and on a dedicated server that file is
-     * not merely unwritable, it does not exist. So the command does not try to answer: it forwards the
-     * request down this message and the CLIENT prints the reply into its own chat, having read and
-     * written its own file. The one command tree stays on the server where players can find it, and the
-     * state stays on the machine that owns it.
-     *
-     * <p>Purely additive, so no {@link #VERSION} bump: an older client logs the unknown id and drops it,
-     * which is why the server checks {@code CsLodServerNet.hasLodClient} first and says so plainly rather
-     * than leaving the player waiting on a reply that is never coming.
+     * <p>{@code /cslod set} is typed at a server, but the settings live in the player's
+     * {@code config/chunksmith-lod.properties} on their CLIENT, which on a dedicated server does not exist
+     * at all. So the server forwards the request and the CLIENT reads, writes and prints its own reply.
+     * Purely additive, so no {@link #VERSION} bump: an older client logs the unknown id and drops it, which
+     * is why the server checks {@code CsLodServerNet.hasLodClient} first.
      */
     public static final byte S2C_CLIENT_SETTING = 106;
 
     // actions carried by S2C_CLIENT_SETTING
 
-    /** List every client setting with the value in force. */
     public static final byte SETTING_LIST = 0;
 
-    /** Show one client setting. */
     public static final byte SETTING_SHOW = 1;
 
     /** Set one client setting, then report the value actually stored. */
@@ -220,13 +163,11 @@ public final class CsLodProtocol {
     }
 
     /**
-     * The backchannel port, DERIVED from the game port. Game on 25565 -> HTTP on 25566.
+     * The backchannel port, DERIVED from the game port. Game on 25565 -> HTTP on 25566. Only the default:
+     * an operator may name a port explicitly (config key {@code lodBackchannelPort}) because a managed host
+     * will not necessarily rent them the port next to their game port -- see {@link #httpPort(int, int)}
+     * and mod_support #19.
      *
-     * <p>This is the default, not the only option: an operator may name a port explicitly (config key
-     * {@code lodBackchannelPort}) because a managed host will not necessarily rent them the port next
-     * to their game port -- see {@link #httpPort(int, int)} and mod_support #19.
-     *
-     * @param gamePort the port the Minecraft server is listening on
      * @return the backchannel port, or 0 if the game port is at the top of the range (no room for +1)
      */
     public static int httpPort(final int gamePort) {
@@ -236,13 +177,10 @@ public final class CsLodProtocol {
 
     /**
      * Resolve the backchannel port an operator actually gets: their configured port if they named one,
-     * otherwise {@link #httpPort(int) the derived one}.
+     * otherwise {@link #httpPort(int) the derived one}. A configured port that collides with the game port
+     * is REFUSED rather than honoured -- binding it cannot succeed anyway, and refusing lets the caller
+     * report a cause instead of an anonymous bind failure.
      *
-     * <p>A configured port that collides with the game port is REFUSED rather than honoured -- binding
-     * it cannot succeed anyway (the game already holds it), and refusing lets the caller report a
-     * cause instead of an anonymous bind failure.
-     *
-     * @param gamePort   the port the Minecraft server is listening on
      * @param configured the operator's chosen port, or 0 to derive
      * @return the port to bind, or 0 if there is none to be had
      */

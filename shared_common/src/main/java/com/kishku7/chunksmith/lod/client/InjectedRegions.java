@@ -7,39 +7,22 @@ import java.util.concurrent.ConcurrentHashMap;
  * Which regions have already been handed to a renderer THIS SESSION -- keyed by DIMENSION as well as by
  * region coordinates, and remembering WHICH VERSION of each one we drew.
  *
- * <p>The client keeps pulling as the player travels, and every pull returns the whole set of regions within
- * the renderer's radius -- most of which are already drawn. Injecting those again would re-decode and
- * re-push terrain the renderer already has: with voxy that is hundreds of thousands of sections re-ingested
- * to draw nothing new. So a region is injected once, and not again -- <b>unless it has actually changed</b>.
+ * <p>Every pull returns the whole in-radius set, most of it already drawn, and re-injecting those re-pushes
+ * terrain the renderer has -- with voxy, hundreds of thousands of sections. So a region is injected once,
+ * unless it has actually changed.
  *
- * <p><b>The dimension is part of the key, and that is one of the two reasons this class exists.</b> It used
- * to be a {@code Set<Long>} of packed region x/z and nothing else -- and region (0,0) is a DIFFERENT PLACE
- * in every dimension. Once the overworld's region (0,0) had been injected, the Nether's region (0,0) was
- * considered "already done" and was silently skipped forever: the player walked into the Nether and its LODs
- * never appeared, while every counter and every log line reported success. Two dimensions, one keyspace, no
- * collision detection. Region coordinates are only meaningful WITH the dimension they belong to -- so they
- * are never a key without it.
+ * <p><b>The dimension is part of the key.</b> It used to be a {@code Set<Long>} of packed region x/z
+ * alone, and region (0,0) is a DIFFERENT PLACE in every dimension: once the overworld's (0,0) had been
+ * injected, the Nether's was considered "already done" and silently skipped forever -- the player walked
+ * into the Nether, its LODs never appeared, and every counter and log line reported success.
  *
- * <p><b>The freshness token is part of the VALUE, and that is the other reason.</b> Keying on
- * (dimension, x, z) alone answers "have I ever drawn this region?", but the question the injector actually
- * needs answered is "have I drawn THIS VERSION of this region?". Those came apart the moment the periodic
- * sync landed in 3.1.0-beta-4. A pregen does not only create NEW regions -- it keeps GROWING the ones the
- * player is standing on, for hours. The sync notices (the token moved), the cache notices (the token moved),
- * the downloader dutifully re-fetches the bigger file... and then the injector looked up (dimension, x, z),
- * found it, and threw the new data away. Silently, and with a success message. The player would have seen
- * the far ring of new regions appear and the terrain under their feet stay frozen at whatever it was when
- * they joined -- which is a stranger and harder-to-report bug than getting nothing at all.
+ * <p><b>The freshness token is part of the VALUE.</b> A pregen does not only create NEW regions -- it keeps
+ * GROWING the ones the player is standing on, for hours. Before 3.1.0-beta-4 the injector keyed on
+ * (dimension, x, z) alone and threw the re-fetched, bigger file away silently: the far ring of new regions
+ * appeared while the terrain under the player's feet stayed frozen at the version they joined on.
  *
- * <p>So a claim now carries the token the server advertised, and it succeeds when we have never drawn this
- * (dimension, region) OR when the token differs from the one we last drew. Re-injecting a genuinely-changed
- * region is exactly what both renderers want: DH overwrites by chunk position, and voxy re-ingests the
- * sections. Re-injecting an UNCHANGED one is the waste this class exists to prevent, and it still cannot
- * happen.
- *
- * <p><b>This is the SESSION half of a two-part mechanism.</b> It answers the question for the session it
- * is in, and it is cleared on disconnect. What survives a disconnect is {@link InjectedIndex}, the on-disk
- * record a join seeds this map from via {@link #seed} -- because a renderer does NOT forget between
- * sessions, and starting empty meant re-drawing the entire in-range store at every single world join.
+ * <p>This is the SESSION half, cleared on disconnect. {@link InjectedIndex} is the on-disk record a join
+ * seeds this map from via {@link #seed}: starting empty re-drew the whole in-range store at every join.
  *
  * <p>Deliberately MC-free so it can be unit-tested. Thread-safe: the injector runs off the game thread and
  * the network handler releases regions from another.
@@ -50,25 +33,18 @@ public final class InjectedRegions {
     private final Map<String, Long> injected = new ConcurrentHashMap<>();
 
     /**
-     * Claim a region for injection.
-     *
-     * <p>Succeeds if we have never injected this (dimension, region), or if the version we injected is not
-     * the one being offered now. Atomic against a concurrent claim of the same region: exactly one caller
-     * wins.
-     *
-     * @param hash the freshness token the server advertised for this region, from the region index
-     * @return true if this version of this (dimension, region) has NOT been injected -- the caller now owns
-     *         it and must either inject it or {@link #release} it
+     * Claim a region for injection, offering the freshness token the server advertised for it: succeeds
+     * when we have never injected this (dimension, region), or when the version we injected is not the
+     * one being offered now. Atomic -- of two concurrent claims on the same region, exactly one wins, and
+     * the winner must inject the region or {@link #release} it.
      */
     public boolean claim(final String dimension, final int regionX, final int regionZ, final long hash) {
         final String key = key(dimension, regionX, regionZ);
         final Long previous = this.injected.put(key, hash);
         if (previous == null) {
-            // Never seen. Ours.
             return true;
         }
         if (previous == hash) {
-            // Already drawn, and it has not moved on. Put back exactly what was there and decline.
             return false;
         }
         // Drawn, but the server has a different version now. Ours -- and `put` has already staked it.
@@ -77,11 +53,6 @@ public final class InjectedRegions {
 
     /**
      * Pre-load a claim that a PREVIOUS session made and wrote down -- see {@link InjectedIndex}.
-     *
-     * <p>Seeding is not claiming: nothing is being injected at this moment and there is no winner to
-     * decide, so this deliberately has no return value and no atomicity story. It is the session starting
-     * from what the last one actually did instead of from nothing, which is the whole of the fix for a join
-     * that re-drew terrain the renderer had never forgotten.
      */
     public void seed(final String dimension, final int regionX, final int regionZ, final long hash) {
         this.injected.put(key(dimension, regionX, regionZ), hash);
@@ -90,14 +61,9 @@ public final class InjectedRegions {
     /**
      * Give a claimed region back, so a later refresh retries it rather than skipping it forever.
      *
-     * <p>Used when the region could not be read, or when no renderer was ready in time, or when the player
-     * left the dimension before we got to it.
-     *
-     * <p><b>Releasing FORGETS the region entirely</b>, rather than restoring the token that was there
-     * before. That is deliberate and it is the safe direction: the caller is telling us the injection did
-     * not happen, so the honest state is "we do not know what this renderer has", and the next index will
-     * re-claim and re-inject it. Restoring a previous token would mean an interrupted upgrade of a region
-     * could leave us believing we had drawn a version we had not.
+     * <p><b>Releasing FORGETS the region entirely</b> rather than restoring the previous token: the caller
+     * says the injection did not happen, so the honest state is "we do not know what this renderer has",
+     * and restoring the token would let an interrupted upgrade leave us believing we drew what we had not.
      */
     public void release(final String dimension, final int regionX, final int regionZ) {
         this.injected.remove(key(dimension, regionX, regionZ));
@@ -107,10 +73,6 @@ public final class InjectedRegions {
         return this.injected.containsKey(key(dimension, regionX, regionZ));
     }
 
-    /**
-     * The token of the version of this (dimension, region) we last injected, or null if we never have.
-     * Exists so a test can assert WHICH version we believe we drew, not merely that we drew something.
-     */
     public Long injectedHash(final String dimension, final int regionX, final int regionZ) {
         return this.injected.get(key(dimension, regionX, regionZ));
     }

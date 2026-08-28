@@ -23,162 +23,116 @@ public interface Config {
 
     boolean isIoThrottleEnabled();
 
-    /**
-     * Target server tick time (ms/tick) the throttle steers toward. The throttle reduces
-     * concurrency when the smoothed tick time rises above this and increases it when the
-     * server is comfortably keeping up.
-     */
+    /** Target tick time (ms/tick) the throttle steers toward: concurrency falls above it, rises below. */
     double getThrottleTargetMspt();
 
     /**
-     * Absolute per-chunk latency backstop (ms). A single chunk load taking longer than
-     * this triggers an immediate back-off regardless of tick health -- catches a pure I/O
-     * stall, and is the only signal on platforms that cannot report tick time.
+     * Absolute per-chunk latency backstop (ms): one slow chunk load backs off regardless of tick health.
+     * Catches a pure I/O stall, and is the only signal on platforms that cannot report tick time.
      */
     long getThrottleMaxChunkMillis();
 
     /**
-     * Maximum chunk writes allowed to queue to disk before the throttle stops dispatching
-     * new chunks until the backlog drains (hysteresis: resumes at half this value). Bounds
-     * the deferred-write backlog so generation cannot outrun disk throughput. 0 disables.
+     * Max chunk writes queued to disk before dispatch stops until the backlog drains (hysteresis: resumes
+     * at half). Bounds the deferred-write backlog so generation cannot outrun disk throughput. 0 disables.
      */
     long getThrottleMaxQueuedWrites();
 
     /**
-     * Maximum chunks THIS RUN may ADD to the server's resident set before the throttle stops
-     * dispatching, until enough have unloaded (hysteresis: resumes at half). 0 disables.
-     *
-     * <p>Measured against the residency recorded when the run STARTED, not against an absolute count.
-     * 3.5.0 gated on the absolute number and tripped on servers whose ordinary resident set was already
-     * near the cap -- the gate closed on somebody else's chunks and never opened. What we can be
-     * responsible for is what we added. See {@code ChunkResidency}.
-     *
-     * <p>Set it above the largest sweep frontier a run legitimately needs (roughly 16x the selection
-     * radius in chunks, plus {@link #getPregenSettleMaxHeld()}) and below what the heap can hold.
+     * Max chunks THIS RUN may ADD to the server's resident set before dispatch stops (hysteresis: resumes at
+     * half). 0 disables. Delta, not absolute: 3.5.0 gated on the absolute number and tripped on servers whose
+     * ordinary resident set was already near the cap -- the gate closed on somebody else's chunks and never
+     * opened. Set it above the largest sweep frontier a run needs (roughly 16x the selection radius in
+     * chunks, plus {@link #getPregenSettleMaxHeld()}) and below what the heap can hold. See
+     * {@code ChunkResidency}.
      */
     long getThrottleMaxAddedChunks();
 
     /**
-     * Heap usage, as a percentage of {@code -Xmx}, at which generation stops dispatching until the
-     * heap drains. 0 disables.
-     *
-     * <p>The backstop the chunk counters could not be. Every other bound in this mod counts a PROXY --
-     * queued writes, LOD queue depth, resident chunks, chunks added -- and a chunk is worth wildly
-     * different amounts of heap depending on the entities and block entities that came with it. What
-     * actually ends a pregen badly is running out of memory, so this measures memory. Confirmed over
-     * several consecutive samples so ordinary uncollected garbage cannot trip it, and resumed only
-     * once there is real headroom again.
+     * Heap usage, as a percentage of {@code -Xmx}, at which generation stops dispatching until the heap
+     * drains. 0 disables. The backstop the chunk counters could not be: every other bound counts a PROXY,
+     * and a chunk is worth wildly different amounts of heap depending on the entities and block entities
+     * that came with it. Confirmed over several consecutive samples so ordinary uncollected garbage cannot
+     * trip it, and resumed only once there is real headroom again.
      */
     long getThrottleMaxHeapPercent();
 
     /**
-     * How many extra milliseconds per tick a pre-gen is allowed to ADD to whatever the server already
-     * costs. 0 falls back to steering on {@link #getThrottleTargetMspt()} alone.
+     * How many extra milliseconds per tick a pre-gen may ADD to what the server already costs. 0 falls back
+     * to steering on {@link #getThrottleTargetMspt()} alone.
      *
-     * <p>This exists because an absolute target cannot work on a busy server. Measured on a live
-     * server: the tick cost 74.9 ms with the pre-gen PAUSED, against a configured target of 75 -- so
-     * the governor could never observe a healthy tick, pinned dispatch at its floor permanently, and
-     * throttled the run to 2 chunks/sec while the run itself was only costing 10 ms. The throttle was
-     * blaming itself for load it did not cause.
-     *
-     * <p>The effective target is therefore {@code max(throttleTargetMspt, baseline + this)}, where the
-     * baseline is the tick cost observed with nothing in flight. That bounds what Chunksmith COSTS
-     * rather than demanding the whole server be healthy in absolute terms -- the same delta-not-
-     * absolute correction already applied to chunk residency.
+     * <p>An absolute target cannot work on a busy server. Measured live: the tick cost 74.9 ms with the
+     * pre-gen PAUSED against a configured target of 75, so the governor never saw a healthy tick, pinned
+     * dispatch at its floor, and throttled the run to 2 chunks/sec while the run itself cost 10 ms. The
+     * effective target is therefore {@code max(throttleTargetMspt, baseline + this)}, the baseline being the
+     * tick cost with nothing in flight -- what Chunksmith COSTS, not whether the server is healthy.
      */
     long getThrottleTickBudgetMillis();
 
     /**
-     * Tick time reserved for EACH online player, taken out of Chunksmith's own allowance.
-     *
-     * <p>A player's cost is already in the measured baseline, so a rising baseline stops Chunksmith
-     * making things worse -- but it does not give the player anything back. This does: every online
-     * player shrinks our allowance by this much, so an empty server gets the full allowance and a
-     * populated one gets actively yielded to. The difference between not-worsening and yielding.
+     * Tick time reserved for EACH online player, taken out of Chunksmith's own allowance. A rising baseline
+     * already stops Chunksmith making things worse but gives the player nothing back; this yields, so an
+     * empty server gets the full allowance and a populated one is actively given room.
      */
     long getThrottlePlayerReserveMillis();
 
     /**
-     * Absolute tick cost the run will never steer past, whatever the measured baseline says.
-     * 0 disables the ceiling.
-     *
-     * <p>Every other bound here is RELATIVE, and relative bounds move with the thing they are meant
-     * to protect against. Deriving the target from a measured baseline correctly stops Chunksmith
-     * throttling itself for load it did not cause -- and, unbounded, stops it defending the server at
-     * all: observed live, a 163.9 ms baseline produced a 238.9 ms target, steering toward about 4 TPS
-     * with nothing objecting, because the heap gate was under its threshold and auto-pause compares
-     * against this very target.
-     *
-     * <p>Past this figure the server is not playable whoever is to blame, so the run yields. This is
-     * the one bound that must not be relative.
+     * Absolute tick cost the run will never steer past, whatever the measured baseline says. 0 disables.
+     * Every other bound here is RELATIVE, and relative bounds move with the thing they protect against:
+     * observed live, a 163.9 ms baseline produced a 238.9 ms target, steering toward about 4 TPS with
+     * nothing objecting, because the heap gate was under its threshold and auto-pause compares against this
+     * very target. Past this figure the server is not playable whoever is to blame, so the run yields. This
+     * is the one bound that must not be relative.
      */
     long getThrottleCeilingMillis();
 
     /**
-     * Pause a run when the server cannot sustain it, and resume it when the server recovers.
-     *
-     * <p>ON by default (maintainer decision, 2026-08-20). A gated pre-gen on an overloaded server
-     * stop, it stutters -- measured at 60 chunks in two minutes, which looks exactly like a hang and
-     * keeps the server under load for nothing. Stopping with a stated reason is better, and starting
-     * again by itself costs the operator nothing. Turn it off to have a run push on regardless.
+     * Pause a run when the server cannot sustain it, and resume it when the server recovers. ON by default
+     * (maintainer decision, 2026-08-20): a gated pre-gen on an overloaded server does not stop, it stutters
+     * -- measured at 60 chunks in two minutes, which looks exactly like a hang.
      */
     boolean isAutoPauseEnabled();
 
     /**
-     * How long the server must stay in a state -- bad, then good -- before auto-pause acts on it.
-     *
-     * <p>Applies to BOTH directions. Pausing on the first bad second would stop a run for a passing
-     * autosave; resuming on the first good second would restart it into the same wall.
+     * How long the server must stay in a state -- bad, then good -- before auto-pause acts. Both directions:
+     * pausing on the first bad second would stop a run for a passing autosave, and resuming on the first
+     * good second would restart it into the same wall.
      */
     int getAutoPauseGraceSeconds();
 
     /**
-     * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean.
-     *
-     * <p>Default {@link LodMode#AUTO}: LOD generation turns itself ON when an LOD renderer (Distant
-     * Horizons, voxy, or a voxy fork) is present in the JVM, and ON on a dedicated server, which
-     * exists to serve the store to Chunksmith-Client players. An explicit {@code true} or
-     * {@code false} in the config is an operator decision and is NEVER overridden.
-     *
-     * <p>The resolution itself lives in {@code LodSupport} -- it needs the loader's mod-loaded check
-     * and the running server, neither of which the config layer has.
+     * Whether ChunkSmith emits LOD data for the chunks it generates -- a TRISTATE, not a boolean. Default
+     * {@link LodMode#AUTO}: ON when an LOD renderer (Distant Horizons, voxy, or a voxy fork) is present in
+     * the JVM, and ON on a dedicated server, which exists to serve the store to Chunksmith-Client players.
+     * An explicit {@code true} or {@code false} is an operator decision and is NEVER overridden. The
+     * resolution lives in {@code LodSupport}, which has the loader's mod-loaded check and the running server.
      */
     LodMode getLodMode();
 
     /**
-     * Maximum items allowed to queue in the LOD sink before the throttle backs off dispatch.
-     *
-     * <p>Voxy's ingest queue is UNBOUNDED and its ingest call never reports saturation, so without
-     * this governor a fast pregen can outrun LOD ingestion and drive the heap into an OOM. 0 disables.
+     * Max items queued in the LOD sink before the throttle backs off dispatch. 0 disables. Voxy's ingest
+     * queue is UNBOUNDED and its ingest call never reports saturation, so without this governor a fast
+     * pregen can outrun LOD ingestion and drive the heap into an OOM.
      */
     long getThrottleMaxLodQueue();
 
     /**
-     * How many chunk requests Chunksmith keeps in flight at once.
-     *
-     * <p>This is the pipeline's WIDTH, and on a healthy server it is what actually sets the rate. A
-     * chunk request spends almost all of its life WAITING: vanilla walks it up through its generation
-     * statuses roughly a hop per tick, so per-chunk wall-clock latency runs over a second even when
-     * nothing is busy. Width, not speed, converts that latency into throughput.
-     *
-     * <p>Measured on a dedicated server (2026-08-20) whose CPU sat at 40 percent across 8 cores and
-     * whose server thread spent 0.2ms of a 25ms allowance on us: dispatch was pinned at its cap for the
-     * whole run while every other governor read "idle". The cap was the only limit in play.
-     *
-     * <p>Costs memory roughly linearly -- more chunks resident at once -- which is what the heap and
-     * residency gates are there to catch. Lower it on a memory-tight box, raise it where cores are free.
-     *
-     * <p>Previously reachable only via the {@code chunksmith.maxWorkingCount} system property, which is
-     * still honoured as this key's DEFAULT so existing launch scripts keep working.
+     * How many chunk requests Chunksmith keeps in flight at once -- the pipeline's WIDTH, and on a healthy
+     * server what actually sets the rate. A chunk request spends almost all of its life WAITING: vanilla
+     * walks it up through its generation statuses roughly a hop per tick, so per-chunk latency runs over a
+     * second even when nothing is busy. Measured on a dedicated server (2026-08-20) at 40 percent CPU across
+     * 8 cores, with the server thread spending 0.2ms of a 25ms allowance on us, dispatch was pinned at its
+     * cap for the whole run while every other governor read "idle". Costs memory roughly linearly, which the
+     * heap and residency gates are there to catch. Previously reachable only via the
+     * {@code chunksmith.maxWorkingCount} system property, still honoured as this key's DEFAULT so existing
+     * launch scripts keep working.
      */
     long getDispatchMaxConcurrent();
 
     /**
-     * Keep a generated chunk loaded until its neighbours exist, so other mods can act on it.
-     *
-     * <p>ON by default. Turn it OFF for a pure terrain pregen with no mods that build on newly generated
-     * chunks: holding the sweep frontier costs some memory and a little throughput, and buys nothing if
-     * nothing is listening. See {@code ChunkSettleWindow} for what "the frontier" means here.
+     * Keep a generated chunk loaded until its neighbours exist, so other mods can act on it. ON by default;
+     * turn it OFF for a pure terrain pregen, since holding the sweep frontier costs memory and a little
+     * throughput and buys nothing if nothing is listening. See {@code ChunkSettleWindow}.
      */
     boolean isPregenSettleEnabled();
 
@@ -189,89 +143,60 @@ public interface Config {
     long getPregenSettleDelayTicks();
 
     /**
-     * Window radius in CHUNKS for the settle sweep -- how much ground around a point is loaded together.
-     *
-     * <p>Sized to the biggest footprint another mod might want to build: a Millenaire village wants 90
-     * blocks, which is six chunks, so seven gives it room. Larger costs more memory per stop and more
-     * disk reads; smaller silently stops helping the bigger structures.
+     * Window radius in CHUNKS for the settle sweep. Sized to the biggest footprint another mod might want to
+     * build: a Millenaire village wants 90 blocks, which is six chunks, so seven gives it room. Larger costs
+     * more memory and disk reads per stop; smaller silently stops helping the bigger structures.
      */
     int getPregenSettleRadius();
 
     /**
      * Hard ceiling on how many chunks the settle window may hold open at once. 0 means unbounded.
      *
-     * <p><b>Read this as a memory setting, because that is what it is.</b> A held chunk keeps a
-     * FULL-level ticket, and vanilla propagates that level outward ring by ring, so ONE held ticket
-     * keeps roughly a neighbourhood -- measured at about 25 resident chunks per held ticket during a
-     * pre-gen. The number here is tickets; the cost is tickets times that halo. A cap of 8192 is not
-     * "8192 chunks", it is closer to two hundred thousand.
-     *
-     * <p>The neighbourhood rule alone bounds the frontier only while every held chunk eventually gets
-     * all nine of its neighbours; chunks beside SKIPPED ground never do, so a resumed world strands
-     * them for the whole run. Past this cap the oldest held chunk is released early -- age being the
-     * evidence that its neighbourhood is not coming. Only meaningful when
-     * {@link #isPregenSettleEnabled()}.
+     * <p><b>Read this as a memory setting.</b> A held chunk keeps a FULL-level ticket and vanilla propagates
+     * that level outward ring by ring, so ONE held ticket keeps roughly a neighbourhood -- measured at about
+     * 25 resident chunks per held ticket during a pre-gen. A cap of 8192 is not "8192 chunks", it is closer
+     * to two hundred thousand. The frontier is self-bounding only while every held chunk eventually gets all
+     * nine neighbours; chunks beside SKIPPED ground never do, so a resumed world strands them, and past this
+     * cap the oldest held chunk is released early -- age being the evidence its neighbourhood is not coming.
      */
     long getPregenSettleMaxHeld();
 
-    /**
-     * Turn the settle window on or off and PERSIST the change.
-     *
-     * <p>Persisted deliberately: settle is tuned for a pregen run that may outlive several restarts, and a
-     * setting you had to re-apply on every boot would be worse than no command at all.
-     */
+    /** Turn the settle window on or off and PERSIST it: a run may outlive several restarts. */
     void setPregenSettleEnabled(boolean enabled);
 
-    /**
-     * Set the post-neighbourhood delay in ticks and persist it. Clamped to the same range the getter
-     * enforces, so a command can never write a value the loader would reject.
-     */
+    /** Set the post-neighbourhood delay in ticks and persist it, clamped to the range the getter enforces. */
     void setPregenSettleDelayTicks(long ticks);
 
-    /**
-     * Set the settle sweep radius in chunks and persist it. Clamped like {@link #getPregenSettleDelayTicks()}.
-     */
+    /** Set the settle sweep radius in chunks and persist it. Clamped like the other settle setters. */
     void setPregenSettleRadius(int radius);
 
     /** Set the settle frontier cap and persist it. Clamped like the other settle setters. */
     void setPregenSettleMaxHeld(long maxHeld);
 
     /**
-     * Whether this platform can honour the settle settings at all.
-     *
-     * <p>False on Bukkit, which does not manage chunk tickets itself -- there is nothing to hold open, so
-     * the setting would be a lie rather than a no-op. The command reports that instead of pretending to
-     * have set something.
+     * Whether this platform can honour the settle settings at all. False on Bukkit, which does not manage
+     * chunk tickets itself: there is nothing to hold open, so the setting would be a lie rather than a
+     * no-op, and the command reports that instead of pretending to have set something.
      */
     default boolean isPregenSettleSupported() {
         return true;
     }
 
     /**
-     * Whether ChunkSmith registers itself as Distant Horizons' world-generator override, serving DH
-     * from the CSLOD store.
-     *
-     * <p>OPT-IN, default false, and deliberately so: overriding DH's generator means DH STOPS
-     * generating for itself. Pregenerated area appears instantly; everything else returns no data.
-     * That is right for a world you have pregenerated and wrong for one you have not.
+     * Whether ChunkSmith registers as Distant Horizons' world-generator override, serving DH from the CSLOD
+     * store. OPT-IN, default false: overriding DH's generator means DH STOPS generating for itself, so
+     * pregenerated area appears instantly and everything else returns no data.
      */
     boolean isLodDhOverrideEnabled();
 
     /**
      * The TCP port the LOD backchannel binds, or 0 to derive it from the game port.
      *
-     * <p>0 is the default and means {@code gamePort + 1}, which is what Chunksmith has always
-     * done. It stays the default because it is right on a machine you control: the port next to
-     * the game is almost always free, and an operator who never thinks about this gets a working
-     * backchannel for free.
-     *
-     * <p>It is wrong on a managed host, which hands out a fixed set of ports and will not give
-     * you the one adjacent to your game port just because it would be convenient. Before this
-     * key those servers could not use the backchannel at all and had no way to say so
-     * (mod_support #19). An explicit port is an operator decision and is never second-guessed.
-     *
-     * <p>Changing it does NOT require a restart, and clients need no matching setting: the port
-     * is advertised to each client on connect, so it is the server's business alone.
+     * <p>0 means {@code gamePort + 1}, right on a machine you control and wrong on a managed host, which
+     * hands out a fixed set of ports and will not give you the one adjacent to your game port; before this
+     * key those servers could not use the backchannel at all (mod_support #19). An explicit port is never
+     * second-guessed. Changing it does NOT require a restart and clients need no matching setting -- the
+     * port is advertised to each client on connect.
      */
     int getLodBackchannelPort();
 
@@ -312,10 +237,8 @@ public interface Config {
     void setLodDhOverrideEnabled(boolean enabled);
 
     /**
-     * Set the backchannel port and persist it. 0 restores the derived {@code gamePort + 1}.
-     *
-     * <p>Persisting is the point: a port you had to re-apply after every restart would not solve
-     * the problem this key exists for.
+     * Set the backchannel port and persist it; 0 restores the derived {@code gamePort + 1}. Persisting is
+     * the point -- a port re-applied after every restart would not solve the problem this key exists for.
      */
     void setLodBackchannelPort(int port);
 
