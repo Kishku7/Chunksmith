@@ -8,9 +8,9 @@ target - the Fabric, Forge, and NeoForge mods plus the Bukkit/Paper/Folia plugin
 For what Chunksmith is and how to use it, see the [landing page](https://github.com/Kishku7/Chunksmith).
 
 The landing-page README lives on `main` and IS the Modrinth description (`publish.py --sync-desc`
-pushes it). The 3.0 LOD pitch went live there with the beta, so the old `readme-main_dev.md` staging
-file has been deleted, per the convention: once the staging copy replaces `main`'s README, it goes.
-Edit `main`'s `README.md` directly for user-facing wording.
+pushes it). With the beta, the 3.0 LOD pitch went live there. That killed the old
+`readme-main_dev.md` staging file, per the convention: once the staging copy replaces `main`'s
+README, it goes. Edit `main`'s `README.md` directly for user-facing wording.
 Questions or bug reports: https://github.com/Kishku7/mod_support/issues
 
 ## What you need installed
@@ -24,9 +24,9 @@ Chunksmith builds on Windows using PowerShell build scripts and per-cell Gradle 
 
       pip install cogapp
 
-  Cog is the code generator that resolves cross-version API drift. It is invoked
-  automatically by the build scripts, so it must be installed before you build. The
-  generator brain is `_codegen/compat.py` (pure Python, in-repo).
+  Cog is the code generator that resolves cross-version API drift, and the build scripts invoke it
+  automatically -- which means it has to be installed before you build. Its brain is
+  `_codegen/compat.py`: pure Python, in-repo.
 - **JDKs, installed and discoverable by Gradle's toolchain detection.** There is **no
   foojay auto-download** configured, so you must install these yourself:
     - JDK 17 (Temurin/Adoptium)
@@ -42,7 +42,7 @@ Chunksmith builds on Windows using PowerShell build scripts and per-cell Gradle 
   the 26 cells and all plugin cells use Gradle 9.4.1.
 - **Loader SDKs and dependencies** - Gradle downloads them on first build: Fabric Loom +
   Fabric API, NeoForge ModDevGradle, Forge (ForgeGradle 6), and the Paper/Folia API for
-  the plugin. An internet connection is required the first time each cell is built.
+  the plugin. You need to be online the first time each cell is built.
 
 ## How to build
 
@@ -105,13 +105,14 @@ For each pre-26 mod cell, `scripts/cog-gen.ps1`:
 5. Regenerates `chunksmith.mixins.json` to match the files actually present.
 
 The cell's Gradle build compiles `<Cell>/gen/`, not `shared_minecraft` directly - which is
-why Cog must be installed before building. The unified 26 cells do not use cog-gen; they
+why Cog must be installed before building. Cog-gen never touches the unified 26 cells. Those
 build from a `-P` version matrix supplied by the build script.
 
 ## LOD generation (shipped in 3.0.0-beta-2)
 
 Chunksmith can emit **level-of-detail data while it pregenerates** - so the same pass that builds your
-world also builds the LODs for it. No second scan, no re-reading region files, no separate LOD pregen.
+world also builds the LODs for it. There is no second scan. Region files are not re-read, and nothing
+runs a separate LOD pregen afterwards.
 
 **A re-run fills LOD holes automatically (3.0.0-beta-3).** Already pregenerated a world before you
 installed an LOD renderer? Just run the same pregen again. Chunksmith checks the CSLOD store as well as
@@ -128,8 +129,8 @@ store and only those records come back. The presence check is a single 8 KB head
 so it costs nothing worth measuring. (`forceLoadExistingChunks: true` still means what it always did:
 reprocess everything regardless. With LOD off, the skip behaviour is exactly as it was.)
 
-The point is that the LOD data is written in **Chunksmith's own neutral format (CSLOD)** rather than in
-any one LOD mod's private shape. From that single store we can serve **every** LOD consumer:
+LOD data goes into **Chunksmith's own neutral format (CSLOD)**, not into any one LOD mod's private
+shape. That single store feeds every LOD consumer:
 
 | Consumer | How it is fed |
 |----------|---------------|
@@ -189,9 +190,9 @@ Measured on MC 26.1.2, a 1089-chunk pregen:
 | Pregen slowdown with the store on | **~16%** |
 | Compression | JDK Deflate - **zero native dependencies** |
 
-The store is plain Anvil-style region files: no native database, no lock, readable by a second process
-while the game runs. Writes append the payload and *then* update the index, so a torn write costs one
-chunk, never the file.
+The store is plain Anvil-style region files. No native database, no lock, and a second process can
+read it while the game runs. Writes append the payload and *then* update the index, so a torn write
+costs one chunk, never the file.
 
 ### The trick worth stealing
 
@@ -209,8 +210,8 @@ touched again.
                                //   off otherwise. `true` / `false` force it and are never overridden.
     "lodDhOverride": true      // additionally serve Distant Horizons from the store
 
-The resolution happens in `LodSupport.decide(Config, MinecraftServer)` and is logged, once, at server
-start; `/cslod status` repeats it. A plain JSON boolean still parses (Gson coerces it to `"true"` /
+`LodSupport.decide(Config, MinecraftServer)` does the deciding, and logs it once at server start;
+`/cslod status` repeats it. A plain JSON boolean still parses (Gson coerces it to `"true"` /
 `"false"`), so an existing config is never rewritten.
 
 Commands (op):
@@ -248,8 +249,8 @@ or from in-game, with immediate effect and no restart:
 
 **Clients need no matching setting, ever.** The server tells each client which port to use when they
 connect, so a player moving between servers picks up whatever each one is running. There is no client
-port option and there never has been - the client is already connected to the host, so only the port
-was ever in question, and that is negotiated.
+port option. There never has been one, either: the client is already connected to the host, so the
+port was the only open question, and that is negotiated.
 
 Changing it live stops the old listener, binds the new one, and re-issues every connected client a
 download token in the same pass. Nobody has to relog.
@@ -282,8 +283,8 @@ too**, plus a short delay, and then releases it. What is held at any moment is t
 sweep and nothing else, so the cost is bounded by the shape of the pattern rather than by the size of
 the run, and it falls to zero as the run finishes.
 
-The rule is about chunks, not about any one mod -- Chunksmith contains no mod-specific compatibility
-code, and anything that builds on newly generated chunks benefits from it.
+Nothing here is mod-specific. Chunksmith carries no compatibility code for any particular mod -- the
+rule is about chunks, so anything that builds on newly generated chunks benefits from it.
 
 All three live in `config/chunksmith/config.json`, and like every other setting they can be read and
 changed in-game with `/cs set` (see [Settings](#settings)) instead of editing the file:
@@ -306,11 +307,11 @@ than two seconds after the chunk arrives -- its own queue may be backed up. Rais
 longer, so raise it deliberately rather than by default.
 
 **When to raise the radius.** `pregenSettleRadius` (default 7 chunks, maximum 16) is how much ground
-the trailing sweep loads together at one stop. It is sized to the largest footprint a mod is likely
-to want at once: a Millenaire village reaches about 90 blocks, which is six chunks, so seven leaves
-room. A mod that places something bigger than that may still find the far edge of its own structure
-unloaded -- raise the radius for it. Each increment costs memory per stop and more disk reads, so
-this is the last dial to touch, not the first.
+the trailing sweep loads together at one stop. The default is sized to the largest footprint a mod is
+likely to want at once. A Millenaire village reaches about 90 blocks, which is six chunks, so seven
+leaves room; a mod that places something bigger may still find the far edge of its own structure
+unloaded, and wants a bigger radius. Each increment costs memory per stop and more disk reads. Touch
+this dial last.
 
 **Note on upgrading.** Chunksmith never rewrites a config that already exists, so these three keys
 will not appear in a config written by an earlier version. They still take their defaults and the
@@ -327,17 +328,16 @@ in-game, without editing the file and without a restart:
     /cs set <name>                   // show one
     /cs set <name> <value>           // change it, and save it
 
-Two things worth knowing. Settings that have a legal range are **clamped as they are written**, so
-`/cs set` reports the value that is actually in force rather than echoing what you typed -- if you
-ask for a radius of 40 you will be told it is 16. And a value that cannot be understood at all (a
-word where a number belongs, a language that is not shipped) is refused outright rather than
-silently becoming a default.
+Settings that have a legal range are **clamped as they are written**, so `/cs set` reports the value
+that is actually in force rather than echoing what you typed -- ask for a radius of 40 and you will
+be told it is 16. A value that cannot be understood at all (a word where a number belongs, a language
+that is not shipped) is refused outright. It does not silently become a default.
 
 `/cs silent` and `/cs quiet` still work; they are the same two settings under their old names.
 
 ### Throughput: `dispatchMaxConcurrent`
 
-How many chunk requests Chunksmith keeps in flight at once. This is the pipeline's WIDTH, and on a
+How many chunk requests Chunksmith keeps in flight at once. Call it the pipeline's WIDTH. On a
 healthy server it is the setting that actually decides the rate.
 
 A chunk request spends almost all of its life WAITING. Vanilla walks it up through its generation
@@ -402,7 +402,7 @@ server is healthy again, so a pregen left running overnight cannot sit on a stru
 
 Counted in tickets, but paid for in tickets TIMES their halo: a FULL chunk drags in the 17x17 ring
 of worldgen context around it, so each held ticket is worth roughly 25 resident chunks. That is why
-the cap is small -- it is not the number you feel, the product is.
+the cap is small. The product is the number that matters.
 
 
 On Paper and Folia the three `pregenSettle*` settings report that they do not apply. Bukkit does not

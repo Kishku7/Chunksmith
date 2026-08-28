@@ -6,127 +6,121 @@
 
 ### Added
 
-- **The Bukkit/Paper plugin can now send LOD to players.** Until today it generated the data and had
-  no way to deliver it, so anyone running the plugin got a store on disk and players who saw nothing
-  -- and no combination of client mods could change that (mod_support #18).
+- The Bukkit/Paper plugin can send LOD to players now. Until today it generated the data and had no
+  way to deliver it, so anyone running the plugin got a store on disk and players who saw nothing --
+  and no combination of client mods could change that (mod_support #18).
 
-  The awkward part of that story: every piece of the machinery had been shipping inside the plugin
-  jar since 3.2.0, because it lives in the shared code. The wire format, the token store, the HTTP
-  backchannel -- all present, all unreachable, because nothing registered a channel or started the
-  server. This release is the connection that was missing.
+  Every piece of the machinery had been shipping inside the plugin jar since 3.2.0, because it lives
+  in the shared code. Wire format, token store, HTTP backchannel: all present, all unreachable,
+  because nothing registered a channel or started the server. This release is the wiring.
 
   Nothing to configure. If LOD is on, the plugin registers the channel, opens the backchannel port
-  and answers clients exactly as the mod does. `lod-backchannel-port` in `config.yml` works the same
-  way it does on the mod, and the startup line tells you which port your players need to reach.
+  and answers clients the way the mod does. `lod-backchannel-port` in `config.yml` works as it does
+  on the mod, and the startup line tells you which port your players need to reach.
 
-  **One honest limitation:** the mod falls back to streaming LOD down the game connection when the
-  backchannel port is unreachable. The plugin does not do that yet -- if the port is blocked, players
-  get nothing rather than something slow. The log says so plainly instead of going quiet, and the
-  fix is to open the port or set one your host allows.
+  One limitation. The mod falls back to streaming LOD down the game connection when the backchannel
+  port is unreachable; the plugin does not do that yet, so a blocked port means players get nothing
+  rather than something slow. The log says so instead of going quiet. Open the port, or set one your
+  host allows.
 
-- **A client on a Paper server now actually receives LOD -- measured, not inferred.** The first
-  cut of the above answered the client's hello and stopped there, which looks exactly like
-  working: the server logs the greeting, opens the port, mints a download credential, and serves
-  nothing at all, because the client is waiting on a region index that never comes. Two things
-  were missing.
+- A client on a Paper server actually receives LOD. The first cut of the above answered the
+  client's hello and stopped there, which looks exactly like working: the server logs the greeting,
+  opens the port, mints a download credential, and serves nothing at all, because the client is
+  waiting on a region index that never comes. Two things were missing.
 
-  **The index and sync requests are answered.** The hello is only the introduction. The client
-  then asks what is near it, compares that against what it already has, and downloads the
-  difference -- and it asks again every few minutes as it travels. The plugin answers both now,
-  off the main thread, filtered to the draw distance the client actually reported.
+  Index and sync requests are answered now. The hello is only the introduction -- the client then
+  asks what is near it, compares that against what it already has, and downloads the difference, and
+  it asks again every few minutes as it travels. Both are answered off the main thread, filtered to
+  the draw distance the client reported.
 
-  **Bukkit is told to accept the reply.** A Bukkit server only delivers a plugin message on a
-  channel the client announced with `minecraft:register`, and drops everything else without a
-  word -- no exception, no log line, no packet. A modern Fabric client never makes that
-  announcement, so the server could hear the client perfectly while the client heard nothing
-  back. The plugin now registers the channel for a player who has already spoken to it on that
-  channel, which is proof enough that they speak it.
+  And Bukkit is told to accept the reply. A Bukkit server only delivers a plugin message on a
+  channel the client announced with `minecraft:register`, and drops everything else without a word:
+  no exception, no log line, no packet. A modern Fabric client never makes that announcement, so the
+  server could hear the client perfectly while the client heard nothing back. The plugin now
+  registers the channel for a player who has already spoken to it on that channel, which is proof
+  enough that they speak it.
 
   Measured on Paper 26.2 with a Fabric client and voxy: 16 regions, 27 MB, 5928 chunks handed to
   the renderer. The symptom this replaces was `0 files, 0 bytes` with a live token beside it.
 
 ### Changed
 
-- **The plugin's startup message no longer says it cannot serve LOD**, because it can.
+- The plugin's startup message no longer says it cannot serve LOD, because it can.
 
-- **One region scan, shared by every platform** (`CsLodIndexScan`). "Which regions can this
+- One region scan now, shared by every platform (`CsLodIndexScan`). "Which regions can this
   player see?" has to give the same answer on a Fabric server and a Paper server, and a second
   copy of that rule would have drifted with nothing to catch it -- the symptom being a client that
-  fetches the wrong regions on one platform only. The loaders and the plugin now call the same
-  code, and sixteen tests pin the range, settle, ordering and cap behaviour.
+  fetches the wrong regions on one platform only. The loaders and the plugin call the same code, and
+  sixteen tests pin the range, settle, ordering and cap behaviour.
 
 
 ## [3.14.0] - 2026-08-26
 
 ### Added
 
-- **The LOD backchannel port is now yours to choose (`lodBackchannelPort`).** It was derived from
-  the game port and nothing else -- always `serverPort + 1`, with no way to change it. That is fine
-  on a box you own and impossible on a managed host that will not hand you the port next door
-  (mod_support #19). The new key takes an explicit port; `0` keeps the old derived behaviour and
-  remains the default, so an existing server is unaffected and nothing needs to be set.
+- `lodBackchannelPort` -- the LOD backchannel port is yours to choose. It was derived from the game
+  port and nothing else, always `serverPort + 1`, with no way to change it. Fine on a box you own,
+  impossible on a managed host that will not hand you the port next door (mod_support #19). The new
+  key takes an explicit port. `0` keeps the old derived behaviour and remains the default, so an
+  existing server is unaffected and nothing needs to be set.
 
-- **`/cs set lodBackchannelPort <0|1024-65535>` -- and it takes effect immediately.** No restart.
-  The backchannel stops, rebinds on the new port, and every connected client is told the new port
-  and handed a fresh download credential in the same pass. Clients never had a port setting to
-  begin with (the server has always advertised it on connect), so changing it costs a player
-  nothing -- they do not need to know it happened.
+- `/cs set lodBackchannelPort <0|1024-65535>`, and it takes effect immediately. No restart. The
+  backchannel stops, rebinds on the new port, and every connected client is told the new port and
+  handed a fresh download credential in the same pass. Clients never had a port setting to begin
+  with -- the server has always advertised it on connect -- so changing it costs a player nothing.
 
-- **`/cs status` -- one command that says what Chunksmith is doing.** Pre-gen state and the LOD
-  backchannel together, because those are the two halves of the mod and the two questions operators
-  actually arrive with: "is it generating?" and "why are my players getting no LOD?". The second
-  answer previously lived in `/cslod status`, which does not appear in `/cs help`, so it was
-  effectively hidden from the people who needed it.
+- `/cs status`. Pre-gen state and the LOD backchannel in one place, because those are the two
+  questions operators actually arrive with: "is it generating?" and "why are my players getting no
+  LOD?". The second answer previously lived in `/cslod status`, which does not appear in `/cs help`,
+  so it was effectively hidden from the people who needed it.
 
 ### Fixed
 
-- **Setting the backchannel to the game's own port silently disabled it, and stuck.** The bind
-  refused the port -- correctly, and said so -- but the value had already been written to the config
-  and the command answered "lodBackchannelPort is now 25565". The result was an operator told the
-  setting had worked, a backchannel that was off, and a config that kept it off through every
-  restart until somebody thought to look. It is refused now at the moment it is typed, nothing is
-  saved, and the command says it was rejected.
+- Setting the backchannel to the game's own port silently disabled it, and stuck. The bind refused
+  the port -- correctly, and said so -- but the value had already been written to the config and the
+  command answered "lodBackchannelPort is now 25565". So: an operator told the setting had worked, a
+  backchannel that was off, and a config that kept it off through every restart until somebody
+  thought to look. Refused now at the moment it is typed, nothing is saved, and the command says it
+  was rejected.
 
-- **A paused single-player pre-gen made no progress at all, and said nothing about it.** Since
-  3.3.0. Pausing is how people run a big pre-gen -- the menu is open, nothing else is competing,
-  the generator has the machine -- so this took the mod's best case and turned it into its worst
-  one, with no error to explain it (mod_support #17).
+- A paused single-player pre-gen made no progress at all, and said nothing about it. Since 3.3.0.
+  Pausing is how people run a big pre-gen -- the menu is open, nothing else is competing, the
+  generator has the machine -- so this took the mod's best case and turned it into its worst one,
+  with no error to explain it (mod_support #17).
 
   3.3.0 introduced a ticket safe point: all chunk-ticket work goes onto a queue that is drained
   once per tick from `MinecraftServer.tickServer`. That fixed a real crash, and on a dedicated
   server it fires every tick without exception. But `IntegratedServer.tickServer` calls
-  `tickPaused()` and **returns without calling its superclass** whenever the game is paused, so on
+  `tickPaused()` and returns without calling its superclass whenever the game is paused, so on
   single-player the drain simply never ran. Ticket work piled up, no chunk was ever given a ticket,
-  and the generator -- which runs on its own thread -- kept looping happily over work the server
-  would never accept. Nothing threw, so nothing was logged.
+  and the generator, which runs on its own thread, kept looping happily over work the server would
+  never accept. Nothing threw, so nothing was logged.
 
-  The paused tick now drains the queue before it runs housekeeping. This is safe precisely because
-  the server is paused: the safe point exists to keep ticket changes out of the chunk-tick walk,
-  and that walk does not happen while paused.
+  The paused tick now drains the queue before it runs housekeeping. Safe precisely because the
+  server is paused: the safe point exists to keep ticket changes out of the chunk-tick walk, and
+  that walk does not happen while paused.
 
-- **Resuming a pre-gen over ground you already generated is dramatically faster.** Chunksmith
-  keeps an in-memory map of what it has generated, but that map starts empty every time the game
-  starts -- so on the run where it matters most, re-running a selection after a restart, it knew
-  nothing and asked the chunk system about every single chunk, one asynchronous round-trip at a
-  time, purely to be told the chunk was already there. A region file's header describes 1024 chunks
-  at once, so that question is now answered by reading a handful of files before the run begins:
-  **5929 existing chunks identified in 183 ms where the old path spent about seven seconds**, and
-  14898 in 301 ms. The saving scales with the selection, so a large resumed pre-gen that used to
-  spend minutes deciding it had nothing to do now starts almost immediately.
+- Resuming a pre-gen over ground you already generated is much faster. Chunksmith keeps an
+  in-memory map of what it has generated, but that map starts empty every time the game starts -- so
+  on the run where it matters most, re-running a selection after a restart, it knew nothing and
+  asked the chunk system about every single chunk, one asynchronous round-trip at a time, purely to
+  be told the chunk was already there. A region file's header describes 1024 chunks at once, so that
+  question is now answered by reading a handful of files before the run begins: 5929 existing chunks
+  identified in 183 ms where the old path spent about seven seconds, and 14898 in 301 ms. The saving
+  scales with the selection, so a large resumed pre-gen that used to spend minutes deciding it had
+  nothing to do now starts almost immediately.
 
   Only chunks recorded as fully generated count; anything else is generated as normal. If a region
-  file cannot be read, those chunks are simply checked the old way, so the worst case of this change
-  is the behaviour that was there before.
+  file cannot be read, those chunks are checked the old way.
 
 ### Changed
 
-- **The progress line no longer makes a healthy run look like a failing one.** Resuming a
-  pre-gen reported a rate in the thousands of chunks per second that then fell steadily to a few
-  dozen, and an ETA that grew to match. Nothing was slowing down: already-generated chunks counted
-  toward the percentage but not toward the rate, so the figure started from a number that meant
-  nothing and spent the next minute converging on the truth. Watching it, the only reasonable
-  conclusion was that the mod was grinding to a halt -- which is what somebody reported
-  (mod_support #17).
+- The progress line no longer makes a healthy run look like a failing one. Resuming a pre-gen
+  reported a rate in the thousands of chunks per second that then fell steadily to a few dozen, and
+  an ETA that grew to match. Nothing was slowing down: already-generated chunks counted toward the
+  percentage but not toward the rate, so the figure started from a number that meant nothing and
+  spent the next minute converging on the truth. Watching it, the only reasonable conclusion was
+  that the mod was grinding to a halt -- which is what somebody reported (mod_support #17).
 
   The rate is now averaged over at least five seconds, so it climbs to the real figure instead of
   falling from an imaginary one, and the progress line says how many chunks were already there
@@ -135,97 +129,95 @@
       Task finished for minecraft:overworld. Processed: 5929 chunks (100.00%),
       Total time: 0:00:00 -- 5929 already generated (skipped), 0 newly generated
 
-- **A backchannel that cannot bind now says so at WARN, naming the port.** It was logged at INFO,
+- A backchannel that cannot bind says so at WARN now, naming the port. It was logged at INFO,
   worded as though nothing much had happened, and the mod quietly fell back to the slower in-band
   channel. That is the line an operator needed to see and did not: "Chunksmith is installed on both
-  sides and no LOD ever arrives" reads like a broken mod, not like a closed port. The message now
-  names the port that failed and says what to do about it.
+  sides and no LOD ever arrives" reads like a broken mod, not like a closed port. The message names
+  the port that failed and says what to do about it.
 
-- **The Bukkit/Paper plugin now says plainly that it cannot send LOD to players.** It writes a
-  CSLOD store and has no channel to serve it -- that is by design, and it has always been true, but
-  the startup line said "no renderer feed on this platform yet", which an operator reads as a
-  remark about the server rather than as "your players will receive nothing". Somebody ran
-  Chunksmith on their server and their client, got no LOD, and had to open an issue to find out
-  that no combination of mods could have worked (mod_support #18). The message now names the
-  consequence, names the build that does support it, and says outright that no client mod is a
-  workaround. The store is still written and is still worth having: it becomes servable the moment
-  that server moves to the mod build.
+- The Bukkit/Paper plugin says plainly that it cannot send LOD to players. It writes a CSLOD store
+  and has no channel to serve it -- by design, and always true -- but the startup line said "no
+  renderer feed on this platform yet", which an operator reads as a remark about the server rather
+  than as "your players will receive nothing". Somebody ran Chunksmith on their server and their
+  client, got no LOD, and had to open an issue to find out that no combination of mods could have
+  worked (mod_support #18). The message now names the consequence, names the build that does support
+  it, and says outright that no client mod is a workaround. The store is still written and still
+  worth having: it becomes servable the moment that server moves to the mod build.
 
 ## [3.13.0] - 2026-08-21
 
 The first release since 3.4.1. Versions 3.5.0 through 3.12.0 were built and tested in-house but
-never published, so everything they contain arrives here -- this entry covers the whole line. The
-short version: a pre-gen could hold the entire world open until the server died, and that is fixed;
-throughput on a multi-core server is up substantially; and the mod now tells you what it is doing
-instead of leaving you to infer it from tick times.
+never published, so everything they contain arrives here and this entry covers the whole line. A
+pre-gen could hold the entire world open until the server died; that is fixed. Throughput on a
+multi-core server is up substantially. And the mod now tells you what it is doing instead of leaving
+you to infer it from tick times.
 
 ### Fixed
 
-- **A pre-gen could hold the entire world open, and the server would die to the tick watchdog.**
-  This is the headline fix. A held chunk does not cost one chunk: its ticket sits at FULL level and
-  vanilla's distance manager propagates that level outward one ring at a time, so a single held
-  ticket keeps a whole neighbourhood resident. Measured on a live 1.21.11 server, **20 held tickets
-  held 3,507 resident chunks** -- roughly 25 resident chunks per held ticket at pre-gen clustering.
-  3.4.1 had no cap on the settle frontier at all, which is how a real server reached **75,045
-  resident chunks**, pinned its heap at 107% of an 8 GB `-Xmx`, and collapsed to 5 chunks per second
-  with a 42-hour ETA. The frontier is now bounded by `pregenSettleMaxHeld` (default 256), and memory
-  is bounded directly by `throttleMaxHeapPercent` rather than by any proxy.
+- A pre-gen could hold the entire world open, and the server would die to the tick watchdog. The
+  headline fix. A held chunk does not cost one chunk: its ticket sits at FULL level and vanilla's
+  distance manager propagates that level outward one ring at a time, so a single held ticket keeps a
+  whole neighbourhood resident. Measured on a live 1.21.11 server, 20 held tickets held 3,507
+  resident chunks -- roughly 25 resident chunks per held ticket at pre-gen clustering. 3.4.1 had no
+  cap on the settle frontier at all, which is how a real server reached 75,045 resident chunks,
+  pinned its heap at 107% of an 8 GB `-Xmx`, and collapsed to 5 chunks per second with a 42-hour
+  ETA. The frontier is now bounded by `pregenSettleMaxHeld` (default 256), and memory is bounded
+  directly by `throttleMaxHeapPercent` rather than by any proxy.
 
-- **The unload backlog outlived the task that created it.** Housekeeping was armed by a running
-  task, so when a run paused or finished, whatever backlog remained was handed to vanilla's budgeted
-  pass -- which does almost nothing once the tick is already over budget, and the tick was over
-  budget precisely because of the retained chunks. The backlog was then permanent until a restart.
+- The unload backlog outlived the task that created it. Housekeeping was armed by a running task,
+  so when a run paused or finished, whatever backlog remained was handed to vanilla's budgeted pass
+  -- which does almost nothing once the tick is already over budget, and the tick was over budget
+  precisely because of the retained chunks. The backlog was then permanent until a restart.
   Housekeeping is now armed while a BACKLOG exists, not while a task exists.
 
-- **Three separate mechanisms were suppressing their own recovery.** Releases are driven by new
-  chunks arriving, so gating dispatch also stopped the releases that would have opened the gate; a
-  gate holding dispatch was given the small unload budget, so nothing unloaded and it never
-  reopened; and the settle frontier froze at its cap during a hold while holding the very tickets
-  that blocked recovery. All three now release, drain and re-arm from the tick instead.
+- Three separate mechanisms were suppressing their own recovery. Releases are driven by new chunks
+  arriving, so gating dispatch also stopped the releases that would have opened the gate; a gate
+  holding dispatch was given the small unload budget, so nothing unloaded and it never reopened; and
+  the settle frontier froze at its cap during a hold while holding the very tickets that blocked
+  recovery. All three now release, drain and re-arm from the tick instead.
 
-- **`/cs debug` answered "An unexpected error occurred trying to execute that command".** The
-  residency snapshot contained a literal percent sign and the message path runs through
-  `String.format`.
+- `/cs debug` answered "An unexpected error occurred trying to execute that command". The residency
+  snapshot contained a literal percent sign and the message path runs through `String.format`.
 
-- **`/cs continue` reported "Task already started!" while the previous run was still draining**,
+- `/cs continue` reported "Task already started!" while the previous run was still draining,
   leaving the operator with a stopped pre-gen and a message saying the opposite. It now says what is
   actually happening.
 
-- **The ticket diagnostics were compiled into the shared mixin but written against 1.21.11-and-newer
-  shapes**, so this whole line of work could only build for 1.21.11. They are now gated on the
+- The ticket diagnostics were compiled into the shared mixin but written against 1.21.11-and-newer
+  shapes, so this whole line of work could only build for 1.21.11. They are now gated on the
   presence of those shapes and every supported version has a jar again.
 
-- **A 26-line drift:** `ChunkPos` became a record and lost its packed-long constructor.
+- A 26-line drift: `ChunkPos` became a record and lost its packed-long constructor.
 
-- **Config range-clamp warnings went nowhere.** `GsonConfig` and `TaskScheduler` logged through
+- Config range-clamp warnings went nowhere. `GsonConfig` and `TaskScheduler` logged through
   `java.util.logging`, which no loader routes into the game log, so a clamped value was silently
   corrected with the explanation discarded. Both now use slf4j like the rest of the mod.
 
 ### Added
 
-- **`dispatchMaxConcurrent` -- how many chunk requests stay in flight, and the single biggest
-  throughput lever in the mod.** It was previously fixed at 50 and reachable only through an
-  undocumented `chunksmith.maxWorkingCount` system property. Nothing was saturated at that cap: CPU
-  sat at 255 of 800 percent, workers at ~24 percent, the server thread at ~10. Measured on an
-  8-core dedicated server: **50 -> 31.6 chunks/sec, 200 -> 43.9, 600 -> 42.4.** So 200 is the knee,
-  worth **+39 percent**, and beyond it the remaining ceiling is vanilla promoting about 2.2 chunks
-  per tick at 20 tps. The default now scales with the machine -- `min(400, max(50, cores * 25))` --
-  with a floor of 50 so no server gets slower than it was. Live-settable with `/cs set`.
+- `dispatchMaxConcurrent` -- how many chunk requests stay in flight. The single biggest throughput
+  lever in the mod, and it was previously fixed at 50 and reachable only through an undocumented
+  `chunksmith.maxWorkingCount` system property. Nothing was saturated at that cap: CPU sat at 255 of
+  800 percent, workers at ~24 percent, the server thread at ~10. Measured on an 8-core dedicated
+  server: 50 -> 31.6 chunks/sec, 200 -> 43.9, 600 -> 42.4. So 200 is the knee, worth +39 percent,
+  and beyond it the remaining ceiling is vanilla promoting about 2.2 chunks per tick at 20 tps. The
+  default now scales with the machine -- `min(400, max(50, cores * 25))` -- with a floor of 50 so no
+  server gets slower than it was. Live-settable with `/cs set`.
 
-- **A pre-gen now pauses when the server cannot sustain it, and resumes when it can.**
+- A pre-gen now pauses when the server cannot sustain it, and resumes when it can.
   `autoPauseOnOverload` (default true) and `autoPauseGraceSeconds` (default 120). A gated run on an
   overloaded server does not stop, it stutters -- measured at 60 chunks in two minutes, which is
   indistinguishable from a hang, keeps the server under load throughout, and produces nothing. Both
   directions require the condition to hold continuously for the grace period. A human `/cs pause`
   outranks it in both directions and is never auto-resumed.
 
-- **`throttleMaxHeapPercent` (default 85) bounds the run by measuring memory.** Three earlier
-  releases tried to bound a pre-gen with a proxy -- queued writes, LOD queue depth, resident chunks,
-  chunks added since the run started -- and each was wrong on a live server in a different way. A
-  chunk is worth wildly different amounts of heap depending on what came with it, so no chunk count
-  means the same thing on two worlds.
+- `throttleMaxHeapPercent` (default 85) bounds the run by measuring memory. Three earlier releases
+  tried to bound a pre-gen with a proxy -- queued writes, LOD queue depth, resident chunks, chunks
+  added since the run started -- and each was wrong on a live server in a different way. A chunk is
+  worth wildly different amounts of heap depending on what came with it, so no chunk count means the
+  same thing on two worlds.
 
-- **The mod now reports what it is doing.** `/cs debug` prints a chunk-residency snapshot, a ticket
+- The mod now reports what it is doing. `/cs debug` prints a chunk-residency snapshot, a ticket
   ledger, and an unload breakdown with a plain-English verdict; a drain logs one line when it starts
   and one when it ends, naming the outcome and how many chunks it freed, at WARNING level when
   chunks are left behind. Previously the only way to read residency at all was to set a low cap,
@@ -233,58 +225,57 @@ instead of leaving you to infer it from tick times.
 
 ### Changed
 
-- **`throttleMaxAddedChunks` now defaults to 0 (off).** On a live server it closed at 22,000 chunks
+- `throttleMaxAddedChunks` now defaults to 0 (off). On a live server it closed at 22,000 chunks
   with the heap at 40 percent and stuttered a healthy run down to 60 chunks per two minutes. A
   pre-gen's resident set is its FULL chunks plus the mandatory worldgen context ring around each of
   them, and that frontier's perimeter legitimately grows with the radius. It remains available as an
   expert knob.
 
-- **The tick-budget baseline now requires 15 consecutive idle ticks**, and probes every 60 seconds
+- The tick-budget baseline now requires 15 consecutive idle ticks, and probes every 60 seconds
   instead of 120. A one- or two-tick gap between chunks is not idle -- it is still paying for the
   chunk that just landed -- and sampling those taught the baseline the mod's own aftermath, observed
   as a baseline reading 49ms and then 116.8ms with no change in load.
 
-- **The LOD startup message no longer claims LOD generation costs ~16 percent of pre-gen speed.**
-  It does not: measured over matched windows, **36.1 chunks/sec with LOD on against 34.2 with it
-  off**. The message now reports the measured cost as none.
+- The LOD startup message no longer claims LOD generation costs ~16 percent of pre-gen speed. It
+  does not: measured over matched windows, 36.1 chunks/sec with LOD on against 34.2 with it off. The
+  message reports the measured cost as none.
 
 - The README documents nine config keys that previously had no documentation anywhere.
 
 ### Removed
 
-- **The stale-ticket purge, and its `purgeStaleVanillaTickets` and `staleTicketThreshold` keys.** A
-  controlled A/B put residency at 16,800 with it on and 16,820 with it off -- a 0.1 percent
-  difference -- while it evicted 10,765 tickets. It recovered nothing and was removed rather than
-  kept as reassurance.
+- The stale-ticket purge is gone, along with its `purgeStaleVanillaTickets` and
+  `staleTicketThreshold` keys. A controlled A/B put residency at 16,800 with it on and 16,820 with
+  it off -- a 0.1 percent difference -- while it evicted 10,765 tickets. It recovered nothing.
 
 ## [3.7.1] - 2026-08-20
 
 ### Fixed
 
-- **Auto-pause could not see the situation it exists for.** 3.7.0 triggered only when one of
+- Auto-pause could not see the situation it exists for. 3.7.0 triggered only when one of
   Chunksmith's own throttle gates was holding dispatch. On a live server with the chunk gate off
   (its default) and the heap below its threshold, nothing of ours ever closed while the server
-  logged **twelve "Can't keep up" warnings and generation fell to 5 chunks per second** -- and
+  logged twelve "Can't keep up" warnings and generation fell to 5 chunks per second -- and
   auto-pause sat idle through all of it.
 
-  The condition is now "the server cannot sustain this run", which is either of our gates holding
-  **or** the tick running past twice the target the throttle steers to. Load that has nothing to do
-  with Chunksmith still means a pre-gen should not be adding to it. Twice the target is well clear of
-  a healthy pre-gen and well short of a server that is merely busy.
+  The condition is now "the server cannot sustain this run", which is either of our gates holding or
+  the tick running past twice the target the throttle steers to. Load that has nothing to do with
+  Chunksmith still means a pre-gen should not be adding to it. Twice the target is well clear of a
+  healthy pre-gen and well short of a server that is merely busy.
 
 ## [3.7.0] - 2026-08-20
 
 ### Added
 
-- **A pre-gen now stops when the server cannot sustain it, and starts again when it can.** On an
+- A pre-gen now stops when the server cannot sustain it, and starts again when it can. On an
   overloaded server a gated run does not stop -- it stutters, because the never-wedge valve lets
-  through about a second of work every grace period. Measured on a live server: **60 chunks in two
-  minutes**. That is indistinguishable from a hang to anyone watching, it keeps the server under load
+  through about a second of work every grace period. Measured on a live server: 60 chunks in two
+  minutes. That is indistinguishable from a hang to anyone watching, it keeps the server under load
   throughout, and it produces nothing. Chunksmith now pauses, says why, and resumes by itself once
   the server has been healthy for the grace period.
 
-  `autoPauseOnOverload` (default **true**) and `autoPauseGraceSeconds` (default 120, range 10-3600),
-  both settable from `/cs set` and both editable in the config, live -- turn it off and a run pushes
+  `autoPauseOnOverload` (default true) and `autoPauseGraceSeconds` (default 120, range 10-3600),
+  both settable from `/cs set` and both editable in the config, live. Turn it off and a run pushes
   on regardless.
 
   Both directions require the condition to hold CONTINUOUSLY for the grace period, and any moment to
@@ -293,21 +284,21 @@ instead of leaving you to infer it from tick times.
   means the tick keeping up AND the heap having real headroom, because either alone recovers before
   the other.
 
-  **A human `/cs pause` outranks it in both directions** -- it is never auto-resumed, and it clears
-  any outstanding auto-pause so a later recovery cannot restart a run somebody deliberately stopped.
+  A human `/cs pause` outranks it in both directions. It is never auto-resumed, and it clears any
+  outstanding auto-pause so a later recovery cannot restart a run somebody deliberately stopped.
 
 ## [3.6.1] - 2026-08-20
 
 ### Fixed
 
-- **The diagnostic's own level thresholds were hand-written and wrong.** It classified a chunk as
+- The diagnostic's own level thresholds were hand-written and wrong. It classified a chunk as
   droppable at level 44, but `ChunkLevel.MAX_LEVEL` is `33 + RADIUS_AROUND_FULL_CHUNK` -- 41 on this
-  version -- so two whole levels of genuinely-droppable chunks were being reported as loaded, and the
-  "droppable" figure it printed was noise. It now reads `ChunkLevel.byStatus(FULL)` and
-  `ChunkLevel.isLoaded` directly, which is both correct here and correct on every other MC version
-  instead of only the one the numbers were guessed for.
+  version -- so two whole levels of genuinely-droppable chunks were being reported as loaded, and
+  the "droppable" figure it printed was noise. It now reads `ChunkLevel.byStatus(FULL)` and
+  `ChunkLevel.isLoaded` directly, which is correct here and on every other MC version instead of
+  only the one the numbers were guessed for.
 
-  With the buckets right, the picture inverts: **droppable = 0**. Every resident chunk is either FULL
+  With the buckets right, the picture inverts: droppable = 0. Every resident chunk is either FULL
   or the worldgen context ring that a FULL chunk requires. Nothing is sitting around waiting to be
   unloaded, and vanilla's unload path is healthy.
 
@@ -322,48 +313,47 @@ what 3.4.1 got wrong by holding an uncapped settle frontier.
 
 ## [3.6.0] - 2026-08-20
 
-**This is the release that actually fixes the unbounded chunk retention reported on 2026-08-19.**
-Everything between 3.5.0 and 3.5.9 was built against theories that measurement later disproved; they
-are left in the changelog as written because each one is a real, if secondary, improvement, and
-because the wrong turns are worth reading.
+This is the release that actually fixes the unbounded chunk retention reported on 2026-08-19.
+Everything between 3.5.0 and 3.5.9 was built against theories that measurement later disproved.
+Those entries are left in the changelog as written, because each one is a real if secondary
+improvement and because the wrong turns are worth reading.
 
 ### Fixed
 
-- **A pre-gen could hold the entire world open. The cap that was supposed to stop it was counted in
-  the wrong unit.**
+- A pre-gen could hold the entire world open. The cap that was supposed to stop it was counted in
+  the wrong unit.
 
   A held chunk does not cost one chunk. Its ticket sits at FULL level, and vanilla's distance manager
   propagates that level outward one ring at a time, so a single held ticket keeps a whole
-  neighbourhood resident with it. Measured on a live 1.21.11 server: **20 held tickets -> 3,507
-  resident chunks; ~400 held -> 10,167 resident** -- roughly 25 resident chunks per held ticket at
+  neighbourhood resident with it. Measured on a live 1.21.11 server: 20 held tickets -> 3,507
+  resident chunks; ~400 held -> 10,167 resident -- roughly 25 resident chunks per held ticket at
   pre-gen clustering.
 
   `pregenSettleMaxHeld` counts TICKETS. Its 3.5.0 default of 8192 therefore authorised on the order
-  of **two hundred thousand** resident chunks, and 3.4.1 -- which had no cap at all, because the
-  setting did not exist yet -- let the window hold the entire un-closed frontier. That is how a live
-  server reached **75,045 resident chunks** and died to the tick watchdog.
+  of two hundred thousand resident chunks, and 3.4.1 -- which had no cap at all, because the setting
+  did not exist yet -- let the window hold the entire un-closed frontier. That is how a live server
+  reached 75,045 resident chunks and died to the tick watchdog.
 
-  The default is now **256** (about 6,000 resident chunks on that measurement, which an 8 GB heap
-  carries comfortably), the minimum is 16, and the setting now documents the multiplier everywhere it
-  appears. It is a memory setting, and it now says so.
+  The default is now 256 (about 6,000 resident chunks on that measurement, which an 8 GB heap
+  carries comfortably), the minimum is 16, and the setting documents the multiplier everywhere it
+  appears. It is a memory setting.
 
-- Nothing was wrong with ticket removal, the unload pass, level propagation, or the settle window's
-  release logic. Each was investigated in turn and each was innocent; the counts that proved it are
-  the ones `/cs debug` now prints.
+- Ticket removal, the unload pass, level propagation, the settle window's release logic: all
+  investigated, all innocent. The counts that proved it are the ones `/cs debug` now prints.
 
 ### How it was finally found, since the method is the transferable part
 
 Six theories were reasoned out and shipped against before anything was counted, and all six were
 wrong. What ended it was measuring the thing itself rather than a proxy: first Chunksmith's own
-ticket ledger (20 outstanding against 3,507 resident -- so not ours), then a tally of every ticket on
-every resident chunk by type (**138 tickets holding 3,507 chunks** -- so not a leak at all, but a
-multiplier). A count that cannot be read two ways beats any amount of inference from tick times.
+ticket ledger (20 outstanding against 3,507 resident, so not ours), then a tally of every ticket on
+every resident chunk by type (138 tickets holding 3,507 chunks, so not a leak at all but a
+multiplier).
 
 ## [3.5.5] - 2026-08-20
 
 ### Added
 
-- **Chunksmith can now say WHY a drain is not freeing chunks.** A drain ran its full ten-minute
+- Chunksmith can now say WHY a drain is not freeing chunks. A drain ran its full ten-minute
   ceiling and freed 30 chunks out of 22,067, with the pregen paused, and nothing in the mod could
   distinguish the two possible causes: chunks not ELIGIBLE to unload (their tickets are still held)
   versus eligible work not getting done. Three releases were spent making the unload pass faster on
@@ -380,9 +370,9 @@ multiplier). A count that cannot be read two ways beats any amount of inference 
 
 ### Changed
 
-- **`throttleMaxAddedChunks` now defaults to 0 (off).** On a live server it closed at 22,000 chunks
-  while the heap sat at 40 percent, and stuttered a healthy run down to 60 chunks per two minutes.
-  A chunk count cannot be tuned to mean the same thing on two worlds. Memory is governed by
+- `throttleMaxAddedChunks` now defaults to 0 (off). On a live server it closed at 22,000 chunks
+  while the heap sat at 40 percent, and stuttered a healthy run down to 60 chunks per two minutes. A
+  chunk count cannot be tuned to mean the same thing on two worlds. Memory is governed by
   `throttleMaxHeapPercent` and load by tick health; this remains available as an expert knob.
 
 ## [3.5.4] - 2026-08-20
@@ -391,63 +381,61 @@ Three fixes for things the first live test of the 3.5.2/3.5.3 gates exposed with
 
 ### Fixed
 
-- **The drain's own log lines never appeared.** `ChunkResidency` logged through
-  `java.util.logging`, which the loaders do not route into the game log, so 3.5.3's drain lifecycle
-  reporting ran and went nowhere. Switched to slf4j, which every other logging class in the mod
-  already uses. (`GsonConfig` and `TaskScheduler` still use JUL and are equally invisible -- notably
-  `TaskScheduler` logs uncaught generation-task exceptions that way.)
+- The drain's own log lines never appeared. `ChunkResidency` logged through `java.util.logging`,
+  which the loaders do not route into the game log, so 3.5.3's drain lifecycle reporting ran and
+  went nowhere. Switched to slf4j, which every other logging class in the mod already uses.
+  (`GsonConfig` and `TaskScheduler` still use JUL and are equally invisible -- `TaskScheduler` logs
+  uncaught generation-task exceptions that way.)
 
-- **A gate holding dispatch got the SMALL unload budget, so nothing unloaded and the gate never
-  reopened.** The larger idle budget was conditional on a post-run drain only. But a mid-run hold is
+- A gate holding dispatch got the SMALL unload budget, so nothing unloaded and the gate never
+  reopened. The larger idle budget was conditional on a post-run drain only. But a mid-run hold is
   the same situation -- nobody is playing, nothing is generating, and unloading is the only thing
   that can end it. Measured: a residency hold ran for the full 120-second never-wedge window and the
   resident count went UP by 196 instead of falling, so the run resumed straight into the gate again
   and stuttered. The full budget now applies whenever nobody is online and generation is stopped by
   one of our own gates, and housekeeping stays armed for the same window.
 
-- **The settle frontier froze at its cap during a hold and blocked its own recovery.** A held chunk
+- The settle frontier froze at its cap during a hold and blocked its own recovery. A held chunk
   is released once its neighbours exist, and neighbours only arrive from new dispatches -- so with
   dispatch gated the frontier can never complete, and it sits at `pregenSettleMaxHeld` holding
   tickets that prevent the unloading the gate is waiting for. Entering a hold now hands every held
   ticket back, without retiring the window: when the gate opens, the next arrivals build a fresh
-  frontier. This is the third distinct form of the same bug -- a mechanism suppressing the recovery
-  it is waiting on -- and the general lesson is that anything driven by "new work arriving" must not
-  be load-bearing on a path that stops new work arriving.
+  frontier. Third distinct form of the same bug, a mechanism suppressing the recovery it is waiting
+  on.
 
 ## [3.5.3] - 2026-08-20
 
 ### Fixed
 
-- **`/cs debug` answered "An unexpected error occurred trying to execute that command".** The new
+- `/cs debug` answered "An unexpected error occurred trying to execute that command". The new
   residency snapshot contained a literal percent sign, and `Sender.sendMessagePrefixed` runs its
   message through `String.format`, which read it as a format specifier and threw. The snapshot no
   longer contains one, and a test now asserts that and then formats the string to prove it. The
-  original tests did not catch this because they exercised `describe()` in isolation -- the bug lived
-  in the seam between it and the sender, which is where this kind of bug always lives.
+  original tests exercised `describe()` in isolation; the bug lived in the seam between it and the
+  sender.
 
 ## [3.5.2] - 2026-08-20
 
 Instrumentation, plus the throttle change the instrumentation immediately justified: this release
-stops trying to bound a pregen by counting chunks and starts measuring the heap.
+bounds a pregen by measuring the heap rather than by counting chunks.
 
 3.5.1 fixed the orphaned unload backlog and was, on a real server, largely right: no tick overruns,
 the heap down from 107% of an 8 GB Xmx to a third of it, and no restart needed. But an idle server
-still did not return all the way to its pre-run tick cost, and there was **no way to tell whether the
-drain was still working, had succeeded, or had quietly given up** -- only to infer it from tick times.
-A signal nobody can read is a signal that cannot be debugged, which is how the 3.5.0 defect survived
-review in the first place.
+still did not return all the way to its pre-run tick cost, and there was no way to tell whether the
+drain was still working, had succeeded, or had quietly given up -- only to infer it from tick times.
+That is how the 3.5.0 defect survived review in the first place.
 
 ### Added
 
-- **The drain now says what it is doing.** One line when a run's drain starts (chunks resident, and
+- The drain now says what it is doing. One line when a run's drain starts (chunks resident, and
   how many of them this run added) and one when it ends, naming the outcome -- back to where the run
   started, stopped falling because the rest is pinned by something that is not ours, or the
   ten-minute ceiling -- with how many chunks were freed, how many remain above the starting point,
   and how long it took. Two lines per run. It is logged as a WARNING rather than information when
-  chunks are left behind, because that is the case an operator actually needs to see, and it is
-  exactly the case that could not be distinguished from success before.
+  chunks are left behind, because that is the case an operator actually needs to see, and the case
+  that could not be distinguished from success before.
 
-- **`/cs debug` prints a chunk-residency snapshot** on every invocation, whichever way the toggle
+- `/cs debug` prints a chunk-residency snapshot on every invocation, whichever way the toggle
   went: resident count, the run's baseline, how many this run added, whether a drain is in progress,
   and how the last one ended. Until now the only way to read residency was to set a low
   `throttleMaxAddedChunks`, start a run and read the backpressure line -- which perturbs the thing
@@ -455,31 +443,31 @@ review in the first place.
 
 ### Fixed
 
-- **Bound the run by MEASURING MEMORY instead of counting chunks.** Three releases have tried to
-  bound a pregen with a proxy -- queued writes, LOD queue depth, resident chunks, chunks added since
-  the run started -- and each was wrong on a live server in a different way. An absolute chunk cap
-  fired on chunks that were never ours. A delta cap did not fire at all while the heap filled to
-  107% of `-Xmx`, because the run had been resumed on an already-loaded server. A chunk is worth
-  wildly different amounts of heap depending on the entities and block entities that came with it,
-  so no chunk count means the same thing on two worlds. New `throttleMaxHeapPercent` (default 85,
-  0 disables) stops dispatch when the heap stays above the threshold for several consecutive
-  samples, and resumes only once there is 15 points of headroom again. Confirmation over several
-  samples is what stops ordinary uncollected garbage from tripping it. The chunk counters remain,
-  for the cases they are genuinely good at.
+- Bound the run by MEASURING MEMORY instead of counting chunks. Three releases have tried to bound
+  a pregen with a proxy -- queued writes, LOD queue depth, resident chunks, chunks added since the
+  run started -- and each was wrong on a live server in a different way. An absolute chunk cap fired
+  on chunks that were never ours. A delta cap did not fire at all while the heap filled to 107% of
+  `-Xmx`, because the run had been resumed on an already-loaded server. A chunk is worth wildly
+  different amounts of heap depending on the entities and block entities that came with it, so no
+  chunk count means the same thing on two worlds. New `throttleMaxHeapPercent` (default 85, 0
+  disables) stops dispatch when the heap stays above the threshold for several consecutive samples,
+  and resumes only once there is 15 points of headroom again. Confirmation over several samples is
+  what stops ordinary uncollected garbage from tripping it. The chunk counters remain, for the cases
+  they are genuinely good at.
 
-- **A drain could be convicted of stalling when it was never given a budget to work with.** The
-  unload floor is 2 ms while players are online and 10 ms when the server is empty; the
-  "no progress for 30 seconds" give-up made no distinction, so a drain running at 2 ms next to a
-  player loading chunks was almost guaranteed to be declared stuck. Measured: a drain gave up while
-  one player was online, that player logged off, and the server then sat at **71.5 ms per tick with
-  the heap at 107%** and did not recover until it was restarted. The no-progress clock now only
-  advances while the drain is actually being given the full budget, so a give-up can only ever mean
-  "we tried properly and it would not move".
+- A drain could be convicted of stalling when it was never given a budget to work with. The unload
+  floor is 2 ms while players are online and 10 ms when the server is empty; the "no progress for 30
+  seconds" give-up made no distinction, so a drain running at 2 ms next to a player loading chunks
+  was almost guaranteed to be declared stuck. Measured: a drain gave up while one player was online,
+  that player logged off, and the server then sat at 71.5 ms per tick with the heap at 107% and did
+  not recover until it was restarted. The no-progress clock now only advances while the drain is
+  actually being given the full budget, so a give-up can only ever mean "we tried properly and it
+  would not move".
 
-- **A drain was a one-shot that could be lost for ever.** Nothing re-armed it when the thing
-  blocking it went away. The moment the last player leaves, an outstanding drain is resumed.
+- A drain was a one-shot that could be lost for ever. Nothing re-armed it when the thing blocking
+  it went away. The moment the last player leaves, an outstanding drain is resumed.
 
-- **`/cs debug on` and `/cs debug off` were rejected by the command parser.** The command has always
+- `/cs debug on` and `/cs debug off` were rejected by the command parser. The command has always
   accepted an explicit on/off argument, but only the bare toggle was registered in the loaders'
   command trees, so anything after `debug` failed to parse. Registered on all three loaders.
 
@@ -492,9 +480,9 @@ exists on exactly one server, which has been updated by hand.
 
 ### Fixed
 
-- **A finished pregen orphaned its own unload backlog, and the server never recovered without a
-  restart.** Measured on a 1.21.11 dedicated server: **39,064 chunks still resident nineteen minutes
-  after the pregen was paused, with no players online** -- 51.4 ms per tick (P95 59.3), a stall of
+- A finished pregen orphaned its own unload backlog, and the server never recovered without a
+  restart. Measured on a 1.21.11 dedicated server: 39,064 chunks still resident nineteen minutes
+  after the pregen was paused, with no players online -- 51.4 ms per tick (P95 59.3), a stall of
   almost exactly 2000 ms every ~65 seconds, and the heap pinned at 8.7 GB of an 8 GB `-Xmx`. After a
   restart the same server measured 0.2 ms per tick and 792 MB. A 19.5-hour idle log from the same
   build contains zero "Can't keep up", so it is running a pregen that causes this, not the build
@@ -510,26 +498,26 @@ exists on exactly one server, which has been updated by hand.
     the run started. The drain ends on success, or when the count has not moved for 30 s (the
     remainder is pinned by players or another mod and no further pass will shift it), or after ten
     minutes flat. All three exits are unit-tested against an injected clock.
-  - The unload floor is now 2 ms normally and **10 ms when nobody is online and a drain is
-    outstanding**. 2 ms is tuned for "do not disturb a live server", which is the wrong constraint
+  - The unload floor is now 2 ms normally and 10 ms when nobody is online and a drain is
+    outstanding. 2 ms is tuned for "do not disturb a live server", which is the wrong constraint
     for an empty one. Still bounded and still self-limiting, so it cannot become the unbounded pin
     that 3.2.0 fixed.
 
-- **The residency gate measured the wrong thing and closed on chunks that were not ours.**
+- The residency gate measured the wrong thing and closed on chunks that were not ours.
   `throttleMaxLoadedChunks` capped the ABSOLUTE resident count, so on a server already sitting near
   the cap it tripped immediately and stayed tripped, stuttering a run at the never-wedge interval to
   roughly 0.9 chunks/sec -- worse than the runaway it was added to prevent. Renamed to
-  **`throttleMaxAddedChunks`** and measured as a DELTA against residency captured when the run
-  starts. What a pregen can be held responsible for is what it added; everything already there
-  belongs to the server. The backpressure message now reports both numbers.
+  `throttleMaxAddedChunks` and measured as a DELTA against residency captured when the run starts.
+  What a pregen can be held responsible for is what it added; everything already there belongs to
+  the server. The backpressure message now reports both numbers.
 
-- **The settle window could only release when new work arrived, so holding dispatch stopped it
-  draining.** `ChunkSettleWindow.releaseDue()` had exactly one production caller -- inside
-  `offer()`. With the residency gate holding dispatch there are no arrivals, so the frontier could
-  not shrink, so residency could not fall, so the gate stayed shut: it suppressed its own recovery.
-  Live windows are now registered with `ChunkSettleSupport` and pumped once per server tick, so a
-  release depends on time passing rather than on more work being dispatched. Drained windows drop
-  themselves rather than requiring the adapter to remember to deregister.
+- The settle window could only release when new work arrived, so holding dispatch stopped it
+  draining. `ChunkSettleWindow.releaseDue()` had exactly one production caller, inside `offer()`.
+  With the residency gate holding dispatch there are no arrivals, so the frontier could not shrink,
+  so residency could not fall, so the gate stayed shut: it suppressed its own recovery. Live windows
+  are now registered with `ChunkSettleSupport` and pumped once per server tick, so a release depends
+  on time passing rather than on more work being dispatched. Drained windows drop themselves rather
+  than requiring the adapter to remember to deregister.
 
 ### Changed
 
@@ -541,8 +529,8 @@ exists on exactly one server, which has been updated by hand.
 
 ### Fixed
 
-- **A pregen could drive the server to 75,045 resident chunks and then keep going, until the
-  watchdog killed it.** Observed live on a 1.21.11 Fabric server: a run at 6.95% was holding about
+- A pregen could drive the server to 75,045 resident chunks and then keep going, until the
+  watchdog killed it. Observed live on a 1.21.11 Fabric server: a run at 6.95% was holding about
   ten times the chunks its sweep frontier could account for, the I/O throttle was pinned at its
   floor (`1/50`), throughput had fallen to ~5 chunks/sec and the estimate had grown past 42 hours.
   The crash itself came from elsewhere -- an unrelated datapack tick function walking 11,613
@@ -550,15 +538,15 @@ exists on exactly one server, which has been updated by hand.
   nothing in Chunksmith could see it happening.
 
   Three separate mechanisms, each individually defensible, formed a loop that only tightened:
-  - **The throttle measured everything except what mattered.** Tick time, per-chunk latency, the
-    write queue and the LOD sink all measure the rate work goes IN. Nothing measured what had piled
-    up and not gone OUT, so the resident chunk count was invisible to every signal the mod had.
-  - **A server that has fallen behind stops unloading entirely.** 3.2.0 fixed a 60-minute CPU pin
+  - The throttle measured everything except what mattered. Tick time, per-chunk latency, the write
+    queue and the LOD sink all measure the rate work goes IN. Nothing measured what had piled up
+    and not gone OUT, so the resident chunk count was invisible to every signal the mod had.
+  - A server that has fallen behind stops unloading entirely. 3.2.0 fixed a 60-minute CPU pin
     (mod_support #11) by handing vanilla's own `haveTime` budget to the unload pass instead of a
     hardcoded "unlimited". That was correct, and it created the opposite failure: once the tick is
     over budget, `haveTime` is false for the whole tick, so the unload pass does nothing at all.
     More resident chunks then cost more to tick, and the server falls further behind.
-  - **Backing off made it worse.** A settle window's ticket releases are driven by new arrivals, and
+  - Backing off made it worse. A settle window's ticket releases are driven by new arrivals, and
     housekeeping was only armed by ticket mutations. Cutting dispatch to 1 therefore also cut the
     rate at which chunks were handed back -- the throttle was throttling the cure.
 
@@ -577,15 +565,15 @@ exists on exactly one server, which has been updated by hand.
   - Chunk-system housekeeping is armed every tick while a run is active, not only when a ticket
     moves.
 
-- **The settle window could hold chunks for an entire run, and on a resumed world usually did.**
-  Its rule -- release a chunk once all eight neighbours exist -- bounds the frontier only while
-  every held chunk eventually gets its ninth neighbour. Chunks the run SKIPS are never offered, so
-  a chunk bordering already-generated ground or the edge of the shape never completes and was held
-  until the task finished. That makes the leak worst on exactly the common case: re-running a
-  pregen over a world that is already partly done. `pregenSettleMaxHeld` (new, default 8192,
-  0 = unbounded) caps the frontier and releases the oldest held chunk when it is exceeded -- age
-  being the evidence that a neighbourhood is not coming. Evictions are counted separately from
-  ordinary releases, because a run with many of them is a run worth looking at.
+- The settle window could hold chunks for an entire run, and on a resumed world usually did. Its
+  rule -- release a chunk once all eight neighbours exist -- bounds the frontier only while every
+  held chunk eventually gets its ninth neighbour. Chunks the run SKIPS are never offered, so a chunk
+  bordering already-generated ground or the edge of the shape never completes and was held until the
+  task finished. That makes the leak worst on exactly the common case: re-running a pregen over a
+  world that is already partly done. `pregenSettleMaxHeld` (new, default 8192, 0 = unbounded) caps
+  the frontier and releases the oldest held chunk when it is exceeded -- age being the evidence that
+  a neighbourhood is not coming. Evictions are counted separately from ordinary releases, because a
+  run with many of them is a run worth looking at.
 
 ### Added
 
@@ -605,8 +593,8 @@ exists on exactly one server, which has been updated by hand.
 
 ### Fixed
 
-- **LOD stopped being injected after the first disconnect, for the rest of the game session.**
-  Join a server, leave it, join again -- and from then on every LOD injection ended instantly with
+- LOD stopped being injected after the first disconnect, for the rest of the game session. Join a
+  server, leave it, join again -- and from then on every LOD injection ended instantly with
   `the player left <dimension> while its LOD data was still being injected`, in every dimension, no
   matter where the player actually was. The regions downloaded correctly and were thrown away at the
   last step. Restarting Minecraft was the only way out, and only until the next disconnect.
@@ -629,16 +617,16 @@ exists on exactly one server, which has been updated by hand.
 
 ### Fixed
 
-- **A player with Chunksmith but no LOD renderer could not reach their own client settings.**
-  3.3.0 added `/cslod set`, which is a server command that relays to the player's client over the
-  `chunksmith:lod` channel -- and the server only relays to a client it has actually heard from.
-  The client never said hello unless voxy or Distant Horizons was installed, so for everyone else
-  the command answered with a refusal, and the two settings in `config/chunksmith-lod.properties`
-  were reachable only by editing the file and restarting. That is precisely the situation the house
-  rule exists to end, and the refusal text said so out loud rather than fixing it.
-  - The client now sends its hello with **no renderer installed** as well. The wire format has
-    always carried `hasVoxy`/`hasDh` and the server has always modelled both-false, so this needed
-    no protocol change and older servers answer it exactly as they always did.
+- A player with Chunksmith but no LOD renderer could not reach their own client settings. 3.3.0
+  added `/cslod set`, which is a server command that relays to the player's client over the
+  `chunksmith:lod` channel -- and the server only relays to a client it has actually heard from. The
+  client never said hello unless voxy or Distant Horizons was installed, so for everyone else the
+  command answered with a refusal, and the two settings in `config/chunksmith-lod.properties` were
+  reachable only by editing the file and restarting. That is precisely the situation the house rule
+  exists to end, and the refusal text said so out loud rather than fixing it.
+  - The client now sends its hello with no renderer installed as well. The wire format has always
+    carried `hasVoxy`/`hasDh` and the server has always modelled both-false, so this needed no
+    protocol change and older servers answer it exactly as they always did.
   - It stays an INTRODUCTION and nothing more: with no renderer the client never asks for an index,
     a summary or a region, and never enters the empty-store retry loop. The server answers with an
     empty hello, mints no token, scans no store, records no radius, and does not add the player to
@@ -652,7 +640,7 @@ exists on exactly one server, which has been updated by hand.
     the config where its file lives, and without it a `/cslod set` from a no-renderer client would
     have changed the value in memory and written no file at all.
 
-- **On Minecraft 26, Chunksmith's chunk-system housekeeping never actually ran.** Every tick
+- On Minecraft 26, Chunksmith's chunk-system housekeeping never actually ran. Every tick
   Chunksmith gives the chunk system a second nudge: push through the chunk tickets a pre-gen has
   just handed back so the finished chunks are free to go, run a time-budgeted unload pass so they
   actually leave memory, flush pending block changes, and tick the entity manager. On 1.20.x and
@@ -672,7 +660,7 @@ exists on exactly one server, which has been updated by hand.
 
 ### Added
 
-- **`/cslod set` -- the LOD client's own settings are now settable in-game.** 3.2.4 brought every
+- `/cslod set` -- the LOD client's own settings are now settable in-game. 3.2.4 brought every
   setting in `config/chunksmith/config.json` under `/cs set`, but the LOD client keeps its two
   settings somewhere else entirely -- `config/chunksmith-lod.properties`, on the CLIENT -- and those
   stayed file-only. A setting you can only change by editing a file and restarting is not a setting
@@ -688,28 +676,27 @@ exists on exactly one server, which has been updated by hand.
 
 ### Fixed
 
-- **Cancelling a pre-generation could crash the server when C2ME is installed** (mod_support #16).
-  The settle window introduced in 3.2.4 holds a chunk ticket until a chunk's neighbours have caught
-  up, then hands it back. Handing them ALL back -- at the end of a run, and far more abruptly on a
+- Cancelling a pre-generation could crash the server when C2ME is installed (mod_support #16). The
+  settle window introduced in 3.2.4 holds a chunk ticket until a chunk's neighbours have caught up,
+  then hands it back. Handing them ALL back -- at the end of a run, and far more abruptly on a
   cancel -- was done from Chunksmith's own worker thread, and a chunk ticket may only be touched on
   the server thread. Vanilla tolerated it. C2ME, which moves that machinery onto its own concurrent
   scheduler, did not: the ticket graph was corrupted mid-flight and the server came down with
   `ArrayIndexOutOfBoundsException`, then failed a second time while saving worlds on the way out.
-  The release now runs on the server thread, like every other ticket operation beside it.
-  Reproduced on demand before the fix and confirmed gone after it, with a test that was shown to
-  FAIL on the previous release first -- an untested fix for a crash is a guess.
-- **The LOD injector kept running after the world had gone.** On a disconnect or a cancel it would
+  The release now runs on the server thread, like every other ticket operation beside it. Reproduced
+  on demand before the fix and confirmed gone after it, with a test that was shown to FAIL on the
+  previous release first.
+- The LOD injector kept running after the world had gone. On a disconnect or a cancel it would
   carry on handing regions to your renderer -- observed still logging progress 45 seconds after the
   server had stopped. It is now told to stop, and stops at the next region.
 
 ### Deprecated
 
-- **Folia is deprecated.** The plugin still declares `folia-supported` and still runs on Folia in
-  this release, so nothing breaks today -- but Folia is no longer a tested platform and support
-  will be REMOVED in a future release. Chunksmith's Folia test cells could not be kept working, and
-  a platform we cannot test is a coverage claim nobody can verify; saying so is better than quietly
-  shipping it untested. Paper remains fully supported and tested. If you run Chunksmith on Folia and
-  want that to continue, say so on the issue tracker.
+- Folia is deprecated. The plugin still declares `folia-supported` and still runs on Folia in this
+  release, so nothing breaks today -- but Folia is no longer a tested platform and support will be
+  REMOVED in a future release. Chunksmith's Folia test cells could not be kept working, and a
+  platform we cannot test is a coverage claim nobody can verify. Paper remains fully supported and
+  tested. If you run Chunksmith on Folia and want that to continue, say so on the issue tracker.
 
 ## [3.2.4] - 2026-08-11
 
@@ -721,7 +708,7 @@ exists on exactly one server, which has been updated by hand.
   running server at all.
   - `/cs set` lists every setting with the value in force, `/cs set <name>` shows one, and
     `/cs set <name> <value>` changes it and saves it immediately.
-  - Values with a legal range are clamped **as they are written**, not only as they are read, so the
+  - Values with a legal range are clamped as they are written, not only as they are read, so the
     file can never hold a number the mod would refuse to honour. The command reports the value that
     was actually stored rather than echoing what you typed -- ask for a settle radius of 40 and it
     tells you it is 16.
@@ -734,24 +721,24 @@ exists on exactly one server, which has been updated by hand.
     to hold open.
 
 ### Fixed
-- **Other mods can build on freshly pregenerated land again.** A pregen added a chunk ticket,
-  generated the chunk and dropped the ticket the instant the future completed. For pure terrain that
-  is exactly right and it is what keeps a run's memory flat -- but a mod that reacts to "a new chunk
+- Other mods can build on freshly pregenerated land again. A pregen added a chunk ticket, generated
+  the chunk and dropped the ticket the instant the future completed. For pure terrain that is
+  exactly right and it is what keeps a run's memory flat -- but a mod that reacts to "a new chunk
   appeared" and does its work on a later server tick found the chunk, and everything around it,
   already unloaded. It could not build, so it deferred, and it kept deferring for the whole run.
   Reported against Millenaire (mod_support #14), whose villages simply never appeared in
-  pregenerated land: measured on a NeoForge 1.21.1 pregen, **309 spawn attempts and 309 deferrals,
-  zero villages**.
-  - A chunk's ticket is now held until **all eight of its neighbours have also been generated**,
-    plus a short delay. What is held is therefore the sweep frontier and nothing else -- it is
-    bounded by the shape of the pattern rather than by a guessed number, and it shrinks to nothing
-    as the run finishes.
+  pregenerated land: measured on a NeoForge 1.21.1 pregen, 309 spawn attempts and 309 deferrals,
+  zero villages.
+  - A chunk's ticket is now held until all eight of its neighbours have also been generated, plus a
+    short delay. What is held is therefore the sweep frontier and nothing else -- bounded by the
+    shape of the pattern rather than by a guessed number, and it shrinks to nothing as the run
+    finishes.
   - The rule is deliberately about chunks, not about any particular mod. Nothing in Chunksmith knows
     Millenaire's name; anything that builds on newly generated chunks benefits, and anything that
     does not is unaffected.
-  - **On by default.** `pregenSettle: false` in `config/chunksmith/config.json` restores the old behaviour
-    exactly -- release inline, allocate nothing -- which is the right setting for a pure terrain
-    pregen with no such mods installed, where holding the frontier costs memory and a little
+  - On by default. `pregenSettle: false` in `config/chunksmith/config.json` restores the old
+    behaviour exactly -- release inline, allocate nothing -- which is the right setting for a pure
+    terrain pregen with no such mods installed, where holding the frontier costs memory and a little
     throughput and buys nothing. `pregenSettleDelayTicks` (default 40, i.e. two seconds) tunes how
     long a chunk lingers after its neighbourhood closes, and `pregenSettleRadius` (default 7 chunks,
     maximum 16) sets how much ground the trailing sweep loads together -- sized to the largest
@@ -759,13 +746,12 @@ exists on exactly one server, which has been updated by hand.
   - Note for upgrades: an existing config is never rewritten, so these keys will not appear in a
     config written by an earlier version. They take their defaults regardless; delete
     `config/chunksmith/config.json` and restart to get a fresh one that lists them.
-- **LOD data is no longer re-injected into the renderer on every single world join.** Which
-  regions had already been handed to voxy / Distant Horizons was remembered only in memory, and
-  that memory was thrown away on disconnect -- so every join re-decoded and re-pushed the entire
-  in-range store, whether or not the renderer already had every bit of it. On a large pregenerated
-  world that is minutes of CPU on a background thread at every single join, for terrain that was
-  already drawn. Reported by Maker261 (mod_support #15) on a two-core machine, where it is
-  impossible to miss.
+- LOD data is no longer re-injected into the renderer on every single world join. Which regions had
+  already been handed to voxy / Distant Horizons was remembered only in memory, and that memory was
+  thrown away on disconnect -- so every join re-decoded and re-pushed the entire in-range store,
+  whether or not the renderer already had every bit of it. On a large pregenerated world that is
+  minutes of CPU on a background thread at every single join, for terrain that was already drawn.
+  Reported by Maker261 (mod_support #15) on a two-core machine, where it is impossible to miss.
   - The claim set is now written to disk as `.injected`, one per dimension, next to the region
     files it describes -- the same `x,z=token` line format and the same atomic `.part`+move
     discipline the download manifest already uses. A join now starts from what the last session
@@ -785,22 +771,22 @@ exists on exactly one server, which has been updated by hand.
 ## [3.2.3] - 2026-08-04
 
 ### Added
-- **Pregeneration now verifies its own work.** A chunk counted as "generated" was only ever a
-  claim: the counter is incremented when the load future completes, and a future can complete
-  having done nothing at all -- which is exactly how 3.2.2's C2ME bug went unnoticed for two
-  releases while every counter and log line reported success. At the end of a run Chunksmith now
-  takes a spread of up to 32 chunks it says it generated and asks the world whether they are
-  actually on disk. If any are missing it says so loudly, with the count and example coordinates,
-  instead of reporting a clean finish. Costs at most 32 status reads, once, per run.
+- Pregeneration now verifies its own work. A chunk counted as "generated" was only ever a claim:
+  the counter is incremented when the load future completes, and a future can complete having done
+  nothing at all -- which is exactly how 3.2.2's C2ME bug went unnoticed for two releases while
+  every counter and log line reported success. At the end of a run Chunksmith now takes a spread of
+  up to 32 chunks it says it generated and asks the world whether they are actually on disk. If any
+  are missing it says so loudly, with the count and example coordinates, instead of reporting a
+  clean finish. Costs at most 32 status reads, once, per run.
   - Deliberately quiet when it cannot get an answer (busy or shutting-down server): only a
-    definite "not on disk" is ever reported. A check that cries wolf gets ignored.
+    definite "not on disk" is ever reported.
 - The end-of-run drain now happens for every task rather than only LOD-enabled ones, so a task no
   longer declares itself finished while its own dispatches are still outstanding. Previously a
   non-LOD run could under-report by up to the dispatch limit.
 
 ### Changed
-- **MC 26.3 rebuilt onto `26.3-snapshot-7`** (was snapshot-6), Fabric API `0.156.2+26.3`,
-  `pack_format` **95** (was 94). Every 26.3 snapshot so far has bumped the resource pack format by
+- MC 26.3 rebuilt onto `26.3-snapshot-7` (was snapshot-6), Fabric API `0.156.2+26.3`,
+  `pack_format` 95 (was 94). Every 26.3 snapshot so far has bumped the resource pack format by
   exactly one, so each build is snapshot-exclusive by design -- `3.2.2+26.3` remains available and
   listed for snapshot-6.
 
@@ -833,7 +819,7 @@ exists on exactly one server, which has been updated by hand.
 ## [3.2.1] - 2026-08-03
 
 ### Added
-- **Voxy LOD support on Fabric 1.21.1 and NeoForge 1.21.1**, via the `m3t4f1v3` fork of voxy
+- Voxy LOD support on Fabric 1.21.1 and NeoForge 1.21.1, via the `m3t4f1v3` fork of voxy
   (github.com/m3t4f1v3/voxy, `multiversion` branch). Upstream voxy has never published a build
   for either of these cells (Fabric 1.20.1/1.21.1, or any NeoForge line), so Chunksmith's voxy
   adapter previously compiled out entirely on both. The fork's NeoForge cell is a genuine native
@@ -846,21 +832,21 @@ exists on exactly one server, which has been updated by hand.
   client join, region fetch + inject, EYEBALL-confirmed terrain render) before release.
 
 ### Scope
-- **Only two jars change in this release**: `chunksmith-3.2.1+1.21.1.jar` (Fabric) and
+- Only two jars change in this release: `chunksmith-3.2.1+1.21.1.jar` (Fabric) and
   `chunksmith-3.2.1+1.21.1-neoforge.jar` (NeoForge). Every other cell is unchanged and remains at
   `3.2.0` -- there is nothing in this release for them to receive.
 
 ## [3.2.0] - 2026-08-03
 
 ### Added
-- **Universal LOD generation on the Bukkit/Paper/Folia plugin.** The plugin line previously
+- Universal LOD generation on the Bukkit/Paper/Folia plugin. The plugin line previously
   shipped with LOD generation hardcoded off; it now generates LOD data by default, matching
   the Fabric/Forge/NeoForge behavior, using the same pregen-time hook the mod side already
   used. No configuration needed -- `lod-enabled: false` still turns it off for admins who
   want pregen without LOD.
 
 ### Fixed
-- **Housekeeping-hook stall under a large chunk-unload backlog (issue #11).** The shared
+- Housekeeping-hook stall under a large chunk-unload backlog (issue #11). The shared
   per-tick housekeeping mixin (every Fabric/Forge/NeoForge cell) called
   `chunkMap.invokeTick(() -> true)`, discarding vanilla's real per-tick time budget
   (`haveTime`, already passed in and unused) and letting the unload loop run with no time
@@ -869,20 +855,19 @@ exists on exactly one server, which has been updated by hand.
   plumbing, so every cell picks up the fix automatically. Load-tested 62.5 minutes
   continuous on the exact reported configuration (144,433 chunks processed, zero stalls)
   and boot-verified across the rest of the matrix.
-- **Plugin: `IncompatibleClassChangeError` extracting LOD biome data on some Paper builds.**
+- Plugin: `IncompatibleClassChangeError` extracting LOD biome data on some Paper builds.
   Bukkit's `Biome` type changed from a class to an interface across Paper API generations
   within the same Minecraft version line; a plugin jar compiled against one shape could
   throw at runtime against a server built against the other. Fixed by resolving the biome
   through the stable `org.bukkit.Keyed` interface instead of the concrete `Biome` type, and
-  by making LOD extraction failures fail loud (logged) instead of silently doing nothing, so
-  a bug in this class can't hide again.
-- **C2ME compatibility guard was only wired into one Fabric cell.** A ticket-race workaround
+  by making LOD extraction failures fail loud (logged) instead of silently doing nothing.
+- C2ME compatibility guard was only wired into one Fabric cell. A ticket-race workaround
   for running alongside the C2ME concurrency mod (added for Fabric 1.21.11 in 3.1.5) is now
   applied on every Fabric/Forge/NeoForge cell. No behavior change where C2ME is absent --
   Forge and NeoForge never set the detection flag that arms it.
 
 ### Changed
-- **Version numbering reconciled fleet-wide.** Every cell (Fabric, Forge, NeoForge, and the
+- Version numbering reconciled fleet-wide. Every cell (Fabric, Forge, NeoForge, and the
   plugin, across every supported Minecraft version) now reports `3.2.0`. Previously the
   plugin tracked `3.1`, most mod cells tracked `3.1.1`, and two cells (Fabric 26 and Fabric
   1.21.11) had drifted ahead to `3.1.4`/`3.1.5` on earlier fixes that never got a version
@@ -891,7 +876,7 @@ exists on exactly one server, which has been updated by hand.
 ## [3.1.5] - 2026-07-29
 
 ### Fixed
-- **Fabric 1.21.11: C2ME chunk-ticket race that could crash the server** (`FabricWorld.getChunkAtAsync`).
+- Fabric 1.21.11: C2ME chunk-ticket race that could crash the server (`FabricWorld.getChunkAtAsync`).
   Every chunk request forced an immediate, synchronous `runDistanceManagerUpdates()` call right after
   adding a ticket, instead of letting the distance manager process tickets on its own once-per-tick
   cadence. Vanilla only ever runs that update once per tick from one place, so ticket-map mutation and
