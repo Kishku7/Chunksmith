@@ -271,9 +271,11 @@ public final class CsLodCommand {
     }
 
     /**
-     * The renderer fields of the status line. A cell reports only the renderers it can actually feed:
-     * where voxy has no build the line says so, rather than "not available" for something that could
-     * never be available.
+     * Returns the renderer fields of the status line. A cell reports only the renderers it can actually feed.
+     * Where voxy has no build the line says so, rather than "not available" for something that could never be
+     * available.
+     *
+     * @return the renderer fields, ready to drop into the status line
      */
     private static String renderers() {
         //[[[cog

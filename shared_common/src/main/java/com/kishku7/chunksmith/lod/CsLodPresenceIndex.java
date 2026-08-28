@@ -89,10 +89,12 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * True when a CSLOD record already exists for this chunk.
+     * Returns true when a CSLOD record already exists for this chunk.
      *
      * <p>False on any I/O problem: an unreadable header is "no LOD here", so a broken or truncated region
      * file can only make us rebuild LODs we had, never make us skip a chunk that has none.
+     *
+     * @return true when this chunk already has a CSLOD record
      */
     public synchronized boolean hasLod(int chunkX, int chunkZ) {
         queries.incrementAndGet();
@@ -102,7 +104,7 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Record that this chunk is now (or is about to be) backed by a CSLOD record. Called at dispatch, not
+     * Records that this chunk is now (or is about to be) backed by a CSLOD record. Called at dispatch, not
      * at write-completion. See the class doc.
      */
     public synchronized void markLod(int chunkX, int chunkZ) {
@@ -166,8 +168,8 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * One line: the real, measured cost of the presence check since {@code before} (this run, not the
-     * server's lifetime).
+     * Returns one line giving the real, measured cost of the presence check since {@code before} (this
+     * run, not the server's lifetime).
      */
     public String describeCostSince(Cost before) {
         final long asked = queries.get() - before.queries;
@@ -181,9 +183,11 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Count every CSLOD record under a store root, by header only -- the honest number for
+     * Counts every CSLOD record under a store root, by header only, the honest number for
      * {@code /cslod status}. Reads 8 KB per region file and decodes no records. Static and stateless like
      * {@link CsLodRegionStore#forEachChunk}, so a second process can call it.
+     *
+     * @return the number of records found under {@code root}
      */
     public static long countRecords(Path root) throws IOException {
         if (!Files.isDirectory(root)) {
@@ -234,7 +238,7 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Read one region file's 8 KB header and fold it into a 1024-bit presence bitmap. A missing region file
+     * Reads one region file's 8 KB header and folds it into a 1024-bit presence bitmap. A missing region file
      * is not an error; it is the common case on a world that has never had LODs built.
      */
     private long[] readHeader(int regionX, int regionZ) {

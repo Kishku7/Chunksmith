@@ -50,7 +50,7 @@ public final class UnloadDiagnostics {
     private UnloadDiagnostics() {
     }
 
-    /** Publish a reading. Called from the server thread; every argument is a plain size(). */
+    /** Publishes a reading. Called from the server thread; every argument is a plain size(). */
     public static void report(final long visible, final long toDrop, final long unloadQueue,
                               final long pendingUnloads, final boolean hasTickets) {
         UnloadDiagnostics.visible = visible;
@@ -73,7 +73,7 @@ public final class UnloadDiagnostics {
         return unloadQueue;
     }
 
-    /** Publish the ticket-level histogram of the resident set. Sampled on a slow cadence. */
+    /** Publishes the ticket-level histogram of the resident set. Sampled on a slow cadence. */
     public static void reportLevels(final long ticking, final long loaded, final long droppable,
                                     final long sampledAtMillis) {
         levelTicking = ticking;
@@ -82,7 +82,7 @@ public final class UnloadDiagnostics {
         levelSampledAt = sampledAtMillis;
     }
 
-    /** Publish vanilla's own ticket strings for chunks nothing of ours is holding. */
+    /** Publishes vanilla's own ticket strings for chunks nothing of ours is holding. */
     public static void reportTicketSample(String sample) {
         ticketSample = sample;
     }
@@ -138,8 +138,9 @@ public final class UnloadDiagnostics {
     }
 
     /**
-     * One line, and a plain-English verdict on which of the two cases we are in. Contains no literal
-     * percent sign: {@code Sender.sendMessagePrefixed} formats its message, which 3.5.2 learned hard.
+     * Returns one line, and a plain-English verdict on which of the two cases we are in. Contains no
+     * literal percent sign, because {@code Sender.sendMessagePrefixed} formats its message, which 3.5.2
+     * learned hard.
      */
     public static String describe() {
         if (!supported) {

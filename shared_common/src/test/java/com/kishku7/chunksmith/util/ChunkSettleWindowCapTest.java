@@ -18,7 +18,12 @@ import static org.junit.Assert.assertTrue;
  */
 public class ChunkSettleWindowCapTest {
 
-    /** Offer a straight line of chunks. No chunk in a line ever gets all nine of its neighbours. */
+    /**
+     * Offers a straight line of chunks and returns what the window released. No chunk in a line ever
+     * gets all nine of its neighbours.
+     *
+     * @return the chunk x values released, in release order
+     */
     private static List<Integer> offerLine(ChunkSettleWindow window, int count, long cap) {
         List<Integer> released = new ArrayList<>();
         for (int x = 0; x < count; x++) {

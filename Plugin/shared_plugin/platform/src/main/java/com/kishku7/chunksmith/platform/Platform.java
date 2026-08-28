@@ -37,12 +37,12 @@ public enum Platform {
         return CURRENT;
     }
 
-    /** Exactly Folia (regionized threading; no global tick / off-region restrictions). */
+    /** Returns true on Folia exactly (regionized threading; no global tick / off-region restrictions). */
     public static boolean isFolia() {
         return CURRENT == FOLIA;
     }
 
-    /** Paper API surface is available - true on Paper AND Folia (Folia is a Paper fork). */
+    /** Returns true when the Paper API surface is available, so Paper AND Folia (Folia is a Paper fork). */
     public static boolean isPaper() {
         return CURRENT == FOLIA || CURRENT == PAPER;
     }

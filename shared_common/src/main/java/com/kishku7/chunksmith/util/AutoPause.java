@@ -28,7 +28,7 @@ public final class AutoPause {
     private AutoPause() {
     }
 
-    /** Called when a run starts, from the config that run was created with. */
+    /** Sets the auto-pause policy. Called when a run starts, from the config it was created with. */
     public static void configure(boolean enabled, long graceMillis) {
         AutoPause.enabled = enabled;
         AutoPause.graceMillis = Math.max(1_000L, graceMillis);
@@ -43,11 +43,11 @@ public final class AutoPause {
     }
 
     /**
-     * Report whether the server is currently unable to sustain the run.
+     * Records whether the server is currently unable to sustain the run.
      *
      * <p>"Our gate is closed" was too narrow. On a live server with the chunk gate off and the heap
      * under its threshold, nothing of ours ever closed while the server logged twelve "Can't keep up"
-     * warnings and generation fell to 5 chunks per second. So: either gate holding, OR the tick running
+     * warnings and generation fell to 5 chunks per second. So it is either gate holding, OR the tick running
      * far past the target the throttle steers to.
      */
     public static void noteStruggling(boolean struggling, long now) {
@@ -67,7 +67,7 @@ public final class AutoPause {
         return gatedSince == 0L ? 0L : Math.max(0L, (now - gatedSince) / 1000L);
     }
 
-    /** Record that we paused this world, so only our own pause is ever auto-resumed. */
+    /** Records that we paused this world, so only our own pause is ever auto-resumed. */
     public static void markAutoPaused(String world) {
         autoPaused = true;
         pausedWorld = world;
@@ -83,7 +83,7 @@ public final class AutoPause {
         return pausedWorld;
     }
 
-    /** Report whether the server currently looks well enough to carry a run. */
+    /** Records whether the server currently looks well enough to carry a run. */
     public static void noteHealthy(boolean healthy, long now) {
         if (!healthy) {
             healthySince = 0L;
@@ -104,7 +104,7 @@ public final class AutoPause {
         gatedSince = 0L;
     }
 
-    /** A human pause, a new run, or a stopping server -- forget everything. */
+    /** Clears every remembered state, for a human pause, a new run, or a stopping server. */
     public static void clear() {
         autoPaused = false;
         pausedWorld = null;
@@ -112,7 +112,7 @@ public final class AutoPause {
         healthySince = 0L;
     }
 
-    /** No literal percent sign: the sender formats this string. */
+    /** Returns one line for the debug command. No literal percent sign, because the sender formats it. */
     public static String describe() {
         return String.format("enabled=%s grace=%ds autoPaused=%s world=%s",
                 enabled, graceMillis / 1000L, autoPaused, pausedWorld == null ? "none" : pausedWorld);

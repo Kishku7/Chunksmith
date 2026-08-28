@@ -110,8 +110,8 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     }
 
     /**
-     * Build one 1x1 column of data points, bottom-up, gap-free: DH requires columns that neither
-     * overlap nor leave holes.
+     * Builds one 1x1 column of data points, bottom-up and gap-free. DH requires columns that neither overlap
+     * nor leave holes.
      */
     private List<DhApiTerrainDataPoint> column(CsLodChunk record, int x, int z, int bottomY) {
         List<CsLodChunk.Section> sections = record.getSections();
@@ -177,7 +177,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     }
 
     /**
-     * The "no data" answer for a chunk ChunkSmith never pregenerated: a chunk of empty columns.
+     * Returns the "no data" answer for a chunk ChunkSmith never pregenerated, a chunk of empty columns.
      *
      * <p>It must not be null. {@code AbstractDhApiChunkWorldGenerator.generateApiChunks} feeds our
      * return value straight to DH's result consumer with no null check, and
@@ -228,7 +228,10 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
         });
     }
 
-    /** Chunks served from the store / asked for but never pregenerated. */
+    /**
+     * Returns how many chunks were served from the store, against how many were asked for but never
+     * pregenerated.
+     */
     public long getServedCount() {
         return served.get();
     }

@@ -65,7 +65,7 @@ public final class CsLodDhSupport {
     private CsLodDhSupport() {
     }
 
-    /** Bind DH's level-load event at the last lifecycle point before DH fires it. */
+    /** Binds DH's level-load event at the last lifecycle point before DH fires it. */
     public static void register() {
         // Bind the level-load event even when the override is disabled: it is also how we learn the level
         // wrappers, which the push path (/cslod dhpush) needs.
@@ -83,7 +83,11 @@ public final class CsLodDhSupport {
         }
     }
 
-    /** DH's version plus the API version it implements. Never throws; a version string is diagnostics. */
+    /**
+     * Returns DH's version plus the API version it implements. Never throws; a version string is diagnostics.
+     *
+     * @return DH's version and the API version it implements
+     */
     public static String version() {
         try {
             return "Distant Horizons " + DhApi.getModVersion()
@@ -99,9 +103,9 @@ public final class CsLodDhSupport {
     }
 
     /**
-     * Give up on DH for the rest of the session, loudly and exactly once, but keep Chunksmith running. A
-     * {@link LinkageError} (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError; all Errors,
-     * so {@code catch (Exception)} would miss them) means the installed DH does not match the API we built
+     * Gives up on DH for the rest of the session, loudly and exactly once, but keep Chunksmith running. A
+     * {@link LinkageError} (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError; all Errors, so
+     * {@code catch (Exception)} would miss them) means the installed DH does not match the API we built
      * against. We claim a wide DH range on the evidence that the methods we call have been signature-stable
      * since DH 2.0.0-a; this is what makes being wrong a logged degradation rather than a crashed server.
      */
@@ -181,8 +185,10 @@ public final class CsLodDhSupport {
     }
 
     /**
-     * The live config if Chunksmith is already up, otherwise the file read straight off disk. See the
+     * Returns the live config if Chunksmith is already up, otherwise the file read straight off disk. See the
      * lifecycle note on this class. Null when there is no config file at all; both flags default to off.
+     *
+     * @return the config, or null when there is no config file at all
      */
     private static Config config() {
         if (ChunksmithProvider.isLoaded()) {
@@ -201,8 +207,10 @@ public final class CsLodDhSupport {
     }
 
     /**
-     * The DH level wrapper for this level, or null if DH has not reported it. The only correct way to
+     * Returns the DH level wrapper for this level, or null if DH has not reported it. The only correct way to
      * address DH from the push path; see {@link #WRAPPERS}.
+     *
+     * @return the wrapper DH reported for this level, or null
      */
     public static IDhApiLevelWrapper wrapperFor(ServerLevel level) {
         return WRAPPERS.get(level);
@@ -218,8 +226,8 @@ public final class CsLodDhSupport {
     }
 
     /**
-     * One-line report of what DH has actually asked us for. Two silent bugs hid behind the absence of
-     * these counters: an override that never armed, and a null return that killed DH's queue.
+     * Returns a one-line report of what DH has actually asked us for. Two silent bugs hid behind the absence
+     * of these counters, an override that never armed, and a null return that killed DH's queue.
      */
     public static String describe() {
         CsLodDhGenerator generator = lastGenerator;

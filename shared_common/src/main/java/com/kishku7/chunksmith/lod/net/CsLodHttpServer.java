@@ -99,11 +99,11 @@ public final class CsLodHttpServer {
     }
 
     /**
-     * Bind and start.
+     * Binds and starts the backchannel server.
      *
      * @param bindAddress    the address the game is bound to (empty/null = all interfaces, same as the game)
      * @param configuredPort the operator's chosen port, or 0 to derive {@code gamePort + 1}
-     * @return the bound port, or 0 if the backchannel is unavailable (in which case: fall back in-band)
+     * @return the bound port, or 0 if the backchannel is unavailable (in which case, fall back in-band)
      */
     public int start(String bindAddress, int gamePort, int configuredPort) {
         derived = configuredPort == 0;
@@ -180,7 +180,7 @@ public final class CsLodHttpServer {
         return derived;
     }
 
-    /** served / bytes / rejected -- surfaced by the status command. Counters exist from day one, on purpose. */
+    /** Returns served / bytes / rejected, surfaced by the status command. Counters exist from day one. */
     public String describe() {
         return server == null
                 ? "backchannel: not running (in-band fallback)"
@@ -232,9 +232,9 @@ public final class CsLodHttpServer {
     }
 
     /**
-     * Map a request path to a file inside the store, or null. Two independent gates: the shape must match
-     * {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, and the canonicalized result must still live under the
-     * store root. Either alone would probably do; both are cheap.
+     * Maps a request path to a file inside the store, or null. Two independent gates apply. The shape must
+     * match {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, and the canonicalized result must still live under
+     * the store root. Either alone would probably do; both are cheap.
      */
     private Path resolve(String requestPath) {
         if (requestPath == null || !requestPath.startsWith(CsLodProtocol.HTTP_PREFIX)) {
@@ -301,7 +301,7 @@ public final class CsLodHttpServer {
         bytes.addAndGet(length);
     }
 
-    /** Single range only. A multi-range request is answered with the whole file rather than honoured. */
+    /** Parses the single byte range a request may carry. A multi-range request gets the whole file. */
     private static long[] parseRange(String header, long size) {
         if (header == null || !header.startsWith("bytes=") || header.indexOf(',') >= 0) {
             return new long[]{0L, size};
@@ -332,7 +332,7 @@ public final class CsLodHttpServer {
         }
     }
 
-    /** Reserve a slot for this address, atomically. Returns false when the address is already at the cap. */
+    /** Reserves a slot for this address, atomically. Returns false when the address is already at the cap. */
     private boolean acquire(String ip) {
         boolean[] admitted = {false};
         inFlightByIp.compute(ip, (key, current) -> {
@@ -350,7 +350,7 @@ public final class CsLodHttpServer {
         inFlightByIp.computeIfPresent(ip, (key, current) -> current <= 1 ? null : current - 1);
     }
 
-    /** Fail closed: 404 for everything, so a probe cannot learn what exists. */
+    /** Fails closed with a 404 for everything, so a probe cannot learn what exists. */
     private void fail(HttpExchange exchange) throws IOException {
         rejected.incrementAndGet();
         exchange.sendResponseHeaders(404, -1);

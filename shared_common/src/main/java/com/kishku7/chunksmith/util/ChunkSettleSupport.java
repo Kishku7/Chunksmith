@@ -28,7 +28,7 @@ public final class ChunkSettleSupport {
     private ChunkSettleSupport() {
     }
 
-    /** Called when a generation task starts, from the config that task was created with. */
+    /** Sets the settle policy. Called when a task starts, from the config it was created with. */
     public static void configure(boolean enabled, long delayTicks, long maxHeld) {
         ChunkSettleSupport.enabled = enabled;
         ChunkSettleSupport.delayTicks = Math.max(0L, delayTicks);
@@ -40,9 +40,9 @@ public final class ChunkSettleSupport {
     }
 
     /**
-     * A fresh window for one world, or {@code null} when settling is off. Null rather than a do-nothing
-     * window on purpose: the caller's null check is what restores the original code path exactly
-     * (release the ticket inline, allocate nothing) for the operator who has turned this off.
+     * Creates a fresh window for one world, or returns {@code null} when settling is off. Null rather than
+     * a do-nothing window on purpose, because the caller's null check is what restores the original code
+     * path exactly (release the ticket inline, allocate nothing) for the operator who has turned this off.
      */
     public static ChunkSettleWindow newWindow() {
         if (!enabled) {
@@ -54,7 +54,7 @@ public final class ChunkSettleSupport {
     }
 
     /**
-     * Release anything whose delay has elapsed, in every live window. Called once per server tick from
+     * Releases anything whose delay has elapsed, in every live window. Called once per server tick from
      * the platform, on the server thread, the only thread allowed to touch a chunk ticket. Drained
      * windows are dropped here rather than by the adapter: making the adapter remember to deregister
      * would be exactly the kind of pairing that {@code LodInjector.arm()} taught us not to write.
@@ -84,7 +84,7 @@ public final class ChunkSettleSupport {
         return LIVE.size();
     }
 
-    /** Drop every registered window without draining it. The server is going away; see Chunksmith#disable. */
+    /** Removes every registered window without draining it. The server is going away; see Chunksmith#disable. */
     public static void forget() {
         LIVE.clear();
     }

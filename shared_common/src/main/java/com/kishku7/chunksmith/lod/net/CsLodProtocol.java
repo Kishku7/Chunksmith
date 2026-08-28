@@ -153,8 +153,8 @@ public final class CsLodProtocol {
     }
 
     /**
-     * The backchannel port, derived from the game port. Game on 25565 -> HTTP on 25566. This is only the
-     * default; an operator may name one (mod_support #19), see {@link #httpPort(int, int)}.
+     * Returns the backchannel port, derived from the game port. Game on 25565 -> HTTP on 25566. This is
+     * only the default; an operator may name one (mod_support #19), see {@link #httpPort(int, int)}.
      *
      * @return the backchannel port, or 0 if the game port is at the top of the range (no room for +1)
      */
@@ -164,9 +164,9 @@ public final class CsLodProtocol {
     }
 
     /**
-     * Resolve the backchannel port an operator actually gets: their configured port if they named one,
+     * Resolves the backchannel port an operator actually gets. Their configured port if they named one,
      * otherwise {@link #httpPort(int) the derived one}. A configured port that collides with the game port
-     * is refused rather than honoured: binding it cannot succeed anyway, and refusing lets the caller
+     * is refused rather than honoured, since binding it cannot succeed anyway, and refusing lets the caller
      * report a cause instead of an anonymous bind failure.
      *
      * @return the port to bind, or 0 if there is none to be had

@@ -37,7 +37,7 @@ public final class ServerSideRendererAdvisory {
     }
 
     /**
-     * The advisory line, or empty when there is nothing to say.
+     * Returns the advisory line, or empty when there is nothing to say.
      *
      * @param dedicated  true only on a dedicated server. An integrated server runs inside a client that
      *                   DOES need a renderer, so saying this there would be flatly wrong

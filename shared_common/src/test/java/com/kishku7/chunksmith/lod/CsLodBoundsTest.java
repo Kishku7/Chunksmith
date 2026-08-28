@@ -199,7 +199,12 @@ public class CsLodBoundsTest {
         return new DataInputStream(new ByteArrayInputStream(bytes));
     }
 
-    /** The body of an S2C_HELLO after the message-id byte, with {@code count} claimed and {@code writeEntries} present. */
+    /**
+     * Returns the body of an S2C_HELLO after the message-id byte, with {@code count} claimed and
+     * {@code writeEntries} present.
+     *
+     * @return the message body, minus the message-id byte
+     */
     private static byte[] helloBytes(int count, int writeEntries) throws IOException {
         ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
@@ -215,7 +220,7 @@ public class CsLodBoundsTest {
         return raw.toByteArray();
     }
 
-    /** A Deflate-compressed CSLOD record whose block-palette varint claims {@code paletteSize}. */
+    /** Returns a Deflate-compressed CSLOD record whose block-palette varint claims {@code paletteSize}. */
     private static byte[] recordWithBlockPaletteVarint(int paletteSize) throws IOException {
         ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(new DeflaterOutputStream(raw))) {

@@ -30,9 +30,10 @@ public final class InjectedRegions {
     private final Map<String, Long> injected = new ConcurrentHashMap<>();
 
     /**
-     * Claim a region for injection, offering the freshness token the server advertised: succeeds when we have
-     * never injected this (dimension, region), or when the version we injected is not the one being offered.
-     * Atomic -- of two concurrent claims exactly one wins, and the winner must inject or {@link #release}.
+     * Claims a region for injection, offering the freshness token the server advertised. Succeeds when we
+     * have never injected this (dimension, region), or when the version we injected is not the one offered.
+     * Atomic, in that of two concurrent claims exactly one wins, and the winner must inject or
+     * {@link #release}.
      */
     public boolean claim(String dimension, int regionX, int regionZ, long hash) {
         String key = key(dimension, regionX, regionZ);
@@ -47,13 +48,13 @@ public final class InjectedRegions {
         return true;
     }
 
-    /** Pre-load a claim a previous session made and wrote down. See {@link InjectedIndex}. */
+    /** Registers a claim a previous session made and wrote down. See {@link InjectedIndex}. */
     public void seed(String dimension, int regionX, int regionZ, long hash) {
         this.injected.put(key(dimension, regionX, regionZ), hash);
     }
 
     /**
-     * Give a claimed region back, so a later refresh retries it rather than skipping it forever.
+     * Releases a claimed region, so a later refresh retries it rather than skipping it forever.
      *
      * <p>Releasing forgets the region entirely rather than restoring its previous token; restoring it
      * would let an interrupted upgrade leave us believing we drew what we had not.
@@ -79,8 +80,8 @@ public final class InjectedRegions {
     }
 
     /**
-     * The key. A separator that cannot occur in a dimension id (validated against {@code [a-z0-9_.-]} by
-     * {@link CsLodStore}) keeps "a" + "1,2" from colliding with "a1" + ",2".
+     * Returns the key. A separator that cannot occur in a dimension id (validated against
+     * {@code [a-z0-9_.-]} by {@link CsLodStore}) keeps "a" + "1,2" from colliding with "a1" + ",2".
      */
     static String key(String dimension, int regionX, int regionZ) {
         return dimension + '/' + regionX + ',' + regionZ;

@@ -223,11 +223,11 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Prime the in-memory generated-chunk bitmap from the region files, once, before dispatching.
+     * Primes the in-memory generated-chunk bitmap from the region files, once, before dispatching.
      *
      * <p>{@code worldState} starts cold on a fresh boot, so without this every already-generated
      * chunk in a resumed selection takes an asynchronous per-chunk round-trip just to be told it
-     * exists -- measured at about seven seconds per 5929 chunks, and linear
+     * exists, measured at about seven seconds per 5929 chunks, and linear
      * (mod_support #17). One read per region file answers the same question.
      *
      * <p>Skipped entirely when {@code forceLoadExistingChunks} is set, because then every chunk is
@@ -380,17 +380,19 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * What tick cost this run should steer to.
+     * Returns the tick cost this run should steer to.
      *
      * <p>An absolute target cannot work on a busy server, and this was not theoretical. See
      * {@link TickBudget} for the server it was measured on. The governor backs off above target+band and
      * only ramps below target-band, so where the server's own idle cost already sits at the target it never
      * observes a healthy tick: dispatch pins at 1 permanently, however little the run is actually costing.
      *
-     * <p>So the target is whichever is higher: the operator's absolute figure, or what the server
+     * <p>So the target is whichever is higher, the operator's absolute figure or what the server
      * already costs plus the budget this run is allowed to add. That bounds what Chunksmith costs
      * instead of demanding the whole server be healthy in absolute terms, the same
      * delta-not-absolute correction already applied to chunk residency.
+     *
+     * @return the tick cost, in milliseconds, this run should steer to
      */
     private double effectiveTargetMspt() {
         if (tickBudgetMillis <= 0L) {
@@ -544,18 +546,18 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Chunk-residency backpressure: the bound on what is already in memory.
+     * Chunk-residency backpressure. The bound on what is already in memory.
      *
      * <p>Tick time, per-chunk latency, the write queue and the LOD sink all measure how fast work
      * arrives. None of them can see the resident chunk set, and on the run {@link ChunkResidency}
-     * documents every one of them read "slow down" while the set grew to many times the sweep frontier
-     * -- which is precisely what stopped it draining.
+     * documents every one of them read "slow down" while the set grew to many times the sweep frontier,
+     * which is precisely what stopped it draining.
      *
      * <p>It is a feedback loop rather than a threshold. Vanilla's unload pass is budgeted by the
      * server's own per-tick time allowance, so a server that has fallen behind unloads almost nothing;
      * a bigger resident set costs more to tick; it falls further behind. Backing dispatch off feeds the
      * loop instead of breaking it, because a settle window's releases are driven by new arrivals. Hence
-     * a signal of its own and a hard gate: past the cap, dispatch nothing at all until the server has
+     * a signal of its own and a hard gate. Past the cap, dispatch nothing at all until the server has
      * unloaded back to half of it.
      *
      * <p>No-op when the platform does not report residency, and when the operator has set the cap to 0.
@@ -974,9 +976,9 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Advance the trailing settle window as chunks land.
+     * Advances the trailing settle window as chunks land.
      *
-     * <p>One window at a time: hold it for a while so the server can tick with that ground loaded, then
+     * <p>One window at a time. Hold it for a while so the server can tick with that ground loaded, then
      * let it go and take the next eligible stop. Eligibility is the sweep's business; it only offers a
      * window whose chunks are all already generated, so nothing here can trigger worldgen.
      */
@@ -1001,7 +1003,7 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Sweep whatever the trailing pass could not reach while generation was still running.
+     * Sweeps whatever the trailing pass could not reach while generation was still running.
      *
      * <p>The last band is only eligible once the final chunks land, so it is necessarily swept here. It
      * is bounded by the width of that band, not by the size of the run, since everything behind it was
@@ -1066,13 +1068,15 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * True from the moment a stop was requested until the run loop actually exits.
+     * Returns true from the moment a stop was requested until the run loop actually exits.
      *
-     * <p>Stopping is not instant -- the task drains its chunks first, which takes several seconds. The
+     * <p>Stopping is not instant, and the task drains its chunks first, which takes several seconds. The
      * task stays in Chunksmith's live-task map for that whole window, so a `continue` issued during it
      * used to be answered with "Task already started!" and then do nothing, leaving the operator with a
      * stopped run and a message saying the opposite. Callers check this so they can say what is really
      * happening instead.
+     *
+     * @return true once a stop has been requested and the run loop has not yet exited
      */
     public boolean isStopping() {
         return stopped;
@@ -1146,7 +1150,7 @@ public class GenerationTask implements Runnable {
             return skipped;
         }
 
-        /** Chunks this run actually generated -- the only ones the rate is measured over. */
+        /** Chunks this run actually generated, the only ones the rate is measured over. */
         public long getGenerated() {
             return generated;
         }

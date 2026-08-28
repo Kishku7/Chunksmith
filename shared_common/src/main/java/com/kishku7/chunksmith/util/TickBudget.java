@@ -138,7 +138,7 @@ public final class TickBudget {
         return ourCostMspt;
     }
 
-    /** How much tick time we may add: twice our measured cost, less what is reserved for players. */
+    /** Returns how much tick time we may add, twice our measured cost, less what is reserved for players. */
     public static double allowance() {
         double doubled = ourCostMspt < 0.0D ? minAllowanceMillis : ourCostMspt * 2.0D;
         double ceiling = Math.max(minAllowanceMillis, 1.0D) * MAX_ALLOWANCE_FACTOR;
@@ -150,8 +150,10 @@ public final class TickBudget {
     }
 
     /**
-     * The tick cost to steer to, or -1 when there is not enough measurement yet and the caller should
-     * fall back to its configured absolute target.
+     * Returns the tick cost to steer to, or -1 when there is not enough measurement yet and the caller
+     * should fall back to its configured absolute target.
+     *
+     * @return the tick cost to steer to, or -1 when it cannot yet be measured
      */
     public static double effectiveTarget() {
         if (baselineMspt < 0.0D) {
@@ -176,7 +178,7 @@ public final class TickBudget {
     }
 
     /**
-     * Should the run stop dispatching right now to re-measure the baseline? True for
+     * Checks whether the run should stop dispatching right now to re-measure the baseline. True for
      * {@link #PROBE_DURATION_MS} once every {@link #PROBE_INTERVAL_MS}; while it is true the caller must
      * not dispatch, so the ticks that follow are genuine baseline samples.
      */
@@ -215,7 +217,7 @@ public final class TickBudget {
         lastProbeEndedAt = 0L;
     }
 
-    /** No literal percent sign: the sender formats this string. */
+    /** Returns one line for the debug command. No literal percent sign, because the sender formats it. */
     public static String describe() {
         return String.format(
                 "baseline=%s ourCost=%s allowance=%.1fms target=%s players=%d reservePerPlayer=%dms probing=%s",

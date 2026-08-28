@@ -58,7 +58,7 @@ public final class SettleSweep {
         this.swept = new BitSet(Math.max(1, this.width * this.height));
     }
 
-    /** Record that a chunk now exists on disk. Out-of-bounds chunks are ignored, not an error. */
+    /** Records that a chunk now exists on disk. Out-of-bounds chunks are ignored, not an error. */
     public void markGenerated(int chunkX, int chunkZ) {
         int index = index(chunkX, chunkZ);
         if (index >= 0) {
@@ -67,9 +67,11 @@ public final class SettleSweep {
     }
 
     /**
-     * The next window centre as {@code {chunkX, chunkZ}}, or {@code null} if none is ready yet. Ready
+     * Returns the next window centre as {@code {chunkX, chunkZ}}, or {@code null} if none is ready yet. Ready
      * means every chunk in the window has been generated. See the class doc on why a partially
      * generated window must never be loaded. Returns each stop at most once.
+     *
+     * @return the next window centre, or {@code null} when none is ready
      */
     public int[] nextStop() {
         int stops = stopCount();
@@ -95,9 +97,11 @@ public final class SettleSweep {
     }
 
     /**
-     * Is every chunk of this window generated? Clamped to the task bounds: an edge window legitimately
-     * hangs over ground the task was never asked to generate, and waiting for chunks nobody will make
-     * would strand every edge stop forever.
+     * Checks whether every chunk of this window is generated. Clamped to the task bounds, since an edge
+     * window legitimately hangs over ground the task was never asked to generate, and waiting for chunks
+     * nobody will make would strand every edge stop forever.
+     *
+     * @return true when every chunk of the window has been generated
      */
     public boolean windowGenerated(int chunkX, int chunkZ) {
         for (int x = chunkX - this.radius; x <= chunkX + this.radius; x++) {

@@ -59,7 +59,7 @@ public final class LodInjector {
      */
     private static final AtomicInteger SESSION = new AtomicInteger();
 
-    /** Ask every running injection to stop at its next region boundary. */
+    /** Asks every running injection to stop at its next region boundary. */
     public static void stop() {
         SESSION.incrementAndGet();
     }
@@ -87,7 +87,7 @@ public final class LodInjector {
             new ConcurrentHashMap<>();
 
     /**
-     * Inject specific regions of a downloaded store into every renderer that is present. Skips any region
+     * Injects specific regions of a downloaded store into every renderer that is present. Skips any region
      * already injected this session, so this is safe to call on every travel refresh.
      *
      * <p>The records must belong to the level they are being pushed into, and this is where that is
@@ -253,7 +253,7 @@ public final class LodInjector {
     }
 
     /**
-     * Report when the DH dedupe gate never opened.
+     * Reports when the DH dedupe gate never opened.
      *
      * <p>The mixin on {@code DhClientLevel.shouldProcessChunkUpdate} is what stops a DH server silently
      * eating our pushes (see {@link DhPushGuard}). Its config is deliberately {@code "required": false}, so
@@ -276,7 +276,7 @@ public final class LodInjector {
                 dhChunks.get(), DhTarget.version());
     }
 
-    /** Drop a region from the on-disk record. Null-safe: not every store has a writable sidecar. */
+    /** Drops a region from the on-disk record. Null-safe, because not every store has a writable sidecar. */
     private static void forget(InjectedIndex index, CsLodMessages.RegionEntry region) {
         if (index != null) {
             index.remove(region.regionX(), region.regionZ());
@@ -284,9 +284,9 @@ public final class LodInjector {
     }
 
     /**
-     * Write the record out. Failure is logged and survivable, and it fails in the safe direction: a
-     * sidecar we could not write means the next join re-injects those regions, which is exactly the
-     * behaviour this mechanism replaces.
+     * Writes the record out. Failure is logged and survivable, and it fails in the safe direction. A sidecar
+     * we could not write means the next join re-injects those regions, which is exactly the behaviour this
+     * mechanism replaces.
      */
     private static void flush(InjectedIndex index, String dimension) {
         if (index == null) {
@@ -300,7 +300,7 @@ public final class LodInjector {
         }
     }
 
-    /** Forget what we have injected. Call on disconnect. */
+    /** Forgets what we have injected. Call on disconnect. */
     public static void reset() {
         INJECTED.clear();
         // The files are deliberately left alone: they are the record the next join reads.
@@ -308,9 +308,11 @@ public final class LodInjector {
     }
 
     /**
-     * Block until a renderer can actually receive data, or we give up. voxy is ready when its engine
-     * exists; DH when it has fired its level-load event for this level. Both happen shortly after the
-     * world loads, and on a fast connection our download beats them.
+     * Blocks until a renderer can actually receive data, or we give up. voxy is ready when its engine exists;
+     * DH when it has fired its level-load event for this level. Both happen shortly after the world loads,
+     * and on a fast connection our download beats them.
+     *
+     * @return true once a renderer is ready, false if we gave up waiting
      */
     private static boolean awaitRenderer(Level level) {
         long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;

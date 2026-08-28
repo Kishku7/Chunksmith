@@ -41,11 +41,11 @@ public final class Input {
     }
 
     /**
-     * Parse a boolean strictly: only "true" or "false", either case, surrounding space ignored.
+     * Parses a boolean strictly. Only "true" or "false", either case, with surrounding space ignored.
      *
      * <p>It used to be {@code Boolean.parseBoolean}, which answers FALSE for every string that is not
      * "true" and never reports a problem. Through {@code /cs set} that meant a typo did not fail, it
-     * silently turned the setting OFF: {@code /cs set silent yes} disabled silent mode and said it had
+     * silently turned the setting OFF. {@code /cs set silent yes} disabled silent mode and said it had
      * been set. The 3.2.4 notes claim a value that cannot be understood is refused rather than quietly
      * becoming a default; true for the numbers, not for the booleans. Found by the {@code /cslod set}
      * coverage test, asserting the documented behaviour and getting the real one.

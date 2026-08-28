@@ -341,7 +341,11 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         }
     }
 
-    /** Believe the client's draw distance, within reason. Nonsense falls back to the default. */
+    /**
+     * Returns the client's draw distance, believed within reason. Nonsense falls back to the default.
+     *
+     * @return the radius to scan, in blocks
+     */
     private static int clampRadius(int requested) {
         if (requested <= 0) {
             return CsLodProtocol.DEFAULT_RADIUS_BLOCKS;
@@ -387,19 +391,21 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     }
 
     /**
-     * Add the channel to the server's per-player set the same way an incoming
+     * Adds the channel to the server's per-player set the same way an incoming
      * {@code minecraft:register} would.
      *
      * <p>Reflective because Bukkit's {@code Player} interface exposes the set read-only
      * ({@code getListeningPluginChannels}) and offers no way to add to it; the implementation class
      * has always had a public {@code addChannel(String)} and that is what the vanilla register path
      * itself calls. Looked up by name off the live object, so no server package is named and no
-     * relocated or version-stamped class has to be guessed at -- and nothing here touches
+     * relocated or version-stamped class has to be guessed at. Nothing here touches
      * {@code net.minecraft}.
      *
-     * <p>Every failure returns false rather than throwing: a server whose implementation has moved on
+     * <p>Every failure returns false rather than throwing. A server whose implementation has moved on
      * must keep running and keep generating, and the caller has a plain-language warning ready for
      * exactly that case.
+     *
+     * @return true if the channel was added
      */
     private static boolean forceChannel(Player player) {
         if (!addChannelResolved) {
@@ -428,7 +434,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     /**
      * Re-tell every client that has spoken to us the new port, with a fresh token. Mirrors the mod's
-     * readvertise. Players who never said hello are skipped: they have no client to tell, and the
+     * readvertise. Players who never said hello are skipped. They have no client to tell, and the
      * count in the log should mean "clients that will act on this", not "bodies on the server".
      */
     private static void readvertise(int port) {
@@ -445,7 +451,11 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                 + " -- " + told + " connected client(s) re-issued a token. No relog needed.");
     }
 
-    /** Dimensions that actually have something to serve, by the same rule the mod uses. */
+    /**
+     * Returns the dimensions that actually have something to serve, by the same rule the mod uses.
+     *
+     * @return the servable dimension ids
+     */
     private static List<String> dimensions() {
         List<Path> dirs = new ArrayList<>();
         for (World world : Bukkit.getWorlds()) {
@@ -457,7 +467,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Bukkit worlds do not share a parent, so each dimension resolves to its own world folder.
      *
-     * <p>Also the containment check for a dimension id that came off the wire: it is compared against
+     * <p>Also the containment check for a dimension id that came off the wire. It is compared against
      * the keys of the loaded worlds, so there is no string to sanitise and nothing to escape from.
      * An id we do not recognise resolves to null and is answered with silence.
      */
@@ -471,12 +481,14 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     }
 
     /**
-     * Remove the VarInt length prefix Fabric's payload codec put on the front.
+     * Removes the VarInt length prefix Fabric's payload codec put on the front.
      *
-     * <p>Tolerant on purpose: if the prefix does not describe the rest of the buffer, the message is
+     * <p>Tolerant on purpose. If the prefix does not describe the rest of the buffer, the message is
      * assumed to be unframed and returned as-is. A future loader that frames differently then still
      * works rather than being silently dropped, which is the failure this whole function exists to
      * undo.
+     *
+     * @return the message body, with any length prefix stripped
      */
     private static byte[] stripLengthPrefix(byte[] message) {
         int value = 0;
@@ -520,7 +532,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                 : "";
     }
 
-    /** Empty means every interface, exactly as the game's own server.properties ip= does. */
+    /**
+     * Returns the address the backchannel binds to. Empty means every interface, exactly as the
+     * game's own server.properties ip= does.
+     *
+     * @return the configured bind address, empty for every interface
+     */
     private static String bindAddress(Plugin owner) {
         String ip = owner.getServer().getIp();
         return ip == null ? "" : ip;

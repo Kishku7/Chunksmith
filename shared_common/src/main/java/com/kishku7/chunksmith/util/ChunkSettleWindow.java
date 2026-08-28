@@ -99,7 +99,7 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * Hand over a generated chunk and the release that would normally have run immediately.
+     * Adds a generated chunk and the release that would normally have run immediately.
      *
      * <p>Every path out of this object (including {@link #drain}) ends in that release running
      * exactly once, or the chunk never unloads.
@@ -122,7 +122,7 @@ public final class ChunkSettleWindow {
         evictBeyondCap();
     }
 
-    /** Release everything whose delay has elapsed. Safe to call every tick; cheap when nothing is due. */
+    /** Releases everything whose delay has elapsed. Safe to call every tick; cheap when nothing is due. */
     public void releaseDue(long now) {
         if (this.due.isEmpty()) {
             return;
@@ -146,7 +146,7 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * Release everything held right now, but keep the window usable.
+     * Releases everything held right now, but keeps the window usable.
      *
      * <p>For when a throttle gate has held generation. A neighbourhood closes only when new chunks
      * arrive, so with dispatch stopped the frontier sits at its cap holding the very tickets that stop
@@ -162,8 +162,8 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * Release everything still held, due or not, and forget the bookkeeping. Called when a task
-     * finishes, is cancelled, or the server is stopping: the frontier then has no more neighbours
+     * Releases everything still held, due or not, and forgets the bookkeeping. Called when a task
+     * finishes, is cancelled, or the server is stopping. The frontier then has no more neighbours
      * coming, so waiting would leak every ticket on the edge of the run.
      */
     public void drain() {
@@ -178,8 +178,8 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * Release the oldest held chunks until the frontier is back within its cap. Runs on every offer, so
-     * it sheds one entry per arrival rather than thousands at the moment the cap is first crossed: the
+     * Releases the oldest held chunks until the frontier is back within its cap. Runs on every offer, so
+     * it sheds one entry per arrival rather than thousands at the moment the cap is first crossed, so the
      * frontier tracks the cap instead of sawtoothing around it.
      */
     private void evictBeyondCap() {
@@ -223,7 +223,7 @@ public final class ChunkSettleWindow {
         return this.evictedCount;
     }
 
-    /** Has this position seen all nine of its neighbourhood? Package-visible so the test asserts the rule. */
+    /** Checks whether this position has seen all nine of its neighbourhood. Package-visible for the test. */
     boolean neighbourhoodComplete(int chunkX, int chunkZ) {
         final Integer count = this.arrived.get(key(chunkX, chunkZ));
         return count != null && count >= COMPLETE;
@@ -255,7 +255,7 @@ public final class ChunkSettleWindow {
     }
 
     /**
-     * Drop bookkeeping for positions that are complete but not held. Only ever a handful at a time: a
+     * Removes bookkeeping for positions that are complete but not held. Only ever a handful at a time, as a
      * position becomes complete exactly once and the branch above already removes the common case.
      */
     private void pruneStale() {

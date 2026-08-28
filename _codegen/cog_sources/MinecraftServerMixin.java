@@ -235,7 +235,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     }
 
     /**
-     * A monotonic tick clock for the settle window, taken from the overworld's game time.
+     * Returns a monotonic tick clock for the settle window, taken from the overworld's game time.
      *
      * <p>The window is given the same clock {@code offer()} uses, so a delay measured in ticks means
      * the same thing on both paths. Falls back to zero on a server with no levels, which cannot happen
@@ -250,7 +250,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     }
 
     /**
-     * Publish how many chunks the server is holding, for the generation throttle to gate on.
+     * Publishes how many chunks the server is holding, for the generation throttle to gate on.
      *
      * <p>{@code getLoadedChunksCount()} is the same number the crash report prints as {@code Chunks[S]
      * W:}, public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
@@ -385,7 +385,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     }
 
     /**
-     * Run the queued chunk-ticket work. The one place Chunksmith mutates a chunk ticket.
+     * Runs the queued chunk-ticket work. The one place Chunksmith mutates a chunk ticket.
      *
      * <p>Bounded by the queue size on entry. A task may enqueue another -- a chunk future completing
      * during the drain hands its ticket release straight back -- and running those in the same pass

@@ -50,7 +50,7 @@ public final class ClientPlatform {
     }
 
     /**
-     * Run once the client is far enough up to talk to other mods' APIs.
+     * Runs an action once the client is far enough up to talk to other mods' APIs.
      *
      * <p>On this loader we are ALREADY there: {@code LodClientInit} is a {@code Dist.CLIENT} MOD-bus
      * subscriber whose only handler is {@code FMLClientSetupEvent}, and it is what called into here. So this
@@ -60,12 +60,15 @@ public final class ClientPlatform {
         action.run();
     }
 
-    /** Install the client sink. The channel itself was built once, by {@code CsLodChannel}. */
+    /** Installs the client sink. The channel itself was built once, by {@code CsLodChannel}. */
     public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         CsLodChannel.setClientSink(onPayload);
     }
 
-    /** Silently does nothing on the many servers that do not speak our channel. */
+    /**
+     * Sends raw protocol bytes to the connected server. Silently does nothing on the many servers that do not
+     * speak our channel.
+     */
     public static void sendToServer(byte[] data) {
         ClientPacketListener listener = Minecraft.getInstance().getConnection();
         if (listener == null || !CsLodChannel.isRemotePresent(listener.getConnection())) {

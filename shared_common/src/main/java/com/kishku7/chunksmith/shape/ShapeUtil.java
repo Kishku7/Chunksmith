@@ -25,7 +25,7 @@ public final class ShapeUtil {
     }
 
     /**
-     * Given two lines defined by two points each respectively, return the intersection point, if any.
+     * Returns the intersection point of two lines defined by two points each, if any.
      *
      * @param l1x1 Line 1 point 1 x
      * @param l1z1 Line 1 point 1 z
@@ -55,8 +55,8 @@ public final class ShapeUtil {
     }
 
     /**
-     * Given an ellipse defined by the center and radii, find a point on the perimeter corresponding to a specific
-     * angle.
+     * Returns the point on the perimeter of an ellipse, defined by its center and radii, that corresponds
+     * to a specific angle.
      *
      * @param centerX Ellipse center x
      * @param centerZ Ellipse center z
@@ -72,7 +72,7 @@ public final class ShapeUtil {
     }
 
     /**
-     * Calculate the closest point on a line from a given position.
+     * Returns the closest point on a line from a given position.
      *
      * @param posX Position x
      * @param posZ Position z
@@ -98,7 +98,7 @@ public final class ShapeUtil {
     }
 
     /**
-     * Calculate the distance between 2 points.
+     * Returns the distance between 2 points.
      *
      * @param p1x Point 1 x
      * @param p1z Point 1 z

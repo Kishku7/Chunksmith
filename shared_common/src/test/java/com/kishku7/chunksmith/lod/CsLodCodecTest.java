@@ -75,7 +75,7 @@ public class CsLodCodecTest {
 
     // ------------------------------------------------------------------ helpers
 
-    /** A chunk with one dense section and one uniform section. */
+    /** Returns a chunk with one dense section and one uniform section. */
     private static CsLodChunk sample(String dimension, int chunkX, int chunkZ) {
         int[] blocks = new int[CsLodChunk.BLOCKS_PER_SECTION];
         for (int i = 0; i < blocks.length; i++) {

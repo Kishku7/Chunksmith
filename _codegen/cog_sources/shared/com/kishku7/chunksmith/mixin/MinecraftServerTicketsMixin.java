@@ -61,7 +61,7 @@ public abstract class MinecraftServerTicketsMixin {
     }
 
     /**
-     * Bucket every resident chunk by its ticket level.
+     * Buckets every resident chunk by its ticket level.
      *
      * <p>The last question standing. Chunksmith's own ledger has ruled our tickets out (a few
      * hundred outstanding while eleven thousand chunks sat resident), so either something ELSE holds

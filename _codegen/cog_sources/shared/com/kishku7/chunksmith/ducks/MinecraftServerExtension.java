@@ -37,8 +37,8 @@ public interface MinecraftServerExtension {
     boolean chunksmith$onTicketSafePoint();
 
     /**
-     * Smoothed mean ms-per-tick of the main thread, sampled only while a generation task is active.
-     * Primary I/O-throttle signal: at or near 50 ms is a full 20 TPS, higher is falling behind.
+     * Returns the smoothed mean ms-per-tick of the main thread, sampled only while a generation task is
+     * active. Primary I/O-throttle signal. At or near 50 ms is a full 20 TPS, higher is falling behind.
      */
     double chunksmith$getMillisPerTick();
 }

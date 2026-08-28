@@ -41,7 +41,7 @@ public class CsLodIndexScanTest {
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder();
 
-    /** A moment comfortably past the settle window for anything written "now". */
+    /** Returns a moment comfortably past the settle window for anything written "now". */
     private static long settled() {
         return System.currentTimeMillis() + CsLodStoreScan.SETTLE_MILLIS * 10L;
     }

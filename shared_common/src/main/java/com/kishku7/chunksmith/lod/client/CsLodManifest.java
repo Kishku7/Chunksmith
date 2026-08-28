@@ -50,7 +50,7 @@ public final class CsLodManifest {
     }
 
     /**
-     * Open (or start) the manifest for one dimension of one server's store. Returns null when the dimension
+     * Opens (or starts) the manifest for one dimension of one server's store. Returns null when the dimension
      * id is malformed. The caller must then refuse the whole operation, as the downloader and injector do.
      */
     public static CsLodManifest open(Path storeRoot, String dimension) {
@@ -63,7 +63,7 @@ public final class CsLodManifest {
         return manifest;
     }
 
-    /** Record what the server said about a region we have just stored, once the file is in place. */
+    /** Records what the server said about a region we have just stored, once the file is in place. */
     public void put(int regionX, int regionZ, long hash, long sizeBytes) {
         this.entries.put(key(regionX, regionZ), new Entry(hash, sizeBytes));
     }
@@ -81,13 +81,14 @@ public final class CsLodManifest {
     }
 
     /**
-     * Do we hold this region, exactly as the server currently describes it?
+     * Checks whether we hold this region, exactly as the server currently describes it.
      *
      * <p>Three questions, cheapest first, and not one of them reads the file: do we have an entry; does it
      * carry the token the server advertises now; is the file still on disk at the length we recorded. The
      * last is the only syscall, and it is what catches a region deleted or truncated underneath us.
      *
-     * @param dimensionDir the directory the regions live in -- already gated through {@link CsLodStore}
+     * @param dimensionDir the directory the regions live in, already gated through {@link CsLodStore}
+     * @return true when our copy matches what the server advertises now
      */
     public boolean holds(Path dimensionDir, CsLodMessages.RegionEntry advertised) {
         Entry mine = get(advertised.regionX(), advertised.regionZ());
@@ -109,7 +110,7 @@ public final class CsLodManifest {
     }
 
     /**
-     * Fold the regions we actually hold, out of the ones the server last told us about, into the same
+     * Folds the regions we actually hold, out of the ones the server last told us about, into the same
      * (count, aggregate) shape the server folds its own set into.
      *
      * <p>The set folded over is the server's last index, deliberately, and not a listing of our own
@@ -136,7 +137,7 @@ public final class CsLodManifest {
     }
 
     /**
-     * Write the manifest out, atomically; see the class doc. A manifest we could not write means we
+     * Writes the manifest out, atomically; see the class doc. A manifest we could not write means we
      * re-download those regions next session, so failure is logged by the caller and otherwise survivable.
      */
     public void save() throws IOException {
@@ -155,7 +156,7 @@ public final class CsLodManifest {
     }
 
     /**
-     * Read whatever is there. A missing manifest is a store that predates this mechanism, or a brand new
+     * Reads whatever is there. A missing manifest is a store that predates this mechanism, or a brand new
      * one, and it means we hold nothing we can vouch for.
      */
     private void load() {
@@ -174,7 +175,7 @@ public final class CsLodManifest {
         }
     }
 
-    /** {@code x,z=token,size}. Anything else is skipped in silence -- see the class doc. */
+    /** Parses one line of the form {@code x,z=token,size}. Anything else is skipped in silence. */
     private void parse(String line) {
         int equals = line.indexOf('=');
         if (equals <= 0) {

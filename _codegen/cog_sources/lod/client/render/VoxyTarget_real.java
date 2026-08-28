@@ -49,16 +49,22 @@ public final class VoxyTarget {
     }
 
     /**
-     * Whether this loader has a voxy adapter at all. True here; false in the NeoForge copy.
+     * Returns whether this loader has a voxy adapter at all. True here; false in the NeoForge copy.
      *
      * <p>{@link com.kishku7.chunksmith.lod.client.Renderers#hasVoxy()} is gated on this, so a NeoForge
      * client that somehow has a mod called {@code voxy} is not announced as one we can then feed.
+     *
+     * @return true on a loader that ships a voxy adapter
      */
     public static boolean supported() {
         return true;
     }
 
-    /** True when there is a voxy engine to ingest into, and it has not already failed on us. */
+    /**
+     * Returns true when there is a voxy engine to ingest into, and it has not already failed on us.
+     *
+     * @return true when voxy can take data right now
+     */
     public static boolean available() {
         if (broken) {
             return false;
@@ -73,7 +79,11 @@ public final class VoxyTarget {
         }
     }
 
-    /** @return sections ingested; 0 if voxy has been ruled out. */
+    /**
+     * Ingests one record into voxy for the given level.
+     *
+     * @return sections ingested; 0 if voxy has been ruled out.
+     */
     public static int inject(Level level, CsLodChunk record) {
         if (broken) {
             return 0;
@@ -106,7 +116,7 @@ public final class VoxyTarget {
         return ingested;
     }
 
-    /** Rule voxy out for this session and SAY SO once, loudly, in words a player can act on. */
+    /** Rules voxy out for this session and SAYS SO once, loudly, in words a player can act on. */
     private static void disable(LinkageError error) {
         broken = true;
         LodWarnings.once(CAUSE_INCOMPATIBLE,
@@ -117,7 +127,7 @@ public final class VoxyTarget {
                         + " voxy version.");
     }
 
-    /** Rebuild a DataLayer from our packed nibbles, or from a single uniform value. */
+    /** Rebuilds a DataLayer from our packed nibbles, or from a single uniform value. */
     private static DataLayer light(byte[] packed, int uniform) {
         if (packed != null) {
             return new DataLayer(packed.clone());

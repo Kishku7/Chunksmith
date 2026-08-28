@@ -70,7 +70,7 @@ public final class ChunkResidency {
     }
 
     /**
-     * Publish the current resident chunk count. Server thread, once per tick.
+     * Publishes the current resident chunk count. Server thread, once per tick.
      *
      * <p>Published on every tick, not only while a run is active: after 3.5.0 the number was cleared the
      * moment a task ended, which is exactly when the backlog it left behind most needed watching.
@@ -97,8 +97,10 @@ public final class ChunkResidency {
     }
 
     /**
-     * The most recent resident chunk count, or -1 when there is no usable reading. -1 means "unknown",
-     * never "zero": a caller must not read an absent measurement as an empty server and open the taps.
+     * Returns the most recent resident chunk count, or -1 when there is no usable reading. -1 means
+     * "unknown", never "zero"; a caller must not read an absent measurement as an empty server and open the taps.
+     *
+     * @return the most recent count, or -1 when there is no usable reading
      */
     public static long loadedChunks() {
         return loadedChunksAt(System.currentTimeMillis());
@@ -120,8 +122,9 @@ public final class ChunkResidency {
     }
 
     /**
-     * Residency when the current run started, or -1 if it was not measurable. This is the number the
-     * gate subtracts: everything already resident when a run begins belongs to the server, not to us.
+     * Returns the residency when the current run started, or -1 if it was not measurable. This is the
+     * number the gate subtracts, since everything already resident when a run begins belongs to the
+     * server, not to us.
      */
     public static long baseline() {
         return baseline;
@@ -149,7 +152,7 @@ public final class ChunkResidency {
 
     /**
      * A run has ended. Keep the unload pass armed until the chunks it loaded have actually gone. Ending
-     * a task is not finishing the work: a released ticket only becomes a freed chunk once the distance
+     * a task is not finishing the work, because a released ticket only becomes a freed chunk once the distance
      * manager has propagated it and the unload pass has run.
      */
     public static void noteTaskEnd() {
@@ -233,7 +236,7 @@ public final class ChunkResidency {
         return generationHeld;
     }
 
-    /** Forget everything. Called when the server stops, so no reading outlives its server. */
+    /** Clears everything. Called when the server stops, so no reading outlives its server. */
     public static void clear() {
         loadedChunks = -1L;
         reportedAtMillis = 0L;
@@ -250,7 +253,7 @@ public final class ChunkResidency {
     }
 
     /**
-     * Decide whether the drain is finished.
+     * Determines whether the drain is finished.
      *
      * <p>Three ways to stop, all needed. Reaching the baseline is success. No progress for {@link
      * #DRAIN_STALL_MILLIS} means the remainder is pinned by something that is not ours: players,
@@ -297,9 +300,9 @@ public final class ChunkResidency {
     }
 
     /**
-     * One line describing the whole signal, for {@code /cs debug}. Never throws, never blocks. Contains
-     * no literal percent sign: {@code Sender.sendMessagePrefixed} runs its message through
-     * {@code String.format}, so a stray sign throws -- which shipped in 3.5.2 and broke the command.
+     * Returns one line describing the whole signal, for {@code /cs debug}. Never throws, never blocks.
+     * Contains no literal percent sign, because {@code Sender.sendMessagePrefixed} runs its message
+     * through {@code String.format}, so a stray sign throws, which shipped in 3.5.2 and broke the command.
      */
     public static String describe() {
         long now = loadedChunks();

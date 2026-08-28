@@ -43,8 +43,10 @@ public final class CsLodStoreScan {
     }
 
     /**
-     * Is this region file finished? Has the writer left it alone long enough that what we would hand a
-     * client is what is actually in it? A file we cannot stat is treated as not settled.
+     * Checks whether this region file is finished. Has the writer left it alone long enough that what we
+     * would hand a client is what is actually in it? A file we cannot stat is treated as not settled.
+     *
+     * @return true when the writer has left the file alone long enough to serve it
      */
     public static boolean isSettled(Path file, long nowMillis) {
         try {
@@ -55,8 +57,8 @@ public final class CsLodStoreScan {
     }
 
     /**
-     * Does this dimension directory hold at least one finished region file? Stops at the first match -- it
-     * never lists a whole store. A directory that is missing, not a directory, or unreadable answers "no".
+     * Checks whether this dimension directory holds at least one finished region file. Stops at the first
+     * match, so it never lists a whole store. A directory that is missing or unreadable answers "no".
      */
     public static boolean hasData(Path dimensionDir, long nowMillis) {
         if (dimensionDir == null || !Files.isDirectory(dimensionDir)) {
@@ -70,9 +72,11 @@ public final class CsLodStoreScan {
     }
 
     /**
-     * The subset of these dimension directories we can actually serve, by directory name, in the order given.
+     * Returns the subset of these dimension directories we can serve, by directory name, in the order given.
      * The names are what goes on the wire in the server hello, and they are exactly the directory names the
      * store writes, so the client can turn one straight back into a request path.
+     *
+     * @return the directory names, in the order given, that hold servable regions
      */
     public static List<String> servable(List<Path> dimensionDirs, long nowMillis) {
         List<String> names = new ArrayList<>();
@@ -87,7 +91,7 @@ public final class CsLodStoreScan {
         return names;
     }
 
-    /** Is this one of ours, and a real file? */
+    /** Checks whether this is one of ours, and a real file. */
     public static boolean isRegionFile(Path file) {
         return file.getFileName().toString().endsWith(REGION_SUFFIX) && Files.isRegularFile(file);
     }

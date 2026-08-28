@@ -142,10 +142,10 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Bind the backchannel once the server is up and its port is known. The bind happens whenever LOD is
-     * enabled, not only when a store already exists: a fresh server pregenerates after startup, so gating
-     * the bind on "the store is there" would mean the backchannel never came up until the next restart,
-     * with nothing to tell the operator why. An empty store simply 404s until data lands.
+     * Binds the backchannel once the server is up and its port is known. The bind happens whenever LOD is
+     * enabled, not only when a store already exists. A fresh server pregenerates after startup, so gating the
+     * bind on "the store is there" would mean the backchannel never came up until the next restart, with
+     * nothing to tell the operator why. An empty store simply 404s until data lands.
      */
     public static void onServerStarted(MinecraftServer current) {
         server = current;
@@ -176,7 +176,11 @@ public final class CsLodServerNet {
                 () -> http == null ? "backchannel: not running (in-band fallback)" : http.describe());
     }
 
-    /** The operator's chosen backchannel port, or 0 to derive it. 0 whenever the mod is not loaded. */
+    /**
+     * Returns the operator's chosen backchannel port, or 0 to derive it. 0 whenever the mod is not loaded.
+     *
+     * @return the configured port, or 0 to derive one
+     */
     private static int configuredPort() {
         // ChunksmithProvider.get() throws when unloaded, so gate on isLoaded() first.
         return ChunksmithProvider.isLoaded()
@@ -185,12 +189,12 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Move the backchannel to the currently configured port without a restart, after
+     * Moves the backchannel to the currently configured port without a restart, after
      * {@code /cs set lodBackchannelPort}. Three things must happen together or the change is worse than
-     * useless: the old listener stops (or the old port stays open and nothing has moved), the new one
-     * binds, and every connected client is told and re-issued a token; {@link CsLodHttpServer#stop()}
-     * clears the token table, so a client that is not re-greeted holds a credential the new listener will
-     * not honour and quietly 404s until it relogs. Main thread only: it sends packets.
+     * useless. The old listener stops (or the old port stays open and nothing has moved), the new one binds,
+     * and every connected client is told and re-issued a token; {@link CsLodHttpServer#stop()} clears the
+     * token table, so a client that is not re-greeted holds a credential the new listener will not honour and
+     * quietly 404s until it relogs. Main thread only, because it sends packets.
      *
      * @return the port now bound, or 0 if the backchannel is not running (in-band fallback)
      */
@@ -288,9 +292,9 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Issue a backchannel token for an online player, out of band of the handshake, so an operator can
-     * mint a token and try the endpoint by hand. Op-gated, and still bound to that player's real address,
-     * so it grants nothing the player could not already get by connecting.
+     * Issues a backchannel token for an online player, out of band of the handshake, so an operator can mint
+     * a token and try the endpoint by hand. Op-gated, and still bound to that player's real address, so it
+     * grants nothing the player could not already get by connecting.
      *
      * @return the token, or null when the backchannel is not running
      */
@@ -306,7 +310,9 @@ public final class CsLodServerNet {
         return current != null && current.getPlayerList().getPlayer(player) != null;
     }
 
-    /** One inbound protocol message. Always called on the server main thread by {@link CsLodChannel}. */
+    /**
+     * Handles one inbound protocol message. Always called on the server main thread by {@link CsLodChannel}.
+     */
     public static void receive(ServerPlayer player, byte[] data) {
         if (data.length == 0) {
             return;
@@ -440,7 +446,7 @@ public final class CsLodServerNet {
                 + " slow path)", nameOf(player), wanted.size(), dimension);
     }
 
-    /** Drip-feed the in-band queues, and watch for the store coming to life. Wired to the server tick. */
+    /** Drip-feeds the in-band queues, and watches for the store coming to life. Wired to the server tick. */
     public static void tick(MinecraftServer current) {
         for (ServerPlayer player : current.getPlayerList().getPlayers()) {
             CsLodInBandSender.tick(player);
@@ -507,21 +513,23 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Has this player's client actually spoken the LOD protocol to us? The hello is the only signal that
-     * there is a Chunksmith on the other end, and it matters for {@code /cslod set}: an unknown message id
-     * is logged and dropped at the far end silently, so without this check a player on a vanilla client
-     * would type a command and have no way to tell "it worked" from "nothing is listening". A renderer is
-     * not required to be greeted (3.4.0); the question is whether a Chunksmith is listening, not whether
-     * there is anything to draw with.
+     * Checks whether this player's client has actually spoken the LOD protocol to us. The hello is the only
+     * signal that there is a Chunksmith on the other end, and it matters for {@code /cslod set}, because an
+     * unknown message id is logged and dropped at the far end silently, so without this check a player on a
+     * vanilla client would type a command and have no way to tell "it worked" from "nothing is listening". A
+     * renderer is not required to be greeted (3.4.0); the question is whether a Chunksmith is listening, not
+     * whether there is anything to draw with.
+     *
+     * @return true once we have heard a hello from this client
      */
     public static boolean hasLodClient(ServerPlayer player) {
         return GREETED.contains(player.getUUID());
     }
 
     /**
-     * Ask a player's client to list, show or set one of its own LOD settings. Main thread only, like every
-     * other send. The client prints the reply into its own chat; this side reports nothing about the
-     * outcome because it cannot know it. The file being written is on the player's machine.
+     * Asks a player's client to list, show or set one of its own LOD settings. Main thread only, like every
+     * other send. The client prints the reply into its own chat; this side reports nothing about the outcome
+     * because it cannot know it. The file being written is on the player's machine.
      *
      * @return false if the message could not even be built, which is a bug rather than a user error
      */
@@ -553,7 +561,7 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Take the snapshot, and hand the filesystem work to the scan thread. Always called on the server main
+     * Takes the snapshot, and hands the filesystem work to the scan thread. Always called on the server main
      * thread; it is the last thing on the main thread this feature does, and everything here is O(1).
      */
     private static void dispatch(ServerPlayer player, String requested, boolean summaryOnly)
@@ -610,8 +618,8 @@ public final class CsLodServerNet {
     }
 
     /**
-     * The scan runs on the scan thread, never on the tick. Readdir the dimension directory, stat the regions
-     * that are in range, and either send the whole index or fold it to two numbers. Not one byte of any
+     * Reads the dimension directory, stats the regions that are in range, and either sends the whole index or
+     * folds it to two numbers. The scan runs on the scan thread, never on the tick. Not one byte of any
      * region file is read.
      */
     private static void run(Path root, Request request) {
@@ -663,10 +671,12 @@ public final class CsLodServerNet {
     }
 
     /**
-     * Resolve a wire dimension id to a directory inside the store, or null if it is malformed or tries to
-     * escape. Two gates, same as {@code CsLodHttpServer.resolve}: the shape must match {@link #DIM_DIR},
-     * and the normalized result must still start with the store root (catching a "." / ".." the pattern
-     * would otherwise admit).
+     * Resolves a wire dimension id to a directory inside the store, or null if it is malformed or tries to
+     * escape. Two gates, same as {@code CsLodHttpServer.resolve}. The shape must match {@link #DIM_DIR}, and
+     * the normalized result must still start with the store root (catching a "." / ".." the pattern would
+     * otherwise admit).
+     *
+     * @return the dimension directory, or null when the id is malformed or escapes the store
      */
     private static Path safeDimensionDir(Path root, String dimension) {
         if (dimension == null || dimension.isEmpty() || !DIM_DIR.matcher(dimension).matches()) {
@@ -677,11 +687,13 @@ public final class CsLodServerNet {
     }
 
     /**
-     * The dimensions we can actually serve, right now. A dimension directory is not LOD data: a pregen
-     * creates {@code chunksmith/lod/<dim>/} the instant it starts and writes no region into it for some
-     * time after, and advertising it then told clients we had a dimension we could not serve one byte of --
-     * and minted a backchannel token for it (see {@link #hello}). {@link CsLodStoreScan} stops at the first
-     * region file it finds.
+     * Returns the dimensions we can actually serve, right now. A dimension directory is not LOD data. A
+     * pregen creates {@code chunksmith/lod/<dim>/} the instant it starts and writes no region into it for
+     * some time after, and advertising it then told clients we had a dimension we could not serve one byte
+     * of, and minted a backchannel token for it (see {@link #hello}). {@link CsLodStoreScan} stops at the
+     * first region file it finds.
+     *
+     * @return the dimension ids that hold at least one region file
      */
     private static List<String> dimensions() {
         MinecraftServer current = server;
@@ -696,10 +708,12 @@ public final class CsLodServerNet {
     }
 
     /**
-     * The store key of the dimension the player is actually in. It is the authority for everything we serve
-     * them. Resolved by identity against the server's own levels, so it is the same string
-     * {@link LodSupport#storeRoot} named that dimension's directory with. The empty return is unreachable
-     * in practice; it exists so a caller can never get a plausible-looking wrong answer.
+     * Returns the store key of the dimension the player is actually in. It is the authority for everything we
+     * serve them. Resolved by identity against the server's own levels, so it is the same string
+     * {@link LodSupport#storeRoot} named that dimension's directory with. The empty return is unreachable in
+     * practice; it exists so a caller can never get a plausible-looking wrong answer.
+     *
+     * @return the store key of the player's current dimension
      */
     private static String dimensionOf(ServerPlayer player) {
         MinecraftServer current = server;

@@ -56,7 +56,7 @@ public final class CsLodSectionBuilder {
     private CsLodSectionBuilder() {
     }
 
-    /** Rebuild one section. The (states, biomes) constructor recalculates the block counts for us. */
+    /** Rebuilds one section. The (states, biomes) constructor recalculates the block counts for us. */
     //[[[cog
     // import cog, compat
     // dep = compat.deprecation_suppression(mcver, loader)
@@ -119,7 +119,9 @@ public final class CsLodSectionBuilder {
         return new LevelChunkSection(states, biomes);
     }
 
-    /** Block STATE string -> BlockState. Unknown block (a mod was removed since pregen) -> air. */
+    /**
+     * Parses a block STATE string into a BlockState. Unknown block (a mod was removed since pregen) -> air.
+     */
     public static BlockState blockState(Level level, String value) {
         return BLOCK_CACHE.computeIfAbsent(value, key -> {
             try {

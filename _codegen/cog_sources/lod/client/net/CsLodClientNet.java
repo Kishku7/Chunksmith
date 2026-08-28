@@ -165,10 +165,10 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Ask again for what is in range, as the player travels. The server filters its index by the radius
-     * we announced, measured from wherever the player is standing, so the same request sent from
-     * somewhere else comes back with a different answer. The index is a few hundred bytes and the diff
-     * means we ask only for what is genuinely new; standing still costs nothing.
+     * Asks again for what is in range, as the player travels. The server filters its index by the radius we
+     * announced, measured from wherever the player is standing, so the same request sent from somewhere else
+     * comes back with a different answer. The index is a few hundred bytes and the diff means we ask only for
+     * what is genuinely new; standing still costs nothing.
      */
     private static void travelTick() {
         LocalPlayer player = Minecraft.getInstance().player;
@@ -220,7 +220,8 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Did the player just change dimension? If so, re-arm the whole exchange for the level they are now in.
+     * Checks whether the player just changed dimension, and re-arms the whole exchange for the level they are
+     * now in.
      *
      * @return true if the dimension changed (the caller must do nothing else this tick)
      */
@@ -420,7 +421,7 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Tell the server what we can render, and how far. The join handshake.
+     * Tells the server what we can render, and how far. The join handshake.
      *
      * <p>We say hello even with no renderer installed (3.4.0). {@code /cslod set} is a server command that
      * only relays to a client the server has heard from ({@code CsLodServerNet.hasLodClient}), so
@@ -469,9 +470,9 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Put a hello on the wire. Three callers (the join handshake, an empty-store retry and a token
-     * renewal), and the server answers every one identically with its current hello, which is why none of
-     * this needed a new packet id. An older server answers a repeat hello exactly as it answered the first.
+     * Puts a hello on the wire. Three callers (the join handshake, an empty-store retry and a token renewal),
+     * and the server answers every one identically with its current hello, which is why none of this needed a
+     * new packet id. An older server answers a repeat hello exactly as it answered the first.
      */
     private static void sendHello(boolean first) {
         try {
@@ -611,7 +612,7 @@ public final class CsLodClientNet {
         requestIndex(mine);
     }
 
-    /** Ask what is in range right now, and remember where we asked from. */
+    /** Asks what is in range right now, and remembers where we asked from. */
     private static void requestIndex(String dimension) {
         if (!busy.compareAndSet(false, true)) {
             return;
@@ -746,9 +747,9 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Reassemble an in-band region file, slice by slice. Written to a .part file and moved into place only
-     * when the last slice lands, so a transfer cut off half way can never be mistaken for a cached region
-     * on the next join.
+     * Reassembles an in-band region file, slice by slice. Written to a .part file and moved into place only
+     * when the last slice lands, so a transfer cut off half way can never be mistaken for a cached region on
+     * the next join.
      */
     private static void slice(CsLodMessages.RegionSlice slice) {
         Path root = inBandRoot;
@@ -789,7 +790,7 @@ public final class CsLodClientNet {
         }
     }
 
-    /** What the server told us about this region in the index that prompted the in-band fetch. */
+    /** Returns what the server told us about this region in the index that prompted the in-band fetch. */
     private static CsLodMessages.RegionEntry advertised(int regionX, int regionZ) {
         for (CsLodMessages.RegionEntry entry : inBandRegions) {
             if (entry.regionX() == regionX && entry.regionZ() == regionZ) {
@@ -799,7 +800,7 @@ public final class CsLodClientNet {
         return null;
     }
 
-    /** Hand the new regions to the renderers, off the game thread. */
+    /** Hands the new regions to the renderers, off the game thread. */
     private static void injectAsync(final Path root, final String dimension,
                                     final List<CsLodMessages.RegionEntry> regions) {
         // Nothing to arm: the injector reads the current session generation when it starts (LodInjector.SESSION).
@@ -920,11 +921,11 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Print one line into the local player's chat. This is the only version-conditional code in the
-     * class, and it lives here rather than at each call site so there is one branch instead of six. MC 26
-     * split {@code Player.displayClientMessage(Component, boolean)} into {@code sendSystemMessage} /
-     * {@code sendOverlayMessage}; the reasoning, the source citations and the two dodges that do not work
-     * are in {@code compat.client_chat_statement}.
+     * Prints one line into the local player's chat. This is the only version-conditional code in the class,
+     * and it lives here rather than at each call site so there is one branch instead of six. MC 26 split
+     * {@code Player.displayClientMessage(Component, boolean)} into {@code sendSystemMessage} /
+     * {@code sendOverlayMessage}; the reasoning, the source citations and the two dodges that do not work are
+     * in {@code compat.client_chat_statement}.
      */
     private static void say(LocalPlayer player, Component line) {
         //[[[cog

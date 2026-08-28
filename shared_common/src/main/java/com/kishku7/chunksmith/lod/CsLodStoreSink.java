@@ -51,7 +51,7 @@ public final class CsLodStoreSink implements LodSink {
         return written.get();
     }
 
-    /** Compressed bytes written so far -- the number to compare against voxy's ~43 KB/chunk. */
+    /** Returns the compressed bytes written so far, against voxy's ~43 KB/chunk. */
     public long getWrittenBytes() {
         return bytes.get();
     }

@@ -59,7 +59,7 @@ public final class TicketLedger {
         peak.set(0L);
     }
 
-    /** No literal percent sign: the sender formats this string. See ChunkResidency#describe. */
+    /** Returns one line for the debug command. No percent sign; the sender formats it. See ChunkResidency#describe. */
     public static String describe() {
         return String.format("added=%d removed=%d outstanding=%d peak=%d",
                 added.get(), removed.get(), outstanding(), peak.get());

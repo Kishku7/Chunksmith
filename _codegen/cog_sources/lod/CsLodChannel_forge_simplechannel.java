@@ -86,7 +86,10 @@ public final class CsLodChannel {
     public static void register() {
     }
 
-    /** Called by the client bootstrap only (guarded on {@code FMLEnvironment.dist == Dist.CLIENT}). */
+    /**
+     * Sets the client-side receive sink. Called by the client bootstrap only (guarded on
+     * {@code FMLEnvironment.dist == Dist.CLIENT}).
+     */
     public static void setClientSink(final Consumer<byte[]> sink) {
         clientSink = sink;
     }
@@ -95,12 +98,16 @@ public final class CsLodChannel {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new Message(data));
     }
 
-    /** Does the connected server speak our channel? Client-side use only. */
+    /**
+     * Checks whether the connected server speaks our channel. Client-side use only.
+     *
+     * @return true when the remote end has our channel registered
+     */
     public static boolean isRemotePresent(final Connection connection) {
         return CHANNEL.isRemotePresent(connection);
     }
 
-    /** Send raw protocol bytes to the connected server. Client-side use only. */
+    /** Sends raw protocol bytes to the connected server. Client-side use only. */
     public static void sendToServer(final byte[] data) {
         CHANNEL.sendToServer(new Message(data));
     }

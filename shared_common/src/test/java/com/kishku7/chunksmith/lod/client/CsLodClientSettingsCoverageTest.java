@@ -37,7 +37,11 @@ public class CsLodClientSettingsCoverageTest {
      */
     private static final Set<String> NOT_SETTINGS = Set.of();
 
-    /** Every config KEY the client config declares, read off its {@code KEY_*} constants. */
+    /**
+     * Returns every config KEY the client config declares, read off its {@code KEY_*} constants.
+     *
+     * @return the declared key values
+     */
     private static List<String> declaredKeys() throws IllegalAccessException {
         List<String> keys = new ArrayList<>();
         for (Field field : CsLodClientConfig.class.getDeclaredFields()) {
@@ -72,7 +76,7 @@ public class CsLodClientSettingsCoverageTest {
         }
     }
 
-    /** The mirror of the above: a setting that names a key the config does not have is a typo. */
+    /** The mirror of the above. A setting that names a key the config does not have is a typo. */
     @Test
     public void everySettingNamesARealKey() throws IllegalAccessException {
         List<String> declared = declaredKeys();

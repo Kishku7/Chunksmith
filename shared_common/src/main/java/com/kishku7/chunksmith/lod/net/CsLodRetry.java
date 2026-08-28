@@ -45,7 +45,7 @@ public final class CsLodRetry {
     }
 
     /**
-     * Start the clock, without counting an attempt. Called when the FIRST ask goes out: the join
+     * Starts the clock, without counting an attempt. Called when the FIRST ask goes out, at the join
      * handshake. That ask is not a retry, but it is what the first delay is measured from.
      */
     public synchronized void started(long nowMillis) {
@@ -56,14 +56,14 @@ public final class CsLodRetry {
         return nowMillis - lastAttemptMillis >= delayMillis;
     }
 
-    /** Record an ask, and back off before the next one. */
+    /** Records an ask, and backs off before the next one. */
     public synchronized void attempted(long nowMillis) {
         lastAttemptMillis = nowMillis;
         attempts++;
         delayMillis = Math.min(maxDelayMillis, delayMillis * 2L);
     }
 
-    /** Back to square one -- the store turned up, or we disconnected. */
+    /** Resets to square one, because the store turned up or we disconnected. */
     public synchronized void reset() {
         delayMillis = firstDelayMillis;
         lastAttemptMillis = 0L;

@@ -37,9 +37,11 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
     }
 
     /**
-     * Install the filter on the root logger of the running Log4j2 context and return it (or {@code null}
-     * if the environment is not Log4j2-core, e.g. an unusual server). Caller should keep the reference
-     * to {@link #uninstall} on disable.
+     * Installs the filter on the root logger of the running Log4j2 context and returns it (or
+     * {@code null} if the environment is not Log4j2-core, e.g. an unusual server). Caller should
+     * keep the reference to {@link #uninstall} on disable.
+     *
+     * @return the installed filter, or {@code null} if the environment is not Log4j2-core
      */
     public static WorldgenOverreachLogFilter install() {
         try {

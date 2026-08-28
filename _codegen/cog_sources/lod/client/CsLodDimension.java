@@ -26,9 +26,11 @@ public final class CsLodDimension {
     }
 
     /**
-     * The key for the level the player is in right now, or {@code ""} when no level is loaded (during a
-     * dimension change there is a window where there is no level at all; callers must treat "" as
-     * "ask me again next tick", never as a dimension).
+     * Returns the key for the level the player is in right now, or {@code ""} when no level is loaded (during
+     * a dimension change there is a window where there is no level at all; callers must treat "" as "ask me
+     * again next tick", never as a dimension).
+     *
+     * @return the current level key, or {@code ""} when there is no level
      */
     public static String current() {
         Level level = Minecraft.getInstance().level;

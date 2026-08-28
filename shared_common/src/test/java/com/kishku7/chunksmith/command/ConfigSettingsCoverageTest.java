@@ -62,7 +62,7 @@ public class ConfigSettingsCoverageTest {
         }
     }
 
-    /** The mirror of the above: a setting that names a key the config does not have is a typo. */
+    /** The mirror of the above. A setting that names a key the config does not have is a typo. */
     @Test
     public void everyCommandSettingNamesARealKey() throws ClassNotFoundException {
         List<String> fields = configModelFields();

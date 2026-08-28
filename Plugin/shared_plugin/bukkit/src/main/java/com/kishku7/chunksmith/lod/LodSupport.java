@@ -43,7 +43,12 @@ public final class LodSupport {
     private LodSupport() {
     }
 
-    /** The live decision for this platform: ON unless the operator explicitly forced it off. */
+    /**
+     * Returns the live decision for this platform. LOD is on unless the operator explicitly forced
+     * it off.
+     *
+     * @return true if LOD generation is enabled
+     */
     public static boolean lodEnabled(Config config) {
         if (config == null) {
             return false;
@@ -56,7 +61,7 @@ public final class LodSupport {
      * after the chunk finishes loading (see {@code BukkitWorld#getChunkAtAsync}).
      *
      * <p>Extraction happens here, synchronously, for the same reason the mod-loader version does it
-     * synchronously: the moment is now, and everything downstream of extraction (the writer thread)
+     * synchronously. The moment is now, and everything downstream of extraction (the writer thread)
      * is asynchronous.
      */
     public static void offer(Config config, World world, Chunk chunk) {
@@ -73,7 +78,11 @@ public final class LodSupport {
         }
     }
 
-    /** The active sink for a world, resolved once. Never null. */
+    /**
+     * Returns the active sink for a world, resolved once. Never null.
+     *
+     * @return the sink for this world
+     */
     public static LodSink sinkFor(Config config, World world) {
         String key = world.getKey().toString();
         return SINKS.computeIfAbsent(key, ignored -> create(config, world));
@@ -87,7 +96,12 @@ public final class LodSupport {
         return sink;
     }
 
-    /** {@code <world>/chunksmith/lod/<dim>}: our own tree; matches the mod-loader layout exactly. */
+    /**
+     * Returns {@code <world>/chunksmith/lod/<dim>}, our own tree, which matches the mod-loader
+     * layout exactly.
+     *
+     * @return the CSLOD store root for this world
+     */
     public static Path storeRoot(World world) {
         return world.getWorldFolder().toPath()
                 .resolve("chunksmith").resolve("lod")

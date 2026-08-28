@@ -44,7 +44,11 @@ public final class CsLodExtractor {
     private CsLodExtractor() {
     }
 
-    /** Extract, or null if the chunk carries nothing worth storing. */
+    /**
+     * Extracts one chunk's LOD record, or null if the chunk carries nothing worth storing.
+     *
+     * @return the record, or null when there is nothing worth storing
+     */
     public static CsLodChunk extract(LevelChunk chunk) {
         LevelChunkSection[] sections = chunk.getSections();
         if (sections.length == 0) {

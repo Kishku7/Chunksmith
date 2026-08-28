@@ -150,7 +150,7 @@ public final class CsLodMessages {
     public record RegionSummary(String dimension, int count, long aggregate) {
     }
 
-    /** Ask the server whether anything has changed. 22 bytes for a normal dimension id. */
+    /** Creates the request that asks whether anything has changed. 22 bytes for a normal dimension id. */
     public static byte[] requestSummary(String dimension) throws IOException {
         ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
@@ -172,7 +172,7 @@ public final class CsLodMessages {
     }
 
     /**
-     * Decode a summary. Nothing here is allocated from the wire (the count is a number we compare, never a
+     * Decodes a summary. Nothing here is allocated from the wire (the count is a number we compare, never a
      * size) so unlike the index there is no ceiling to enforce. It is still range-checked, because a
      * negative count is not a thing an honest server sends.
      */
@@ -188,7 +188,7 @@ public final class CsLodMessages {
 
     // simple requests
 
-    /** Ask for a dimension's index. */
+    /** Creates the request for a dimension's index. */
     public static byte[] requestIndex(String dimension) throws IOException {
         ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
@@ -198,7 +198,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    /** Ask for regions in-band (the fallback, when the backchannel is unreachable). */
+    /** Creates the request for regions in-band (the fallback, when the backchannel is unreachable). */
     public static byte[] requestRegions(String dimension, List<RegionEntry> wanted) throws IOException {
         ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {

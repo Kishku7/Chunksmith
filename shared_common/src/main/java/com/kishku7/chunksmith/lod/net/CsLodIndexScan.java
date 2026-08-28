@@ -63,7 +63,7 @@ public final class CsLodIndexScan {
      */
     public record Result(List<CsLodMessages.RegionEntry> regions, int found, long bytes) {
 
-        /** True when the caps dropped something the player could otherwise have had. */
+        /** Returns true when the caps dropped something the player could otherwise have had. */
         public boolean capped() {
             return regions.size() < found;
         }
@@ -73,9 +73,9 @@ public final class CsLodIndexScan {
     }
 
     /**
-     * Scan one dimension directory for the regions in range of a position. Never reads a byte of any region
-     * file. A directory that does not exist is not an error: it is a store that has not been pregenerated
-     * yet, and the honest answer is an empty list.
+     * Scans one dimension directory for the regions in range of a position. Never reads a byte of any
+     * region file. A directory that does not exist is not an error. It is a store that has not been
+     * pregenerated yet, and the honest answer is an empty list.
      *
      * @param dimensionDir the directory holding {@code r.<x>.<z>.cslod} files for one dimension
      * @param nowMillis    the clock, injected so the settle rule is testable
@@ -136,7 +136,7 @@ public final class CsLodIndexScan {
         return cap(found);
     }
 
-    /** Fold a scan result to the two numbers a sync poll compares. */
+    /** Folds a scan result to the two numbers a sync poll compares. */
     public static long aggregate(List<CsLodMessages.RegionEntry> regions) {
         long aggregate = 0L;
         for (CsLodMessages.RegionEntry entry : regions) {
@@ -145,7 +145,7 @@ public final class CsLodIndexScan {
         return aggregate;
     }
 
-    /** Apply both caps (the region count and the byte budget) to a nearest-first list. */
+    /** Applies both caps (the region count and the byte budget) to a nearest-first list. */
     private static Result cap(List<CsLodMessages.RegionEntry> found) {
         long bytes = 0L;
         for (int i = 0; i < found.size(); i++) {
@@ -159,18 +159,20 @@ public final class CsLodIndexScan {
     }
 
     /**
-     * Is this region within the radius the client's renderer can actually draw, measured from the
-     * player? The client tells us its configured LOD distance in the handshake and we follow it, lower
-     * or higher: past it is bandwidth spent on terrain nobody sees, short of it leaves visible holes.
-     * A region is 512 blocks square, so the test is against the region's box and not its corner -- one
-     * only partly inside the radius still contains terrain the player can see.
+     * Checks whether this region is within the radius the client's renderer can actually draw, measured
+     * from the player. The client tells us its configured LOD distance in the handshake and we follow it,
+     * lower or higher. Past it is bandwidth spent on terrain nobody sees, and short of it leaves visible
+     * holes. A region is 512 blocks square, so the test is against the region's box and not its corner;
+     * one only partly inside the radius still contains terrain the player can see.
+     *
+     * @return true when the region is inside the client's draw radius
      */
     public static boolean inRange(Request request, int regionX, int regionZ) {
         return distanceSquared(request, regionX, regionZ)
                 <= (long) request.radiusBlocks() * request.radiusBlocks();
     }
 
-    /** Squared distance from the player to the nearest point of a region's box. Also the sort key. */
+    /** Returns the squared distance from the player to the nearest point of a region's box. The sort key. */
     public static long distanceSquared(Request request, int regionX, int regionZ) {
         int minX = regionX * REGION_BLOCKS;
         int minZ = regionZ * REGION_BLOCKS;

@@ -48,7 +48,7 @@ public final class ClientPlatform {
         action.run();
     }
 
-    /** Hand every server message to {@code onPayload}, on the client thread. */
+    /** Hands every server message to {@code onPayload}, on the client thread. */
     public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         ClientPlayNetworking.registerGlobalReceiver(CsLodChannel.ID, (client, handler, buf, responseSender) -> {
             // Read on the NETTY thread. The buffer is released the instant this handler returns, so the
@@ -60,7 +60,10 @@ public final class ClientPlatform {
         });
     }
 
-    /** Silently does nothing on the many servers that do not speak our channel. */
+    /**
+     * Sends raw protocol bytes to the connected server. Silently does nothing on the many servers that do not
+     * speak our channel.
+     */
     public static void sendToServer(byte[] data) {
         if (!ClientPlayNetworking.canSend(CsLodChannel.ID)) {
             return;

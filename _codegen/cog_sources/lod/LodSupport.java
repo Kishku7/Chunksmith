@@ -51,18 +51,20 @@ public final class LodSupport {
     }
 
     /**
-     * Publish the CSLOD presence provider, so the pregen's skip decision can see the store: the whole
-     * wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in shared_common and cannot see
-     * this class; it asks {@link LodPresence}, and this is what answers.
+     * Publishes the CSLOD presence provider, so the pregen's skip decision can see the store. That is the
+     * whole wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in shared_common and cannot
+     * see this class; it asks {@link LodPresence}, and this is what answers.
      */
     public static void install(MinecraftServer server) {
         LodPresence.setProvider(worldName -> presenceIndexFor(server, worldName));
     }
 
     /**
-     * The presence index for a world, or null when LOD generation is off. Null is load-bearing: it is how
-     * {@code GenerationTask} is told "do not do any of this", which is what makes {@code lodEnabled: false}
-     * restore the old skip behaviour byte for byte.
+     * Returns the presence index for a world, or null when LOD generation is off. Null is load-bearing. It is
+     * how {@code GenerationTask} is told "do not do any of this", which is what makes
+     * {@code lodEnabled: false} restore the old skip behaviour byte for byte.
+     *
+     * @return the presence index, or null when LOD generation is off
      */
     public static CsLodPresenceIndex presenceIndexFor(MinecraftServer server, String worldName) {
         if (server == null || !lodEnabled(server)) {
@@ -75,7 +77,7 @@ public final class LodSupport {
         return PRESENCE.computeIfAbsent(worldName, ignored -> new CsLodPresenceIndex(storeRoot(level)));
     }
 
-    /** The level whose dimension id matches the string {@code World.getName()} returns. */
+    /** Returns the level whose dimension id matches the string given by {@code World.getName()}. */
     private static ServerLevel levelByName(MinecraftServer server, String worldName) {
         for (ServerLevel level : server.getAllLevels()) {
             if (dimensionId(level).equals(worldName)) {
@@ -86,8 +88,8 @@ public final class LodSupport {
     }
 
     /**
-     * Offer a freshly generated chunk. Called from the generation hook on the main thread, while the chunk
-     * is still ticket-pinned: extraction happens here, synchronously, because the chunk is unloaded the
+     * Offers a freshly generated chunk. Called from the generation hook on the main thread, while the chunk
+     * is still ticket-pinned. Extraction happens here, synchronously, because the chunk is unloaded the
      * moment the ticket is released. Everything downstream of extraction is asynchronous.
      */
     public static void offer(ServerLevel level, LevelChunk chunk) {
@@ -111,14 +113,18 @@ public final class LodSupport {
         }
     }
 
-    /** The active sink for a world, resolved once. Never null. */
+    /**
+     * Returns the active sink for a world, resolved once. Never null.
+     *
+     * @return the sink for this world, never null
+     */
     public static LodSink sinkFor(ServerLevel level) {
         String key = dimensionId(level);
         return SINKS.computeIfAbsent(key, ignored -> create(level));
     }
 
     /**
-     * Flush and close every sink. Wired to the server-stopped lifecycle event by {@code LodInit} --
+     * Flushes and closes every sink. Wired to the server-stopped lifecycle event by {@code LodInit}, since
      * otherwise a pregen that ends at shutdown would lose whatever was still queued.
      */
     public static void shutdown() {
@@ -175,24 +181,24 @@ public final class LodSupport {
     }
 
     /**
-     * {@code <world>/chunksmith/lod}: the store root. The backchannel serves this tree and nothing else,
-     * so it is the boundary every request path is canonicalized against.
+     * Returns the store root, {@code <world>/chunksmith/lod}. The backchannel serves this tree and nothing
+     * else, so it is the boundary every request path is canonicalized against.
      */
     public static Path storeRootBase(MinecraftServer server) {
         return server.getWorldPath(LevelResource.ROOT).resolve("chunksmith").resolve("lod").normalize();
     }
 
-    /** {@code <world>/chunksmith/lod/<dim>}: our own tree; we never touch voxy's or DH's store. */
+    /** Returns our own tree, {@code <world>/chunksmith/lod/<dim>}; we never touch voxy's or DH's store. */
     public static Path storeRoot(ServerLevel level) {
         Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
         return worldRoot.resolve("chunksmith").resolve("lod").resolve(dimensionKey(level)).normalize();
     }
 
     /**
-     * The store directory name for a level, and the name that goes on the wire: this server's store
-     * directory, the dimension field of the region index, the client's own store directory, and the key
-     * the client's injector checks the level against. Derived in one place so the two sides cannot
-     * disagree.
+     * Returns the store directory name for a level, which is also the name that goes on the wire. That covers
+     * this server's store directory, the dimension field of the region index, the client's own store
+     * directory, and the key the client's injector checks the level against. Derived in one place so the two
+     * sides cannot disagree.
      */
     public static String dimensionKey(ServerLevel level) {
         return dimensionId(level).replace(':', '_').replace('/', '_');
@@ -261,8 +267,8 @@ public final class LodSupport {
     }
 
     /**
-     * Resolve the tristate. It decides, it does not log; {@link #announce(MinecraftServer)} owns the one
-     * log line.
+     * Resolves the tristate. It decides, it does not log; {@link #announce(MinecraftServer)} owns the one log
+     * line.
      *
      * <p>{@code auto} is on for a dedicated server even with no renderer installed, and that is deliberate:
      * a dedicated server cannot run voxy (client-only) and does not need DH, yet it is precisely where the
@@ -276,6 +282,8 @@ public final class LodSupport {
      * slower, which is terrain noise. Extraction runs on the server thread, and once dispatch width was
      * raised the server thread stopped being the bottleneck: it profiled at ~10 percent utilised, with
      * extraction 70 percent of that. Re-measure before putting a scary number back.
+     *
+     * @return true when the LOD store should be written for this run
      */
     public static boolean decide(final Config config,
                                  final MinecraftServer server) {
@@ -292,7 +300,11 @@ public final class LodSupport {
         }
     }
 
-    /** The live decision, or false when Chunksmith is not up yet. */
+    /**
+     * Returns the live decision, or false when Chunksmith is not up yet.
+     *
+     * @return the live decision, or false when Chunksmith is not up yet
+     */
     public static boolean lodEnabled(MinecraftServer server) {
         // ChunksmithProvider.get() throws when unloaded, so gate on isLoaded() first.
         return ChunksmithProvider.isLoaded()
@@ -338,7 +350,7 @@ public final class LodSupport {
         }
     }
 
-    /** One-line summary for {@code /cslod status}. */
+    /** Returns a one-line summary for {@code /cslod status}. */
     public static String describeDecision(MinecraftServer server) {
         if (!ChunksmithProvider.isLoaded()) {
             return "lod: unknown (chunksmith not loaded)";

@@ -29,7 +29,7 @@ public final class CsLodChannel {
     private CsLodChannel() {
     }
 
-    /** Register the channel + the disconnect hook. Called at mod init, before any server exists. */
+    /** Registers the channel and the disconnect hook. Called at mod init, before any server exists. */
     public static void register() {
         //[[[cog
         // import cog, compat
@@ -50,7 +50,7 @@ public final class CsLodChannel {
                 CsLodServerNet.onDisconnect(handler.getPlayer().getUUID()));
     }
 
-    /** Send raw protocol bytes to a player. */
+    /** Sends raw protocol bytes to a player. */
     public static void send(ServerPlayer player, byte[] data) {
         ServerPlayNetworking.send(player, new Payload(data));
     }

@@ -36,7 +36,7 @@ public final class CsLodChannel {
     private CsLodChannel() {
     }
 
-    /** Called by the {@code Dist.CLIENT} entrypoint only. */
+    /** Sets the client-side receive sink. Called by the {@code Dist.CLIENT} entrypoint only. */
     public static void setClientSink(Consumer<byte[]> sink) {
         clientSink = sink;
     }
@@ -56,7 +56,10 @@ public final class CsLodChannel {
     public static void register() {
     }
 
-    /** Called from the {@code @Mod} constructor (the only place the mod bus is handed out). */
+    /**
+     * Registers the payload types on the mod bus. Called from the {@code @Mod} constructor (the only place
+     * the mod bus is handed out).
+     */
     public static void registerPayloads(IEventBus modBus) {
         modBus.addListener(CsLodChannel::onRegisterPayloads);
     }

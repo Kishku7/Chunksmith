@@ -53,7 +53,7 @@ public final class CsLodRegionStore {
     }
 
     /**
-     * Persist one chunk record.
+     * Writes one chunk record.
      *
      * @return the number of compressed bytes written, so callers can account size without re-encoding
      */
@@ -77,7 +77,7 @@ public final class CsLodRegionStore {
         return payload.length;
     }
 
-    /** Read one chunk record back, or null if this chunk was never written. */
+    /** Reads one chunk record back, or null if this chunk was never written. */
     public synchronized CsLodChunk read(int chunkX, int chunkZ) throws IOException {
         int rx = Math.floorDiv(chunkX, REGION_CHUNKS);
         int rz = Math.floorDiv(chunkZ, REGION_CHUNKS);
@@ -106,8 +106,8 @@ public final class CsLodRegionStore {
     }
 
     /**
-     * Walk every record in a CSLOD tree and hand each decoded chunk to the visitor. Static and stateless on
-     * purpose: this is how a second process (a backfill/verify tool) reads the store while the game holds
+     * Walks every record in a CSLOD tree and hands each decoded chunk to the visitor. Static and stateless on
+     * purpose, because this is how a second process (a backfill/verify tool) reads the store while the game holds
      * nothing.
      *
      * @return the number of records visited
@@ -130,9 +130,9 @@ public final class CsLodRegionStore {
     }
 
     /**
-     * Walk ONE region's records. A client that keeps pulling as the player travels must inject only the
+     * Walks ONE region's records. A client that keeps pulling as the player travels must inject only the
      * regions it just received: re-walking the whole tree on every refresh re-decodes and re-pushes terrain
-     * the renderer already has -- minutes per move on a big store, and with voxy it means re-ingesting
+     * the renderer already has, which is minutes per move on a big store, and with voxy means re-ingesting
      * hundreds of thousands of sections.
      *
      * @return the number of records visited (0 if the region file does not exist)
@@ -177,7 +177,7 @@ public final class CsLodRegionStore {
         void visit(CsLodChunk chunk) throws IOException;
     }
 
-    /** Close every open region file. */
+    /** Closes every open region file. */
     public synchronized void close() throws IOException {
         IOException first = null;
         for (RandomAccessFile file : open.values()) {

@@ -49,10 +49,11 @@ public final class HeapPressure {
     }
 
     /**
-     * Should dispatch be held off right now?
+     * Checks whether dispatch should be held off right now.
      *
      * @param currentlyHeld    whether the gate is already closed, so the resume margin can be applied
      * @param thresholdPercent the configured ceiling, or 0 to disable the gate entirely
+     * @return true when dispatch should be held off
      */
     public static boolean shouldHold(boolean currentlyHeld, long thresholdPercent) {
         return shouldHold(currentlyHeld, thresholdPercent, usedPercent());
@@ -60,7 +61,7 @@ public final class HeapPressure {
 
     /**
      * Reading-injecting overload. The confirmation streak and the resume margin are the whole point of
-     * this class and cannot be tested against a live heap: a test cannot make the JVM sit at 90 percent.
+     * this class and cannot be tested against a live heap, since a test cannot make the JVM sit at 90 percent.
      */
     static boolean shouldHold(boolean currentlyHeld, long thresholdPercent, double used) {
         if (thresholdPercent <= 0L) {
@@ -89,12 +90,12 @@ public final class HeapPressure {
         return false;
     }
 
-    /** Forget the confirmation streak. Called when a run starts, so no run inherits another's state. */
+    /** Clears the confirmation streak. Called when a run starts, so no run inherits another's state. */
     public static void reset() {
         consecutiveHigh = 0;
     }
 
-    /** Test seam: how many consecutive high samples have been seen. */
+    /** Returns how many consecutive high samples have been seen. Test seam. */
     static int consecutiveHigh() {
         return consecutiveHigh;
     }

@@ -44,14 +44,15 @@ public final class VoxyConfigReader {
     }
 
     /**
-     * voxy's configured render distance in blocks, or 0 when there is nothing to read.
+     * Returns voxy's configured render distance in blocks, or 0 when there is nothing to read.
      *
-     * <p>0 quietly when the config is not there yet or the player has switched voxy's renderer off: those
-     * are not faults. 0 loudly, once, when voxy is there and configured on but its render-distance field
-     * cannot be found or is not a number: that is fork drift, and the player deserves to know their radius
-     * just fell back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}.
+     * <p>0 quietly when the config is not there yet or the player has switched voxy's renderer off, and
+     * those are not faults. 0 loudly, once, when voxy is there and configured on but its render-distance
+     * field cannot be found or is not a number, which is fork drift, and the player deserves to know their
+     * radius just fell back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}.
      *
      * @param config the voxy {@code VoxyConfig.CONFIG} instance, or null
+     * @return the radius in blocks, or 0 when there is nothing to read
      */
     public static int radiusBlocks(Object config) {
         if (config == null) {
@@ -86,7 +87,7 @@ public final class VoxyConfigReader {
     }
 
     /**
-     * Read a numeric field of any primitive numeric type, by name.
+     * Reads a numeric field of any primitive numeric type, by name.
      *
      * @return its value widened to a double, or empty when it does not exist or is not a number
      */
@@ -109,10 +110,11 @@ public final class VoxyConfigReader {
     }
 
     /**
-     * Read a boolean field by name.
+     * Reads a boolean field by name.
      *
      * @param fallback what to answer when the field is absent or is not a boolean; absence is not a
-     *     "false": a fork that removed a toggle has not turned the feature off
+     *     "false", since a fork that removed a toggle has not turned the feature off
+     * @return the field's value, or {@code fallback}
      */
     public static boolean flag(Object instance, String name, boolean fallback) {
         Field field = field(instance, name);
@@ -128,9 +130,9 @@ public final class VoxyConfigReader {
     }
 
     /**
-     * Read a static field off a class, by name. Null when it is absent, not static, or unreadable. Used for
-     * {@code VoxyConfig.CONFIG} itself: even the holder is fetched by name, so a fork that renamed it
-     * degrades to "no config" instead of throwing {@code NoSuchFieldError} out of our own bytecode.
+     * Reads a static field off a class, by name. Null when it is absent, not static, or unreadable. Used
+     * for {@code VoxyConfig.CONFIG} itself, where even the holder is fetched by name, so a fork that
+     * renamed it degrades to "no config" instead of throwing {@code NoSuchFieldError} out of our bytecode.
      */
     public static Object staticField(Class<?> owner, String name) {
         try {
@@ -144,7 +146,7 @@ public final class VoxyConfigReader {
         }
     }
 
-    /** Find a field by name: public first (voxy's config fields all are), then the declared hierarchy. */
+    /** Finds a field by name. Public first (voxy's config fields all are), then the declared hierarchy. */
     private static Field field(Object instance, String name) {
         if (instance == null) {
             return null;

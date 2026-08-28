@@ -20,7 +20,7 @@ public final class CsLodCache {
     private CsLodCache() {
     }
 
-    /** True when our local copy is the one the server is currently advertising. */
+    /** Returns true when our local copy is the one the server is currently advertising. */
     public static boolean have(final Path storeRoot, final String dimension,
                                final CsLodManifest manifest, final CsLodMessages.RegionEntry entry) {
         if (manifest == null) {

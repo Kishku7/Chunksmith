@@ -65,7 +65,7 @@ public final class CsLodDownloader {
     }
 
     /**
-     * Fetch everything in the index we do not already have.
+     * Fetches everything in the index we do not already have.
      *
      * @param port  the backchannel port the server advertised (game port + 1)
      * @param token the token the server issued over the in-band channel
@@ -156,7 +156,10 @@ public final class CsLodDownloader {
         return downloaded.get();
     }
 
-    /** How many regions this run failed to fetch. Nonzero with {@link #fetched()} == 0 means the fast path is dead. */
+    /**
+     * Returns how many regions this run failed to fetch. Nonzero with {@link #fetched()} == 0 means
+     * the fast path is dead.
+     */
     public long failed() {
         return failed.get();
     }
@@ -235,7 +238,7 @@ public final class CsLodDownloader {
     }
 
     /**
-     * Do we already hold exactly what the server is advertising? A manifest lookup and one stat. See
+     * Checks whether we already hold what the server is advertising. A manifest lookup and one stat. See
      * {@link CsLodManifest}. Since beta-4 this no longer reads the client's own store.
      */
     private boolean haveAlready(Path dimDir, CsLodMessages.RegionEntry entry) {

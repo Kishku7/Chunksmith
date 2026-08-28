@@ -30,7 +30,7 @@ public final class CsLodRegionHash {
     }
 
     /**
-     * The token for a region file with this mtime and length. Both inputs are folded through a 64-bit
+     * Returns the token for a region file with this mtime and length. Both inputs are folded through a 64-bit
      * avalanche (the SplitMix64 finalizer) so the two fields cannot cancel and near-identical inputs
      * (consecutive milliseconds, sizes one byte apart) produce unrelated tokens. A raw
      * {@code mtime ^ size} would not: two regions written a second apart with sizes a second's worth of
@@ -42,7 +42,7 @@ public final class CsLodRegionHash {
         return mix(mix(lastModifiedMillis) ^ (sizeBytes * 0x9E3779B97F4A7C15L));
     }
 
-    /** SplitMix64's finalizer. A full 64-bit avalanche: one input bit flips ~half the output bits. */
+    /** SplitMix64's finalizer. A full 64-bit avalanche, where one input bit flips ~half the bits. */
     private static long mix(long value) {
         long z = value + 0x9E3779B97F4A7C15L;
         z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;

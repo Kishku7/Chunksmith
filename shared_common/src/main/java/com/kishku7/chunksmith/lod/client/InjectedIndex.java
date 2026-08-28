@@ -56,7 +56,7 @@ public final class InjectedIndex {
     }
 
     /**
-     * Open (or start) the injected-index for one dimension of one store. A malformed dimension id returns
+     * Opens (or starts) the injected-index for one dimension of one store. A malformed dimension id returns
      * null and the caller must refuse the whole operation.
      *
      * @param epoch  identifies the renderer set this record was made for; a mismatch discards the file
@@ -76,7 +76,7 @@ public final class InjectedIndex {
     }
 
     /**
-     * The epoch string for a renderer set. Built from the renderers present, because that is the one change
+     * Returns the epoch string for a renderer set. Built from the renderers present, because that is the one change
      * that would otherwise make us skip (forever and silently) data a newly-installed renderer has never
      * been given.
      */
@@ -84,12 +84,12 @@ public final class InjectedIndex {
         return (voxy ? "voxy" : "-") + "+" + (dh ? "dh" : "-") + "|v" + storeVersion;
     }
 
-    /** Record that this version of this region has been injected. Call after the region is really in. */
+    /** Records that this version of this region has been injected. Call after the region is really in. */
     public void put(int regionX, int regionZ, long token) {
         this.entries.put(key(regionX, regionZ), token);
     }
 
-    /** Forget a region -- it was released, or it failed half way. The next join re-injects it. */
+    /** Removes a region, because it was released or it failed half way. The next join re-injects it. */
     public void remove(int regionX, int regionZ) {
         this.entries.remove(key(regionX, regionZ));
     }
@@ -110,8 +110,8 @@ public final class InjectedIndex {
     }
 
     /**
-     * Write the record out, atomically. See the class doc. Failure is survivable and only logged: we
-     * re-inject next session, which is the behaviour this class replaces: slow, not wrong.
+     * Writes the record out, atomically. See the class doc. Failure is survivable and only logged; we
+     * re-inject next session, which is the behaviour this class replaces. Slow, not wrong.
      */
     public void save() throws IOException {
         List<String> lines = new ArrayList<>(this.entries.size() + 1);
@@ -127,7 +127,7 @@ public final class InjectedIndex {
     }
 
     /**
-     * Read whatever is there. A missing file means only that we cannot vouch for anything and will
+     * Reads whatever is there. A missing file means only that we cannot vouch for anything and will
      * inject it all once. A file whose epoch does not match ours is discarded whole. Keeping the half
      * that might still apply would mean deciding which renderer each line was for, and the file does not
      * record that.
@@ -151,7 +151,7 @@ public final class InjectedIndex {
         }
     }
 
-    /** {@code x,z=token}. Anything else is skipped in silence. See the class doc. */
+    /** Parses one line of the form {@code x,z=token}. Anything else is skipped in silence. */
     private void parse(String line) {
         int equals = line.indexOf('=');
         if (equals <= 0) {

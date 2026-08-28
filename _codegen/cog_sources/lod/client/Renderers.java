@@ -52,7 +52,7 @@ public final class Renderers {
     }
 
     /**
-     * How far the player's renderer is actually configured to draw, in blocks.
+     * Returns how far the player's renderer is actually configured to draw, in blocks.
      *
      * <p>Use the renderer's configured LOD distance, whether it is lower or higher than
      * {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}, and fall back to that default only if neither renderer
@@ -65,6 +65,8 @@ public final class Renderers {
      * re-typed voxy config field collapsed a player's radius from 8192 blocks to 256 with nothing in the
      * log (see {@code VoxyRadius}). Both readers announce their own failures now; these catches are the
      * last net, for our own seam class failing.
+     *
+     * @return the configured draw radius in blocks
      */
     public static int configuredRadiusBlocks() {
         int blocks = 0;

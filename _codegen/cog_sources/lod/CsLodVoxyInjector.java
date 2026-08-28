@@ -35,7 +35,11 @@ public final class CsLodVoxyInjector {
     private CsLodVoxyInjector() {
     }
 
-    /** True when there is a voxy engine to inject into (i.e. singleplayer / a client instance). */
+    /**
+     * Returns true when there is a voxy engine to inject into (i.e. singleplayer / a client instance).
+     *
+     * @return true on a client instance with a live voxy engine
+     */
     public static boolean voxyAvailable() {
         // Ask the loader first. voxy is a client-side mod, so the overwhelmingly common case (every
         // dedicated server there is) is that it is simply not installed, and then the VoxyCommon
@@ -57,8 +61,8 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Announce -- once -- that the installed voxy does not match the one we compiled against. A
-     * {@link LinkageError} out of a voxy call is not a transient condition: the jar that is loaded does not
+     * Announces, once, that the installed voxy does not match the one we compiled against. A
+     * {@link LinkageError} out of a voxy call is not a transient condition. The jar that is loaded does not
      * contain the member we compiled against, which is what a drifting fork looks like from the inside.
      */
     private static void warnIncompatible(LinkageError error) {
@@ -70,8 +74,10 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Replay the whole store for one dimension into voxy. Runs on the calling thread. Callers must hand
-     * it a background thread, not the server thread.
+     * Replays the whole store for one dimension into voxy. Runs on the calling thread. Callers must hand it a
+     * background thread, not the server thread.
+     *
+     * @return the number of chunks replayed
      */
     public static int inject(ServerLevel level, Path storeRoot, Consumer<String> progress)
             throws IOException {

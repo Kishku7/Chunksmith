@@ -65,9 +65,9 @@ public final class DhTarget {
     }
 
     /**
-     * Distant Horizons' own version + the API version it implements, for the log at join. We compile
-     * against the standalone {@code distanthorizonsapi} artifact and support a wide range of DH releases,
-     * so "which DH did the player actually have" is the first question any bug report raises.
+     * Returns Distant Horizons' own version plus the API version it implements, for the log at join. We
+     * compile against the standalone {@code distanthorizonsapi} artifact and support a wide range of DH
+     * releases, so "which DH did the player actually have" is the first question any bug report raises.
      */
     public static String version() {
         try {
@@ -84,8 +84,8 @@ public final class DhTarget {
     }
 
     /**
-     * Give up on DH for the session. A {@link LinkageError} means the installed DH lacks a method or type
-     * we compiled against: a DH problem, and no reason to take the player's game or their voxy with it.
+     * Gives up on DH for the session. A {@link LinkageError} means the installed DH lacks a method or type we
+     * compiled against, a DH problem, and no reason to take the player's game or their voxy with it.
      */
     static void disable(final Throwable cause) {
         if (disabled) {
@@ -97,7 +97,7 @@ public final class DhTarget {
                 + " keeps working. Please report this with the DH version above.", cause.toString());
     }
 
-    /** Learn each level's wrapper as DH loads it. Bind at mod init; DH fires this during world load. */
+    /** Learns each level's wrapper as DH loads it. Bind at mod init; DH fires this during world load. */
     public static void bind() {
         if (bound) {
             return;
@@ -119,7 +119,11 @@ public final class DhTarget {
         return !disabled && WRAPPERS.containsKey(level);
     }
 
-    /** @return true if DH accepted this record. */
+    /**
+     * Pushes one record into DH for the given level.
+     *
+     * @return true if DH accepted this record.
+     */
     public static boolean inject(final Level level, final CsLodChunk record) {
         if (disabled) {
             return false;
@@ -164,7 +168,7 @@ public final class DhTarget {
         return false;
     }
 
-    /** Keep under DH's queue-overflow threshold; see MIN_PUSH_INTERVAL_NANOS. */
+    /** Keeps under DH's queue-overflow threshold; see MIN_PUSH_INTERVAL_NANOS. */
     private static void pace() {
         final long now = System.nanoTime();
         final long wait = MIN_PUSH_INTERVAL_NANOS - (now - lastPushNanos);

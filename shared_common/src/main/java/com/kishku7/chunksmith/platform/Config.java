@@ -23,17 +23,18 @@ public interface Config {
 
     boolean isIoThrottleEnabled();
 
-    /** Target tick time (ms/tick) the throttle steers toward: concurrency falls above it, rises below. */
+    /** Returns the target tick time (ms/tick) the throttle steers toward. Concurrency falls above it, rises below. */
     double getThrottleTargetMspt();
 
     /**
-     * Absolute per-chunk latency backstop (ms): one slow chunk load backs off regardless of tick health.
-     * Catches a pure I/O stall, and is the only signal on platforms that cannot report tick time.
+     * Returns the absolute per-chunk latency backstop (ms). One slow chunk load backs off regardless of
+     * tick health. Catches a pure I/O stall, and is the only signal on platforms that cannot report tick
+     * time.
      */
     long getThrottleMaxChunkMillis();
 
     /**
-     * Max chunk writes queued to disk before dispatch stops until the backlog drains (hysteresis: resumes
+     * Max chunk writes queued to disk before dispatch stops until the backlog drains (hysteresis, resuming
      * at half). Bounds the deferred-write backlog so generation cannot outrun disk throughput. 0 disables.
      */
     long getThrottleMaxQueuedWrites();
@@ -49,8 +50,8 @@ public interface Config {
     long getThrottleMaxAddedChunks();
 
     /**
-     * Heap usage, as a percentage of {@code -Xmx}, at which generation stops dispatching until the heap
-     * drains. 0 disables. Every other bound counts a proxy, and a chunk is worth wildly different amounts
+     * Returns the heap usage, as a percentage of {@code -Xmx}, at which generation stops dispatching until
+     * the heap drains. 0 disables. Every other bound counts a proxy, and a chunk is worth wildly different amounts
      * of heap depending on the entities and block entities that came with it, so this is the backstop the
      * chunk counters could not be. Confirmed over several consecutive samples so ordinary uncollected
      * garbage cannot trip it, and resumed only once there is real headroom again.
@@ -70,7 +71,7 @@ public interface Config {
     long getThrottleTickBudgetMillis();
 
     /**
-     * Tick time reserved for each online player, taken out of Chunksmith's own allowance. A rising baseline
+     * Returns the tick time reserved for each online player, out of Chunksmith's own allowance. A rising baseline
      * already stops Chunksmith making things worse but gives the player nothing back; this yields, so an
      * empty server gets the full allowance and a populated one is actively given room.
      */
@@ -87,38 +88,39 @@ public interface Config {
 
     /**
      * Pause a run when the server cannot sustain it, and resume it when the server recovers. On by
-     * default: a gated pre-gen on an overloaded server does not stop, it stutters, measured at 60
+     * default. A gated pre-gen on an overloaded server does not stop, it stutters, measured at 60
      * chunks in two minutes, which looks exactly like a hang. {@code AutoPause} records the decision.
      */
     boolean isAutoPauseEnabled();
 
     /**
-     * How long the server must stay in a state (bad, then good) before auto-pause acts. Both directions:
-     * pausing on the first bad second would stop a run for a passing autosave, and resuming on the first
+     * How long the server must stay in a state (bad, then good) before auto-pause acts. Both directions.
+     * Pausing on the first bad second would stop a run for a passing autosave, and resuming on the first
      * good second would restart it into the same wall.
      */
     int getAutoPauseGraceSeconds();
 
     /**
-     * Whether ChunkSmith emits LOD data for the chunks it generates, a tristate, not a boolean. Default
-     * {@link LodMode#AUTO}: on when an LOD renderer (Distant Horizons, voxy, or a voxy fork) is present in
-     * the JVM, and always on a dedicated server, which exists to serve the store to Chunksmith-Client
-     * players. An explicit {@code true} or {@code false} is an operator decision and is NEVER overridden.
+     * Returns whether ChunkSmith emits LOD data for the chunks it generates, a tristate, not a boolean.
+     * The default is {@link LodMode#AUTO}, on when an LOD renderer (Distant Horizons, voxy, or a voxy
+     * fork) is present in the JVM, and always on a dedicated server, which exists to serve the store to
+     * Chunksmith-Client players. An explicit {@code true} or {@code false} is an operator decision and is
+     * NEVER overridden.
      * The resolution lives in {@code LodSupport}, which has the loader's mod-loaded check and the running
      * server.
      */
     LodMode getLodMode();
 
     /**
-     * Max items queued in the LOD sink before the throttle backs off dispatch. 0 disables. Voxy's ingest
-     * queue is unbounded and its ingest call never reports saturation, so without this governor a fast
+     * Returns the max items queued in the LOD sink before the throttle backs off dispatch. 0 disables.
+     * Voxy's ingest queue is unbounded and its ingest call never reports saturation, so without this governor a fast
      * pregen can outrun LOD ingestion and drive the heap into an OOM.
      */
     long getThrottleMaxLodQueue();
 
     /**
-     * How many chunk requests Chunksmith keeps in flight at once: the pipeline's width, and on a healthy
-     * server what actually sets the rate. A chunk request spends almost all of its life waiting: vanilla
+     * How many chunk requests Chunksmith keeps in flight at once, the pipeline's width, and on a healthy
+     * server what actually sets the rate. A chunk request spends almost all of its life waiting, because vanilla
      * walks it up through its generation statuses roughly a hop per tick, so per-chunk latency runs over a
      * second even when nothing is busy. Measured on a dedicated server at 40 percent CPU across 8 cores,
      * with the server thread spending 0.2ms of a 25ms allowance on us, dispatch was pinned at its cap for
@@ -161,22 +163,22 @@ public interface Config {
      */
     long getPregenSettleMaxHeld();
 
-    /** Turn the settle window on or off, and persist it: a run may outlive several restarts. */
+    /** Turns the settle window on or off, and persists it, since a run may outlive several restarts. */
     void setPregenSettleEnabled(boolean enabled);
 
-    /** Set the post-neighbourhood delay in ticks and persist it, clamped to the range the getter enforces. */
+    /** Sets the post-neighbourhood delay in ticks and persists it, clamped to the range the getter enforces. */
     void setPregenSettleDelayTicks(long ticks);
 
-    /** Set the settle sweep radius in chunks and persist it. Clamped like the other settle setters. */
+    /** Sets the settle sweep radius in chunks and persists it. Clamped like the other settle setters. */
     void setPregenSettleRadius(int radius);
 
-    /** Set the settle frontier cap and persist it. Clamped like the other settle setters. */
+    /** Sets the settle frontier cap and persists it. Clamped like the other settle setters. */
     void setPregenSettleMaxHeld(long maxHeld);
 
     /**
-     * Whether this platform can honour the settle settings at all. False on Bukkit, which does not manage
-     * chunk tickets itself: there is nothing to hold open, so the setting would be a lie rather than a
-     * no-op, and the command reports that instead of pretending to have set something.
+     * Returns whether this platform can honour the settle settings at all. False on Bukkit, which does not
+     * manage chunk tickets itself. There is nothing to hold open, so the setting would be a lie rather
+     * than a no-op, and the command reports that instead of pretending to have set something.
      */
     default boolean isPregenSettleSupported() {
         return true;
@@ -190,7 +192,7 @@ public interface Config {
     boolean isLodDhOverrideEnabled();
 
     /**
-     * The TCP port the LOD backchannel binds, or 0 to derive it from the game port.
+     * Returns the TCP port the LOD backchannel binds, or 0 to derive it from the game port.
      *
      * <p>0 means {@code gamePort + 1}, right on a machine you control and wrong on a managed host, which
      * hands out a fixed set of ports and will not give you the one adjacent to your game port; before this
@@ -237,8 +239,9 @@ public interface Config {
     void setLodDhOverrideEnabled(boolean enabled);
 
     /**
-     * Set the backchannel port and persist it; 0 restores the derived {@code gamePort + 1}. Persisting is
-     * the point -- a port re-applied after every restart would not solve the problem this key exists for.
+     * Sets the backchannel port and persists it; 0 restores the derived {@code gamePort + 1}. Persisting
+     * is the point, because a port re-applied after every restart would not solve the problem this key
+     * exists for.
      */
     void setLodBackchannelPort(int port);
 

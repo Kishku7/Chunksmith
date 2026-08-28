@@ -183,7 +183,7 @@ public class CsLodPortResolutionTest {
     /**
      * A Config that records only what this test cares about.
      *
-     * <p>A proxy rather than a hand-written stub: Config carries around forty methods and none of
+     * <p>A proxy rather than a hand-written stub. Config carries around forty methods and none of
      * the other thirty-nine have anything to do with a port, so implementing them would be noise
      * that has to be maintained every time the interface grows.
      *

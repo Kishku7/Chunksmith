@@ -37,7 +37,12 @@ public final class CsLodExtractor {
     private CsLodExtractor() {
     }
 
-    /** Extract, or null if the world has no vertical extent worth storing (should not happen). */
+    /**
+     * Returns the extracted chunk, or null if the world has no vertical extent worth storing
+     * (should not happen).
+     *
+     * @return the extracted chunk, or null
+     */
     public static CsLodChunk extract(World world, Chunk chunk) {
         ChunkSnapshot snap = chunk.getChunkSnapshot(true, true, false);
         int minY = world.getMinHeight();

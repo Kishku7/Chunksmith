@@ -82,7 +82,7 @@ public class Version implements Comparable<Version> {
     }
 
     /**
-     * {@code major.minor.patch}, or {@code invalid} for {@link #INVALID}.
+     * Returns {@code major.minor.patch}, or {@code invalid} for {@link #INVALID}.
      *
      * <p>A value class with equals and hashCode and no toString is a trap: the first thing that
      * renders one prints an object identity instead. {@code /cs status} did exactly that on a

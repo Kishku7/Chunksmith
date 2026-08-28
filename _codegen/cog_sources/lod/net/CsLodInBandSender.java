@@ -42,7 +42,7 @@ public final class CsLodInBandSender {
     }
 
     /**
-     * Queue a set of regions for a player. Replaces anything already queued for them.
+     * Queues a set of regions for a player. Replaces anything already queued for them.
      *
      * <p>Nothing is read here beyond the file list; the bytes are pulled a slice at a time in
      * {@link #tick}, straight off disk. The obvious implementation, slurping every wanted region with
@@ -103,7 +103,7 @@ public final class CsLodInBandSender {
         transfer.close();
     }
 
-    /** The status line's count of region files still to send across all players. */
+    /** Returns the status line's count of region files still to send across all players. */
     public static int pending() {
         return TRANSFERS.values().stream().mapToInt(Transfer::remaining).sum();
     }
@@ -130,7 +130,11 @@ public final class CsLodInBandSender {
             this.pending = pending;
         }
 
-        /** Send at most one slice. Returns false when there is nothing left to send. */
+        /**
+         * Sends at most one slice.
+         *
+         * @return false when there is nothing left to send
+         */
         private boolean sendNext(ServerPlayer player) throws IOException {
             if (this.in == null) {
                 this.current = this.pending.poll();

@@ -70,7 +70,7 @@ public final class ClientPlatform {
     }
 
     /**
-     * Run once the client is far enough up to talk to other mods' APIs.
+     * Runs an action once the client is far enough up to talk to other mods' APIs.
      *
      * <p>not the {@code @Mod} constructor. NeoForge constructs mods in dependency order, and Distant
      * Horizons is a soft dependency we deliberately do not declare a load order against, so our
@@ -82,12 +82,15 @@ public final class ClientPlatform {
         modBus.addListener(FMLClientSetupEvent.class, event -> event.enqueueWork(action));
     }
 
-    /** Install the client sink. The payload itself was registered once, by {@code CsLodChannel}. */
+    /** Installs the client sink. The payload itself was registered once, by {@code CsLodChannel}. */
     public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         CsLodChannel.setClientSink(onPayload);
     }
 
-    /** Silently does nothing on the many servers that do not speak our channel. */
+    /**
+     * Sends raw protocol bytes to the connected server. Silently does nothing on the many servers that do not
+     * speak our channel.
+     */
     public static void sendToServer(byte[] data) {
         ClientPacketListener connection = Minecraft.getInstance().getConnection();
         if (connection != null && NetworkRegistry.hasChannel(connection, CsLodChannel.Payload.TYPE.id())) {

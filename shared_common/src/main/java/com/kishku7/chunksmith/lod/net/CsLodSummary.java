@@ -27,21 +27,21 @@ public final class CsLodSummary {
         public static final Snapshot EMPTY = new Snapshot(0, 0L);
     }
 
-    /** Fold one region into a running aggregate; start from 0. */
+    /** Folds one region into a running aggregate; start from 0. */
     public static long fold(long aggregate, int regionX, int regionZ, long hash) {
         return aggregate ^ token(regionX, regionZ, hash);
     }
 
     /**
-     * The per-region contribution: (x, z, hash) avalanched into 64 bits so every field participates in
-     * every output bit. Change any of the three and this number is unrelated to what it was.
+     * Returns the per-region contribution, with (x, z, hash) avalanched into 64 bits so every field
+     * participates in every output bit. Change any of the three and this number is unrelated to what it was.
      */
     public static long token(int regionX, int regionZ, long hash) {
         long packed = ((long) regionX << 32) ^ (regionZ & 0xFFFFFFFFL);
         return mix(mix(packed) ^ (hash * 0x9E3779B97F4A7C15L));
     }
 
-    /** SplitMix64's finalizer -- the same avalanche {@link CsLodRegionHash} uses, for the same reason. */
+    /** SplitMix64's finalizer, the same avalanche {@link CsLodRegionHash} uses, for the same reason. */
     private static long mix(long value) {
         long z = value + 0x9E3779B97F4A7C15L;
         z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;

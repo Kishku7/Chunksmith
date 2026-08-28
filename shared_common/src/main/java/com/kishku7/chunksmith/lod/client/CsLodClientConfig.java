@@ -98,7 +98,7 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Read the config, writing it with defaults if it is not there yet. Every failure mode ends at the
+     * Reads the config, writing it with defaults if it is not there yet. Every failure mode ends at the
      * default (an unreadable file, a missing key, a value that is not a number) because a config
      * problem must never be the reason a player gets no terrain.
      *
@@ -179,7 +179,7 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Set the sync interval and save it. Clamped on write as well as on read, so the file can never hold a
+     * Sets the sync interval and saves it. Clamped on write as well as on read, so the file can never hold a
      * number the client would refuse to honour.
      *
      * @return the value actually stored, which is what the command reports rather than echoing the input
@@ -190,18 +190,18 @@ public final class CsLodClientConfig {
         return syncSeconds;
     }
 
-    /** Set the one-shot re-injection switch and save it. See {@link #KEY_REINJECT}. */
+    /** Sets the one-shot re-injection switch and saves it. See {@link #KEY_REINJECT}. */
     public static synchronized void setReinjectOnJoin(boolean value) {
         reinject = value;
         save();
     }
 
-    /** The floor, applied to any value from any source. Public so the unit test asserts the same function. */
+    /** Returns the value with the floor applied. Public so the unit test asserts the same function. */
     public static int clamp(int seconds) {
         return Math.max(MIN_SYNC_SECONDS, seconds);
     }
 
-    /** Test seam: set the interval directly, as though it had been read from a file. */
+    /** Sets the interval directly, as though it had been read from a file. Test seam. */
     static void setForTesting(int seconds) {
         syncSeconds = clamp(seconds);
         loaded = true;
@@ -212,7 +212,7 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Write the values currently in force, not the defaults. A failure is swallowed: the value is already
+     * Writes the values currently in force, not the defaults. A failure is swallowed, since the value is
      * in effect in memory, and a player who cannot write their own config directory has a bigger problem.
      */
     private static void save() {

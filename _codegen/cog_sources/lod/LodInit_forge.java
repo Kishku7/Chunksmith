@@ -38,7 +38,7 @@ public final class LodInit {
     }
 
     /**
-     * Bind Distant Horizons at the last point before it reports its levels: {@code ServerAboutToStartEvent}
+     * Binds Distant Horizons at the last point before it reports its levels. {@code ServerAboutToStartEvent}
      * fires BEFORE {@code initServer()}, so before {@code createLevels()} and therefore before DH's
      * level-load event. {@code ServerStartedEvent} would already be too late to override its generator.
      */
@@ -66,7 +66,7 @@ public final class LodInit {
         //[[[end]]]
     }
 
-    /** The HTTP backchannel binds once the server is up and its port is known. */
+    /** Binds the HTTP backchannel once the server is up and its port is known. */
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
         warnOnConflicts();

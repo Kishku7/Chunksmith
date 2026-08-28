@@ -199,7 +199,7 @@ public class CsLodPresenceIndexTest {
 
     // ------------------------------------------------------------------ helpers
 
-    /** Smallest valid record: the contents are irrelevant here; only the header slot matters. */
+    /** Returns the smallest valid record. The contents are irrelevant here; only the header slot matters. */
     private static CsLodChunk sample(int chunkX, int chunkZ) {
         CsLodChunk.Section uniform =
                 new CsLodChunk.Section(null, 0, null, 0, null, 15, null, 0);
