@@ -10,10 +10,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The settle window -- and the bug it exists to fix (mod_support #14).
+ * The settle window and the bug it exists to fix (mod_support #14).
  *
  * <p>A pregen dropped each chunk's ticket the instant generation finished, so a mod that reacts to a new
- * chunk on a later tick found the chunk and its neighbours already unloaded -- see
+ * chunk on a later tick found the chunk and its neighbours already unloaded; see
  * {@link ChunkSettleWindow} for the mod, the version and the counts.
  *
  * <p>The rule under test is spatial, and the two directions matter equally: a chunk must not be released
@@ -65,7 +65,7 @@ public class ChunkSettleWindowTest {
         }
 
         assertTrue("the centre is complete", rec.has(0, 0));
-        // The eight around it are still on the frontier -- each is missing neighbours of its own.
+        // The eight around it are still on the frontier because each is missing neighbours of its own.
         assertFalse(rec.has(1, 1));
         assertEquals(8, window.heldCount());
     }

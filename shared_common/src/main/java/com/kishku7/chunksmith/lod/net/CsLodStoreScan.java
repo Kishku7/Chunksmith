@@ -16,8 +16,8 @@ import java.util.List;
  * report).
  *
  * <p>Also the transition detector behind the store-availability notice: a player who joined before the
- * pregen ran got an empty dimension list and stood down for the whole session. Poll this -- cheaply, and
- * only while somebody is waiting -- and the moment the first region lands we can tell them.
+ * pregen ran got an empty dimension list and stood down for the whole session. Poll this (cheaply, and
+ * only while somebody is waiting) and the moment the first region lands we can tell them.
  */
 public final class CsLodStoreScan {
 
@@ -29,8 +29,8 @@ public final class CsLodStoreScan {
      *
      * <p>The store keeps the file open and appends to it as chunks complete, rewriting header slots as
      * it goes, so a snapshot taken mid-write has slots pointing past the end of the file. A client that
-     * downloads one recovers -- it takes the chunks that are there and re-fetches later, because the
-     * hash will have moved on -- but it logs an EOF on the way and it got a fraction of the region.
+     * downloads one recovers: it takes the chunks that are there and re-fetches later, because the
+     * hash will have moved on, but it logs an EOF on the way and it got a fraction of the region.
      * Latent until the store-availability notice started looking at the store during a pregen.
      *
      * <p>A region is a thousand chunks and takes far longer than ten seconds to write, so a file that
@@ -43,7 +43,7 @@ public final class CsLodStoreScan {
     }
 
     /**
-     * Is this region file finished -- has the writer left it alone long enough that what we would hand a
+     * Is this region file finished? Has the writer left it alone long enough that what we would hand a
      * client is what is actually in it? A file we cannot stat is treated as not settled.
      */
     public static boolean isSettled(Path file, long nowMillis) {

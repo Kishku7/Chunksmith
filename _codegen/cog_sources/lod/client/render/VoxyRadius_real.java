@@ -6,7 +6,7 @@ import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 import me.cortex.voxy.client.config.VoxyConfig;
 
 /**
- * Reads voxy's configured render distance -- upstream's, or any fork's.
+ * Reads the render distance voxy is configured for, upstream's or any fork's.
  *
  * <p>voxy stores this as {@code VoxyConfig.CONFIG.sectionRenderDistance}, in voxy sections: one section
  * is 32 chunks = 512 blocks. Confirmed three ways in voxy 0.2.16-beta itself, not assumed:
@@ -22,21 +22,21 @@ import me.cortex.voxy.client.config.VoxyConfig;
  * type drifts across forks and a compiled field access does not survive it. Upstream declares
  * {@code float sectionRenderDistance}; the srjefers fork (rebased off voxy 0.2.8-alpha, which used an
  * int) ships {@code public int sectionRenderDistance}, and our compiled {@code getfield ...:F} does not
- * resolve against an {@code I} field. The JVM throws {@code NoSuchFieldError} -- which the old
+ * resolve against an {@code I} field. The JVM throws {@code NoSuchFieldError}, which the old
  * {@code catch (LinkageError)} here swallowed, dropping the player's radius from 8192 blocks to 256 and
  * reporting that as success. A 32x collapse, proven on the srjefers jar itself rather than reasoned
  * about. The field is now read by name as whatever numeric type it is, and a field we cannot read is
  * announced ({@link LodWarnings}).
  *
  * <p><b>Never call this during mod init.</b> Class-loading {@link VoxyConfig} from our client-init
- * entrypoint leaves voxy permanently inert -- it never logs "Initializing voxy instance", never creates
+ * entrypoint leaves voxy permanently inert. It never logs "Initializing voxy instance", never creates
  * its render system, never ingests anything, and never says why. Proved by control run: same fixture, our
  * jar removed, voxy works. Call this only from the join handshake or later. Reflection does not change
  * this: looking a field up still initializes the class that declares it.
  *
  * <p>{@code VoxyConfig.isRenderingEnabled()} is not a usable gate either. It delegates to
  * {@code VoxyCommon.isAvailable()}, which tests a {@code FACTORY} field only assigned at
- * {@code RenderSystem.initRenderer} return -- so it reads false on any thread that asks too early and we
+ * {@code RenderSystem.initRenderer} return, so it reads false on any thread that asks too early and we
  * would silently fall back to the 256-block default with voxy sitting right there.
  */
 public final class VoxyRadius {

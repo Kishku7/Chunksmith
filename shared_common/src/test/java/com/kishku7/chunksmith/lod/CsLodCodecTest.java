@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNull;
  * bug would surface only as corrupt terrain on somebody else's screen.
  *
  * <p>Both shapes of section are exercised on purpose: the dense one (explicit per-voxel arrays) and the
- * uniform one (a single palette index standing in for 4096 voxels) -- the uniform path is what makes
+ * uniform one (a single palette index standing in for 4096 voxels). The uniform path is what makes
  * carrying light to the build ceiling affordable, and it is the one with something to get wrong.
  */
 public class CsLodCodecTest {
@@ -40,7 +40,7 @@ public class CsLodCodecTest {
     public void regionStoreReadsBackWhatItWrote() throws Exception {
         final Path root = Files.createTempDirectory("cslod-test");
         try {
-            // Two chunks in the same region file, one of them at a negative coordinate -- the region/chunk
+            // Two chunks in the same region file, one of them at a negative coordinate: the region/chunk
             // index arithmetic is where an off-by-one would hide.
             final CsLodChunk first = sample("minecraft:overworld", 0, 0);
             final CsLodChunk second = sample("minecraft:overworld", -1, 5);

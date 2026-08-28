@@ -16,7 +16,7 @@ public final class DhRadius {
             }
             return chunks * 16;
         } catch (LinkageError e) {
-            // A LinkageError is NOT "DH is not up yet" -- it means the DH that IS installed does not have
+            // A LinkageError is NOT "DH is not up yet". It means the DH that IS installed does not have
             // the config API we compiled against. This is the other first-contact call into DH (alongside
             // DhTarget.inject's overwriteChunkDataAsync), so it is where that mismatch surfaces. Rule DH
             // out for the session -- loudly, once -- and let voxy carry on.

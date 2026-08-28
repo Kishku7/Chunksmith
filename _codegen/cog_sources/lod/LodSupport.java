@@ -22,13 +22,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>Gates, in order:
  * <ol>
- *   <li><b>{@code lodEnabled} -- a tristate, default {@code auto}.</b> See {@link #decide}; the decision
+ *   <li><b>{@code lodEnabled}: a tristate, default {@code auto}.</b> See {@link #decide}; the decision
  *       is logged once, at server start, by {@link #announce(MinecraftServer)}.</li>
- *   <li><b>CSLOD store</b> -- always on when LOD is enabled. The durable, mod-independent artifact: it
+ *   <li><b>CSLOD store</b>: always on when LOD is enabled. The durable, mod-independent artifact: it
  *       outlives voxy's storage format, and it is what feeds Distant Horizons and remote clients.</li>
- *   <li><b>voxy</b> -- only where a voxy jar exists to compile against and voxy is actually installed:
+ *   <li><b>voxy</b>: only where a voxy jar exists to compile against and voxy is actually installed:
  *       Fabric 1.21.11 and Fabric 26 only. voxy is Fabric-only and was never published for 1.20.1 or
- *       1.21.1, so every other cell carries the store path alone -- which is what a dedicated server
+ *       1.21.1, so every other cell carries the store path alone, which is what a dedicated server
  *       needs anyway, voxy's engine being client-side.</li>
  * </ol>
  *
@@ -51,7 +51,7 @@ public final class LodSupport {
     }
 
     /**
-     * Publish the CSLOD presence provider, so the pregen's skip decision can see the store -- the whole
+     * Publish the CSLOD presence provider, so the pregen's skip decision can see the store: the whole
      * wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in shared_common and cannot see
      * this class; it asks {@link LodPresence}, and this is what answers.
      */
@@ -75,7 +75,7 @@ public final class LodSupport {
         return PRESENCE.computeIfAbsent(worldName, ignored -> new CsLodPresenceIndex(storeRoot(level)));
     }
 
-    /** The level whose dimension id matches -- the same string {@code World.getName()} returns. */
+    /** The level whose dimension id matches the string {@code World.getName()} returns. */
     private static ServerLevel levelByName(MinecraftServer server, String worldName) {
         for (ServerLevel level : server.getAllLevels()) {
             if (dimensionId(level).equals(worldName)) {
@@ -175,21 +175,21 @@ public final class LodSupport {
     }
 
     /**
-     * {@code <world>/chunksmith/lod} -- the store root. The backchannel serves this tree and nothing else,
+     * {@code <world>/chunksmith/lod}: the store root. The backchannel serves this tree and nothing else,
      * so it is the boundary every request path is canonicalized against.
      */
     public static Path storeRootBase(MinecraftServer server) {
         return server.getWorldPath(LevelResource.ROOT).resolve("chunksmith").resolve("lod").normalize();
     }
 
-    /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; we never touch voxy's or DH's store. */
+    /** {@code <world>/chunksmith/lod/<dim>}: our own tree; we never touch voxy's or DH's store. */
     public static Path storeRoot(ServerLevel level) {
         final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
         return worldRoot.resolve("chunksmith").resolve("lod").resolve(dimensionKey(level)).normalize();
     }
 
     /**
-     * The store directory name for a level -- and the name that goes on the wire: this server's store
+     * The store directory name for a level, and the name that goes on the wire: this server's store
      * directory, the dimension field of the region index, the client's own store directory, and the key
      * the client's injector checks the level against. Derived in one place so the two sides cannot
      * disagree.
@@ -226,10 +226,10 @@ public final class LodSupport {
      * Mod ids that mean "something in this JVM can draw an LOD". Read out of the published jars and fork
      * sources themselves, not off a wiki:
      * <ul>
-     *   <li>{@code distanthorizons} -- all loaders, every MC line we ship LOD on.</li>
-     *   <li>{@code voxy} -- upstream voxy and five of the six known forks (m3t4f1v3, j-shelfwood,
+     *   <li>{@code distanthorizons}: all loaders, every MC line we ship LOD on.</li>
+     *   <li>{@code voxy}: upstream voxy and five of the six known forks (m3t4f1v3, j-shelfwood,
      *       realBritakee, JustinTHChapman, NHblock714), every one of which keeps the upstream mod id.</li>
-     *   <li>{@code neovoxy} -- the one fork that renamed itself (meansabine/neo-voxy).</li>
+     *   <li>{@code neovoxy}: the one fork that renamed itself (meansabine/neo-voxy).</li>
      * </ul>
      */
     private static final String[] RENDERER_IDS = {"distanthorizons", "voxy", "neovoxy"};
@@ -272,7 +272,7 @@ public final class LodSupport {
      * <p>The wall-clock cost was quoted here as ~16 percent until it was re-measured on a dedicated server
      * on 2026-08-20. That date is the one thing that matters about the number: the measurement supersedes
      * the old figure, and any claim about LOD cost older than it is stale. 36.1 cps with LOD on against
-     * 34.2 cps with it off over matched windows -- no measurable difference, and the OFF run was slightly
+     * 34.2 cps with it off over matched windows: no measurable difference, and the OFF run was slightly
      * slower, which is terrain noise. Extraction runs on the server thread, and once dispatch width was
      * raised the server thread stopped being the bottleneck: it profiled at ~10 percent utilised, with
      * extraction 70 percent of that. Re-measure before putting a scary number back.
@@ -322,12 +322,12 @@ public final class LodSupport {
             return;
         }
         if (found != null) {
-            LOGGER.info("Chunksmith: LOD generation auto-enabled -- detected {}. "
+            LOGGER.info("Chunksmith: detected {}, so LOD generation is auto-enabled. "
                             + "Pregen will build the CSLOD store (~5.8 KB/chunk; measured cost to pregen speed: none). "
                             + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.",
                     found);
         } else if (server != null && server.isDedicatedServer()) {
-            LOGGER.info("Chunksmith: LOD generation auto-enabled -- dedicated server. No renderer runs "
+            LOGGER.info("Chunksmith: LOD generation auto-enabled (dedicated server). No renderer runs "
                     + "here, but the CSLOD store is what Chunksmith-Client downloads, so the store is "
                     + "built (~5.8 KB/chunk; measured cost to pregen speed: none). "
                     + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.");

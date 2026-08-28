@@ -38,7 +38,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p>COG DRIFT: structure-key type ResourceLocation (&lt;=1.21.10) vs Identifier (1.21.11/26);
  * ChunkPos x/z as fields (&lt;=1.21.10) vs methods x()/z(); and registryOrThrow (&lt;=1.21.1) vs
- * lookupOrThrow (&gt;=1.21.4) -- the name must switch because on the older lines lookupOrThrow
+ * lookupOrThrow (&gt;=1.21.4). The name must switch because on the older lines lookupOrThrow
  * returns a RegistryLookup, not a Registry. All Cog-emitted.
  */
 @Mixin(StructureStart.class)

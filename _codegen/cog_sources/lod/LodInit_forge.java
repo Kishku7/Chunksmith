@@ -13,7 +13,7 @@ import net.minecraftforge.fml.ModList;
 import org.slf4j.LoggerFactory;
 
 /**
- * The classic-Forge LOD entrypoint (MC 1.20.1 / Forge 47) -- everything LOD, and nothing else.
+ * The classic-Forge LOD entrypoint (MC 1.20.1 / Forge 47): everything LOD, and nothing else.
  *
  * <p>A GAME-bus {@code @Mod.EventBusSubscriber} rather than a hook inside {@code ChunksmithForge}: FML
  * registers every subscriber automatically, so a cell without the LOD feature simply does not ship this
@@ -80,7 +80,7 @@ public final class LodInit {
 
     /**
      * The LOD-streamer conflict check, done at runtime on this cell only: Forge 47's {@code mods.toml} has
-     * no incompatible dependency type -- only {@code mandatory = true|false} -- so the incompatibility every
+     * no incompatible dependency type (only {@code mandatory = true|false}), so the incompatibility every
      * other cell declares in its manifest (Fabric {@code breaks}, NeoForge {@code type = "incompatible"})
      * is not expressible here and has to be surfaced in the log instead.
      */
@@ -93,14 +93,14 @@ public final class LodInit {
                                 + "database: duplicated downloads and corrupted renderer state. Remove one.");
             }
         }
-        // The standalone Chunksmith-Client, DISCONTINUED at 3.1.0 -- its multiplayer LOD half IS this jar
+        // The standalone Chunksmith-Client, DISCONTINUED at 3.1.0; its multiplayer LOD half IS this jar
         // now. Both register the chunksmith:lod channel, so having both is a duplicate registration.
         if (ModList.get().isLoaded("chunksmithclient")) {
             LoggerFactory.getLogger("Chunksmith").error(
                     "Chunksmith-Client is installed alongside Chunksmith 3.1.0+. It is DISCONTINUED: its "
                             + "multiplayer LOD feature is now built into Chunksmith itself, and running both "
                             + "means two mods registering the same 'chunksmith:lod' channel. Remove the "
-                            + "Chunksmith-Client jar -- you lose nothing.");
+                            + "Chunksmith-Client jar; you lose nothing.");
         }
     }
 

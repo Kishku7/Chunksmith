@@ -149,7 +149,7 @@ public class ChunkResidencyTest {
         ChunkResidency.noteTaskEnd(T0 + 2_000L);
         ChunkResidency.noteDrainBudget(false);
 
-        // Two full minutes of no movement -- but it was never given a budget, so "it will not move"
+        // Two full minutes of no movement, but it was never given a budget, so "it will not move"
         // is not a conclusion anybody is entitled to draw.
         for (long dt = 3_000L; dt <= 123_000L; dt += 5_000L) {
             ChunkResidency.report(45_000L, T0 + dt);
@@ -223,7 +223,7 @@ public class ChunkResidencyTest {
         ChunkResidency.report(1_000L);
         ChunkResidency.noteTaskStart();
         final String snapshot = ChunkResidency.describe();
-        assertFalse("no literal % may appear -- see the class javadoc", snapshot.contains("%"));
+        assertFalse("no literal % may appear; see the class javadoc", snapshot.contains("%"));
         // The real proof: it survives the thing that actually happens to it.
         assertTrue(String.format(snapshot).length() > 0);
     }

@@ -53,7 +53,7 @@ public class VoxyConfigReaderTest {
         public long sectionRenderDistance = 16L;
     }
 
-    /** A fork that renamed or removed the field entirely -- the loud case. */
+    /** A fork that renamed or removed the field entirely: the loud case. */
     public static final class NoFieldConfig {
         public boolean enabled = true;
         public boolean enableRendering = true;
@@ -71,7 +71,7 @@ public class VoxyConfigReaderTest {
         public float sectionRenderDistance = 16.0f;
     }
 
-    /** The player switched voxy's renderer off. A legitimate 0 -- and a QUIET one. */
+    /** The player switched voxy's renderer off. A legitimate 0 and a QUIET one. */
     public static final class RenderingOffConfig {
         public boolean enabled = true;
         public boolean enableRendering = false;
@@ -138,7 +138,7 @@ public class VoxyConfigReaderTest {
     public void warnsOnlyOnce() {
         VoxyConfigReader.radiusBlocks(new NoFieldConfig());
         assertTrue(LodWarnings.saidAlready("voxy-render-distance-field"));
-        // Second call must not re-warn -- once() is the contract; a per-chunk warning would bury the log.
+        // Second call must not re-warn: once() is the contract; a per-chunk warning would bury the log.
         LodWarnings.reset();
         assertFalse(LodWarnings.saidAlready("voxy-render-distance-field"));
     }

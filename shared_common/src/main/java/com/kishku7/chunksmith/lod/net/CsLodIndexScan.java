@@ -15,23 +15,23 @@ import java.util.List;
  * <p>The mod loaders and the Bukkit/Paper plugin need the same answer, and only the reading of a
  * player's position and dimension ever differed. The plugin grew an index responder for mod_support #18, and copying the scan out
  * of the mod's {@code CsLodServerNet} would have created two definitions of "in range" that must agree
- * forever with no test that they do -- they would drift, and the symptom would be a client fetching the
+ * forever with no test that they do: they would drift, and the symptom would be a client fetching the
  * wrong regions on one platform only.
  *
  * <p><b>The consistency rule this file inherits.</b> The full index and the periodic sync summary are
  * computed over the same set. If they were not, an idle poll would find a difference, pull a full index,
  * discover nothing to fetch, and do it all again on the next interval, forever. So there is one scan, and a
- * summary is that scan folded to two numbers -- never a second, cheaper walk.
+ * summary is that scan folded to two numbers, never a second, cheaper walk.
  *
  * <p>Per region, cheapest test first: the name must parse as one of ours ({@code r.<x>.<z>.cslod}, a string
- * test); it must be {@link #inRange} of the player (integer arithmetic -- doing this before the stat is the
+ * test); it must be {@link #inRange} of the player (integer arithmetic; doing this before the stat is the
  * difference between statting 81 files and statting all 340); one {@code readAttributes} gives mtime and
  * size together, one {@code statx} rather than two; and it must be settled, because a region the pregen is
  * still appending to has header slots pointing past the end of what a client would receive (ten seconds
  * untouched, see {@link CsLodStoreScan}).
  *
  * <p>Then sorted nearest first and truncated to the caps. Sorting is what makes the truncation
- * deterministic -- {@code Files.list} order is whatever the filesystem says, so an un-sorted cap would
+ * deterministic: {@code Files.list} order is whatever the filesystem says, so an un-sorted cap would
  * return a different subset on each call and the summary would never match the index.
  */
 public final class CsLodIndexScan {
@@ -116,7 +116,7 @@ public final class CsLodIndexScan {
                 if (!attrs.isRegularFile()) {
                     continue;
                 }
-                // A file we cannot vouch for is a file we do not serve -- the same rule as
+                // A file we cannot vouch for is a file we do not serve, the same rule as
                 // CsLodStoreScan, answered from attributes we already have rather than a second stat.
                 if (nowMillis - attrs.lastModifiedTime().toMillis() < CsLodStoreScan.SETTLE_MILLIS) {
                     continue;
@@ -145,7 +145,7 @@ public final class CsLodIndexScan {
         return aggregate;
     }
 
-    /** Apply both caps -- the region count and the byte budget -- to a nearest-first list. */
+    /** Apply both caps (the region count and the byte budget) to a nearest-first list. */
     private static Result cap(List<CsLodMessages.RegionEntry> found) {
         long bytes = 0L;
         for (int i = 0; i < found.size(); i++) {

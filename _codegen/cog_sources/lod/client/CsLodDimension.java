@@ -6,8 +6,8 @@ import net.minecraft.world.level.Level;
 /**
  * This one string is the whole address of a CSLOD record. A region coordinate on its own is meaningless:
  * region (0,0) exists in the overworld, in the Nether and in the End, and they are three different places.
- * Every read, every write and every injection is scoped by this key -- {@code chunksmith/lod/&lt;server&gt;/
- * &lt;dimension&gt;/r.x.z.cslod} -- and getting it wrong does not fail, it succeeds against the wrong world.
+ * Every read, every write and every injection is scoped by this key ({@code chunksmith/lod/&lt;server&gt;/
+ * &lt;dimension&gt;/r.x.z.cslod}), and getting it wrong does not fail, it succeeds against the wrong world.
  *
  * <p>3.1.0-beta-2's client took the dimension from the first entry of the server's hello list and never
  * looked at it again, so a player who walked through a Nether portal kept pulling the overworld's records
@@ -27,7 +27,7 @@ public final class CsLodDimension {
 
     /**
      * The key for the level the player is in right now, or {@code ""} when no level is loaded (during a
-     * dimension change there is a window where there is no level at all -- callers must treat "" as
+     * dimension change there is a window where there is no level at all; callers must treat "" as
      * "ask me again next tick", never as a dimension).
      */
     public static String current() {

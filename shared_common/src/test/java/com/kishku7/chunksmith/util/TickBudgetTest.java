@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
  *
  * <p>The failure these exist to prevent is specific and was seen in production: a server whose idle
  * tick cost already equalled the configured target, where an absolute-target throttle could never
- * observe a healthy tick, pinned dispatch at its floor and throttled a run to 2 chunks/sec -- for
+ * observe a healthy tick, pinned dispatch at its floor and throttled a run to 2 chunks/sec; for
  * 10 ms of load it was causing out of 85.
  */
 public class TickBudgetTest {
@@ -44,7 +44,7 @@ public class TickBudgetTest {
 
     @Test
     public void firstSampleIsNotSwallowedByInit() {
-        // 3.9.0 reset on a player-count change and returned, and lastPlayerCount starts at -1 -- so
+        // 3.9.0 reset on a player-count change and returned, and lastPlayerCount starts at -1. So
         // the first call of every run was discarded. That call is also the only moment a run has
         // nothing in flight, so the baseline could never be learned and the throttle silently fell
         // back to its absolute target, pinned at 2/50.
@@ -102,7 +102,7 @@ public class TickBudgetTest {
     @Test
     public void allowanceIsClamped() {
         // Live failure: the allowance is twice our cost, and a pre-gen pushes until it reaches its
-        // allowance -- so cost chased allowance chased cost. TickBudget#MAX_ALLOWANCE_FACTOR has the
+        // allowance: cost chased allowance chased cost. TickBudget#MAX_ALLOWANCE_FACTOR has the
         // numbers; this is the clamp that stops it.
         settle(50.0D, false, 0, 60);
         settle(500.0D, true, 0, 400);   // a preposterous measured cost
@@ -147,7 +147,7 @@ public class TickBudgetTest {
         assertTrue(TickBudget.ourCost() > 0.0D);
 
         // Somebody joined and the server now costs 90. The learned values must be discarded and the
-        // new reading taken at face value -- not blended with the old one, which would leave the
+        // new reading taken at face value, not blended with the old one, which would leave the
         // throttle steering by a number from before the join for many seconds.
         TickBudget.sample(90.0D, false, 1);
         assertEquals("a step change is adopted whole",
@@ -166,7 +166,7 @@ public class TickBudgetTest {
     @Test
     public void theBaselineIsRemeasuredPeriodically() {
         // Live failure: the baseline read 50.2ms for fifteen minutes while the server's real cost
-        // climbed past 125ms, so the whole increase was attributed to us -- ourCost "measured" 76.4ms
+        // climbed past 125ms, so the whole increase was attributed to us. ourCost "measured" 76.4ms
         // against a true ~16ms and the throttle collapsed to 1/50 on a number that was long stale.
         final long t0 = 1_000_000L;
         assertFalse("no probe on the very first call", TickBudget.shouldProbe(t0));
@@ -187,7 +187,7 @@ public class TickBudgetTest {
     public void momentaryGapIsNotABaseline() {
         // The failure TickBudget#IDLE_TICKS_BEFORE_TRUSTED exists for. "Nothing in flight" is true for
         // a tick or two between one chunk landing and the next dispatching, and that tick is still
-        // paying for the chunk that just landed -- its save, its unload, the GC of what it allocated.
+        // paying for the chunk that just landed: its save, its unload, the GC of what it allocated.
         // Sampled, it teaches the baseline our own aftermath and bills the server for it.
         settle(50.0D, false, 0, 60);
         assertEquals(50.0D, TickBudget.baseline(), 0.5D);

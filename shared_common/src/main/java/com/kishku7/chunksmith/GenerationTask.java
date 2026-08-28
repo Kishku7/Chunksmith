@@ -58,18 +58,18 @@ public class GenerationTask implements Runnable {
      *
      * <p>The sample window starts empty, so the first few updates divide a handful of chunks by a
      * fraction of a second and publish a number in the thousands. It then decays toward the real
-     * rate as the window fills -- which reads, to anyone watching, as the pre-gen getting slower
+     * rate as the window fills. To anyone watching, that reads as the pre-gen getting slower
      * and slower. It is not: it is an average converging after starting from a fiction. Measured
      * on a resumed selection: 7310 cps in the first update against a true 39 cps.
      *
-     * <p>Five seconds costs nothing once a run is underway -- the window is 30 seconds, so this
+     * <p>Five seconds costs nothing once a run is underway: the window is 30 seconds, so this
      * floor only ever bites at the very start, which is exactly where the lie was.
      */
     private static final double RATE_MIN_WINDOW_SECONDS = 5.0d;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
     // How long the LOD summary waits for the last in-flight chunks to land before reporting.
     private static final long DRAIN_TIMEOUT_MS = 60_000L;
-    // Post-run proof that "generated" meant something -- see verifyGeneratedSample().
+    // Post-run proof that "generated" meant something; see verifyGeneratedSample().
     private static final int VERIFY_SAMPLE_MAX = 32;
     private static final long VERIFY_TIMEOUT_MS = 15_000L;
     // How long to let the chunk-write queue drain before believing "not on disk" means anything.
@@ -90,7 +90,7 @@ public class GenerationTask implements Runnable {
     private static final long WRITE_CHECK_INTERVAL_MS = 100L; // how often the disk write-queue depth is sampled
     // Drain-stall backpressure. The region writer is a single consecutive-executor thread, so
     // if the queue stops shrinking while still holding work the writer is blocked in fsync
-    // (region-file eviction on a saturated disk). Absolute depth misses this -- the queue can
+    // (region-file eviction on a saturated disk). Absolute depth misses this: the queue can
     // stay shallow while each individual flush blocks for seconds. Trip when the queue has held
     // >= MIN_DEPTH with no drain progress for STALL_MILLIS. JVM-tunable; STALL_MILLIS=0 disables.
     private static final long WRITE_STALL_MILLIS = Math.max(0L, Input.tryInteger(System.getProperty("chunksmith.writeStallMillis")).orElse(2000));
@@ -125,7 +125,7 @@ public class GenerationTask implements Runnable {
     private final RegionCache.WorldState worldState;
     private final AtomicInteger inFlight = new AtomicInteger(0);
     private final AtomicInteger dispatchLimit = new AtomicInteger(DEFAULT_WORKING_COUNT);
-    /** Pipeline width for this run -- see Config#getDispatchMaxConcurrent for why width is the lever. */
+    /** Pipeline width for this run. See Config#getDispatchMaxConcurrent for why width is the lever. */
     private final int maxWorkingCount;
     private final AtomicLong lastThrottleNoticeTime = new AtomicLong(0);
     private final AtomicLong lastRampTime = new AtomicLong(0);
@@ -205,7 +205,7 @@ public class GenerationTask implements Runnable {
                 chunky.getConfig().getAutoPauseGraceSeconds() * 1000L);
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
-        // exist" means anything -- see ChunkSettleWindow (mod_support #14).
+        // exist" means anything. See ChunkSettleWindow (mod_support #14).
         ChunkSettleSupport.configure(
                 chunky.getConfig().isPregenSettleEnabled(),
                 chunky.getConfig().getPregenSettleDelayTicks(),
@@ -353,7 +353,7 @@ public class GenerationTask implements Runnable {
             return;
         }
         // "Our work is in flight" must mean we are actually adding load. A run held by one of our own
-        // gates -- or holding itself still for a baseline probe -- has stopped dispatching, so those
+        // gates (or holding itself still for a baseline probe) has stopped dispatching, so those
         // ticks are baseline samples.
         final boolean addingLoad = inFlight.get() > 0
                 && !writeQueueStalled && !chunkResidencyStalled && !heapStalled
@@ -382,14 +382,14 @@ public class GenerationTask implements Runnable {
     /**
      * What tick cost this run should steer to.
      *
-     * <p>An absolute target cannot work on a busy server, and this was not theoretical -- see
+     * <p>An absolute target cannot work on a busy server, and this was not theoretical. See
      * {@link TickBudget} for the server it was measured on. The governor backs off above target+band and
      * only ramps below target-band, so where the server's own idle cost already sits at the target it never
      * observes a healthy tick: dispatch pins at 1 permanently, however little the run is actually costing.
      *
      * <p>So the target is whichever is higher: the operator's absolute figure, or what the server
      * already costs plus the budget this run is allowed to add. That bounds what Chunksmith costs
-     * instead of demanding the whole server be healthy in absolute terms -- the same
+     * instead of demanding the whole server be healthy in absolute terms, the same
      * delta-not-absolute correction already applied to chunk residency.
      */
     private double effectiveTargetMspt() {
@@ -453,8 +453,8 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * @param burst skip the once-a-second rate limit -- used by the recovery path, where the whole
-     *              point is to climb back quickly instead of one step per second after a single spike
+     * @param burst skip the once-a-second rate limit (used by the recovery path, where the whole
+     *              point is to climb back quickly instead of one step per second after a single spike)
      */
     private void rampUp(boolean burst) {
         final long now = System.currentTimeMillis();
@@ -489,7 +489,7 @@ public class GenerationTask implements Runnable {
      * when chunks finish generating faster than the disk can flush them (async I/O does not
      * raise tick time). This samples that backlog on a fixed cadence and, once it exceeds the
      * configured cap, holds off all new dispatches until it drains back below half the cap
-     * (hysteresis) -- directly bounding the unflushed-write window so a slow disk paces
+     * (hysteresis), directly bounding the unflushed-write window so a slow disk paces
      * generation instead of being buried.
      * <p>
      * Absolute depth alone, though, misses the worst case: a single-threaded region writer
@@ -571,13 +571,13 @@ public class GenerationTask implements Runnable {
         }
         // The delta, not the absolute count. 3.5.0 gated on "how many chunks exist", which on a server
         // whose ordinary resident set was already near the cap meant the gate closed on somebody else's
-        // chunks and never opened -- live, that stuttered a run at the never-wedge interval. What a
+        // chunks and never opened. Live, that stuttered a run at the never-wedge interval. What a
         // pregen can be held responsible for is what it added.
         final long added = ChunkResidency.addedChunks();
         if (added < 0L) {
             // The platform is not reporting, the reading went stale, or we never got a baseline.
             // Unknown is not zero: leave the gate exactly as it was rather than opening it on the
-            // strength of a measurement we do not have. It cannot latch shut -- the deadline applies.
+            // strength of a measurement we do not have. It cannot latch shut: the deadline applies.
             return;
         }
         if (chunkResidencyStalled) {
@@ -608,8 +608,8 @@ public class GenerationTask implements Runnable {
     /**
      * Pauses dispatch when the heap is close to full.
      *
-     * <p>Three releases of this mod have tried to bound a pregen by counting proxies -- queued writes,
-     * LOD queue depth, resident chunks, chunks added since the run started -- and each has been wrong
+     * <p>Three releases of this mod have tried to bound a pregen by counting proxies (queued writes,
+     * LOD queue depth, resident chunks, chunks added since the run started), and each has been wrong
      * on a real server in a different way. A chunk is worth wildly different amounts of heap depending
      * on the entities and block entities that came with it, so no chunk count can be tuned to mean the
      * same thing on two worlds. What actually ends a pregen badly is running out of memory. Measure
@@ -668,7 +668,7 @@ public class GenerationTask implements Runnable {
         }
         final boolean forceLoadExistingChunks = chunky.getConfig().isForceLoadExistingChunks();
         // Learn what this selection already has, in one pass over the region files, before the
-        // first dispatch -- otherwise every existing chunk costs an async round-trip to discover.
+        // first dispatch; otherwise every existing chunk costs an async round-trip to discover.
         preScanExistingChunks(forceLoadExistingChunks);
         // The CSLOD store is a first-class part of the skip decision, but only when LOD generation is
         // actually active for this world. Null means it is not, and null takes the original code path
@@ -676,8 +676,8 @@ public class GenerationTask implements Runnable {
         //   - a plugin cell (Bukkit/Paper/Folia): there is no LOD pipeline there at all, so nothing
         //     ever publishes a provider and this is unconditionally null;
         //   - a loader cell whose lodEnabled tristate resolved to off.
-        // forceLoadExistingChunks keeps its old meaning as the explicit override -- reprocess every
-        // chunk in the selection regardless, LOD present or not -- so there is nothing for the index
+        // forceLoadExistingChunks keeps its old meaning as the explicit override: reprocess every
+        // chunk in the selection regardless, LOD present or not, so there is nothing for the index
         // to decide and we do not even build one.
         final CsLodPresenceIndex lodIndex = forceLoadExistingChunks
                 ? null
@@ -714,14 +714,14 @@ public class GenerationTask implements Runnable {
                 }
                 // Chunk on disk, no CSLOD record. Fall through to the dispatch below with the
                 // generated-check forced to "not generated". That sends it down getChunkAtAsync, where
-                // the chunk system reads the existing FULL chunk off disk -- no worldgen runs for a
-                // chunk that is already complete -- and the platform's load hook offers the live chunk
+                // the chunk system reads the existing FULL chunk off disk (no worldgen runs for a
+                // chunk that is already complete) and the platform's load hook offers the live chunk
                 // to LodSupport, which extracts and writes the LOD. This is the hole-filling path, and
                 // it reuses the existing hook exactly: no worldgen behaviour is touched.
                 lodBackfill = true;
             }
             final boolean lodOnly = lodBackfill;
-            // Wait for a dispatch slot -- park 1ms at a time so stop() is responsive.
+            // Wait for a dispatch slot. Park 1ms at a time so stop() is responsive.
             // Re-evaluate tick health each pass so the limit can drop even while saturated
             // (no slot free) and chunk-completion callbacks have stopped firing.
             // Math.max(1, ...) guards against dispatchLimit ever hitting 0.
@@ -734,8 +734,8 @@ public class GenerationTask implements Runnable {
                 }
                 // The LOD sink is governed regardless of ioThrottleEnabled: it is not a disk-I/O
                 // signal, and an unbounded ingest backlog is an OOM, not a slowdown. Chunk residency is
-                // governed for the same reason -- an unbounded resident set is an OOM and a watchdog
-                // kill, not a slowdown -- so neither is gated on the operator's I/O-throttle switch.
+                // governed for the same reason: an unbounded resident set is an OOM and a watchdog
+                // kill, not a slowdown, so neither is gated on the operator's I/O-throttle switch.
                 adjustFromLodQueue();
                 evaluateChunkResidency();
                 evaluateHeapPressure();
@@ -759,7 +759,7 @@ public class GenerationTask implements Runnable {
                 final double mspt = chunky.getServer().getMillisPerTick();
                 // Compare against the absolute ceiling, not the adaptive target. Once the target is
                 // derived from the baseline, "twice the target" moves with the server and becomes
-                // nearly unreachable -- auto-pause stopped being able to see a struggling server at
+                // nearly unreachable. Auto-pause stopped being able to see a struggling server at
                 // all the moment the target went adaptive. Same shape as the 3.7.1 bug: a trigger
                 // keyed to the wrong reference.
                 final boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
@@ -796,7 +796,7 @@ public class GenerationTask implements Runnable {
             inFlight.incrementAndGet();
             final long dispatchTime = System.currentTimeMillis();
             // A LOD backfill forces the load: the chunk is already generated, and saying so here would
-            // send it straight back down the skip branch -- which is precisely the bug (an
+            // send it straight back down the skip branch, which is precisely the bug (an
             // already-generated chunk was never loaded, so the LOD hook never saw it).
             final CompletableFuture<Boolean> isChunkGenerated = (forceLoadExistingChunks || lodOnly) ?
                     CompletableFuture.completedFuture(false) :
@@ -806,8 +806,8 @@ public class GenerationTask implements Runnable {
                         if (Boolean.TRUE.equals(generated)) {
                             // The chunk is on disk. This is the gate that actually decides on a freshly
                             // booted server: worldState above is an in-memory RegionCache that starts
-                            // cold, so on the re-run that matters -- server restarted, world already
-                            // pregenerated -- every chunk arrives here, not at the cache check. The LOD
+                            // cold, so on the re-run that matters (server restarted, world already
+                            // pregenerated) every chunk arrives here, not at the cache check. The LOD
                             // decision therefore has to be made here too. Making it only against the
                             // cache is the bug: it silently skips the entire selection and builds no
                             // LODs at all.
@@ -848,10 +848,10 @@ public class GenerationTask implements Runnable {
                     });
         }
         // Say what actually happened. A run that filled LOD holes must report how many it filled, and a
-        // run that found nothing to do must say so rather than just going quiet -- the counts are the
+        // run that found nothing to do must say so rather than just going quiet; the counts are the
         // whole point. Only emitted when LOD was active, so a non-LOD run's output is unchanged.
         // The final dispatches are still in flight here, and their outcomes are not counted until
-        // they land -- without this wait the summary silently under-reports by up to the dispatch
+        // they land. Without this wait the summary silently under-reports by up to the dispatch
         // limit, and the verification below would sample chunks that have not landed yet. Bounded,
         // so a wedged chunk can never hang the task's completion. Runs for every task, not just LOD
         // ones: a task should not declare itself finished while its own work is still outstanding.
@@ -886,7 +886,7 @@ public class GenerationTask implements Runnable {
         // Ending a task is not the same as finishing the work. The tickets come back now; the chunks do
         // not go away until the distance manager has propagated that and the unload pass has run.
         // 3.5.0 stopped driving the unload pass the moment a task ended, which orphaned the backlog
-        // until the next restart -- ChunkResidency has the measurement. Declare the debt here; the
+        // until the next restart. ChunkResidency has the measurement. Declare the debt here; the
         // platform's tick hook keeps paying it until residency is actually back down.
         ChunkResidency.noteTaskEnd();
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
@@ -895,7 +895,7 @@ public class GenerationTask implements Runnable {
 
     // A chunk counted as "generated" is only a claim. The counter is incremented when the load
     // future completes, and a future can complete having done nothing at all: mod_support #13 was
-    // exactly that -- getChunkFutureMainThread handed back an already-completed FAILED ChunkResult,
+    // exactly that: getChunkFutureMainThread handed back an already-completed FAILED ChunkResult,
     // which is not an exception, so the completion callback saw no error and counted the chunk.
     // Every counter and log line reported success while the world stayed empty.
     //
@@ -920,7 +920,7 @@ public class GenerationTask implements Runnable {
             return;
         }
         // Let the writes land first. The chunk is generated the moment the load future completes,
-        // but it reaches disk only when the write queue drains -- and asking the world whether a
+        // but it reaches disk only when the write queue drains, and asking the world whether a
         // chunk is on disk while its write is still queued reports a perfectly good chunk as
         // missing. Bounded, and skipped entirely where the gauge is unavailable (-1 on Bukkit and
         // on replaced chunk systems we cannot read).
@@ -952,7 +952,7 @@ public class GenerationTask implements Runnable {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                // Timed out, or the world could not answer -- a busy or shutting-down server, not
+                // Timed out, or the world could not answer: a busy or shutting-down server, not
                 // evidence of anything. Stay quiet: a check that cries wolf gets ignored, which is
                 // worse than no check at all. Only a definite "not on disk" is reported.
                 break;
@@ -977,7 +977,7 @@ public class GenerationTask implements Runnable {
      * Advance the trailing settle window as chunks land.
      *
      * <p>One window at a time: hold it for a while so the server can tick with that ground loaded, then
-     * let it go and take the next eligible stop. Eligibility is the sweep's business -- it only offers a
+     * let it go and take the next eligible stop. Eligibility is the sweep's business; it only offers a
      * window whose chunks are all already generated, so nothing here can trigger worldgen.
      */
     private synchronized void driveSettleSweep(int chunkX, int chunkZ) {
@@ -1004,7 +1004,7 @@ public class GenerationTask implements Runnable {
      * Sweep whatever the trailing pass could not reach while generation was still running.
      *
      * <p>The last band is only eligible once the final chunks land, so it is necessarily swept here. It
-     * is bounded by the width of that band, not by the size of the run -- everything behind it was
+     * is bounded by the width of that band, not by the size of the run, since everything behind it was
      * already settled on the way past.
      */
     private void finishSettleSweep() {

@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A few hundred KB/s, against the backchannel's ~55 MB/s -- and that is the point. This is the fallback for
+ * A few hundred KB/s, against the backchannel's ~55 MB/s. That is the point. This is the fallback for
  * a server with no open backchannel port: region files sent IN-BAND, a few slices per tick.
  *
  * <p>Slow on purpose. It rides the same connection as gameplay, so every byte competes with movement,
@@ -31,7 +31,7 @@ public final class CsLodInBandSender {
     private static final int SLICE_BYTES = 24 * 1024;
 
     /**
-     * Slices per player per tick. 4 x 24 KB x 20 tps = ~1.9 MB/s -- fast enough to be useful, slow enough
+     * Slices per player per tick. 4 x 24 KB x 20 tps = ~1.9 MB/s: fast enough to be useful, slow enough
      * that nobody's game stutters because someone else is fetching terrain.
      */
     private static final int SLICES_PER_TICK = 4;
@@ -44,7 +44,7 @@ public final class CsLodInBandSender {
     /**
      * Queue a set of regions for a player. Replaces anything already queued for them.
      *
-     * <p>Nothing is read here -- only the file list is captured; the bytes are pulled a slice at a time in
+     * <p>Nothing is read here beyond the file list; the bytes are pulled a slice at a time in
      * {@link #tick}, straight off disk. The obvious implementation, slurping every wanted region with
      * {@code readAllBytes} and pre-slicing it, put the entire requested set on the heap, on the server
      * thread, before a single byte went out: a legitimate client asking for a few hundred region files (a
@@ -81,7 +81,7 @@ public final class CsLodInBandSender {
                 }
             }
         } catch (IOException e) {
-            // A region vanished or the disk complained. Drop the transfer -- the client re-asks.
+            // A region vanished or the disk complained. Drop the transfer; the client re-asks.
             finish(player.getUUID(), transfer);
         }
     }
@@ -103,7 +103,7 @@ public final class CsLodInBandSender {
         transfer.close();
     }
 
-    /** Region files still to send across all players -- for the status line. */
+    /** The status line's count of region files still to send across all players. */
     public static int pending() {
         return TRANSFERS.values().stream().mapToInt(Transfer::remaining).sum();
     }
@@ -142,7 +142,7 @@ public final class CsLodInBandSender {
             }
 
             final byte[] buffer = new byte[SLICE_BYTES];
-            // readNBytes only stops short at EOF, so a short read IS the end of the file -- which also
+            // readNBytes only stops short at EOF, so a short read IS the end of the file, which also
             // covers a region the writer thread replaced underneath us.
             final int read = this.in.readNBytes(buffer, 0, SLICE_BYTES);
             if (read <= 0) {

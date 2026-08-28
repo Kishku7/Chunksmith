@@ -11,7 +11,7 @@ package com.kishku7.chunksmith.lod.net;
  *
  * <p>Authentication: the in-band handshake rides a connection the player has already authenticated with
  * Mojang, so the server issues a short-lived random token bound to (uuid, ip, expiry) which the client
- * presents to the HTTP endpoint. A UUID or a name proves nothing on its own -- both are public.
+ * presents to the HTTP endpoint. A UUID or a name proves nothing on its own: both are public.
  */
 public final class CsLodProtocol {
 
@@ -26,7 +26,7 @@ public final class CsLodProtocol {
      *
      * <p><b>v2 (3.1.0-beta-4).</b> {@code S2C_INDEX}'s layout is unchanged from v1; the meaning of its
      * {@code long} hash is not. v1 was a CRC32 of the region file's contents computed independently by both
-     * ends -- see {@link CsLodRegionHash} for what that cost a live production server. v2 is an opaque
+     * ends. See {@link CsLodRegionHash} for what that cost a live production server. v2 is an opaque
      * freshness token derived from the server's (mtime, size), which the client remembers rather than
      * recomputes. A v1 client would find every region stale every time and re-download the whole in-radius
      * store every five seconds, so the handshake refuses instead: v1 -> v2 still gets a v2
@@ -50,8 +50,8 @@ public final class CsLodProtocol {
 
     // decode-time input ceilings (DoS guard)
     //
-    // Every count/length below is read straight off the wire from a peer we do not trust -- a hostile server
-    // can send a client packet, a hostile client a server packet -- so a decoder must refuse an out-of-range
+    // Every count/length below is read straight off the wire from a peer we do not trust: a hostile server
+    // can send a client packet, a hostile client a server packet, so a decoder must refuse an out-of-range
     // count before it allocates, or one tiny packet claiming a huge count OOM-kills the receiver. Validation
     // only: the wire/disk format is byte-for-byte unchanged and VERSION does not move.
 
@@ -93,7 +93,7 @@ public final class CsLodProtocol {
 
     // packet ids (first byte of every in-band payload)
 
-    /** C2S: client hello -- protocol version + which renderers it has. */
+    /** C2S: client hello with protocol version + which renderers it has. */
     public static final byte C2S_HELLO = 1;
 
     /** C2S: give me the region index for this dimension. */
@@ -102,11 +102,11 @@ public final class CsLodProtocol {
     /** C2S: send these regions in-band (backchannel unavailable). */
     public static final byte C2S_REQUEST_REGIONS = 3;
 
-    /** C2S: stop -- the client can always stop the flow. */
+    /** C2S: stop. The client can always stop the flow. */
     public static final byte C2S_CANCEL = 4;
 
     /**
-     * C2S: has anything changed? -- the periodic sync (v2). An id and a dimension name: 22 bytes.
+     * C2S: has anything changed? The periodic sync (v2). An id and a dimension name: 22 bytes.
      *
      * <p>Deliberately not "send me the index": the index is the expensive thing. The client pays for a real
      * index only when {@link #S2C_SUMMARY}'s two numbers disagree.
@@ -114,12 +114,12 @@ public final class CsLodProtocol {
     public static final byte C2S_REQUEST_SUMMARY = 5;
 
     /**
-     * S2C: the region index folded to (count, aggregate) -- the answer to {@link #C2S_REQUEST_SUMMARY} (v2).
+     * S2C: the region index folded to (count, aggregate), the answer to {@link #C2S_REQUEST_SUMMARY} (v2).
      * 34 bytes. See {@link CsLodSummary} for why the aggregate is an order-independent XOR.
      */
     public static final byte S2C_SUMMARY = 105;
 
-    /** S2C: server hello -- store availability, backchannel port (0 = none), token. */
+    /** S2C: server hello, store availability, backchannel port (0 = none), token. */
     public static final byte S2C_HELLO = 101;
 
     /** S2C: region index for a dimension (region coords + content hashes). */
@@ -135,7 +135,7 @@ public final class CsLodProtocol {
      * <p>{@code /cslod set} is typed at a server, but the settings live in the player's
      * {@code config/chunksmith-lod.properties} on their client, which on a dedicated server does not exist.
      * So the server forwards and the client reads, writes and prints its own reply. Purely additive, so no
-     * {@link #VERSION} bump -- an older client drops the unknown id, which is why the server checks
+     * {@link #VERSION} bump: an older client drops the unknown id, which is why the server checks
      * {@code CsLodServerNet.hasLodClient} first.
      */
     public static final byte S2C_CLIENT_SETTING = 106;
@@ -153,8 +153,8 @@ public final class CsLodProtocol {
     }
 
     /**
-     * The backchannel port, derived from the game port. Game on 25565 -> HTTP on 25566; only the default
-     * -- an operator may name one (mod_support #19), see {@link #httpPort(int, int)}.
+     * The backchannel port, derived from the game port. Game on 25565 -> HTTP on 25566. This is only the
+     * default; an operator may name one (mod_support #19), see {@link #httpPort(int, int)}.
      *
      * @return the backchannel port, or 0 if the game port is at the top of the range (no room for +1)
      */
@@ -166,7 +166,7 @@ public final class CsLodProtocol {
     /**
      * Resolve the backchannel port an operator actually gets: their configured port if they named one,
      * otherwise {@link #httpPort(int) the derived one}. A configured port that collides with the game port
-     * is refused rather than honoured -- binding it cannot succeed anyway, and refusing lets the caller
+     * is refused rather than honoured: binding it cannot succeed anyway, and refusing lets the caller
      * report a cause instead of an anonymous bind failure.
      *
      * @return the port to bind, or 0 if there is none to be had

@@ -2,7 +2,7 @@ package com.kishku7.chunksmith.lod.net;
 
 /**
  * The old client asked the server once, at join, and if the store was empty it stood down for the whole
- * session -- no matter how long the player stayed or how far they travelled. That is exactly backwards for
+ * session, no matter how long the player stayed or how far they travelled. That is exactly backwards for
  * how servers are actually run: an operator starts an hours-long pregen with players already on, the store
  * fills up behind them, and every one of them keeps staring at an empty horizon until they think to relog.
  * So the client keeps asking, on a backed-off clock.
@@ -45,7 +45,7 @@ public final class CsLodRetry {
     }
 
     /**
-     * Start the clock, without counting an attempt. Called when the FIRST ask goes out -- the join
+     * Start the clock, without counting an attempt. Called when the FIRST ask goes out: the join
      * handshake. That ask is not a retry, but it is what the first delay is measured from.
      */
     public synchronized void started(long nowMillis) {

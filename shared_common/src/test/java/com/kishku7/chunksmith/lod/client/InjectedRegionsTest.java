@@ -9,16 +9,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The injected-region set -- and the two bugs it exists to prevent.
+ * The injected-region set and the two bugs it exists to prevent.
  *
  * <p>1. The shipped 3.1.0-beta-2 set was keyed by packed region x/z alone. Region (0,0) is a different place
  * in every dimension, so the moment the overworld's (0,0) was injected the Nether's (0,0) was treated as
- * already done and skipped for the rest of the session -- silently, with every counter reporting success.
+ * already done and skipped for the rest of the session (silently, with every counter reporting success).
  * {@link #theNetherIsNotTheOverworld()} is that bug, pinned.
  *
  * <p>2. Keying on (dimension, x, z) and nothing else answers "have I drawn this region?" when the question
  * the injector needs answered is "have I drawn THIS VERSION of it?". A pregen does not only create new
- * regions -- it keeps growing the ones under the player for hours. The sync notices, the cache notices, the
+ * regions; it keeps growing the ones under the player for hours. The sync notices, the cache notices, the
  * downloader re-fetches the bigger file, and then the injector would look up the coordinates, find them, and
  * throw the new data on the floor. {@link #changedRegionIsInjectedAgain()} is that bug, pinned
  * before it ever shipped.
@@ -29,7 +29,7 @@ public class InjectedRegionsTest {
     private static final String NETHER = "minecraft_the_nether";
     private static final String END = "minecraft_the_end";
 
-    /** A freshness token. Its value is meaningless -- only sameness and difference matter. */
+    /** A freshness token. Its value is meaningless. Only sameness and difference matter. */
     private static final long V1 = 0x1111_2222_3333_4444L;
     private static final long V2 = 0x5555_6666_7777_8888L;
 

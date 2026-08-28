@@ -24,7 +24,7 @@ public final class CsLodClientBoot {
     public static void init() {
         CsLodClientNet.register();
         ClientPlatform.onClientSetup(CsLodClientBoot::bindRenderers);
-        LOGGER.info("Chunksmith: LOD client ready -- {}", Renderers.describe());
+        LOGGER.info("Chunksmith: LOD client ready ({})", Renderers.describe());
     }
 
     /**

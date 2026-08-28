@@ -6,7 +6,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 /**
- * The LOD CLIENT entrypoint -- classic FORGE (MC 1.20.1 / Forge 47).
+ * The LOD CLIENT entrypoint for classic FORGE (MC 1.20.1 / Forge 47).
  *
  * <p><b>This class is the side guard, and it is the loader that enforces it.</b> Forge 47's {@code @Mod} has
  * no {@code dist} parameter -- that arrived with NeoForge -- so the guard cannot live on the main
@@ -16,7 +16,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
  * the renderer adapters, {@code net.minecraft.client.*}). No runtime {@code if}, no reliance on lazy
  * constant-pool resolution, no {@code DistExecutor}.
  *
- * <p>It rides the MOD bus because {@code FMLClientSetupEvent} is a mod-bus event -- which also means this
+ * <p>It rides the MOD bus because {@code FMLClientSetupEvent} is a mod-bus event, which also means this
  * class is the "client setup" moment, so {@code ClientPlatform.onClientSetup} on this loader simply runs the
  * action. (That event is deliberately late: Forge constructs mods in dependency order and Distant Horizons
  * is a soft dependency we declare no load order against, so our constructor can run before DH's and
@@ -24,8 +24,8 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
  * and still long before DH announces a level.)
  *
  * <p>The channel is not built here. {@code CsLodChannel}'s static initializer builds it during mod
- * construction on BOTH sides -- the only window in which Forge's network registry accepts a new
- * SimpleChannel -- and that is the mod's one registration of {@code chunksmith:lod}. This class installs the
+ * construction on BOTH sides (the only window in which Forge's network registry accepts a new
+ * SimpleChannel), and that is the mod's one registration of {@code chunksmith:lod}. This class installs the
  * client sink on it.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

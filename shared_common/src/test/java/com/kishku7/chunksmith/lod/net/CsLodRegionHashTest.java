@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * The freshness token that replaced {@code crc.update(Files.readAllBytes(file))}. The contract the
- * client depends on is one sentence -- a region that changed must produce a different token -- and
+ * client depends on is one sentence (a region that changed must produce a different token) and
  * everything below pins it.
  */
 public class CsLodRegionHashTest {

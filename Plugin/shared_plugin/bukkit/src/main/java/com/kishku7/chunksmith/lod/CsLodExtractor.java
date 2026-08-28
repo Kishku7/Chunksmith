@@ -21,7 +21,7 @@ import org.bukkit.Keyed;
  * cell compiles against, not assumed.
  *
  * <p>Server-side generation only (mod_support #9 follow-up): no renderer adapter and no client-streaming
- * channel here yet -- that is Chunksmith-Client's job on Fabric/Forge/NeoForge. The store this produces is
+ * channel here yet; that is Chunksmith-Client's job on Fabric/Forge/NeoForge. The store this produces is
  * written to disk and nothing else, deliberately, as a separate and later phase. See LodSupport (Bukkit).
  *
  * <p>ChunkSnapshot's x/z are chunk-relative (0-15); y is world-absolute (can be negative on 1.18+ worlds),
@@ -95,7 +95,7 @@ public final class CsLodExtractor {
             }
         }
 
-        // ---- biomes (4x4x4 cell-center sample -- see class note) ----
+        // ---- biomes (4x4x4 cell-center sample: see class note) ----
         int[] biomeIndices = new int[CsLodChunk.BIOMES_PER_SECTION];
         int uniformBiome = -1;
         {
@@ -111,7 +111,7 @@ public final class CsLodExtractor {
                         // Biome went from a plain class to an interface between Paper API generations
                         // inside the same 1.21.x compile line, so a jar built against one shape throws
                         // IncompatibleClassChangeError on a server running the other (mod_support
-                        // Bukkit-LOD 1.21.1 crash, 2026-08-02, against Paper 1.21.1-133 -- the date is
+                        // Bukkit-LOD 1.21.1 crash, 2026-08-02, against Paper 1.21.1-133; the date is
                         // the handle on that crash report, there being no issue number). Keyed has been
                         // a stable interface across every generation and Biome has always implemented it,
                         // so dispatching getKey() through Keyed sidesteps the mismatch whichever shape

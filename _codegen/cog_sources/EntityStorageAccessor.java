@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
  * without the full async read vanilla otherwise does.
  *
  * <p>COG DRIFT (AXIS B, drift matrix 2a): SimpleRegionStorage landed at MC 1.20.5. On 1.20.1/1.20.4
- * it does not exist -- EntityStorage holds its {@code IOWorker worker} directly, so the accessor
+ * it does not exist. EntityStorage holds its {@code IOWorker worker} directly, so the accessor
  * targets {@code worker} and the fix casts straight to {@link IOWorkerAccessor}. From 1.20.6 on it
  * holds a {@code SimpleRegionStorage} and the worker comes via {@link SimpleRegionStorageAccessor}.
  */

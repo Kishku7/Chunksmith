@@ -24,7 +24,7 @@ public class CsLodPortResolutionTest {
 
     @Test
     public void zeroMeansDeriveFromTheGamePort() {
-        assertEquals("0 must keep the historical behaviour -- it is the default, and an existing"
+        assertEquals("0 must keep the historical behaviour: it is the default, and an existing"
                 + " server must not change what it binds after an update",
                 25566, CsLodProtocol.httpPort(25565, 0));
     }
@@ -49,7 +49,7 @@ public class CsLodPortResolutionTest {
 
     @Test
     public void theGamesOwnPortIsRefused() {
-        // Binding it cannot succeed -- the game holds it -- and refusing here lets the caller report
+        // Binding it cannot succeed (the game holds it) and refusing here lets the caller report
         // a cause instead of an anonymous bind failure the operator has to guess at.
         assertEquals(0, CsLodProtocol.httpPort(25565, 25565));
     }
@@ -91,7 +91,7 @@ public class CsLodPortResolutionTest {
     @Test
     public void rebindIsANoOpWhenUnregistered() {
         // Bukkit, or before a server exists. It must report "nothing to rebind" rather than claim a
-        // port moved -- a setting that silently does nothing is the failure this issue is about.
+        // port moved; a setting that silently does nothing is the failure this issue is about.
         CsLodControl.clear();
         assertFalse("apply() must be empty, not 0",
                 CsLodControl.apply().isPresent());

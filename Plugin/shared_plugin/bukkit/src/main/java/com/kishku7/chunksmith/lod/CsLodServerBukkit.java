@@ -38,21 +38,21 @@ import java.util.Arrays;
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
  *
- * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for sending it --
- * the wire format, the token store, the HTTP backchannel -- has shipped inside the plugin jar all
+ * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for sending it
+ * (the wire format, the token store, the HTTP backchannel) has shipped inside the plugin jar all
  * along, because those classes live in {@code shared_common}. What was missing was the code that
  * connects them: nothing registered a channel, nothing started the HTTP server, nothing answered a
  * client (mod_support #18). This is that missing connection.
  *
  * <p>The client drives the exchange: hello, then ask for the region index, then fetch over HTTP whatever
- * the index says it lacks. A server that answers only the hello looks completely healthy -- it logs the
- * greeting, mints a token, names its port -- and serves nothing at all, because the client is waiting on
+ * the index says it lacks. A server that answers only the hello looks completely healthy. It logs the
+ * greeting, mints a token, names its port, and serves nothing at all, because the client is waiting on
  * an index that never comes. The first cut of this class did exactly that, with the counters reading
  * {@code 0 files} beside a live token. Both requests are answered here now.
  *
  * <p><b>Bukkit will not let us reply unless we ask it to.</b> Bukkit keeps a per-player set of the
  * channels the client announced with a {@code minecraft:register} plugin message, and
- * {@code sendPluginMessage} does nothing at all for a channel outside that set -- no exception, no
+ * {@code sendPluginMessage} does nothing at all for a channel outside that set: no exception, no
  * log line, no packet. A modern Fabric client negotiates the other direction perfectly (its hello
  * reaches us) but puts nothing in that set, so the server hears the client and the client never hears
  * the server. See {@link #ensureChannel(Player)}.
@@ -235,11 +235,11 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         }
     }
 
-    // TODO: no in-band path here yet -- a blocked port just means no LOD
+    // TODO: no in-band path here yet; a blocked port just means no LOD
     private static void hello(Player player) {
         final List<String> dims = dimensions();
         LOGGER.info("Chunksmith: LOD hello from " + player.getName()
-                + " -- " + dims.size() + " dimension(s) to offer");
+                + ": " + dims.size() + " dimension(s) to offer");
         ensureChannel(player);
         final boolean available = !dims.isEmpty();
         final int port = http == null ? 0 : http.getPort();
@@ -279,7 +279,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         }
         if (!dimension.equals(requested)) {
             LOGGER.info("Chunksmith: " + player.getName() + " asked for the LOD index of " + requested
-                    + " while standing in " + dimension + " -- serving " + dimension + " instead.");
+                    + " while standing in " + dimension + ", serving " + dimension + " instead.");
         }
         final UUID uuid = player.getUniqueId();
         if (!SCANNING.add(uuid)) {
@@ -303,7 +303,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     }
 
     /**
-     * The scan, and the reply -- both off the main thread.
+     * The scan and the reply both happen off the main thread.
      *
      * <p>The mod hops back to the tick to send, because a loader's channel API is not obviously
      * thread-safe. Bukkit's is: a plugin message becomes a packet write on the player's Netty
@@ -323,7 +323,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                         + (scanned.bytes() / (1024 * 1024)) + " MB of a "
                         + (CsLodIndexScan.MAX_BYTES / (1024 * 1024)) + " MB budget, radius " + radius
                         + "). The client re-requests as the player moves, so it gets the rest as it"
-                        + " travels -- nearest regions first.");
+                        + " travels; nearest regions first.");
             }
             final byte[] message = summaryOnly
                     ? CsLodMessages.encode(new CsLodMessages.RegionSummary(dimension,
@@ -354,7 +354,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      *
      * <p>Bukkit only sends a plugin message on a channel the player announced with
      * {@code minecraft:register}; for anything else {@code sendPluginMessage} returns having done
-     * nothing whatsoever. A modern Fabric client does not put our channel in that set -- its own
+     * nothing whatsoever. A modern Fabric client does not put our channel in that set. Its own
      * networking API negotiates capability separately and the register packet either never goes out
      * or goes out during the CONFIGURATION phase, where the play-phase set does not see it. The
      * result is a server that receives the hello, logs it, answers it, and delivers nothing.
@@ -365,7 +365,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * never says hello is never touched.
      *
      * <p>Falls back to the warning it replaces if the registration cannot be forced, because the
-     * alternative -- Bukkit's silence -- costs an hour to diagnose the first time and this warning is
+     * alternative (Bukkit's silence) costs an hour to diagnose the first time and this warning is
      * the only thing in the log that names the real cause.
      */
     private static void ensureChannel(Player player) {

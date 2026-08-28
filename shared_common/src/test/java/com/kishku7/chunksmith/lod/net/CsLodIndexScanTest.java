@@ -14,8 +14,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for "which regions can this player see?" -- the answer both the loaders and the Bukkit plugin
- * now serve from {@link CsLodIndexScan}.
+ * Tests for "which regions can this player see?" (the answer both the loaders and the Bukkit plugin
+ * now serve from {@link CsLodIndexScan}).
  *
  * <p>These exist because the scan is the one piece of the LOD path where a wrong answer is invisible.
  * Nothing throws, nothing logs; the client simply fetches the wrong set, or none, and the operator
@@ -110,7 +110,7 @@ public class CsLodIndexScanTest {
     @Test
     public void anUnsettledRegionIsNotServed() throws IOException {
         region(0, 0, 16);
-        // "now" -- the file was written this instant, so it is inside the settle window.
+        // "now" means the file was written this instant, so it is inside the settle window.
         assertTrue(CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 4096), System.currentTimeMillis())
                 .regions().isEmpty());
     }

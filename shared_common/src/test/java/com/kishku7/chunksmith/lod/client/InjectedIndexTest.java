@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
  *
  * <p>The tests below pin both directions, because the dangerous failure is not the slow one. Skipping a
  * region the renderer does not have leaves a permanent hole in the horizon and reports success while it
- * does it -- so every ambiguity here has to resolve towards injecting again.
+ * does it. So every ambiguity here has to resolve towards injecting again.
  */
 public class InjectedIndexTest {
 
@@ -58,7 +58,7 @@ public class InjectedIndexTest {
         final InjectedIndex second = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         assertEquals(2, second.size());
 
-        // And seeding the session set from it means those regions are not claimed again -- which is the
+        // And seeding the session set from it means those regions are not claimed again, which is the
         // entire point: no re-decode, no re-push, no CPU spent redrawing what is already on screen.
         final InjectedRegions session = new InjectedRegions();
         for (long[] entry : second.entries()) {

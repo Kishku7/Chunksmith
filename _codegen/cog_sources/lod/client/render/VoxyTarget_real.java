@@ -15,7 +15,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * class-loaded once {@code isModLoaded("voxy")} has passed.
  *
  * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the section and its light
- * directly, so voxy gets the real light captured on the server at generation time -- the whole point of
+ * directly, so voxy gets the real light captured on the server at generation time: the whole point of
  * storing sky and block light separately in CSLOD. <b>rawIngest has NO light gate</b>: hand it wrong light
  * and it will cheerfully produce BLACK LODs and report success.
  *
@@ -28,7 +28,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * {@code WorldIdentifier.of} have identical signatures in every fork jar the {@code Renderers} roster
  * names, all checked with {@code javap}, so a reflective per-chunk call would cost real time and absorb
  * nothing. The one place fork drift has been observed is voxy's config field, and that is the one place we
- * reflect -- see {@link VoxyRadius}. If that stops being true, a {@code LinkageError} out of any of these
+ * reflect; see {@link VoxyRadius}. If that stops being true, a {@code LinkageError} out of any of these
  * calls disables the voxy sink for the session and says so once.
  */
 public final class VoxyTarget {
@@ -39,7 +39,7 @@ public final class VoxyTarget {
     private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
 
     /**
-     * Set once voxy has proved it cannot accept our data. Not a "retry later" flag -- a LinkageError is a
+     * Set once voxy has proved it cannot accept our data. Not a "retry later" flag: a LinkageError is a
      * permanent, structural mismatch, so retrying per chunk would burn CPU and spam the log for a result
      * that cannot change until the player changes their mods.
      */
@@ -82,7 +82,7 @@ public final class VoxyTarget {
             return doInject(level, record);
         } catch (LinkageError error) {
             // The first call into rawIngest is where a fork with a different ingest signature would surface
-            // -- as a NoSuchMethodError, which is an Error and would sail straight past `catch (Exception)`.
+            // as a NoSuchMethodError, which is an Error and would sail straight past `catch (Exception)`.
             disable(error);
             return 0;
         }
@@ -106,13 +106,13 @@ public final class VoxyTarget {
         return ingested;
     }
 
-    /** Rule voxy out for this session, and SAY SO -- once, loudly, in words a player can act on. */
+    /** Rule voxy out for this session and SAY SO once, loudly, in words a player can act on. */
     private static void disable(LinkageError error) {
         broken = true;
         LodWarnings.once(CAUSE_INCOMPATIBLE,
                 "voxy is installed, but this build of it does not match the voxy Chunksmith was built"
                         + " against (" + error + "). Chunksmith cannot feed it, so NO distant terrain will"
-                        + " appear in voxy -- Distant Horizons, if you have it, is unaffected. This usually"
+                        + " appear in voxy; Distant Horizons, if you have it, is unaffected. This usually"
                         + " means a voxy fork that changed a method or a field. Please report it, with your"
                         + " voxy version.");
     }

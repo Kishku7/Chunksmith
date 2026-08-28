@@ -197,7 +197,7 @@ public final class CsLodCodec {
             throw new IOException("CSLOD record: palette size " + size + " out of range [0, "
                     + CsLodProtocol.MAX_PALETTE_SIZE + "]");
         }
-        // Do not presize from the count -- each entry is a further readUTF that hits EOF if the record is
+        // Do not presize from the count: each entry is a further readUTF that hits EOF if the record is
         // short, so a lie is caught without pre-allocating.
         final List<String> palette = new ArrayList<>();
         for (int i = 0; i < size; i++) {

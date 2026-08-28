@@ -14,8 +14,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.stream.Stream;
 
 /**
- * Tests for the CSLOD presence bitmap -- the thing that decides, per chunk, whether a pregen re-run
- * has anything left to do.
+ * Tests for the CSLOD presence bitmap that decides, per chunk, whether a pregen re-run has anything
+ * left to do.
  *
  * <p>This is worth pinning down precisely because getting it wrong is silent in both directions. A
  * false "present" makes the pregen skip a chunk that has no LOD, and the hole never gets filled (the
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  * were already done, which is the wasteful behaviour we are replacing. Neither shows up as an error.
  *
  * <p>The bitmap is read out of the region file header, so these tests write through the real
- * {@link CsLodRegionStore} and then read back through {@link CsLodPresenceIndex} -- if the two ever
+ * {@link CsLodRegionStore} and then read back through {@link CsLodPresenceIndex}. If the two ever
  * disagree about what a slot means, that is what fails here.
  */
 public class CsLodPresenceIndexTest {
@@ -97,7 +97,7 @@ public class CsLodPresenceIndexTest {
         final Path root = Files.createTempDirectory("cslod-presence");
         try {
             final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
-            // Same slot index (0) in four different regions -- if the region key were ignored, these
+            // Same slot index (0) in four different regions: if the region key were ignored, these
             // would alias onto one bitmap and three of them would come back wrongly present.
             index.markLod(0, 0);
 
@@ -117,7 +117,7 @@ public class CsLodPresenceIndexTest {
     public void oneHeaderPerRegion() throws Exception {
         // The cost claim: presence for a whole region costs one 8 KB header read, not one read per
         // chunk. If this ever regresses to a per-chunk open, the check stops being free and the whole
-        // design argument collapses -- so it is asserted, not assumed.
+        // design argument collapses, so it is asserted, not assumed.
         final Path root = Files.createTempDirectory("cslod-presence");
         try {
             final CsLodRegionStore store = new CsLodRegionStore(root);
@@ -199,7 +199,7 @@ public class CsLodPresenceIndexTest {
 
     // ------------------------------------------------------------------ helpers
 
-    /** Smallest valid record -- the contents are irrelevant here; only the header slot matters. */
+    /** Smallest valid record: the contents are irrelevant here; only the header slot matters. */
     private static CsLodChunk sample(int chunkX, int chunkZ) {
         final CsLodChunk.Section uniform =
                 new CsLodChunk.Section(null, 0, null, 0, null, 15, null, 0);

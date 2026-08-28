@@ -15,7 +15,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for "is there anything here to serve?" -- the store-availability transition.
+ * Tests for the store-availability transition that answers "is there anything here to serve?".
  *
  * <p>Worth pinning down because every wrong answer here is silent, and two of them have already shipped.
  *

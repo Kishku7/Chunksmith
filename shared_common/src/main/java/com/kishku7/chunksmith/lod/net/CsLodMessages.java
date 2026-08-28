@@ -12,8 +12,8 @@ import java.util.List;
  * Encoding for the in-band messages.
  *
  * <p>Plain bytes, no Minecraft types: the payload class on each side is a one-line wrapper around a
- * {@code byte[]} and all the protocol lives here, so the Chunksmith server and Chunksmith-Client -- two
- * mods in two repos -- share one implementation without sharing a loader.
+ * {@code byte[]} and all the protocol lives here, so the Chunksmith server and Chunksmith-Client (two
+ * mods in two repos) share one implementation without sharing a loader.
  *
  * <p>Every decoder below validates each count/length it reads off the wire against the ceilings in
  * {@link CsLodProtocol} before allocating anything: a tiny hostile packet claiming a huge count would
@@ -89,7 +89,7 @@ public final class CsLodMessages {
             throw new IOException("CSLOD hello: dimension count " + count + " out of range [0, "
                     + CsLodProtocol.MAX_HELLO_DIMENSIONS + "]");
         }
-        // Do not presize from the wire count -- grow as entries arrive, so a short packet that over-claims
+        // Do not presize from the wire count. Grow as entries arrive, so a short packet that over-claims
         // hits EOF harmlessly.
         final List<String> dimensions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -100,7 +100,7 @@ public final class CsLodMessages {
 
     // region index
 
-    /** One region the server holds, plus its freshness token and length -- see {@link CsLodRegionHash}. */
+    /** One region the server holds, plus its freshness token and length. See {@link CsLodRegionHash}. */
     public record RegionEntry(int regionX, int regionZ, long hash, long sizeBytes) {
     }
 
@@ -131,7 +131,7 @@ public final class CsLodMessages {
             throw new IOException("CSLOD index: region count " + count + " out of range [0, "
                     + CsLodProtocol.MAX_INDEX_REGIONS + "]");
         }
-        // Do not presize from the wire count -- each entry is four further reads, so a lie hits EOF first.
+        // Do not presize from the wire count: each entry is four further reads, so a lie hits EOF first.
         final List<RegionEntry> regions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             regions.add(new RegionEntry(in.readInt(), in.readInt(), in.readLong(), in.readLong()));
@@ -172,8 +172,8 @@ public final class CsLodMessages {
     }
 
     /**
-     * Decode a summary. Nothing here is allocated from the wire -- the count is a number we compare, never a
-     * size -- so unlike the index there is no ceiling to enforce. It is still range-checked, because a
+     * Decode a summary. Nothing here is allocated from the wire (the count is a number we compare, never a
+     * size) so unlike the index there is no ceiling to enforce. It is still range-checked, because a
      * negative count is not a thing an honest server sends.
      */
     public static RegionSummary decodeRegionSummary(DataInputStream in) throws IOException {

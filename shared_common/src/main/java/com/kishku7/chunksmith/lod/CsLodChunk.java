@@ -6,10 +6,10 @@ import java.util.List;
  * <b>Why these fields and not others.</b> The format must satisfy the union of what voxy and Distant
  * Horizons need, and DH is the demanding one:
  * <ul>
- *   <li><b>Full block STATE strings</b>, not block ids -- DH has no fluid channel, so water IS a state;
+ *   <li><b>Full block STATE strings</b>, not block ids: DH has no fluid channel, so water IS a state;
  *       waterlogged / snow layers / stair shapes all matter.</li>
  *   <li><b>Sky light and block light kept separate</b> (voxy blends them into one byte; DH will not).</li>
- *   <li><b>Light for air voxels, all the way to the build ceiling</b> -- DH renders black LODs otherwise,
+ *   <li><b>Light for air voxels, all the way to the build ceiling</b>, because DH renders black LODs otherwise,
  *       which is why empty sections are still carried (they collapse to a few bytes).</li>
  * </ul>
  * Voxy needs a strict subset, and mips levels 1-4 itself on insert, so we only ever persist LOD-0.
@@ -75,7 +75,7 @@ public final class CsLodChunk {
     }
 
     /**
-     * A uniform array is stored as a single palette index rather than 4096 (or 64) entries -- which is
+     * A uniform array is stored as a single palette index rather than 4096 (or 64) entries, which is
      * what makes carrying light to the build ceiling affordable, since everything above the terrain is
      * uniform air with uniform sky light. Index order is YZX (y * 256 + z * 16 + x) for blocks and
      * (y * 16 + z * 4 + x) for biomes.

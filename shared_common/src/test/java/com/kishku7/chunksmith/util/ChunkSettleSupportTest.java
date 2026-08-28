@@ -56,7 +56,7 @@ public class ChunkSettleSupportTest {
         final List<String> released = new ArrayList<>();
 
         // A closed 3x3 around (0,0): the centre's neighbourhood is complete, so it becomes DUE at
-        // tick 40 -- but nothing else will ever be offered, which is the situation under test.
+        // tick 40. But nothing else will ever be offered, which is the situation under test.
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
                 final String name = x + "," + z;

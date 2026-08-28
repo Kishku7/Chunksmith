@@ -43,7 +43,7 @@ import com.kishku7.chunksmith.util.TranslationKey;
  * (the field does not exist yet) emits a no-op (keep-awake N/A).
  * The housekeeping @Inject binds at tickServer TAIL on every version. (3.4.0: the 26 line used to
  * bind at INVOKE tickConnection()V, a call site tickServer only reaches inside the empty-server
- * pause branch that returns early -- so housekeeping never actually ran there. See
+ * pause branch that returns early, so housekeeping never actually ran there. See
  * compat.housekeeping_inject_at for the bytecode.) 26 also runs an extra
  * ServerChunkCache.broadcastChangedChunks(ProfilerFiller) invoker that older lines lack.
  * All three are Cog-emitted from compat.py.
@@ -75,11 +75,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * <p>3.2.0 fixed a 60-minute CPU pin by passing vanilla's own {@code haveTime} into the unload pass
      * instead of a hardcoded true. That was right, and it introduced the opposite failure: {@code
      * haveTime} is false for the whole tick once the server is behind, so a server that has fallen behind
-     * unloads nothing, its resident set grows, ticking it costs more, and it falls further behind -- the
+     * unloads nothing, its resident set grows, ticking it costs more, and it falls further behind. The
      * runaway ChunkResidency was added to measure.
      *
      * <p>So the budget is "vanilla's allowance, or this much, whichever is greater". A healthy server
-     * behaves exactly as it did in 3.2.0 -- haveTime is true and this is never consulted. A starved one
+     * behaves exactly as it did in 3.2.0; haveTime is true and this is never consulted. A starved one
      * gets a small, fixed, bounded slice per tick, which is enough to drain a backlog steadily and far
      * too little to pin a core. 2 ms of a 50 ms tick is 4%.
      */
@@ -92,7 +92,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * <p>2 ms is tuned for "do not disturb a live server", which is the wrong constraint for an empty
      * one. An idle server has the whole tick to spare and a backlog it must clear before the next run
      * (or the next player) arrives, so it may spend a fifth of a tick on it. Still bounded, still
-     * self-limiting -- the drain ends when the chunks are gone -- so this cannot become the 3.2.0
+     * self-limiting (the drain ends when the chunks are gone), so this cannot become the 3.2.0
      * unbounded pin, which had no ceiling at all.
      */
     @Unique
@@ -129,7 +129,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * <p>That transition is when a stalled drain deserves another go: the unload floor jumps to the
      * idle budget, and whatever a player was doing to keep chunks resident has stopped. Without this a
      * drain that gave up while somebody was online stays given-up for ever, and the server sits degraded
-     * until it is restarted -- see ChunkResidency#noteDrainBudget for the measurement.
+     * until it is restarted. See ChunkResidency#noteDrainBudget for the measurement.
      */
     @Unique
     private int chunksmith$lastPlayerCount = -1;
@@ -140,14 +140,14 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     @Inject(method = "tickServer", at = @At("HEAD"))
     private void chunksmith$onTickHead(BooleanSupplier booleanSupplier, CallbackInfo ci) {
         // The ticket safe point, deliberately here and not in the housekeeping hook below: on a dedicated
-        // server tickServer HEAD fires unconditionally, every tick, on every game version -- including the
+        // server tickServer HEAD fires unconditionally, every tick, on every game version, including the
         // empty-server tick, which returns before TAIL is reached.
         //
         // It is not sufficient on its own (mod_support #17). This comment used to claim HEAD covered
         // "the pause tick" too, conflating a dedicated server's empty tick with an integrated
         // server's paused tick. They are not the same: IntegratedServer.tickServer sets
         // `paused = Minecraft.isPaused() || players.isEmpty()`, and when paused calls tickPaused()
-        // and returns -- super.tickServer is never reached, so neither is this injection. From 3.3.0
+        // and returns: super.tickServer is never reached, so neither is this injection. From 3.3.0
         // until that was found, a paused single-player pre-gen queued ticket work that nothing ever
         // drained and sat at zero chunks, silently. IntegratedServerMixin now drains on the paused
         // path; see MinecraftServerExtension#chunksmith$drainTicketSafePointNow.
@@ -176,7 +176,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         this.chunksmith$lastPlayerCount = players;
         // Keep the unload pass armed while a finished run still owes the server a drain. Without this
         // the backlog is orphaned: nothing arms housekeeping on an idle server, and vanilla's own pass
-        // does nothing once the tick is over budget -- which it is, because of the retained chunks.
+        // does nothing once the tick is over budget (which it is, because of the retained chunks).
         if (ChunkResidency.isDraining() || ChunkResidency.isGenerationHeld()) {
             this.chunksmith$markChunkSystemHousekeeping();
         }
@@ -211,14 +211,14 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             //[[[end]]]
             // Housekeeping is normally armed by a ticket mutation. That is not enough during a pregen:
             // when the throttle has cut dispatch to its floor, ticket mutations become rare exactly when
-            // the unload backlog most needs draining -- the throttle would be throttling the cure. While
+            // the unload backlog most needs draining. The throttle would be throttling the cure. While
             // a run is active, arm it every tick.
             this.chunksmith$markChunkSystemHousekeeping();
         }
         // Tick health is measured every tick, generating or not. It used to be sampled only while a
         // run was active and reset to a nominal 50 ms otherwise, so a run had no idea what the server
         // cost before it started and the throttle could only steer on absolute tick time. That is fatal
-        // on a server whose idle baseline already sits at the configured target -- the run that measured
+        // on a server whose idle baseline already sits at the configured target; the run that measured
         // 85.2 ms while generating never showed the governor a healthy tick; see TickBudget for the
         // paused reading beside it. Hence: sample unconditionally.
         final long now = System.nanoTime();
@@ -253,7 +253,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * Publish how many chunks the server is holding, for the generation throttle to gate on.
      *
      * <p>{@code getLoadedChunksCount()} is the same number the crash report prints as {@code Chunks[S]
-     * W:} -- public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
+     * W:}, public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
      * drift handling. Summed across dimensions because memory is, and a pregen in one dimension is
      * perfectly capable of being starved by chunks resident in another.
      */
@@ -268,7 +268,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             loaded += level.getChunkSource().getLoadedChunksCount();
             // The eligibility question, answered directly instead of inferred from tick times. See
             // UnloadDiagnostics: toDrop == 0 while chunks are resident means nothing is eligible to
-            // unload, which is a ticket problem, not a throughput one -- and the two were
+            // unload, which is a ticket problem, not a throughput one. The two were
             // indistinguishable from outside for three releases.
             final ChunkMapMixin chunkMap = (ChunkMapMixin) level.getChunkSource().chunkMap;
             toDrop += chunkMap.getToDrop().size();
@@ -326,7 +326,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     public void chunksmith$atTicketSafePoint(Runnable task) {
         this.chunksmith$ticketSafePointQueue.add(task);
         // A released pre-gen ticket only becomes an unloadable chunk once the holders are
-        // downgraded, which is what housekeeping does -- so arm it rather than leave the job half done.
+        // downgraded, which is what housekeeping does, so arm it rather than leave the job half done.
         this.chunksmith$markChunkSystemHousekeeping();
     }
 
@@ -347,7 +347,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // willing to spend on unloading this tick in total, and a per-level deadline would multiply
             // it by the number of dimensions.
             // The bigger budget applies whenever nobody is playing and nothing is being generated
-            // because one of our own gates said so -- a drain after a run, or a gate holding dispatch
+            // because one of our own gates said so: a drain after a run, or a gate holding dispatch
             // mid-run. In both cases the tick is free and unloading is the only thing that can end the
             // situation. 3.5.3 gated this on the drain alone, so a mid-run hold got 2 ms and the
             // resident count did not fall at all across a 120-second hold.
@@ -360,7 +360,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             for (ServerLevel level : this.getAllLevels()) {
                 // Deliberately not guarded on C2ME (mod_support #16). Server_Tests/cs-c2me-cancel-gate
                 // reproduced the crash with the guard in place, arriving instead through vanilla
-                // ServerChunkCache.pollTask -- so the ticket map was already corrupt. The cause was ticket
+                // ServerChunkCache.pollTask, so the ticket map was already corrupt. The cause was ticket
                 // mutation reaching the chunk system from the server executor mid-iteration, now confined
                 // to the ticket safe point at tickServer HEAD (see chunksmith$onTickHead).
                 ((ServerChunkCacheMixin) level.getChunkSource()).invokeRunDistanceManagerUpdates(); // propagate removed pre-gen tickets -> holders downgrade -> chunks become unloadable

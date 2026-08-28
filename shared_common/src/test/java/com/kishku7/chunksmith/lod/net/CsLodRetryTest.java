@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests for the client's empty-store retry clock.
  *
- * <p>Two failure modes, and the policy has to miss both. Give up -- which is what the old client did -- and
+ * <p>Two failure modes, and the policy has to miss both. Give up, which is what the old client did, and
  * a player who joined before the pregen gets nothing for the entire session. Retry too eagerly and a
  * hundred players parked on a server with no LOD data turn into a permanent trickle of packets nobody asked
  * for. So: short at first (a player who joined seconds before the pregen should barely notice), doubling to

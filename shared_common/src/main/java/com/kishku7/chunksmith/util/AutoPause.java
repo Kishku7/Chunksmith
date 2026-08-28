@@ -5,7 +5,7 @@ package com.kishku7.chunksmith.util;
  *
  * <p>Decided 2026-08-20 between "keep crawling", "pause with a clear message and resume when healthy",
  * and "push through regardless": the middle one, as the default, changeable live. Crawling is the wrong
- * default because a gated pre-gen on a server that cannot keep up does not stop -- it stutters. Measured
+ * default because a gated pre-gen on a server that cannot keep up does not stop: it stutters. Measured
  * on a live server: 60 chunks in two minutes, roughly 0.9 per second, with the never-wedge valve opening
  * every 120 seconds for about a second of work. That is indistinguishable from a hang, keeps the server
  * under load throughout, and makes no useful progress.

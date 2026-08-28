@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  *
  * <p><b>The local store IS the cache.</b> The server sends a freshness token per region; we compare each
  * against the token we recorded when we stored our copy ({@link CsLodManifest}) and download only what is
- * missing or changed, so a re-join downloads nothing. We do not re-hash our own files to find out -- that
+ * missing or changed, so a re-join downloads nothing. We do not re-hash our own files to find out: that
  * read the whole store on every index, and it was half of the bug that killed the server.
  *
  * <p>{@link #cancel()} halts the flow immediately. Downloads run on their own threads, in parallel, because
@@ -75,14 +75,14 @@ public final class CsLodDownloader {
                          final CsLodMessages.RegionIndex index, final Consumer<String> progress) {
         cancelled.set(false);
         // The dimension came off the wire from a server we do not trust to be honest. Gate it before it
-        // becomes a path, exactly as the in-band and cache consumers do -- a "../.." here would write
+        // becomes a path, exactly as the in-band and cache consumers do. A "../.." here would write
         // region files outside the client's store. If it is malformed we refuse the whole transfer.
         final Path dimDir = CsLodStore.dimensionDir(storeRoot, index.dimension());
         if (dimDir == null) {
             progress.accept("LOD: refusing a malformed dimension id from the server");
             return;
         }
-        // What the server told us about the regions we already hold -- not a CRC of our own bytes. See
+        // What the server told us about the regions we already hold, not a CRC of our own bytes. See
         // CsLodManifest for the client-side half of the bug that killed the server.
         this.manifest = CsLodManifest.open(storeRoot, index.dimension());
 
@@ -147,7 +147,7 @@ public final class CsLodDownloader {
             progress.accept("LOD: could not write the region manifest (" + e + "); these regions will be"
                     + " re-fetched next session");
         }
-        progress.accept("LOD: done -- " + downloaded.get() + " fetched, " + skipped.get() + " cached, "
+        progress.accept("LOD: done. " + downloaded.get() + " fetched, " + skipped.get() + " cached, "
                 + failed.get() + " failed, " + (bytes.get() / 1024 / 1024) + " MB");
     }
 
@@ -186,7 +186,7 @@ public final class CsLodDownloader {
         return bytes.get();
     }
 
-    /** requested / fetched / cached / failed -- counters exist from commit one, deliberately. */
+    /** requested / fetched / cached / failed. Counters exist from commit one, deliberately. */
     public String describe() {
         return "fetched " + downloaded.get() + ", cached " + skipped.get() + ", failed " + failed.get()
                 + ", " + (bytes.get() / 1024 / 1024) + " MB";
@@ -196,7 +196,7 @@ public final class CsLodDownloader {
                        final String dimension, final CsLodMessages.RegionEntry entry)
             throws IOException, InterruptedException {
         // Re-gate here too: this is a distinct consumer of the wire dimension, so it validates rather than
-        // trusting that the caller did (D20 -- harden every consumer, not one).
+        // trusting that the caller did (D20: harden every consumer, not one).
         final Path dimDir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dimDir == null) {
             throw new IOException("refusing a malformed dimension id: " + dimension);
@@ -235,7 +235,7 @@ public final class CsLodDownloader {
     }
 
     /**
-     * Do we already hold exactly what the server is advertising? A manifest lookup and one stat -- see
+     * Do we already hold exactly what the server is advertising? A manifest lookup and one stat. See
      * {@link CsLodManifest}. Since beta-4 this no longer reads the client's own store.
      */
     private boolean haveAlready(Path dimDir, CsLodMessages.RegionEntry entry) {

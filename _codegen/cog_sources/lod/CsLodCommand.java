@@ -27,15 +27,15 @@ import net.minecraft.commands.arguments.EntityArgument;
 import java.io.IOException;
 
 /**
- * {@code /cslod} -- operator commands for the CSLOD store.
+ * Operator commands for the CSLOD store, under {@code /cslod}.
  *
  * <ul>
- *   <li>{@code set} -- the player's own client settings; the only subcommand a non-operator may run.</li>
- *   <li>{@code status} -- where the store is, how big, and whether the backchannel is up.</li>
- *   <li>{@code token <player>} -- mint a backchannel token by hand.</li>
- *   <li>{@code dhpush} -- replay the store into Distant Horizons. Present on every LOD cell: DH ships a
+ *   <li>{@code set}: the player's own client settings; the only subcommand a non-operator may run.</li>
+ *   <li>{@code status}: where the store is, how big, and whether the backchannel is up.</li>
+ *   <li>{@code token <player>}: mint a backchannel token by hand.</li>
+ *   <li>{@code dhpush}: replay the store into Distant Horizons. Present on every LOD cell: DH ships a
  *       build for all of them.</li>
- *   <li>{@code inject} -- replay the store into voxy. Only where a voxy jar exists to compile against
+ *   <li>{@code inject}: replay the store into voxy. Only where a voxy jar exists to compile against
  *       (Fabric 1.21.11 + Fabric 26).</li>
  * </ul>
  *
@@ -198,7 +198,7 @@ public final class CsLodCommand {
                         })));
 
         // Referencing CsLodClientSettings from server-side code is not a side-guard breach: it and
-        // CsLodClientConfig name no net.minecraft.client type at all -- they are java.util.Properties and
+        // CsLodClientConfig name no net.minecraft.client type at all; they are java.util.Properties and
         // two static fields. What must never be reached from here is the renderer/download half, and none
         // of it is. No permission gate: config/chunksmith-lod.properties is the player's own file, on
         // their own machine; the command forwards and the client answers.
@@ -252,13 +252,13 @@ public final class CsLodCommand {
             // The "no renderer" half of this message is gone (3.4.0): the client now introduces itself
             // whether or not it has voxy or Distant Horizons, precisely so these settings stay reachable,
             // so blaming a missing renderer would now be a wrong answer. What is left is the honest
-            // remainder -- no hello means either no Chunksmith on that client, or a different LOD protocol
+            // remainder: no hello means either no Chunksmith on that client, or a different LOD protocol
             // version (which the client reports in its own log, by version number, when it happens).
             source.sendFailure(Component.literal(
                     "[chunksmith] this server has not heard from your client's Chunksmith, so it cannot"
                             + " reach your client settings. Either Chunksmith is not installed"
                             + " client-side, or your version speaks a different LOD protocol than this"
-                            + " server -- your client's log names which. Editing"
+                            + " server; your client's log names which. Editing"
                             + " config/chunksmith-lod.properties by hand always works."));
             return 0;
         }

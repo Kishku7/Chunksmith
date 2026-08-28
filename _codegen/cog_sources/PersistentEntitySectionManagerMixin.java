@@ -70,15 +70,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>When the chunk has no persisted entity data there is nothing to merge, and the read is pure
  * overhead. We {@code @Redirect} the {@code loadEntities} call inside {@code requestChunkLoad} and
  * decide whether real data exists. That decision has to be made against a consistent view, so the probe
- * runs on the IOWorker's own single-threaded executor -- the one thread that mutates
- * {@code pendingWrites} and owns the region files. There it checks both:
+ * runs on the IOWorker's own single-threaded executor (the one thread that mutates
+ * {@code pendingWrites} and owns the region files). There it checks both:
  * <ul>
- *   <li>{@code pendingWrites} -- entities already stored this session but not yet flushed to disk; a
+ *   <li>{@code pendingWrites}: entities already stored this session but not yet flushed to disk; a
  *       plain on-disk read would miss these and the next store would clobber them, and</li>
  *   <li>the entity region file's 4096-byte offset table (read directly, serialized against writes, so
  *       it cannot tear, and gated by {@code Files.exists} so it never opens/creates a RegionFile).</li>
  * </ul>
- * If either says data is present -- or anything is uncertain -- we fall through to the untouched vanilla
+ * If either says data is present (or anything is uncertain), we fall through to the untouched vanilla
  * read+merge, so no entity is ever lost. Only a provably-empty chunk skips the read (returns an
  * immediately-completed empty result), which is where the RAM/stall win comes from.
  *

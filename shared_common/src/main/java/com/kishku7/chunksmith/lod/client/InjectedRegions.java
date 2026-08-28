@@ -8,11 +8,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * dimension as well as by region coordinates.
  *
  * <p>Every pull returns the whole in-radius set, most of it already drawn, and re-injecting those
- * re-pushes terrain the renderer has -- with voxy, hundreds of thousands of sections.
+ * re-pushes terrain the renderer has; with voxy, hundreds of thousands of sections.
  *
  * <p>The key needs the dimension because it used to be a {@code Set<Long>} of packed region x/z alone,
  * and region (0,0) is a different place in every dimension: once the overworld's (0,0) had been
- * injected, the Nether's was considered "already done" and silently skipped forever -- the player walked
+ * injected, the Nether's was considered "already done" and silently skipped forever. The player walked
  * into the Nether, its LODs never appeared, and every counter and log line reported success.
  *
  * <p>The value needs the freshness token because a pregen keeps GROWING the regions the player is
@@ -43,11 +43,11 @@ public final class InjectedRegions {
         if (previous == hash) {
             return false;
         }
-        // Drawn, but the server has a different version now. Ours -- and `put` has already staked it.
+        // Drawn, but the server has a different version now. Ours, and `put` has already staked it.
         return true;
     }
 
-    /** Pre-load a claim a previous session made and wrote down -- see {@link InjectedIndex}. */
+    /** Pre-load a claim a previous session made and wrote down. See {@link InjectedIndex}. */
     public void seed(String dimension, int regionX, int regionZ, long hash) {
         this.injected.put(key(dimension, regionX, regionZ), hash);
     }

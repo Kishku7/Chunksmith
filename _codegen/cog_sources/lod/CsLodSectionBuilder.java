@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Rebuilds vanilla objects from stored CSLOD records -- the inverse of Chunksmith's extractor.
+ * Rebuilds vanilla objects from stored CSLOD records by inverting Chunksmith's extractor.
  *
  * <p>Takes a {@link Level}, not a {@code ServerLevel}: on a client the world is a {@code ClientLevel}, and
  * this is the whole reason this class exists separately from the server-side one.
@@ -45,7 +45,7 @@ import java.util.Map;
  *       {@code (String,String)} constructor is public only on 1.20.1.</li>
  * </ul>
  * A {@code Registry} is only itself a {@code HolderLookup} from 1.21.11; before that
- * {@code BlockStateParser.parseForBlock} needs {@code .asLookup()} -- which is why the block lookup is
+ * {@code BlockStateParser.parseForBlock} needs {@code .asLookup()}, which is why the block lookup is
  * emitted too rather than shared.
  */
 public final class CsLodSectionBuilder {

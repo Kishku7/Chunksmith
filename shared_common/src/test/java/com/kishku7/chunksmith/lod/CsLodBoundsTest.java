@@ -27,8 +27,8 @@ import static org.junit.Assert.fail;
  * {@link CsLodProtocol} before anything is allocated.
  *
  * <p>Each "hostile" case crafts a tiny packet that claims a huge count. The proof that the guard fires
- * before allocation is that the decoder throws a checked {@link IOException} -- NOT an
- * {@link OutOfMemoryError} or {@link NegativeArraySizeException} -- and returns immediately. If the old
+ * before allocation is that the decoder throws a checked {@link IOException}, NOT an
+ * {@link OutOfMemoryError} or {@link NegativeArraySizeException}, and returns immediately. If the old
  * {@code new ArrayList<>(count)} / {@code new byte[len]} still ran first, a claimed
  * {@link Integer#MAX_VALUE} would OOM the JVM here instead. Each "honest" case proves the boundary is
  * inclusive: a message exactly at the ceiling still decodes byte-for-byte.
@@ -155,7 +155,7 @@ public class CsLodBoundsTest {
         for (int i = 0; i < n; i++) {
             blockPalette.add("b" + i);
         }
-        // Zero sections so no per-voxel indices are written -- this isolates the palette-size path.
+        // Zero sections so no per-voxel indices are written; this isolates the palette-size path.
         final CsLodChunk chunk = new CsLodChunk("minecraft:overworld", 0, 0, -4,
                 blockPalette, List.of("minecraft:plains"), List.of());
         final CsLodChunk decoded = CsLodCodec.decode(CsLodCodec.encode(chunk));
@@ -170,7 +170,7 @@ public class CsLodBoundsTest {
         final Path root = Files.createTempDirectory("cslod-bounds");
         try {
             // Header is 1024 slots x 8 bytes. slotIndex(0,0) == 0, so slot 0 points at a bogus record
-            // that claims Integer.MAX_VALUE bytes -- exactly the shape an in-band write from a hostile
+            // that claims Integer.MAX_VALUE bytes, exactly the shape an in-band write from a hostile
             // server could leave on disk.
             final int headerBytes = 32 * 32 * 8;
             final byte[] file = new byte[headerBytes + 16];

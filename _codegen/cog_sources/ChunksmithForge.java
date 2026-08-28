@@ -129,7 +129,7 @@ public final class ChunksmithForge {
     //[[[end]]]
     public void onServerStarting(final ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
-        // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need -- it
+        // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need. It
         // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
         // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
         ServerSideRendererAdvisory.message(server.isDedicatedServer(), id -> ModList.get().isLoaded(id))

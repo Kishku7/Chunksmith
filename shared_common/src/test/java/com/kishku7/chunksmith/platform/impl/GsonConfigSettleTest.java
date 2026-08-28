@@ -15,7 +15,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * The settle settings as seen through {@code /cs settle}.
  *
- * <p>The house rule -- every key in the config file has a command that can set it -- is only true if the
+ * <p>The house rule (every key in the config file has a command that can set it) is only true if the
  * SETTER half works, and a setter has two jobs the getter does not: survive a restart, and refuse a
  * value the getter would later clamp.
  *

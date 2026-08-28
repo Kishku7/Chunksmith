@@ -38,7 +38,7 @@ public final class LodInit implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             CsLodServerNet.onServerStopped();
-            // Flush the writer queue and close the region files -- otherwise a pregen that ends at
+            // Flush the writer queue and close the region files; otherwise a pregen that ends at
             // shutdown would lose whatever was still queued.
             LodSupport.shutdown();
         });

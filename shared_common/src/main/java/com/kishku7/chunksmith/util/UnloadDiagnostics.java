@@ -1,5 +1,6 @@
 package com.kishku7.chunksmith.util;
 
+
 /**
  * What the chunk system is actually doing about unloading, in five numbers.
  *
@@ -109,14 +110,14 @@ public final class UnloadDiagnostics {
         if (total <= 0L) {
             verdict = "nothing resident";
         } else if (levelDroppable > total / 2L) {
-            verdict = "MOST ARE PAST MAX_LEVEL -- nothing holds them and vanilla is not dropping them";
+            verdict = "MOST ARE PAST MAX_LEVEL: nothing holds them and vanilla is not dropping them";
         } else {
             // Not a leak by itself: every FULL chunk needs a ring of worldgen context, so a pre-gen
             // keeps that ring resident for its whole frontier. Compare 'ticking' against the dispatch
             // limit and the settle cap: if that is bounded, this band is the frontier, not a leak.
-            verdict = "mostly worldgen context around the frontier -- judge by 'ticking', not this";
+            verdict = "mostly worldgen context around the frontier; judge by 'ticking', not this";
         }
-        return String.format("ticking=%d loaded=%d droppable=%d age=%ds -- %s",
+        return String.format("ticking=%d loaded=%d droppable=%d age=%ds (%s)",
                 levelTicking, levelLoaded, levelDroppable,
                 Math.max(0L, (System.currentTimeMillis() - levelSampledAt) / 1000L), verdict);
     }
@@ -138,7 +139,7 @@ public final class UnloadDiagnostics {
 
     /**
      * One line, and a plain-English verdict on which of the two cases we are in. Contains no literal
-     * percent sign -- {@code Sender.sendMessagePrefixed} formats its message, which 3.5.2 learned hard.
+     * percent sign: {@code Sender.sendMessagePrefixed} formats its message, which 3.5.2 learned hard.
      */
     public static String describe() {
         if (!supported) {
@@ -152,11 +153,11 @@ public final class UnloadDiagnostics {
         if (visible <= 0L) {
             verdict = "nothing resident";
         } else if (unloadQueue > 2000L) {
-            verdict = "eligible work is backing up -- a throughput problem";
+            verdict = "eligible work is backing up, a throughput problem";
         } else {
             verdict = "note: toDrop and unloadQueue are drained every tick, so 0 here means nothing";
         }
-        return String.format("visible=%d toDrop=%d unloadQueue=%d pendingUnloads=%d hasTickets=%s -- %s",
+        return String.format("visible=%d toDrop=%d unloadQueue=%d pendingUnloads=%d hasTickets=%s (%s)",
                 visible, toDrop, unloadQueue, pendingUnloads, hasTickets, verdict);
     }
 }

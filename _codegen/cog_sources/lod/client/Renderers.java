@@ -16,8 +16,8 @@ import com.kishku7.chunksmith.lod.client.render.VoxyTarget;
  * signatures, so one adapter covers them all. That is a snapshot of the fork field as it stood on
  * 2026-07-13, and it is the roster the other voxy classes lean on: upstream, ggonzaDNG mia-edition,
  * NHblock714, Paulem79, srjefers and Vulkan-Voxy, each one run as a real jar. New forks keep appearing;
- * re-run the set before trusting the claim. The one place they did drift -- the type of voxy's
- * render-distance config field -- is now read type-tolerantly; see {@code VoxyConfigReader}.
+ * re-run the set before trusting the claim. The one place they did drift (the type of voxy's
+ * render-distance config field) is now read type-tolerantly; see {@code VoxyConfigReader}.
  *
  * <p><b>voxy is Fabric-only.</b> Its {@code VoxyCommon} implements {@code net.fabricmc.api.ModInitializer},
  * so the adapter cannot even compile against a NeoForge build, and no fork has ever shipped for any 26.x

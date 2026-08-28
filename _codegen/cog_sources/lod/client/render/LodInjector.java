@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The store-to-renderer walk: every downloaded CSLOD record, handed to whichever renderer the player has.
- * Runs off the game thread -- rebuilding chunks and pushing them into a renderer is real work, and it must
+ * Runs off the game thread; rebuilding chunks and pushing them into a renderer is real work, and it must
  * never make the game stutter while the player keeps playing and their horizon fills in behind them.
  */
 public final class LodInjector {
@@ -43,15 +43,15 @@ public final class LodInjector {
 
     /**
      * Which injection session is current. Bumped when the session a running injection belongs to has gone
-     * away -- a disconnect, a cancel, or a server that has stopped (mod_support #16).
+     * away: a disconnect, a cancel, or a server that has stopped (mod_support #16).
      *
      * <p>A worker captures this value when it starts and stops as soon as it no longer matches. The level
      * check below is not enough alone: it catches the player changing dimension but not the world ending
-     * underneath us -- in singleplayer the client level can still be there while the integrated server is
+     * underneath us; in singleplayer the client level can still be there while the integrated server is
      * shutting down. One was seen logging "injected 17500 chunks" ~45s after "Stopping server".
      *
      * <p>A counter rather than the boolean it replaces. The boolean was set true by {@code stop()} on
-     * disconnect and cleared by an {@code arm()} that only one of the two callers made -- the in-band
+     * disconnect and cleared by an {@code arm()} that only one of the two callers made, the in-band
      * fallback. The backchannel is the path almost every player is on, so the first disconnect of a game
      * session latched the flag true and every join after it aborted at region 0 for the remaining life of
      * the process. A generation has no pairing to get wrong: a new injection reads the current value as
@@ -68,7 +68,7 @@ public final class LodInjector {
     }
 
     /**
-     * Regions already injected this session -- keyed by ({@code dimension}, x, z), never by x/z alone;
+     * Regions already injected this session, keyed by ({@code dimension}, x, z), never by x/z alone;
      * {@link InjectedRegions} says what keying on coordinates alone cost. Cleared on disconnect: the store
      * is keyed by server, and so is this.
      */
@@ -78,7 +78,7 @@ public final class LodInjector {
      * The on-disk half of the same question, one per dimension we have injected into this session.
      *
      * <p>{@link #INJECTED} is emptied on disconnect, which meant a join began believing the renderer held
-     * nothing -- so every region in range was decoded and pushed again into a voxy database and a DH sqlite
+     * nothing, so every region in range was decoded and pushed again into a voxy database and a DH sqlite
      * that had persisted every one of them. That is minutes of CPU per join for terrain already on screen,
      * and on a two-core machine the difference between playable and not (mod_support #15). So each
      * dimension's claims go to a {@code .injected} sidecar; this map is only a per-session handle cache.
@@ -92,13 +92,13 @@ public final class LodInjector {
      *
      * <p>The records must belong to the level they are being pushed into, and this is where that is
      * checked. Both adapters resolve their target from the level we hand them, so the wrong dimension's
-     * records are faithfully written into the right renderer for the wrong world -- and neither DH nor
+     * records are faithfully written into the right renderer for the wrong world, and neither DH nor
      * voxy validates it. (It has happened: 1089 overworld chunks into the End's database, and in
      * 3.1.0-beta-2 the overworld's whole store into the Nether.)
      *
      * @param storeRoot the client's store for this server ({@code .../chunksmith/lod/<server>})
      * @param dimension the dimension these records belong to -- MUST be the level's own dimension
-     * @param regions   the regions to inject -- typically everything the server just told us is in range
+     * @param regions   the regions to inject, typically everything the server just told us is in range
      */
     public static void injectRegions(final Path storeRoot, final String dimension,
                                      final List<CsLodMessages.RegionEntry> regions,
@@ -117,7 +117,7 @@ public final class LodInjector {
         // dimension it was fetched for, and the level is now somewhere else entirely.
         final String levelDimension = CsLodDimension.of(level);
         if (!levelDimension.equals(dimension)) {
-            LOGGER.info("Chunksmith: not injecting {} LOD data -- the player is now in {}. (Terrain from"
+            LOGGER.info("Chunksmith: not injecting {} LOD data. The player is now in {}. (Terrain from"
                             + " another dimension is not a substitute for this one's; the data for {} will"
                             + " be fetched for the level the player is actually in.)",
                     dimension, levelDimension, levelDimension);
@@ -125,7 +125,7 @@ public final class LodInjector {
         }
 
         // What did the last session hand this renderer? Seeded before the first claim of this dimension,
-        // so the claims below start from the truth on disk rather than an empty map -- without it the
+        // so the claims below start from the truth on disk rather than an empty map; without it the
         // whole in-range store is "new" at every join. Null means a malformed dimension id; do not persist.
         final boolean voxyInstalled = Renderers.hasVoxy();
         final boolean dhInstalled = Renderers.hasDh();
@@ -143,7 +143,7 @@ public final class LodInjector {
             return opened;
         });
 
-        // Claim by (dimension, region, token). An already-drawn region is skipped -- unless the server is
+        // Claim by (dimension, region, token). An already-drawn region is skipped, unless the server is
         // advertising a different version of it, which during a pregen is the normal case under the
         // player's feet. Keying on coordinates alone threw a re-downloaded, grown region away.
         final List<CsLodMessages.RegionEntry> fresh = new ArrayList<>();
@@ -158,7 +158,7 @@ public final class LodInjector {
 
         // Wait for a renderer to become ready. On a 1 GbE LAN the whole 19 MB store downloads in under a
         // second, roughly one second before Distant Horizons announces the level; inject immediately and
-        // there is nothing to inject into -- the download succeeds, the injector bails, and the player sees
+        // there is nothing to inject into. The download succeeds, the injector bails, and the player sees
         // empty sky while every log line says success.
         if (!awaitRenderer(level)) {
             // Un-mark them: a renderer that shows up later must still get this data.
@@ -177,7 +177,7 @@ public final class LodInjector {
 
         // Only write a claim down when we are injecting into every renderer the player has. If one is
         // installed but not ready, this pass feeds the other and the session-only claim still suppresses a
-        // re-push during this session -- but nothing goes on disk, because a persisted claim would tell
+        // re-push during this session, but nothing goes on disk, because a persisted claim would tell
         // the next join that the renderer which never received the data already has it.
         final boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled;
 
@@ -206,7 +206,7 @@ public final class LodInjector {
                 flush(index, dimension);
                 // Say which of the two happened: they are different events with different fixes, and the
                 // old wording announced a dimension change for both, hiding the latched-flag bug above.
-                LOGGER.info("Chunksmith: stopping the {} LOD injection -- {}. {} region(s) were not"
+                LOGGER.info("Chunksmith: stopping the {} LOD injection ({}). {} region(s) were not"
                                 + " injected and will be re-fetched {}.",
                         dimension,
                         sessionEnded ? "the session ended" : "the player is no longer in this world",
@@ -245,7 +245,7 @@ public final class LodInjector {
 
         flush(index, dimension);
 
-        progress.accept("done -- " + chunks.get() + " chunks"
+        progress.accept("done, " + chunks.get() + " chunks"
                 + (voxy ? ", " + voxySections.get() + " voxy sections" : "")
                 + (dh ? ", " + dhChunks.get() + " to distant-horizons (" + DhTarget.describe() + ")" : ""));
 
@@ -258,10 +258,10 @@ public final class LodInjector {
      * <p>The mixin on {@code DhClientLevel.shouldProcessChunkUpdate} is what stops a DH server silently
      * eating our pushes (see {@link DhPushGuard}). Its config is deliberately {@code "required": false}, so
      * if the target vanishes Mixin skips it and announces that with wording like "Critical injection
-     * failure" -- which reads FATAL in a user's log and is not, hence our own wording here. What we check is
+     * failure", which reads FATAL in a user's log and is not, hence our own wording here. What we check is
      * what actually matters: we pushed chunks into a DH with a live network session and the gate was forced
      * zero times, meaning the mixin did not fire. Zero forced pushes in singleplayer (or on a server without
-     * DH) is normal -- the gate returns true on its own with no network state -- so we only complain when we
+     * DH) is normal (the gate returns true on its own with no network state), so we only complain when we
      * actually pushed.
      */
     private static void reportDhGate(boolean dh) {
@@ -271,7 +271,7 @@ public final class LodInjector {
         LOGGER.info("Chunksmith: pushed {} chunks to Distant Horizons and never had to force its"
                         + " dedupe gate. On a singleplayer world or a server WITHOUT DH that is normal and"
                         + " expected. If this IS a DH-enabled server, our mixin did not fire and DH may be"
-                        + " silently discarding terrain it has seen in the last 10 minutes -- please report"
+                        + " silently discarding terrain it has seen in the last 10 minutes. Please report"
                         + " it with your DH version ({}).",
                 dhChunks.get(), DhTarget.version());
     }
@@ -310,7 +310,7 @@ public final class LodInjector {
     /**
      * Block until a renderer can actually receive data, or we give up. voxy is ready when its engine
      * exists; DH when it has fired its level-load event for this level. Both happen shortly after the
-     * world loads -- and on a fast connection our download beats them.
+     * world loads, and on a fast connection our download beats them.
      */
     private static boolean awaitRenderer(Level level) {
         final long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;
@@ -329,7 +329,7 @@ public final class LodInjector {
         return false;
     }
 
-    /** Counters -- present from the first commit, because every silent failure here looks like success. */
+    /** Counters: present from the first commit, because every silent failure here looks like success. */
     public static String describe() {
         return chunks.get() + " chunks injected (" + voxySections.get() + " voxy sections, "
                 + dhChunks.get() + " dh chunks)";

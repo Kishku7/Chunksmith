@@ -12,8 +12,8 @@ import java.util.function.Predicate;
  * injects it into whichever renderer the player has. An LOD renderer is a client-side mod, and a
  * dedicated server does not render anything.
  *
- * <p>Installing Distant Horizons server-side is a reasonable-looking mistake -- it is the mod the
- * feature is "about" and it has a server half -- and it is not free. On a live server a server-side
+ * <p>Installing Distant Horizons server-side is a reasonable-looking mistake (it is the mod the
+ * feature is "about" and it has a server half) and it is not free. On a live server a server-side
  * Distant Horizons ran 43 threads, its own world-gen queues, a delayed save cache and a per-dimension
  * update propagator alongside a Chunksmith pregen already generating the same terrain, and with
  * {@code synchronizeOnLoad} on it re-sent LODs the client already had.
@@ -62,7 +62,7 @@ public final class ServerSideRendererAdvisory {
         return Optional.of(names + " " + subject + " installed on this DEDICATED SERVER, where Chunksmith"
                 + " does not need " + pronoun + ". Chunksmith builds its own LOD data while it"
                 + " pregenerates and serves that to each player's client, which injects it into the"
-                + " renderer THEY have installed -- an LOD renderer is a client-side mod. Running one"
+                + " renderer THEY have installed; an LOD renderer is a client-side mod. Running one"
                 + " here costs threads, memory and disk generating a second copy of terrain this server"
                 + " is already generating. Removing it is the recommended setup. Keep it only if you"
                 + " deliberately serve players who do not have Chunksmith installed.");

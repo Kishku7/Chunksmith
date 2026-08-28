@@ -14,10 +14,10 @@ import java.util.logging.Logger;
 /**
  * Resolves the active {@link LodSink} per world and drives the generation hook. Mirrors the
  * Fabric/Forge/NeoForge {@code LodSupport} (canonical: _codegen/cog_sources/lod/LodSupport.java),
- * structure and {@code lodEnabled} tristate semantics alike -- but see the scope note below.
+ * structure and {@code lodEnabled} tristate semantics alike, but see the scope note below.
  *
  * <p>Server-side generation only (mod_support #9 follow-up / #11 sibling work). There is no renderer
- * adapter and no client-streaming channel here yet -- that is Chunksmith-Client's job on the mod loaders
+ * adapter and no client-streaming channel here yet. That is Chunksmith-Client's job on the mod loaders
  * and does not exist on the Plugin platform. This class only ever creates a {@link CsLodStoreSink}: the
  * durable CSLOD store gets built, and nothing consumes it yet. Deliberately incomplete; the streaming
  * half is a separate, later phase.
@@ -26,7 +26,7 @@ import java.util.logging.Logger;
  * {@code AUTO} as ON when either a renderer is detected in the JVM, OR the server is a dedicated
  * server (a dedicated server cannot run voxy and does not need DH locally, but the CSLOD store is
  * exactly what a remote client downloads). A Bukkit/Paper/Folia process is always the dedicated-server
- * case -- there is no Bukkit integrated-server / singleplayer concept -- so here {@code AUTO} simply
+ * case (there is no Bukkit integrated-server / singleplayer concept), so here {@code AUTO} simply
  * means ON, unconditionally. No renderer detection is attempted (nothing can run one on this
  * platform), matching the same scoping direction: generation now, client support later.
  */
@@ -87,7 +87,7 @@ public final class LodSupport {
         return sink;
     }
 
-    /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; matches the mod-loader layout exactly. */
+    /** {@code <world>/chunksmith/lod/<dim>}: our own tree; matches the mod-loader layout exactly. */
     public static Path storeRoot(World world) {
         return world.getWorldFolder().toPath()
                 .resolve("chunksmith").resolve("lod")
@@ -115,7 +115,7 @@ public final class LodSupport {
             // feed on this platform yet") was true and useless: what they need to know is that their
             // Players get nothing and no client-side mod will change that. mod_support #18 was somebody
             // working that out the hard way with this line already in their log.
-            LOGGER.info("Chunksmith: LOD generation ON -- writing a CSLOD store, and serving it to"
+            LOGGER.info("Chunksmith: LOD generation ON. Writing a CSLOD store, and serving it to"
                     + " players who have Chunksmith installed. Watch for the backchannel line just"
                     + " below: that port has to be reachable by your players, or they get no LOD."
                     + " Set lod-enabled: false in config.yml to turn all of this off.");

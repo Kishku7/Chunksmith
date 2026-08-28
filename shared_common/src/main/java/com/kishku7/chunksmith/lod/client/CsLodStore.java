@@ -4,12 +4,12 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 /**
- * Turns a server-supplied dimension id into a store subdirectory -- safely.
+ * Safely turns a server-supplied dimension id into a store subdirectory.
  *
  * <p>The dimension string arrives over the network from the Chunksmith server. A joined player is
  * authenticated with Mojang, but the SERVER they joined is not trusted to be honest or bug-free, and this
  * string is used to build a filesystem path for every region file the client writes and reads. A value
- * like {@code "../.."} would otherwise walk those writes out of the client's store root -- the client
+ * like {@code "../.."} would otherwise walk those writes out of the client's store root, the client
  * mirror of the traversal the server guards against on its own side.
  */
 public final class CsLodStore {

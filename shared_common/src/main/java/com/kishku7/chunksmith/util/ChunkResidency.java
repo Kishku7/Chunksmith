@@ -6,19 +6,19 @@ import org.slf4j.LoggerFactory;
 /**
  * How many chunks the server is holding in memory, and whether a pregen still owes the server a drain.
  *
- * <p>Every other throttle signal Chunksmith has measures how fast work goes in -- tick time, per-chunk
+ * <p>Every other throttle signal Chunksmith has measures how fast work goes in: tick time, per-chunk
  * latency, the write queue, the LOD sink. None measured what had piled up and not gone out. On a live
  * server a pregen ran with 75,045 chunk holders resident, ten times the sweep frontier the run could
  * need, and nothing in the mod could see it.
  *
  * <p>3.5.0 then got two things wrong, both measured on Zion 2026-08-20. Absolute counts turned out to be
  * meaningless: a cap of "20,000 resident" tripped on a server whose ordinary resident set was already
- * near it, so the gate closed on the baseline and never opened. The question is how many we have added
- * -- hence {@link #baseline()}, captured at run start, and a gate reading the delta.
+ * near it, so the gate closed on the baseline and never opened. The question is how many we have added,
+ * hence {@link #baseline()}, captured at run start, and a gate reading the delta.
  *
  * <p>And the backlog outlives the task. 3.5.0 drove the unload pass only while a task was active; when
  * it paused, the remainder fell to vanilla's budgeted pass, which does nothing once the tick is over
- * budget -- which it is precisely because of the retained chunks. Measured: 39,064 chunks still resident
+ * budget, which it is precisely because of the retained chunks. Measured: 39,064 chunks still resident
  * nineteen minutes after the pregen stopped, no players online, 51 ms per tick, heap pinned at 8.7 GB,
  * permanent until a restart. So {@link #isDraining()} keeps the pass running until they go.
  *
@@ -179,7 +179,7 @@ public final class ChunkResidency {
      * Tell the drain whether it is currently being given a real budget.
      *
      * <p>The unload floor is small while players are online, and a drain on that floor makes little
-     * measurable progress -- which the stall detector below reads as "nothing left to unload". It gave
+     * measurable progress, which the stall detector below reads as "nothing left to unload". It gave
      * up for exactly that reason once while a player was online; the player left, and the server sat at
      * 71.5 ms per tick with a full heap until it was restarted, because nothing re-armed it. So the
      * no-progress clock only advances while the drain is allowed to work.
@@ -189,7 +189,7 @@ public final class ChunkResidency {
     }
 
     /**
-     * Conditions have improved -- typically the last player has left. Resume draining if the server is
+     * Conditions have improved (typically the last player has left). Resume draining if the server is
      * still holding more than the run started with. A drain is not a one-shot; treating it as one is
      * what let a server stay degraded indefinitely after the thing blocking the drain went away.
      */
@@ -217,11 +217,11 @@ public final class ChunkResidency {
     }
 
     /**
-     * Generation has stopped dispatching because one of our gates closed -- residency or heap.
+     * Generation has stopped dispatching because one of our gates (residency or heap) closed.
      *
      * <p>Two things follow, both missing when the gate was first tested on a real server. The unload
      * pass should get the full budget: nothing is being generated, and unloading is the only thing that
-     * can reopen the gate. And the settle frontier must be let go -- with dispatch stopped no neighbour
+     * can reopen the gate. And the settle frontier must be let go: with dispatch stopped no neighbour
      * is ever coming, so the frontier freezes at its cap and prevents the very recovery the gate is
      * waiting for. Measured: 25,638 resident, held for 120 s, count up by 196.
      */
@@ -253,7 +253,7 @@ public final class ChunkResidency {
      * Decide whether the drain is finished.
      *
      * <p>Three ways to stop, all needed. Reaching the baseline is success. No progress for {@link
-     * #DRAIN_STALL_MILLIS} means the remainder is pinned by something that is not ours -- players,
+     * #DRAIN_STALL_MILLIS} means the remainder is pinned by something that is not ours: players,
      * spawn chunks, another mod's tickets. The ceiling backstops a world that trickles down for ever.
      */
     private static void evaluateDrain(long loaded, long now) {
@@ -270,7 +270,7 @@ public final class ChunkResidency {
             // than let it convict the drain of a stall it never had a chance to avoid.
             drainProgressMillis = now;
         } else if (now - drainProgressMillis >= DRAIN_STALL_MILLIS) {
-            finishDrain(loaded, now, "stopped falling on a full budget -- the rest is pinned by something that is not ours");
+            finishDrain(loaded, now, "stopped falling on a full budget; the rest is pinned by something that is not ours");
             return;
         }
         if (now - drainStartedMillis >= DRAIN_MAX_MILLIS) {
@@ -286,7 +286,7 @@ public final class ChunkResidency {
         // WARN rather than INFO when chunks are left behind: that is the case an operator needs to see,
         // and it is exactly the case 3.5.1 could not distinguish from success.
         final String message = String.format(
-                "Chunksmith: drain finished -- %s. %d chunks resident, %d freed, %d above where the run started, took %ds. %s",
+                "Chunksmith: drain finished (%s). %d chunks resident, %d freed, %d above where the run started, took %ds. %s",
                 reason, loaded, freed, baseline < 0L ? -1L : Math.max(0L, loaded - baseline), seconds,
                 UnloadDiagnostics.describe() + " | our tickets: " + TicketLedger.describe());
         if (baseline >= 0L && loaded > baseline + DRAIN_MARGIN) {

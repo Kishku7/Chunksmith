@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  * <p>{@code CustomPacketPayload} does not exist here, so there is no payload object and no type registry:
  * the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair, and registering a receiver on the
  * CLIENT side is entirely independent of the server-side receiver {@link CsLodChannel#register()} installs.
- * There is therefore nothing that could be double-registered on this cell -- but the merged shape is the
+ * There is therefore nothing that could be double-registered on this cell, but the merged shape is the
  * same as every other cell's anyway: the channel id lives in exactly one place ({@link CsLodChannel#ID}) and
  * this class only ever attaches handlers to it.
  *
@@ -52,7 +52,7 @@ public final class ClientPlatform {
     public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         ClientPlayNetworking.registerGlobalReceiver(CsLodChannel.ID, (client, handler, buf, responseSender) -> {
             // Read on the NETTY thread. The buffer is released the instant this handler returns, so the
-            // bytes MUST be copied out before hopping to the main thread -- reading it inside the
+            // bytes MUST be copied out before hopping to the main thread. Reading it inside the
             // client.execute lambda would race the release and hand us garbage (or throw). The server-side
             // twin in CsLodChannel carries the same note for the same reason.
             final byte[] data = buf.readByteArray();
@@ -60,7 +60,7 @@ public final class ClientPlatform {
         });
     }
 
-    /** Silently does nothing when the server does not speak our channel -- which is most servers. */
+    /** Silently does nothing on the many servers that do not speak our channel. */
     public static void sendToServer(byte[] data) {
         if (!ClientPlayNetworking.canSend(CsLodChannel.ID)) {
             return;

@@ -70,7 +70,7 @@ public class ChunksmithFabric implements ModInitializer {
             LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
         ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
-            // An LOD renderer on a DEDICATED server is duplicated work Chunksmith does not need -- it
+            // An LOD renderer on a DEDICATED server is duplicated work Chunksmith does not need; it
             // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
             // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
             ServerSideRendererAdvisory.message(minecraftServer.isDedicatedServer(), FabricLoader.getInstance()::isModLoaded)

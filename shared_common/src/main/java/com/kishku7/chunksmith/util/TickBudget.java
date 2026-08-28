@@ -3,11 +3,11 @@ package com.kishku7.chunksmith.util;
 /**
  * Measured on a live server: 74.9 ms per tick with the pre-gen paused, against a configured target of 75.
  * The throttle used to steer on absolute tick time, so that ramp window was unreachable whatever
- * Chunksmith did -- the governor pinned dispatch at its floor permanently and throttled the run to
+ * Chunksmith did: the governor pinned dispatch at its floor permanently and throttled the run to
  * 2 chunks/sec, while the run itself cost 10 ms.
  *
  * <p>So three measurements instead of one assumption. The <i>baseline</i> is the tick cost with nothing
- * of ours in flight -- a decaying average, and never a running minimum: the first attempt tracked the
+ * of ours in flight, a decaying average, and never a running minimum: the first attempt tracked the
  * cheapest reading ever seen, so it anchored at 48 ms while the server had moved on to 75, and the
  * effective target silently collapsed back to the old absolute one. <i>Our cost</i> is the tick cost
  * while we are working, minus the baseline; measured 13.5 ms on the server that exposed all of this,
@@ -15,7 +15,7 @@ package com.kishku7.chunksmith.util;
  * cost, so ordinary variance does not trip the governor and it tracks what the terrain actually costs.
  *
  * <p>Players get reserved room rather than just the absence of harm. A player's cost is already in the
- * baseline, so a rising baseline stops Chunksmith making things worse -- but gives the player nothing
+ * baseline, so a rising baseline stops Chunksmith making things worse, but gives the player nothing
  * back. Each online player therefore also shrinks our allowance by {@code playerReserveMillis}.
  *
  * <p>A join or a leave invalidates the baseline immediately: it is a step change in what the server
@@ -34,7 +34,7 @@ public final class TickBudget {
      *
      * <p>Runaway without it, and it did run away: the allowance is twice our measured cost and a pre-gen
      * pushes until it reaches it, so the cost climbs toward the allowance, which doubles it again. Live,
-     * over ten minutes -- ourCost 16.5 ms -> 154 ms, allowance 32.9 ms -> 308 ms, a 358 ms target, the
+     * over ten minutes: ourCost 16.5 ms -> 154 ms, allowance 32.9 ms -> 308 ms, a 358 ms target, the
      * throttle never backing off, the server near 2.8 TPS.
      */
     private static final double MAX_ALLOWANCE_FACTOR = 3.0D;
@@ -51,9 +51,9 @@ public final class TickBudget {
      * How often to stop dispatching briefly and take a clean baseline reading.
      *
      * <p>The baseline only updates on ticks where Chunksmith has nothing in flight, which during a
-     * running pre-gen is almost never -- so without this it is measured once at the start and trusted
+     * running pre-gen is almost never, so without this it is measured once at the start and trusted
      * for ever. Observed live: the baseline read 50.2 ms for fifteen minutes while the server's real
-     * cost climbed past 125 ms under GC pressure, all of it attributed to us -- ourCost "measured"
+     * cost climbed past 125 ms under GC pressure, all of it attributed to us; ourCost "measured"
      * 76.4 ms against a true ~16 ms, the allowance slammed into its ceiling, the throttle collapsed to
      * 1/50. Two seconds every two minutes is 1.7 percent.
      */
@@ -69,7 +69,7 @@ public final class TickBudget {
      * still being unloaded, and its garbage still being collected, all on ticks where our in-flight
      * count already reads zero. Sampling those teaches the baseline our own aftermath. Measured on a
      * live server: the baseline read 49ms, then 116.8ms minutes later with no load change. A run of idle
-     * ticks separates the cases -- a gap between dispatches is one or two ticks, a held probe or a
+     * ticks separates the cases: a gap between dispatches is one or two ticks, a held probe or a
      * paused run is idle indefinitely.
      */
     private static final int IDLE_TICKS_BEFORE_TRUSTED = 15;
@@ -100,7 +100,7 @@ public final class TickBudget {
             // A join or a leave is a step change in what the server costs, so throw the learned values
             // away and re-measure. Do not return here: the first call of a run always trips this branch
             // (lastPlayerCount starts at -1) and is the only moment a run has nothing in flight, so
-            // discarding it meant the baseline was never learned at all -- effectiveTarget stayed -1 and
+            // discarding it meant the baseline was never learned at all; effectiveTarget stayed -1 and
             // the run was pinned at 2/50. Reset, then use the sample.
             lastPlayerCount = players;
             baselineMspt = -1.0D;
@@ -200,12 +200,12 @@ public final class TickBudget {
         return false;
     }
 
-    /** True while a baseline probe is in progress -- the caller is holding dispatch for it. */
+    /** True while a baseline probe is in progress. The caller is holding dispatch for it. */
     public static boolean isProbing() {
         return probeStartedAt != 0L;
     }
 
-    /** Forget everything -- a new run, or a server going away. */
+    /** Forget everything (a new run, or a server going away). */
     public static void reset() {
         baselineMspt = -1.0D;
         ourCostMspt = -1.0D;

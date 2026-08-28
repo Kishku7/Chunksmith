@@ -16,7 +16,7 @@ import java.util.function.Consumer;
  * Push a CSLOD record into Distant Horizons instead of waiting to be pulled. Drives {@code /cslod dhpush}:
  * the backfill for a world that was pregenerated before DH was ever installed.
  *
- * <p>The world-generator override only ever fires on a level that has a server -- DH's
+ * <p>The world-generator override only ever fires on a level that has a server. DH's
  * {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a multiplayer client
  * gets a {@code RemoteWorldRetrievalQueue} instead, so {@code generateApiChunk} is never called there. The
  * whole pull design is inapplicable to a client; the client must push. The push lands in
@@ -27,11 +27,11 @@ import java.util.function.Consumer;
  * record is LIT correctly: if DH reads light from the level's light engine rather than from the chunk we
  * hand it, the chunk comes out BLACK and nothing reports an error. So: run it, then LOOK at it. A
  * {@code DhApiResult.success} means QUEUED, not WRITTEN, so the counters below cannot prove retention
- * either -- count rows in DH's SQLite.
+ * either. Count rows in DH's SQLite.
  *
  * <p>Known gate, and the reason this may report success and do nothing on a real server:
  * {@code DhClientLevel.shouldProcessChunkUpdate} silently discards an update for any position seen in the
- * last 10 minutes when connected to a DH server with real-time updates on -- while still returning
+ * last 10 minutes when connected to a DH server with real-time updates on, while still returning
  * {@code createSuccess()}. Singleplayer, the only place this class runs, is not affected, so Chunksmith
  * uses DH's public API only and never mixins into DH.
  *
@@ -78,20 +78,20 @@ public final class CsLodDhPusher {
             });
         } catch (LinkageError e) {
             CsLodDhSupport.disable(e);
-            progress.accept("stopped after " + pushed[0] + " chunks -- this Distant Horizons does not have"
+            progress.accept("stopped after " + pushed[0] + " chunks: this Distant Horizons does not have"
                     + " the API Chunksmith was built against (" + CsLodDhSupport.version() + ")."
                     + " DH is disabled for this session; nothing else is affected.");
             return pushed[0];
         }
 
         progress.accept("done: pushed " + pushed[0] + ", failed " + failed[0]
-                + " -- NOTE a 'success' here does NOT prove DH kept it; check the DB and LOOK at the terrain");
+                + ". NOTE a 'success' here does NOT prove DH kept it; check the DB and LOOK at the terrain");
         return pushed[0];
     }
 
     /**
      * The empty {@code LevelChunk(Level, ChunkPos)} constructor allocates the section array for the level's
-     * height; we fill it with sections rebuilt from the record -- the same reconstruction the voxy injector
+     * height; we fill it with sections rebuilt from the record, the same reconstruction the voxy injector
      * does and that P2 proved correct.
      */
     private static LevelChunk synthesize(ServerLevel level, CsLodChunk record) {

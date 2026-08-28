@@ -10,10 +10,10 @@ package com.kishku7.chunksmith.lod.net;
  * index.
  *
  * <p>The fold has to be order-independent, since the server enumerates from {@code Files.list} and the
- * client from the last index it was given -- identical sets, different order. Hence XOR rather than a
+ * client from the last index it was given: identical sets, different order. Hence XOR rather than a
  * checksum. XOR of raw hashes would be a bad aggregate, though: equal tokens cancel to zero and swapping
  * two regions' coordinates is invisible. Each region is therefore bound to its own coordinates and
- * avalanched -- {@code token(x, z, hash)} -- and those are XORed, with the count carried alongside as a
+ * avalanched, {@code token(x, z, hash)}, and those are XORed, with the count carried alongside as a
  * second check.
  */
 public final class CsLodSummary {
@@ -27,7 +27,7 @@ public final class CsLodSummary {
         public static final Snapshot EMPTY = new Snapshot(0, 0L);
     }
 
-    /** Fold one region into a running aggregate -- start from 0. */
+    /** Fold one region into a running aggregate; start from 0. */
     public static long fold(long aggregate, int regionX, int regionZ, long hash) {
         return aggregate ^ token(regionX, regionZ, hash);
     }

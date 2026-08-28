@@ -165,7 +165,7 @@ public class CsLodManifestTest {
         assertNull(CsLodManifest.open(this.root, ""));
     }
 
-    // ------------------------------------------------------------------ fold() -- the sync compare
+    // ------------------------------------------------------------------ the fold() sync compare
 
     @Test
     public void holdingEverythingMatchesTheServer() throws IOException {

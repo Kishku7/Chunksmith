@@ -41,7 +41,7 @@ import java.util.HashMap;
  * <p>The client drives the exchange: on join it says hello, announcing which renderers it has and the
  * radius its renderer draws (the server follows that number); the server answers with store availability,
  * the backchannel port and a token; the client asks for the region index, diffs it against the local
- * store, fetches only what it lacks, hands it to the renderer -- and keeps doing so as the player travels
+ * store, fetches only what it lacks, hands it to the renderer, and keeps doing so as the player travels
  * ({@link #travelTick}).
  *
  * <p>An empty store at join is not the end of the session. The old client asked once, was told
@@ -94,7 +94,7 @@ public final class CsLodClientNet {
 
     /**
      * The dimension the player was in when we last looked. A difference from the level is the dimension
-     * change -- no reliable cross-loader, cross-version dimension-change event exists, and the level is
+     * change; no reliable cross-loader, cross-version dimension-change event exists, and the level is
      * truth.
      */
     private static volatile String playerDimension = "";
@@ -111,7 +111,7 @@ public final class CsLodClientNet {
     /**
      * What we told the server we can draw, cached from the first hello and re-used by every later one.
      * Not just an optimization: {@code Renderers.configuredRadiusBlocks()} reaches into voxy's config,
-     * and the join handshake is the only place it is safe to do that (see {@link #hello}) -- a retry must
+     * and the join handshake is the only place it is safe to do that (see {@link #hello}). A retry must
      * not go back and ask voxy again.
      */
     private static volatile boolean capsVoxy;
@@ -128,14 +128,14 @@ public final class CsLodClientNet {
     private static final long HELLO_TIMEOUT_MILLIS = 10_000L;
 
     /**
-     * The entries of the last index the server gave us -- the set the sync poll folds over (see
+     * The entries of the last index the server gave us, the set the sync poll folds over (see
      * {@link #summary}). Deliberately the server's answer rather than a listing of our own store: the
      * server excludes regions its pregen is still writing, so folding our own directory would disagree on
      * every poll and pull a full index every interval for the entire length of a pregen.
      */
     private static volatile List<CsLodMessages.RegionEntry> lastIndex = List.of();
 
-    /** When we last asked "has anything changed?". Reset by a real index -- there is no point asking twice. */
+    /** When we last asked "has anything changed?". Reset by a real index; there is no point asking twice. */
     private static volatile long lastSyncMillis;
 
     /** When we said hello, and whether anything ever came back. For the one-shot silence notice. */
@@ -176,7 +176,7 @@ public final class CsLodClientNet {
             return;
         }
         // Are we still in the dimension we think we are? Checked before anything else, and even while a
-        // fetch is in flight -- a fetch for the dimension the player has just left is what must be stopped.
+        // fetch is in flight. A fetch for the dimension the player has just left is what must be stopped.
         if (dimensionTick()) {
             return;
         }
@@ -184,14 +184,14 @@ public final class CsLodClientNet {
             return;
         }
         if (activeDimension.isEmpty()) {
-            // Nothing to refresh yet -- but if the server told us its store was empty (or had nothing for
+            // Nothing to refresh yet, but if the server told us its store was empty (or had nothing for
             // the dimension we are in), keep asking; that may not be true any more.
             retryTick();
             silenceTick();
             return;
         }
 
-        // The sync poll runs on its own clock, deliberately above every movement test below -- those only
+        // The sync poll runs on its own clock, deliberately above every movement test below. Those only
         // fire once the player has travelled half a region, and a player who joins, walks to their base and
         // stays there used to get nothing more for the whole session. So we ask for two numbers (22 bytes
         // out, 34 back), never an index: an index every few minutes from every client rebuilds the memory bug.
@@ -268,12 +268,12 @@ public final class CsLodClientNet {
             return true;
         }
         if (from.isEmpty()) {
-            // First level of the session, so nothing has changed -- we are just learning where we
+            // First level of the session, so nothing has changed; we are just learning where we
             // started. hello() is already on its way; record it and let the normal handshake arm us.
             return true;
         }
 
-        LOGGER.info("Chunksmith: the player moved from {} to {} -- the LOD data for {} is a DIFFERENT world,"
+        LOGGER.info("Chunksmith: the player moved from {} to {}. The LOD data for {} is a DIFFERENT world,"
                 + " so asking the server what it has for {}", from, now, from, now);
 
         // Ask again. The hello is the message the server already answers on join, so this needs no new
@@ -288,9 +288,9 @@ public final class CsLodClientNet {
      * "Has anything changed?" -- once per configured interval, whatever the player is doing. One poll, for
      * the store that started all this (340 regions, 1567 MB, a 4-region radius, 81 regions in range): 22
      * bytes out, 34 bytes back, and ~86 server-side syscalls on a background thread with ZERO bytes of file
-     * content -- one {@code openat} + ~3 {@code getdents64} + one {@code close} to list the 340 names, then
+     * content: one {@code openat} + ~3 {@code getdents64} + one {@code close} to list the 340 names, then
      * one {@code statx} per region actually in range (the name and radius tests both run before the stat).
-     * mtime and size come out of that stat, and they are the freshness token now -- against the whole-file
+     * mtime and size come out of that stat, and they are the freshness token now, against the whole-file
      * reads a 3.1.0-beta-3 index did on the server main thread; see {@code CsLodServerNet}.
      */
     private static void syncTick() {
@@ -313,10 +313,10 @@ public final class CsLodClientNet {
     /**
      * The server folded its in-range index to two numbers. Fold ours the same way and compare. Equal
      * means the server holds exactly the regions it last told us about, at exactly those versions, and we
-     * hold every one -- the 99% case, and it costs nothing. A difference means one of three things, and
+     * hold every one: the 99% case, and it costs nothing. A difference means one of three things, and
      * all three have the same answer (pull the index and let the diff work it out): the server's store
      * grew, or we lost regions (deleted, truncated, a disk that lied), or a region we hold changed so its
-     * recorded token no longer matches the advertised one. Runs off the game thread -- a stat per region
+     * recorded token no longer matches the advertised one. Runs off the game thread, a stat per region
      * of the last index, and the game thread never waits on a disk.
      */
     private static void summary(CsLodMessages.RegionSummary summary) {
@@ -340,7 +340,7 @@ public final class CsLodClientNet {
             }
             final CsLodSummary.Snapshot ours = manifest.fold(dir, mine);
             if (ours.count() == summary.count() && ours.aggregate() == summary.aggregate()) {
-                LOGGER.debug("Chunksmith: LOD sync -- nothing has changed ({} regions of {})",
+                LOGGER.debug("Chunksmith: LOD sync, nothing has changed ({} regions of {})",
                         ours.count(), dimension);
                 return;
             }
@@ -383,8 +383,8 @@ public final class CsLodClientNet {
         }
         silenceReported = true;
         LOGGER.info("Chunksmith: no LOD data is being offered by this server (it did not answer our hello"
-                        + " within {}s). Either it does not run Chunksmith -- which is normal, and nothing is"
-                        + " wrong -- or it runs a version older than 3.1.0-beta-4, which speaks an LOD"
+                        + " within {}s). Either it does not run Chunksmith (which is normal, and nothing is"
+                        + " wrong) or it runs a version older than 3.1.0-beta-4, which speaks an LOD"
                         + " protocol older than v{} and cannot serve this client. If you expected LOD terrain"
                         + " here, the server and every client must be on 3.1.0-beta-4 or later.",
                 HELLO_TIMEOUT_MILLIS / 1000L, CsLodProtocol.VERSION);
@@ -399,7 +399,7 @@ public final class CsLodClientNet {
             return;
         }
             // Singleplayer. The world's own injector already draws these LODs directly, so this path would
-            // be a duplicate -- and a duplicate is the last thing that should be put on a timer.
+            // be a duplicate, and a duplicate is the last thing that should be put on a timer.
         if (host.isEmpty()) {
             return;
         }
@@ -444,20 +444,20 @@ public final class CsLodClientNet {
         }
         // Read the renderers' radius at this point and nowhere earlier: this is the first moment both
         // renderers are up, and asking voxy sooner (e.g. from the init status line) class-loads its config
-        // before voxy initializes and leaves voxy inert for the whole session -- silently. See VoxyRadius.
+        // before voxy initializes and leaves voxy silently inert for the whole session. See VoxyRadius.
         // Cache it; every later hello re-uses these numbers rather than going back to voxy's config.
         capsVoxy = voxy;
         capsDh = dh;
         capsRadius = Renderers.configuredRadiusBlocks();
-        // The sync interval, with its floor applied in code (see CsLodClientConfig -- "sync-interval-
+        // The sync interval, with its floor applied in code (see CsLodClientConfig: "sync-interval-
         // seconds=1" must not become a poll storm against a server trying to run a pregen).
         LOGGER.info("Chunksmith: {}", CsLodClientConfig.load(ClientPlatform.gameDir().resolve("config")));
         if (!voxy && !dh) {
-            LOGGER.info("Chunksmith: hello -- no LOD renderer installed (voxy / Distant Horizons), so no"
+            LOGGER.info("Chunksmith: hello, no LOD renderer installed (voxy / Distant Horizons), so no"
                     + " LOD data will be requested or drawn. Saying hello anyway so that /cslod set can"
                     + " reach this client's settings.");
         } else {
-            LOGGER.info("Chunksmith: hello -- voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
+            LOGGER.info("Chunksmith: saying hello with voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
         }
         // Name the DH the player actually has, at join: we compile against the standalone
         // distanthorizonsapi artifact and support a wide range of DH releases. DhTarget hard-references DH
@@ -469,8 +469,8 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Put a hello on the wire. Three callers -- the join handshake, an empty-store retry and a token
-     * renewal -- and the server answers every one identically with its current hello, which is why none of
+     * Put a hello on the wire. Three callers (the join handshake, an empty-store retry and a token
+     * renewal), and the server answers every one identically with its current hello, which is why none of
      * this needed a new packet id. An older server answers a repeat hello exactly as it answered the first.
      */
     private static void sendHello(boolean first) {
@@ -530,7 +530,7 @@ public final class CsLodClientNet {
             // A 3.1.0-beta-3 server speaks v1, where the hash field is a CRC32 of the region's contents --
             // which is what forced that server to read every file in our radius (the bug). The two
             // protocols cannot interoperate; say so in words a player can act on, once.
-            LOGGER.warn("Chunksmith: this server speaks LOD protocol v{} and we speak v{} -- not fetching."
+            LOGGER.warn("Chunksmith: this server speaks LOD protocol v{} and we speak v{}. Not fetching."
                             + " The server and the client must be on the same Chunksmith version"
                             + " (v1 is 3.1.0-beta-3 and earlier; v2 is 3.1.0-beta-4 and later).",
                     hello.protocolVersion(), CsLodProtocol.VERSION);
@@ -552,7 +552,7 @@ public final class CsLodClientNet {
                 awaitingStore = true;
                 LOGGER.info("Chunksmith: the server has no pregenerated LOD data yet."
                         + " Staying connected and checking again (every {}s at first, then every {}s)"
-                        + " -- it will arrive on its own if the operator pregenerates, and you do NOT"
+                        + "; it will arrive on its own if the operator pregenerates, and you do NOT"
                         + " need to relog.",
                         CsLodRetry.FIRST_DELAY_MILLIS / 1000L, CsLodRetry.MAX_DELAY_MILLIS / 1000L);
             }
@@ -563,11 +563,11 @@ public final class CsLodClientNet {
         backchannelPort = hello.backchannelPort();
         serverDimensions = hello.dimensions();
 
-        // The dimension is the one the player is standing in -- NEVER the first one the server listed.
+        // The dimension is the one the player is standing in, NEVER the first one the server listed.
         // That single line was the 3.1.0-beta-2 bug; see the note on activeDimension.
         final String mine = CsLodDimension.current();
         if (mine.isEmpty()) {
-            // No level yet -- still loading in. dimensionTick() re-hellos once there is a level to name.
+            // No level yet; still loading in. dimensionTick() re-hellos once there is a level to name.
             return;
         }
         playerDimension = mine;
@@ -577,7 +577,7 @@ public final class CsLodClientNet {
         // only the overworld), and not a reason to render another dimension's terrain here.
             if (!awaitingStore) {
                 awaitingStore = true;
-                LOGGER.info("Chunksmith: the server has LOD data for {}, but nothing for {} -- the"
+                LOGGER.info("Chunksmith: the server has LOD data for {}, but nothing for {}, the"
                                 + " dimension you are in. Nothing will be drawn here (data from another"
                                 + " dimension is NOT a substitute). Checking again as you play.",
                         serverDimensions, mine);
@@ -587,7 +587,7 @@ public final class CsLodClientNet {
         }
 
         if (awaitingStore) {
-            LOGGER.info("Chunksmith: the server NOW has LOD data for {} -- fetching it (after {} check(s),"
+            LOGGER.info("Chunksmith: the server NOW has LOD data for {}. Fetching it (after {} check(s),"
                             + " with no relog)", mine, RETRY.attempts());
             awaitingStore = false;
             RETRY.reset();
@@ -598,7 +598,7 @@ public final class CsLodClientNet {
         final boolean arming = activeDimension.isEmpty();
         if (backchannelPort == 0) {
             // The operator has not opened the port. Not an error: we ask in-band instead, which is much
-            // slower -- it rides the gameplay connection -- but works everywhere.
+            // slower (it rides the gameplay connection) but works everywhere.
             if (arming) {
                 LOGGER.info("Chunksmith: server has LOD data for {} but no backchannel; using the in-band"
                         + " fallback (slower)", mine);
@@ -640,7 +640,7 @@ public final class CsLodClientNet {
             return;
         }
         // Keep it. This is the set the sync poll folds against (see summary()), and it carries each
-        // region's freshness token to the injector -- a region whose token has moved must be re-injected,
+        // region's freshness token to the injector. A region whose token has moved must be re-injected,
         // not skipped as "already drawn". Bare coordinates, as we used to carry, would throw those away.
         lastIndex = index.regions();
         lastSyncMillis = System.currentTimeMillis();
@@ -656,7 +656,7 @@ public final class CsLodClientNet {
         final Thread worker = new Thread(() -> {
             try {
                 // One cheap probe before we queue anything: an advertised-but-unreachable port costs a
-                // full connect timeout per region -- ~30s of dead air on a 9-region store before the
+                // full connect timeout per region, ~30s of dead air on a 9-region store before the
                 // fallback fires, and it scales with the store. A single socket answers the same question
                 // in 2s.
                 if (!reachable(host, backchannelPort)) {
@@ -712,7 +712,7 @@ public final class CsLodClientNet {
     /**
      * The slow path: ask for the regions down the game connection. Used when the server never opened a
      * backchannel port, or advertised one we cannot reach. Asks only for what we are actually missing,
-     * exactly as the fast path does -- the cache rule does not change just because the transport did.
+     * exactly as the fast path does; the cache rule does not change just because the transport did.
      */
     private static void inBand(CsLodMessages.RegionIndex index, Path root) {
         inBandRoot = root;
@@ -730,7 +730,7 @@ public final class CsLodClientNet {
                 wanted.add(entry);
             }
         }
-        LOGGER.info("Chunksmith: in-band fetch -- {} regions within my radius, {} already cached,"
+        LOGGER.info("Chunksmith: in-band fetch. {} regions within my radius, {} already cached,"
                         + " {} to fetch (this is the slow path)",
                 index.regions().size(), index.regions().size() - wanted.size(), wanted.size());
         if (wanted.isEmpty()) {
@@ -765,7 +765,7 @@ public final class CsLodClientNet {
         }
         PARTIAL.remove(key);
         try {
-            // slice.dimension() is a distinct wire value, so gate it here too (D20 -- every consumer validates).
+            // slice.dimension() is a distinct wire value, so gate it here too (D20: every consumer validates).
             final Path dimDir = CsLodStore.dimensionDir(root, slice.dimension());
             if (dimDir == null) {
                 LOGGER.warn("Chunksmith: dropping an in-band slice with a malformed dimension id");
@@ -856,7 +856,7 @@ public final class CsLodClientNet {
         inBandManifest = null;
         PARTIAL.clear();
         // Signal first, then clear. A worker may be mid-store right now, and reset() only clears the
-        // bookkeeping -- it does not reach the thread (mod_support #16).
+        // bookkeeping; it does not reach the thread (mod_support #16).
         LodInjector.stop();
         LodInjector.reset();
     }
@@ -871,7 +871,7 @@ public final class CsLodClientNet {
      * Act on this client's own LOD settings, on behalf of a /cslod set typed at the server. The reply is
      * printed on this side rather than sent back for the server to print: the file being read and written
      * is on this machine, so the server cannot know the answer. Already on the client thread --
-     * ClientPlatform hands every payload to the client executor before calling handle() -- so
+     * ClientPlatform hands every payload to the client executor before calling handle(), so
      * Minecraft.getInstance() is safe here.
      */
     private static void clientSetting(CsLodMessages.ClientSetting request) {
@@ -904,7 +904,7 @@ public final class CsLodClientNet {
             return;
         }
 
-        // SETTING_SET. A refused value is a shape error -- a word where a number belongs. An out-of-range
+        // SETTING_SET. A refused value is a shape error: a word where a number belongs. An out-of-range
         // value is accepted and clamped, so the reply reports what was stored, not what was typed.
         if (!setting.write(request.value())) {
             final var expected = setting.kind().completions();
@@ -916,7 +916,7 @@ public final class CsLodClientNet {
         }
         say(player, Component.literal(
                 "[chunksmith] " + setting.name() + " = " + setting.read()
-                        + " -- applied now and saved to config/" + CsLodClientConfig.FILE_NAME));
+                        + ", applied now and saved to config/" + CsLodClientConfig.FILE_NAME));
     }
 
     /**

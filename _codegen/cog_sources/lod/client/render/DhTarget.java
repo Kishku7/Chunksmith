@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * DH loads every dimension at startup and does not validate the dimension of data you hand it: it will
  * happily accept, persist and downsample overworld chunks into the End's database and report success for
  * every one. It did exactly that, 1089 times, before this was caught. So resolve the wrapper for THIS
- * level, never "the last one" -- that is the rule this class keeps while it feeds downloaded CSLOD records
+ * level, never "the last one"; that is the rule this class keeps while it feeds downloaded CSLOD records
  * into the player's Distant Horizons.
  *
  * <p>We push; DH does not pull from us. DH's world-generator override is built only by a server level --
@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * -> {@code SharedApi.applyChunkUpdate}: the same path DH uses when a player edits a block. It writes at
  * gen step LIGHT, persists, and re-renders on its own.
  *
- * <p>A synthesized chunk needs no pre-lighting. DH bakes the light itself -- its ChunkWrapper never
+ * <p>A synthesized chunk needs no pre-lighting. DH bakes the light itself; its ChunkWrapper never
  * touches Minecraft's light engine, and the push path calls its own lighting engine unconditionally.
  * What it does need is correct block states with air explicitly present, which CSLOD's gap-free columns
  * guarantee.
@@ -42,7 +42,7 @@ public final class DhTarget {
      * Minimum gap between pushes. Measured safe at ~50 chunks/s over a 4225-chunk push, 100% retention.
      *
      * <p>Not arbitrary: DH's {@code ChunkUpdateQueueManager.addItemToQueue()} calls {@code popFurthest()}
-     * when its queue overflows, evicting the entry furthest from the player -- precisely the distant
+     * when its queue overflows, evicting the entry furthest from the player, precisely the distant
      * pregenerated terrain we are delivering. It is an overflow guard, not a distance filter, so it fires
      * only when pushes outrun DH's chunk-to-LOD builder. "Distant Horizons overloaded" in the log means
      * data was lost, not that something was slow.
@@ -85,7 +85,7 @@ public final class DhTarget {
 
     /**
      * Give up on DH for the session. A {@link LinkageError} means the installed DH lacks a method or type
-     * we compiled against -- a DH problem, and no reason to take the player's game or their voxy with it.
+     * we compiled against: a DH problem, and no reason to take the player's game or their voxy with it.
      */
     static void disable(final Throwable cause) {
         if (disabled) {
@@ -93,11 +93,11 @@ public final class DhTarget {
         }
         disabled = true;
         LOGGER.warn("Chunksmith: this Distant Horizons is not compatible with the API we build"
-                + " against, so we are not feeding it this session -- {}. Everything else (including voxy)"
+                + " against, so we are not feeding it this session ({}). Everything else (including voxy)"
                 + " keeps working. Please report this with the DH version above.", cause.toString());
     }
 
-    /** Learn each level's wrapper as DH loads it. Bind at mod init -- DH fires this during world load. */
+    /** Learn each level's wrapper as DH loads it. Bind at mod init; DH fires this during world load. */
     public static void bind() {
         if (bound) {
             return;
@@ -145,7 +145,7 @@ public final class DhTarget {
         //
         // LinkageError, not Exception: this is the only place we call into DH's terrain repo, so it is
         // where a DH whose API does not match ours blows up (NoSuchMethodError / NoClassDefFoundError /
-        // AbstractMethodError -- all Errors, none caught by `catch (Exception)`). We claim a wide DH range
+        // AbstractMethodError; all Errors, none caught by `catch (Exception)`). We claim a wide DH range
         // on the evidence that this signature has been stable since DH 2.0.0-a.
         final DhApiResult<Void> result;
         try {

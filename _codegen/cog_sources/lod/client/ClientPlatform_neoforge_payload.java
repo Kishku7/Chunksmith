@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * The client-side platform facade -- NEOFORGE (our 1.21.1, 1.21.11 and 26 LOD cells).
+ * The client-side platform facade for NEOFORGE (our 1.21.1, 1.21.11 and 26 LOD cells).
  *
  * <p>Seam twin of the Fabric copies: same package, same name, same static signatures, so the shared
  * LOD-client tree compiles unchanged.
@@ -42,10 +42,10 @@ import java.util.function.Consumer;
  *       {@code ClientPacketDistributor} does not exist; by 21.11 the method has moved to
  *       {@code ClientPacketDistributor.sendToServer} and {@code PacketDistributor.sendToServer} is GONE.
  *       A hard either/or, not a deprecation.</li>
- *   <li><b>the bidirectional registration</b> -- see {@code CsLodChannel}, which owns it.</li>
+ *   <li><b>the bidirectional registration</b>: see {@code CsLodChannel}, which owns it.</li>
  * </ol>
  *
- * <p>Shared source -- canonical location: _codegen/cog_sources/lod/client. Edit only there; the per-cell
+ * <p>Shared source, canonically at _codegen/cog_sources/lod/client. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class ClientPlatform {
@@ -56,7 +56,7 @@ public final class ClientPlatform {
     private ClientPlatform() {
     }
 
-    /** Called first thing by the client {@code @Mod} entrypoint -- the mod bus is reachable nowhere else. */
+    /** Called first thing by the client {@code @Mod} entrypoint; the mod bus is reachable nowhere else. */
     public static void bootstrap(Object bus) {
         modBus = (IEventBus) bus;
     }
@@ -73,7 +73,7 @@ public final class ClientPlatform {
      * Run once the client is far enough up to talk to other mods' APIs.
      *
      * <p>not the {@code @Mod} constructor. NeoForge constructs mods in dependency order, and Distant
-     * Horizons is a soft dependency we deliberately do not declare a load order against -- so our
+     * Horizons is a soft dependency we deliberately do not declare a load order against, so our
      * constructor can run BEFORE DH's, and {@code DhApi.events} would not exist yet.
      * {@code FMLClientSetupEvent} runs after every mod is constructed and still long before DH fires its
      * level-load event during world load, which is the announcement we must not miss.
@@ -87,7 +87,7 @@ public final class ClientPlatform {
         CsLodChannel.setClientSink(onPayload);
     }
 
-    /** Silently does nothing when the server does not speak our channel -- which is most servers. */
+    /** Silently does nothing on the many servers that do not speak our channel. */
     public static void sendToServer(byte[] data) {
         final ClientPacketListener connection = Minecraft.getInstance().getConnection();
         if (connection != null && NetworkRegistry.hasChannel(connection, CsLodChannel.Payload.TYPE.id())) {

@@ -10,8 +10,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * {@code toDrop} set failed as a measurement for the opposite reason -- that set is emptied every single
  * tick, so sampling it reads zero on a healthy server and a sick one alike.
  *
- * <p>The last instrument this problem needed. A pregen accumulated chunk holders without bound -- the
- * runaway {@link ChunkResidency} was built to measure -- and was still climbing past 17,000 with every
+ * <p>The last instrument this problem needed. A pregen accumulated chunk holders without bound (the
+ * runaway {@link ChunkResidency} was built to measure) and was still climbing past 17,000 with every
  * plausible culprit ruled out one at a time: the settle window (disabled entirely, retention continued),
  * its cap, player tickets (nobody online), and heap pressure (40 pct at the time). A starved unload
  * budget went too; see {@link UnloadDiagnostics} for what vanilla's {@code ChunkMap.processUnloads} does

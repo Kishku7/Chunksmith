@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * <p>Injection goes through {@link VoxelIngestService#rawIngest}, not {@code tryAutoIngestChunk}:
  * rawIngest takes the section and its light directly, so we hand voxy the real light captured at
  * generation time. rawIngest has no light gate at all, which is precisely why the light we stored has to
- * be right -- a mistake here yields silently black LODs rather than an error.
+ * be right; a mistake here yields silently black LODs rather than an error.
  *
  * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never reports saturation, so a
  * backfill that just hammered it would OOM. We watch {@code getTaskCount()} and wait.
@@ -37,8 +37,8 @@ public final class CsLodVoxyInjector {
 
     /** True when there is a voxy engine to inject into (i.e. singleplayer / a client instance). */
     public static boolean voxyAvailable() {
-        // Ask the loader first. voxy is a client-side mod, so the overwhelmingly common case -- every
-        // dedicated server there is -- is that it is simply not installed, and then the VoxyCommon
+        // Ask the loader first. voxy is a client-side mod, so the overwhelmingly common case (every
+        // dedicated server there is) is that it is simply not installed, and then the VoxyCommon
         // reference below is an unresolvable class: a NoClassDefFoundError, a LinkageError, which the catch
         // beneath would dutifully report as "voxy is installed, but this build of it does not match ...
         // please report it". Past this gate a LinkageError means what the catch says it means: voxy IS
@@ -50,7 +50,7 @@ public final class CsLodVoxyInjector {
             return VoxyCommon.getInstance() != null;
         } catch (LinkageError error) {
             // voxy is installed but we cannot reach its engine. A bare false here used to make
-            // `/cslod inject` say "voxy is not running" -- a lie that sends the player at the wrong problem.
+            // `/cslod inject` say "voxy is not running", a lie that sends the player at the wrong problem.
             warnIncompatible(error);
             return false;
         }
@@ -70,7 +70,7 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Replay the whole store for one dimension into voxy. Runs on the calling thread -- callers must hand
+     * Replay the whole store for one dimension into voxy. Runs on the calling thread. Callers must hand
      * it a background thread, not the server thread.
      */
     public static int inject(ServerLevel level, Path storeRoot, Consumer<String> progress)
@@ -92,7 +92,7 @@ public final class CsLodVoxyInjector {
             });
         } catch (LinkageError error) {
             // rawIngest is our first and only call into voxy's ingest path, so a fork with a different
-            // signature surfaces here, as an Error -- past the command's catch(Exception), in total silence.
+            // signature surfaces here as an Error, past the command's catch(Exception), in total silence.
             warnIncompatible(error);
             progress.accept("ABORTED after " + chunks[0] + " chunks: this voxy will not accept our data ("
                     + error + ")");

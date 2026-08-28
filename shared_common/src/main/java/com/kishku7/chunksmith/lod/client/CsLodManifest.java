@@ -14,22 +14,22 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * What the server said about each region we hold -- the client's side of the cache check.
+ * What the server said about each region we hold, the client's side of the cache check.
  *
  * <p>Until 3.1.0-beta-4 the region hash was a CRC32 of the file's contents, which both ends could
- * compute independently -- and that symmetry is what made it a server killer (see
+ * compute independently, and that symmetry is what made it a server killer (see
  * {@code CsLodRegionHash}). The token is now derived from the server's (mtime, size), which the client
  * cannot reproduce, so the client's job is to remember it rather than recompute it. The client
- * had the same bug in its own half -- the same 340-file, 1.5 GB {@code readAllBytes} sweep, on every
+ * had the same bug in its own half: the same 340-file, 1.5 GB {@code readAllBytes} sweep, on every
  * index, in {@code CsLodCache.have} and {@code CsLodDownloader.haveAlready}.
  *
  * <p>Format: one line per region, {@code x,z=token,size}, plain ASCII, written atomically via a
- * {@code .part} file and a move. Malformed lines are skipped, not fatal -- the worst a corrupt manifest
+ * {@code .part} file and a move. Malformed lines are skipped, not fatal; the worst a corrupt manifest
  * can do is make us re-download regions we already had.
  *
  * <p>Upgrading from 3.1.0-beta-3: an existing store has region files but no manifest, so every region
  * reads as "not cached" and is re-fetched once over the backchannel on the first index of the first join
- * -- seconds for a 340-region / 1.5 GB store on a LAN.
+ * (seconds for a 340-region / 1.5 GB store on a LAN).
  *
  * <p>Thread-safe: written by four parallel fetch threads and by the in-band reassembler on the client
  * thread, read by the sync poll.
@@ -51,7 +51,7 @@ public final class CsLodManifest {
 
     /**
      * Open (or start) the manifest for one dimension of one server's store. Returns null when the dimension
-     * id is malformed -- the caller must then refuse the whole operation, as the downloader and injector do.
+     * id is malformed. The caller must then refuse the whole operation, as the downloader and injector do.
      */
     public static CsLodManifest open(Path storeRoot, String dimension) {
         final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
@@ -116,7 +116,7 @@ public final class CsLodManifest {
      * directory. The server excludes regions its pregen is still writing; folding over our own directory
      * would keep counting our stale copies of them, disagree forever, and pull a full index every interval
      * for the whole length of a pregen. A region in the index we do not hold simply does not contribute, so
-     * the aggregate and the count both drop -- which covers "the server grew", "the client lost regions" and
+     * the aggregate and the count both drop, which covers "the server grew", "the client lost regions" and
      * "a region changed" alike.
      *
      * @param advertised the entries of the last index the server sent us
@@ -136,7 +136,7 @@ public final class CsLodManifest {
     }
 
     /**
-     * Write the manifest out, atomically -- see the class doc. A manifest we could not write means we
+     * Write the manifest out, atomically; see the class doc. A manifest we could not write means we
      * re-download those regions next session, so failure is logged by the caller and otherwise survivable.
      */
     public void save() throws IOException {

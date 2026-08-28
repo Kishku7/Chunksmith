@@ -37,7 +37,7 @@ public interface World {
     /**
      * Briefly load a square of already-generated chunks so other mods can finish work on them.
      *
-     * <p>The settle sweep's one primitive -- see {@code SettleSweep}. The caller guarantees every chunk in
+     * <p>The settle sweep's one primitive. See {@code SettleSweep}. The caller guarantees every chunk in
      * the square is already on disk, so this is a read, never a generation. Default no-op: platforms that
      * do not manage tickets have nothing to load.
      */

@@ -22,20 +22,20 @@ import org.slf4j.LoggerFactory;
  * CSLOD store, and keeps the per-level DH wrappers the push path addresses.
  *
  * <p>Singleplayer: on an integrated server the client's DH is in the same JVM, so we hand it data
- * directly -- no Chunksmith-Client and no network involved. On a dedicated server DH's client-side engine
+ * directly (no Chunksmith-Client and no network involved). On a dedicated server DH's client-side engine
  * is not there to be fed and nothing here arms. Hard-references DH types, so it must not be loaded unless
- * DH is present -- {@code LodInit} owns that gate ({@code LodPlatform.isModLoaded("distanthorizons")}).
+ * DH is present; {@code LodInit} owns that gate ({@code LodPlatform.isModLoaded("distanthorizons")}).
  *
  * <p>Every DH symbol this class touches is {@code com.seibel.*} and names no Minecraft type and no loader
- * type, so one source serves Fabric, NeoForge and Forge. Public API only -- no mixin into DH from this mod.
+ * type, so one source serves Fabric, NeoForge and Forge. Public API only (no mixin into DH from this mod).
  *
  * <p>Off by default ({@code lodDhOverride}): overriding DH's generator means DH stops generating for
- * itself, so pregenerated area appears instantly and everything else returns no data -- right for a world
+ * itself, so pregenerated area appears instantly and everything else returns no data: right for a world
  * you have pregenerated, wrong for one you have not.
  *
  * <p>Lifecycle: DH fires {@link DhApiLevelLoadEvent} while the server is still starting, before the
  * server-started point at which the loader entrypoints build the {@code Chunksmith} instance and therefore
- * the config. So at the only moment we can usefully bind the singleton does not exist yet -- the config
+ * the config. So at the only moment we can usefully bind the singleton does not exist yet. The config
  * flags are read straight off disk and the server reference is captured on server-starting.
  */
 public final class CsLodDhSupport {
@@ -55,7 +55,7 @@ public final class CsLodDhSupport {
      * <p>Measured on the first run of this spike: all 1089 overworld chunks were written into
      * {@code dimensions/minecraft/the_end/data/DistantHorizons.sqlite} (ChunkHash 1089, 81 of 81 detail-0
      * sections) while the overworld DB held only DH's own ordinary ingest. DH loads every dimension at server
-     * start -- overworld, then the nether, then the end -- firing one {@link DhApiLevelLoadEvent} each, so a
+     * start (overworld, then the nether, then the end), firing one {@link DhApiLevelLoadEvent} each, so a
      * single "last wrapper wins" field ends up holding the end, and a push addressed to it lands, silently
      * and successfully, in the end's DH database. DH does not sanity-check the dimension of the data it is
      * handed, and reports success either way. The pusher addresses DH per level.
@@ -65,7 +65,7 @@ public final class CsLodDhSupport {
     private CsLodDhSupport() {
     }
 
-    /** Bind DH's level-load event -- called at the last lifecycle point before DH fires it. */
+    /** Bind DH's level-load event at the last lifecycle point before DH fires it. */
     public static void register() {
         // Bind the level-load event even when the override is disabled: it is also how we learn the level
         // wrappers, which the push path (/cslod dhpush) needs.
@@ -83,7 +83,7 @@ public final class CsLodDhSupport {
         }
     }
 
-    /** DH's version plus the API version it implements. Never throws -- a version string is diagnostics. */
+    /** DH's version plus the API version it implements. Never throws; a version string is diagnostics. */
     public static String version() {
         try {
             return "Distant Horizons " + DhApi.getModVersion()
@@ -100,7 +100,7 @@ public final class CsLodDhSupport {
 
     /**
      * Give up on DH for the rest of the session, loudly and exactly once, but keep Chunksmith running. A
-     * {@link LinkageError} (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError -- all Errors,
+     * {@link LinkageError} (NoSuchMethodError / NoClassDefFoundError / AbstractMethodError; all Errors,
      * so {@code catch (Exception)} would miss them) means the installed DH does not match the API we built
      * against. We claim a wide DH range on the evidence that the methods we call have been signature-stable
      * since DH 2.0.0-a; this is what makes being wrong a logged degradation rather than a crashed server.
@@ -142,7 +142,7 @@ public final class CsLodDhSupport {
                 LOGGER.info("Chunksmith: serving Distant Horizons from the CSLOD store -> {}", store);
             }
         });
-        LOGGER.info("Chunksmith: Distant Horizons detected -- CSLOD level events bound");
+        LOGGER.info("Chunksmith: Distant Horizons detected, CSLOD level events bound");
     }
 
     /** How we translate DH's level wrapper back to a world path. Captured on server-starting. */
@@ -181,7 +181,7 @@ public final class CsLodDhSupport {
     }
 
     /**
-     * The live config if Chunksmith is already up, otherwise the file read straight off disk -- see the
+     * The live config if Chunksmith is already up, otherwise the file read straight off disk. See the
      * lifecycle note on this class. Null when there is no config file at all; both flags default to off.
      */
     private static Config config() {
@@ -202,7 +202,7 @@ public final class CsLodDhSupport {
 
     /**
      * The DH level wrapper for this level, or null if DH has not reported it. The only correct way to
-     * address DH from the push path -- see {@link #WRAPPERS}.
+     * address DH from the push path; see {@link #WRAPPERS}.
      */
     public static IDhApiLevelWrapper wrapperFor(ServerLevel level) {
         return WRAPPERS.get(level);

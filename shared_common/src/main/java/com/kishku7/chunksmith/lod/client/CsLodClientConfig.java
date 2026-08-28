@@ -11,7 +11,7 @@ import java.util.Properties;
  * The LOD client's own settings: how often to ask the server whether anything changed, and whether to
  * re-inject everything on the next join.
  *
- * <p>No settings screen, deliberately -- a config UI is 3.2's problem. This is a plain
+ * <p>No settings screen, deliberately; a config UI is 3.2's problem. This is a plain
  * {@code config/chunksmith-lod.properties} the client writes with its defaults and comments on first run,
  * discoverable by anyone who opens the folder and editable without a mod menu.
  *
@@ -70,7 +70,7 @@ public final class CsLodClientConfig {
             + " the value immediately and rewrites this file. Editing by hand still works; the file is\n"
             + " read at startup.\n"
             + "\n"
-            + " " + KEY_SYNC_SECONDS + " -- how often (in SECONDS) to ask the server whether its LOD store\n"
+            + " " + KEY_SYNC_SECONDS + ": how often (in SECONDS) to ask the server whether its LOD store\n"
             + " has changed. The check itself is two tiny messages; a full index is only pulled when the\n"
             + " answer is 'yes'. This is what lets a player who is STANDING STILL pick up terrain from a\n"
             + " pregen that is still running, with no relog and no need to go for a walk.\n"
@@ -78,7 +78,7 @@ public final class CsLodClientConfig {
             + " Default " + DEFAULT_SYNC_SECONDS + ". Values below " + MIN_SYNC_SECONDS
             + " are clamped to " + MIN_SYNC_SECONDS + ".\n"
             + "\n"
-            + " " + KEY_REINJECT + " -- normally Chunksmith remembers which LOD regions it has already\n"
+            + " " + KEY_REINJECT + ": normally Chunksmith remembers which LOD regions it has already\n"
             + " given to your renderer, so joining a world does not re-send terrain voxy or Distant\n"
             + " Horizons already has. Set this to true for ONE join if you have deleted or reset your\n"
             + " renderer's own data and want everything sent again. Default false.";
@@ -89,7 +89,7 @@ public final class CsLodClientConfig {
 
     /**
      * Where the file lives, remembered from {@link #load} so a later {@code /cslod set} can save without
-     * being handed the config directory again. Null until load() has run -- on a dedicated server this class
+     * being handed the config directory again. Null until load() has run. On a dedicated server this class
      * is never touched. A save with no path applies the value in memory and writes nothing.
      */
     private static volatile Path file;
@@ -99,10 +99,10 @@ public final class CsLodClientConfig {
 
     /**
      * Read the config, writing it with defaults if it is not there yet. Every failure mode ends at the
-     * default -- an unreadable file, a missing key, a value that is not a number -- because a config
+     * default (an unreadable file, a missing key, a value that is not a number) because a config
      * problem must never be the reason a player gets no terrain.
      *
-     * @return the message to log -- one line, said once, and it names the clamp when the clamp bit
+     * @return the message to log; one line, said once, and it names the clamp when the clamp bit
      */
     public static synchronized String load(Path configDir) {
         final Path path = configDir.resolve(FILE_NAME);
@@ -212,7 +212,7 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Write the values currently in force -- not the defaults. A failure is swallowed: the value is already
+     * Write the values currently in force, not the defaults. A failure is swallowed: the value is already
      * in effect in memory, and a player who cannot write their own config directory has a bigger problem.
      */
     private static void save() {

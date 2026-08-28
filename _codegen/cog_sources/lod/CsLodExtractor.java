@@ -21,22 +21,22 @@ import java.util.Map;
  * Turns a live {@link LevelChunk} into a neutral {@link CsLodChunk}.
  *
  * <p>Runs on the server main thread, inside the generation hook, while the chunk is still
- * ticket-pinned -- it is the only moment the data exists. Everything it produces is plain arrays and
+ * ticket-pinned. It is the only moment the data exists. Everything it produces is plain arrays and
  * strings, so the rest of the pipeline (codec, store, wire) never touches a Minecraft type.
  *
  * <p>Sky and block light are kept separate (voxy blends them; Distant Horizons will not), and light is
  * captured for air voxels all the way to the build ceiling, because DH renders unlit LODs black
  * otherwise. Where the light engine has no {@link DataLayer} for a section, the section's light is
  * uniform by construction (nothing has been lit there), so we sample one position through the layer
- * listener and store a single uniform nibble -- which is also what makes carrying sky light to the
+ * listener and store a single uniform nibble, which is also what makes carrying sky light to the
  * ceiling nearly free.
  *
- * <p>Block states, not block ids: DH has no fluid channel -- water IS a state -- and waterlogging, snow
+ * <p>Block states, not block ids: DH has no fluid channel (water IS a state) and waterlogging, snow
  * layers and stair shapes all change what a LOD should look like. We serialize the full state via
  * {@link BlockStateParser#serialize(BlockState)}, which is exactly the string form DH's wrapper factory
  * consumes.
  *
- * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell
+ * <p>Shared source. The canonical location is _codegen/cog_sources/lod. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodExtractor {
@@ -111,7 +111,7 @@ public final class CsLodExtractor {
             }
         }
 
-        // ---- biomes (4x4x4 -- exactly how Minecraft stores them, so this is lossless) ----
+        // ---- biomes (4x4x4 exactly as Minecraft stores them, so this is lossless) ----
         int uniformBiome = -1;
         int[] biomeIndices = new int[CsLodChunk.BIOMES_PER_SECTION];
         int firstBiome = -1;
@@ -155,7 +155,7 @@ public final class CsLodExtractor {
         if (data == null || data.isEmpty()) {
             // No stored data for this section: its light is uniform by construction. Sample one
             // position through the layer listener so that (for example) open sky above the terrain
-            // records 15 rather than a black 0 -- DH would render an unlit LOD otherwise.
+            // records 15 rather than a black 0. DH would render an unlit LOD otherwise.
             final int value = engine.getLayerListener(layer)
                     .getLightValue(pos.origin().offset(0, 0, 0));
             return new Light(null, Math.max(0, Math.min(15, value)));

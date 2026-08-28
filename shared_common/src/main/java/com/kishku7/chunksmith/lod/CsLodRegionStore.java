@@ -16,7 +16,7 @@ import java.util.stream.Stream;
  *
  * <p>Anvil-shaped, deliberately: one region file per 32x32 chunks, a fixed header of (offset, length) slots,
  * then the compressed records. Writes append the payload and then rewrite the header slot, so a torn write
- * loses at most the one chunk being written -- never the file. Rewriting a chunk appends a new record and
+ * loses at most the one chunk being written and never the file. Rewriting a chunk appends a new record and
  * re-points the slot, leaving the old bytes behind as garbage; pregen writes each chunk once, so in the
  * normal case there is nothing to reclaim.
  *

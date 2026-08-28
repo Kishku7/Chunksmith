@@ -5,8 +5,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Seam between {@link ChunkSettleWindow}, which knows nothing about Minecraft or about config, and the
- * per-loader adapters that own the chunk tickets but have no handle on it. The hold policy -- whether,
- * how long, how many -- is read here.
+ * per-loader adapters that own the chunk tickets but have no handle on it. The hold policy (whether,
+ * how long, how many) is read here.
  *
  * <p><b>It is also the tick pump (3.5.1).</b> Until 3.5.1 the only production caller of
  * {@link ChunkSettleWindow#releaseDue} was the window's own {@code offer()}, so when the residency gate
@@ -41,8 +41,8 @@ public final class ChunkSettleSupport {
 
     /**
      * A fresh window for one world, or {@code null} when settling is off. Null rather than a do-nothing
-     * window on purpose: the caller's null check is what restores the original code path exactly --
-     * release the ticket inline, allocate nothing -- for the operator who has turned this off.
+     * window on purpose: the caller's null check is what restores the original code path exactly
+     * (release the ticket inline, allocate nothing) for the operator who has turned this off.
      */
     public static ChunkSettleWindow newWindow() {
         if (!enabled) {
@@ -55,7 +55,7 @@ public final class ChunkSettleSupport {
 
     /**
      * Release anything whose delay has elapsed, in every live window. Called once per server tick from
-     * the platform, on the server thread -- the only thread allowed to touch a chunk ticket. Drained
+     * the platform, on the server thread, the only thread allowed to touch a chunk ticket. Drained
      * windows are dropped here rather than by the adapter: making the adapter remember to deregister
      * would be exactly the kind of pairing that {@code LodInjector.arm()} taught us not to write.
      */

@@ -16,7 +16,7 @@ import net.minecraft.network.Connection;
 import java.util.function.Consumer;
 
 /**
- * The in-band channel seam -- classic Forge (MC 1.20.1 / Forge 47).
+ * The in-band channel seam for classic Forge (MC 1.20.1 / Forge 47).
  *
  * <p>Forge 47 predates {@code CustomPacketPayload} entirely and has its own transport: a versioned
  * {@link SimpleChannel} built through {@code NetworkRegistry}. The channel must be built while the
@@ -32,9 +32,9 @@ import java.util.function.Consumer;
  * {@link NetworkRegistry#acceptMissingOr(String)}, which also accepts the {@code ABSENT}/
  * {@code ACCEPTVANILLA} sentinels the FML login handshake passes for a peer that lacks the channel. A
  * bare {@code PROTOCOL::equals} returns false for those, marks the channel required, and makes the server
- * refuse any client without Chunksmith -- the client-forcing bug fixed in 3.1.0-beta-5.
+ * refuse any client without Chunksmith. That was the client-forcing bug fixed in 3.1.0-beta-5.
  *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source: canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith", bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class CsLodChannel {
@@ -50,7 +50,7 @@ public final class CsLodChannel {
 
     /**
      * Forge 47 patches {@code new ResourceLocation(String,String)} to deprecated-for-removal (vanilla
-     * 1.20.1 does not -- the identical call on the Fabric 1.20.1 cell compiles warning-free), and MC 1.20.1
+     * 1.20.1 does not; the identical call on the Fabric 1.20.1 cell compiles warning-free), and MC 1.20.1
      * has no non-nullable replacement: {@code fromNamespaceAndPath} arrives at MC 1.21 (Forge backported it
      * at 49.2 / MC 1.20.4), and {@code tryBuild}/{@code tryParse} return null, which for two compile-time
      * constants is a branch that can never be taken. Hence a narrowest-scope suppression, one method.
@@ -69,7 +69,7 @@ public final class CsLodChannel {
     }
 
     /**
-     * Where an inbound message goes when it came from a server -- set by the client half at client setup,
+     * Where an inbound message goes when it came from a server, set by the client half at client setup,
      * {@code null} everywhere else. The side-guard: {@code Message.handle} runs on both sides but its body
      * names no client class. On a dedicated server nothing ever sets this, that branch is dead, and
      * {@code lod.client.*} is never class-loaded.
@@ -131,7 +131,7 @@ public final class CsLodChannel {
                     return;
                 }
                 // No sender: this came from a server, so we are the client. Drain into the sink the
-                // client half installed -- null on a dedicated server, where this branch cannot be reached.
+                // client half installed; null on a dedicated server, where this branch cannot be reached.
                 final Consumer<byte[]> sink = clientSink;
                 if (sink != null) {
                     sink.accept(this.data);

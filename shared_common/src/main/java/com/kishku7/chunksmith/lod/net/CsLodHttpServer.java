@@ -24,15 +24,15 @@ import java.util.regex.Pattern;
  * The LOD backchannel: a small, read-only HTTP server that hands out CSLOD region files.
  *
  * <p><b>Why this exists.</b> A plugin channel rides the same connection as gameplay, so pushing hundreds of
- * megabytes through it starves the game loop -- and it re-compresses payloads that are already compressed.
+ * megabytes through it starves the game loop, and it re-compresses payloads that are already compressed.
  * The CSLOD store is already plain region files, so the server does not stream anything: it serves them,
  * with range requests, resume and parallel connections, and the game pipeline untouched.
  *
  * <p><b>The address follows the game; the port is the operator's if they want it.</b> The interface is
- * always the one the game is bound to -- a client is already connected to that host. The port defaults to
+ * always the one the game is bound to; a client is already connected to that host. The port defaults to
  * game port + 1 and can be set explicitly, because a managed host rents a fixed set of ports and will not
  * hand out the one next to the game just because it is tidy (mod_support #19). If it cannot be bound the mod
- * still runs -- the client falls back in-band -- but it says so at WARN, naming the port.
+ * still runs (the client falls back in-band) but it says so at WARN, naming the port.
  *
  * <p>Uses the JDK's own {@link HttpServer}: zero dependencies, consistent with the rest of the LOD stack
  * (no native DB, no native compressor).
@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
  *       inside the root, so {@code ..}, absolute paths and symlinks cannot escape.</li>
  *   <li>Token required, bound to (uuid, ip, expiry), revoked on disconnect.</li>
  *   <li>Per-IP concurrency cap, request/header size caps, and idle timeouts.</li>
- *   <li><b>Fails closed to 404</b> -- never 403, which would confirm that a file exists.</li>
+ *   <li><b>Fails closed to 404</b> rather than 403, which would confirm that a file exists.</li>
  * </ul>
  */
 public final class CsLodHttpServer {
@@ -84,7 +84,7 @@ public final class CsLodHttpServer {
     private int port;
     private boolean derived = true;
 
-    /** @param storeRoot the {@code <world>/chunksmith/lod} directory -- dimensions are its subdirectories */
+    /** @param storeRoot the {@code <world>/chunksmith/lod} directory; dimensions are its subdirectories */
     public CsLodHttpServer(Path storeRoot, CsLodTokens tokens, CsLodTokens.OnlineCheck onlineCheck) {
         this(dimension -> storeRoot.toAbsolutePath().normalize().resolve(dimension),
                 tokens, onlineCheck);
@@ -146,7 +146,7 @@ public final class CsLodHttpServer {
                     + "). Open this port to clients for fast LOD downloads.");
             return port;
         } catch (IOException e) {
-            // The mod still works -- the client falls back in-band -- but this is the line that answers
+            // The mod still works (the client falls back in-band) but this is the line that answers
             // "why is no LOD arriving?", so it is a WARN and it names the port. At INFO it was read by
             // nobody and the symptom looked like a broken mod instead of a closed port.
             LOGGER.warn("Chunksmith: the LOD backchannel could not bind port " + wanted

@@ -45,7 +45,7 @@ public class ContinueCommand implements ChunksmithCommand {
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_CONTINUE, world.getName());
             } else if (generationTasks.get(world.getName()).isStopping()) {
                 // A pause/stop drains before it lets go of the map entry, and that takes seconds. Saying
-                // "already started" here is the exact opposite of what is true -- the run is on its way
+                // "already started" here is the exact opposite of what is true: the run is on its way
                 // DOWN, and answering that way left operators with a stopped pregen and a message telling
                 // them it was fine. Say what is actually happening and what to do about it.
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_TASK_STOPPING, world.getName());

@@ -10,7 +10,7 @@ package com.kishku7.chunksmith.util;
  * memory, and a chunk is worth wildly different amounts of heap.
  *
  * <p>{@code used = total - free} counts garbage not yet collected, so one sample can read high on a
- * healthy server -- but a collector always runs before the heap fills, so a heap that stays high for
+ * healthy server, but a collector always runs before the heap fills, so a heap that stays high for
  * several seconds holds live data. And the gate only pauses dispatch, so a false positive costs seconds
  * of throughput while a false negative costs the server: {@link #CONFIRM_SAMPLES} samples close it, and
  * it opens well below the threshold.
@@ -43,7 +43,7 @@ public final class HeapPressure {
         return (runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L);
     }
 
-    /** The JVM's maximum heap in megabytes -- the number the operator set with {@code -Xmx}. */
+    /** The JVM's maximum heap in megabytes as set by the operator with {@code -Xmx}. */
     public static long maxMegabytes() {
         return Runtime.getRuntime().maxMemory() / (1024L * 1024L);
     }

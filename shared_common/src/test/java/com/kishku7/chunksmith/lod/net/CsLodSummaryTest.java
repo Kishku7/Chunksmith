@@ -11,12 +11,12 @@ import static org.junit.Assert.assertNotEquals;
 import java.util.Random;
 
 /**
- * The summary fold -- the thing that makes an idle sync poll cost nothing.
+ * The summary fold: the thing that makes an idle sync poll cost nothing.
  *
  * <p>Two properties, and the sync is wrong without either of them:
  * <ul>
  *   <li><b>order-independent</b>, because the server folds a {@code Files.list} (filesystem order) and the
- *       client folds the entries of an index (wire order). Same set, different order, same answer -- or the
+ *       client folds the entries of an index (wire order). Same set, different order, same answer, or the
  *       two sides disagree forever and pull a full index every interval;</li>
  *   <li><b>change-detecting</b>, for every way a set of regions can differ: one added, one removed, one
  *       changed, one moved.</li>

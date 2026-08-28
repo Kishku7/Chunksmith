@@ -87,7 +87,7 @@ public class BukkitWorld implements World {
         }
 
         // Offer every chunk this method resolves to the CSLOD extractor (mod_support #9 follow-up;
-        // server-side generation only -- see com.kishku7.chunksmith.lod.LodSupport / CsLodExtractor).
+        // server-side generation only; see com.kishku7.chunksmith.lod.LodSupport / CsLodExtractor).
         // This IS the pregen chunk-dispatch path: GenerationTask calls getChunkAtAsync to fetch or
         // generate each chunk, the same place FabricWorld/NeoForgeWorld/ForgeWorld hook LodSupport.offer.
         // thenAccept both supplies the CompletableFuture<Void> this method must return and runs the offer
@@ -104,7 +104,7 @@ public class BukkitWorld implements World {
                 } catch (Throwable t) {
                     plugin.getLogger().log(java.util.logging.Level.WARNING,
                             "Chunksmith: LOD extraction failed for chunk " + chunk.getX() + "," + chunk.getZ()
-                                    + " in " + world.getName() + " -- LOD skipped for this chunk, generation unaffected", t);
+                                    + " in " + world.getName() + "; LOD skipped for this chunk, generation unaffected", t);
                 }
             }
         });

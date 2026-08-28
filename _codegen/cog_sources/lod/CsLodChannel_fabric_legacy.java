@@ -13,7 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
  *
  * <p>{@code CustomPacketPayload} is absent here, so there is no payload object and no StreamCodec: the
  * channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair. The wire is nevertheless
- * byte-identical to the modern cells -- a length-prefixed byte array on channel {@code chunksmith:lod} --
+ * byte-identical to the modern cells (a length-prefixed byte array on channel {@code chunksmith:lod}),
  * because {@code writeByteArray} is the same varint+bytes encoding the modern StreamCodec emits.
  *
  * <p>{@code ResourceLocation(String,String)} is still public here (privatized at 1.21 in favour of
@@ -30,7 +30,7 @@ public final class CsLodChannel {
     public static void register() {
         ServerPlayNetworking.registerGlobalReceiver(ID, (server, player, handler, buf, responseSender) -> {
             // Read on the NETTY thread. The buffer is released the instant this handler returns, so the
-            // bytes MUST be copied out before hopping to the main thread -- reading it inside the
+            // bytes MUST be copied out before hopping to the main thread. Reading it inside the
             // server.execute lambda would race the release and hand us garbage (or throw).
             final byte[] data = buf.readByteArray();
             server.execute(() -> CsLodServerNet.receive(player, data));

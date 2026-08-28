@@ -21,7 +21,7 @@ import java.util.Locale;
 public final class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     // slf4j, not java.util.logging. The loaders do not route JUL to the game log, so every one
-    // of the range warnings below was invisible to operators -- a config value silently clamped
+    // of the range warnings below was invisible to operators: a config value silently clamped
     // with the explanation going nowhere. Same bug class that hid the drain diagnostics until
     // ChunkResidency was switched over.
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
@@ -47,8 +47,8 @@ public final class GsonConfig implements Config {
     private static final long MAX_ADDED_CHUNKS_MIN = 1_000L;
     private static final long MAX_ADDED_CHUNKS_MAX = 5_000_000L;
     // Default 0 (off) as of 3.5.5. A chunk count cannot be tuned to mean the same thing on two
-    // worlds -- a chunk is worth wildly different amounts of heap depending on the entities and block
-    // entities that came with it -- and on a live server this gate closed at 22,000 chunks while the
+    // worlds. A chunk is worth wildly different amounts of heap depending on the entities and block
+    // entities that came with it, and on a live server this gate closed at 22,000 chunks while the
     // heap sat at 40 percent, stuttering a perfectly healthy run to 60 chunks per two minutes. Memory
     // is governed by throttleMaxHeapPercent and load by tick health; this stays as an expert knob.
     private static final long MAX_ADDED_CHUNKS_DEFAULT = 0L;
@@ -91,7 +91,7 @@ public final class GsonConfig implements Config {
      * Default pipeline width, scaled to the box.
      *
      * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated server,
-     * 50 gave 31.6 cps while 200 gave 43.9 -- a 39 percent gain -- with residency and heap no worse, and
+     * 50 gave 31.6 cps while 200 gave 43.9 (a 39 percent gain) with residency and heap no worse, and
      * no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because the real ceiling past
      * that point is vanilla promoting roughly 2.2 chunks per tick at 20 tps.
      *
@@ -117,8 +117,8 @@ public final class GsonConfig implements Config {
     // a ring at a time, so roughly 25 resident chunks come with each held ticket at pre-gen clustering.
     // ChunkSettleWindow carries that measurement.
     //
-    // The 3.5.0 default of 8192 therefore authorised something like 200,000 resident chunks, and 3.4.1 --
-    // which had no cap at all -- is how a live server ran itself into the watchdog (see ChunkResidency).
+    // The 3.5.0 default of 8192 therefore authorised something like 200,000 resident chunks, and 3.4.1,
+    // which had no cap at all, is how a live server ran itself into the watchdog (see ChunkResidency).
     // 256 is about 6,000 resident chunks on that measurement, which an 8 GB heap carries comfortably.
     // Raise it only with that arithmetic in mind.
     private static final long SETTLE_MAX_HELD_MIN = 16L;
@@ -442,7 +442,7 @@ public final class GsonConfig implements Config {
 
     // Every setter below clamps to the same range its getter enforces, then saves. Clamping only on
     // read would let the file hold a number the mod refuses to honour, so the file and `/cs set` would
-    // disagree about what is in force -- and the file is what an operator inspects when something is wrong.
+    // disagree about what is in force, and the file is what an operator inspects when something is wrong.
 
     @Override
     public void setLanguage(String language) {
@@ -484,7 +484,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public void setThrottleMaxQueuedWrites(long writes) {
-        // 0 is not out of range -- it is the documented "disable the backlog bound" value, so it must
+        // 0 is not out of range: it is the documented "disable the backlog bound" value, so it must
         // survive the clamp rather than being pulled up to the minimum.
         configModel.throttleMaxQueuedWrites = writes <= 0L
                 ? 0L

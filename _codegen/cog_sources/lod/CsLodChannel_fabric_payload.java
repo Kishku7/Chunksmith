@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * Fabric's payload-era registration door for {@code chunksmith:lod} (MC 1.20.5+), and nothing more than
  * that. All the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in shared_common, which
- * know nothing about Minecraft -- so the Chunksmith server and Chunksmith-Client (a different mod, in a
+ * know nothing about Minecraft, so the Chunksmith server and Chunksmith-Client (a different mod, in a
  * different repo, possibly on a different loader) share one implementation of the wire format instead of
  * maintaining two that drift. The same bytes also travel over the HTTP backchannel and sit on disk in the
  * store: one format, three uses.

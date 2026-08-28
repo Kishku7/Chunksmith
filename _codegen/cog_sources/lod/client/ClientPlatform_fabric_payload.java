@@ -13,13 +13,13 @@ import java.util.function.Consumer;
 
 /**
  * Before the 3.1.0 merge the LOD client was a separate mod, and both mods registered
- * {@code chunksmith:lod} in {@code PayloadTypeRegistry} -- so a player who had both (a self-hoster who
+ * {@code chunksmith:lod} in {@code PayloadTypeRegistry}, so a player who had both (a self-hoster who
  * plays singleplayer and joins a friend's Chunksmith server) got
  * {@code IllegalArgumentException: Packet type ... [id=chunksmith:lod] is already registered!} and a hard
  * crash on startup. One mod now, and the type is registered exactly once, by
  * {@link CsLodChannel#register()}, from the common mod init that runs on both sides. This class therefore
  * does not register the payload type; it cannot. What happens here is a receiver registration against that
- * already-registered type -- a different registry, and one that only exists on a client.
+ * already-registered type: a different registry, and one that only exists on a client.
  *
  * <p>It is also the Fabric payload-era (MC 1.20.5+) half of a seam class: same package, same name, same
  * static signatures on every loader and every MC version, so the shared LOD-client tree calls
@@ -66,7 +66,7 @@ public final class ClientPlatform {
                 context.client().execute(() -> onPayload.accept(payload.data())));
     }
 
-    /** Silently does nothing when the server does not speak our channel -- which is most servers. */
+    /** Silently does nothing on the many servers that do not speak our channel. */
     public static void sendToServer(byte[] data) {
         if (ClientPlayNetworking.canSend(CsLodChannel.Payload.TYPE)) {
             ClientPlayNetworking.send(new CsLodChannel.Payload(data));

@@ -41,7 +41,7 @@ public interface Config {
     /**
      * Max chunks one run may add to the server's resident set before dispatch stops (hysteresis: resumes at
      * half). 0 disables. Delta, not absolute: 3.5.0 gated on the absolute number and tripped on servers whose
-     * ordinary resident set was already near the cap -- the gate closed on somebody else's chunks and never
+     * ordinary resident set was already near the cap: the gate closed on somebody else's chunks and never
      * opened. Set it above the largest sweep frontier a run needs (roughly 16x the selection radius in
      * chunks, plus {@link #getPregenSettleMaxHeld()}) and below what the heap can hold. See
      * {@code ChunkResidency}.
@@ -63,7 +63,7 @@ public interface Config {
      *
      * <p>An absolute target cannot work on a busy server: one whose idle tick cost already sits at the
      * configured target never shows the governor a healthy tick, so dispatch pins at its floor for ever and
-     * the run crawls while costing almost nothing -- {@code TickBudget} has the live measurement. The
+     * the run crawls while costing almost nothing. {@code TickBudget} has the live measurement. The
      * effective target is therefore {@code max(throttleTargetMspt, baseline + this)}, the baseline being the
      * tick cost with nothing in flight.
      */
@@ -79,7 +79,7 @@ public interface Config {
     /**
      * Absolute tick cost the run will never steer past, whatever the measured baseline says. 0 disables.
      * Every other bound here is relative, so without this one the target can wander to a figure at which
-     * nothing else objects -- the heap gate sits under its threshold and auto-pause compares against this
+     * nothing else objects: the heap gate sits under its threshold and auto-pause compares against this
      * very target. {@code TickBudget#effectiveTarget} has the measurement. Past this figure the server is
      * not playable whoever is to blame, so the run yields.
      */
@@ -87,20 +87,20 @@ public interface Config {
 
     /**
      * Pause a run when the server cannot sustain it, and resume it when the server recovers. On by
-     * default: a gated pre-gen on an overloaded server does not stop, it stutters -- measured at 60
+     * default: a gated pre-gen on an overloaded server does not stop, it stutters, measured at 60
      * chunks in two minutes, which looks exactly like a hang. {@code AutoPause} records the decision.
      */
     boolean isAutoPauseEnabled();
 
     /**
-     * How long the server must stay in a state -- bad, then good -- before auto-pause acts. Both directions:
+     * How long the server must stay in a state (bad, then good) before auto-pause acts. Both directions:
      * pausing on the first bad second would stop a run for a passing autosave, and resuming on the first
      * good second would restart it into the same wall.
      */
     int getAutoPauseGraceSeconds();
 
     /**
-     * Whether ChunkSmith emits LOD data for the chunks it generates -- a tristate, not a boolean. Default
+     * Whether ChunkSmith emits LOD data for the chunks it generates, a tristate, not a boolean. Default
      * {@link LodMode#AUTO}: on when an LOD renderer (Distant Horizons, voxy, or a voxy fork) is present in
      * the JVM, and always on a dedicated server, which exists to serve the store to Chunksmith-Client
      * players. An explicit {@code true} or {@code false} is an operator decision and is NEVER overridden.
@@ -117,7 +117,7 @@ public interface Config {
     long getThrottleMaxLodQueue();
 
     /**
-     * How many chunk requests Chunksmith keeps in flight at once -- the pipeline's width, and on a healthy
+     * How many chunk requests Chunksmith keeps in flight at once: the pipeline's width, and on a healthy
      * server what actually sets the rate. A chunk request spends almost all of its life waiting: vanilla
      * walks it up through its generation statuses roughly a hop per tick, so per-chunk latency runs over a
      * second even when nothing is busy. Measured on a dedicated server at 40 percent CPU across 8 cores,
@@ -153,7 +153,7 @@ public interface Config {
      * Hard ceiling on how many chunks the settle window may hold open at once. 0 means unbounded.
      *
      * <p><b>Read this as a memory setting.</b> A held chunk keeps a FULL-level ticket and vanilla propagates
-     * that level outward ring by ring, so one held ticket keeps roughly a neighbourhood -- measured at about
+     * that level outward ring by ring, so one held ticket keeps roughly a neighbourhood, measured at about
      * 25 resident chunks per held ticket during a pre-gen. A cap of 8192 is not "8192 chunks", it is closer
      * to two hundred thousand. The frontier is self-bounding only while every held chunk eventually gets all
      * nine neighbours; chunks beside skipped ground never do, so a resumed world strands them, and past this
@@ -195,7 +195,7 @@ public interface Config {
      * <p>0 means {@code gamePort + 1}, right on a machine you control and wrong on a managed host, which
      * hands out a fixed set of ports and will not give you the one adjacent to your game port; before this
      * key those servers could not use the backchannel at all (mod_support #19). An explicit port is never
-     * second-guessed. Changing it does not require a restart and clients need no matching setting -- the
+     * second-guessed. Changing it does not require a restart and clients need no matching setting, since the
      * port is advertised to each client on connect.
      */
     int getLodBackchannelPort();
