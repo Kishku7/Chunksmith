@@ -35,6 +35,7 @@ import com.kishku7.chunksmith.ChunksmithProvider;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
+// TODO: in-band fallback
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
  *
