@@ -13,7 +13,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The sync interval, its default, and THE CLAMP.
+ * The sync interval, its default, and the clamp.
  *
  * <p>The floor is enforced in code, not in the file, and that is the point of these tests. A config value is
  * a suggestion from whoever last edited the file; {@code sync-interval-seconds=1} must not be able to turn

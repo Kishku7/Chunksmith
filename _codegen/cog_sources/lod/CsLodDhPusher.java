@@ -13,32 +13,32 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * PUSH a CSLOD record into Distant Horizons instead of waiting to be pulled. Drives {@code /cslod dhpush}:
+ * Push a CSLOD record into Distant Horizons instead of waiting to be pulled. Drives {@code /cslod dhpush}:
  * the backfill for a world that was pregenerated before DH was ever installed.
  *
  * <p>The world-generator override only ever fires on a level that has a server -- DH's
- * {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a MULTIPLAYER CLIENT
+ * {@code WorldGenerationQueue} is built solely by {@code AbstractDhServerLevel}, and a multiplayer client
  * gets a {@code RemoteWorldRetrievalQueue} instead, so {@code generateApiChunk} is never called there. The
- * whole pull design is inapplicable to a client; the client must PUSH. The push lands in
+ * whole pull design is inapplicable to a client; the client must push. The push lands in
  * {@code DhApi.Delayed.terrainRepo.overwriteChunkDataAsync} -> {@code SharedApi.applyChunkUpdate}, the same
  * path DH uses when a player edits a block: it writes at gen step LIGHT, persists, and re-renders itself.
  *
- * <p>The open question is not the API call but whether a {@link LevelChunk} SYNTHESIZED from a stored
+ * <p>The open question is not the API call but whether a {@link LevelChunk} synthesized from a stored
  * record is LIT correctly: if DH reads light from the level's light engine rather than from the chunk we
  * hand it, the chunk comes out BLACK and nothing reports an error. So: run it, then LOOK at it. A
  * {@code DhApiResult.success} means QUEUED, not WRITTEN, so the counters below cannot prove retention
  * either -- count rows in DH's SQLite.
  *
  * <p>Known gate, and the reason this may report success and do nothing on a real server:
- * {@code DhClientLevel.shouldProcessChunkUpdate} silently DISCARDS an update for any position seen in the
+ * {@code DhClientLevel.shouldProcessChunkUpdate} silently discards an update for any position seen in the
  * last 10 minutes when connected to a DH server with real-time updates on -- while still returning
  * {@code createSuccess()}. Singleplayer, the only place this class runs, is not affected, so Chunksmith
- * uses DH's PUBLIC API only and never mixins into DH.
+ * uses DH's public API only and never mixins into DH.
  *
  * <p>Version-blind: the only Minecraft symbols are {@code LevelChunk(Level, ChunkPos)} and
  * {@code getSections()}, both stable 1.20.1 -&gt; 26. All the drift is inside {@link CsLodSectionBuilder}.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodDhPusher {
 

@@ -4,7 +4,7 @@ package com.kishku7.chunksmith.util;
  * Stops a pre-gen when the server cannot sustain it, and starts it again when it can.
  *
  * <p>Decided 2026-08-20 between "keep crawling", "pause with a clear message and resume when healthy",
- * and "push through regardless": the middle one, as the DEFAULT, changeable live. Crawling is the wrong
+ * and "push through regardless": the middle one, as the default, changeable live. Crawling is the wrong
  * default because a gated pre-gen on a server that cannot keep up does not stop -- it stutters. Measured
  * on a live server: 60 chunks in two minutes, roughly 0.9 per second, with the never-wedge valve opening
  * every 120 seconds for about a second of work. That is indistinguishable from a hang, keeps the server
@@ -12,7 +12,7 @@ package com.kishku7.chunksmith.util;
  *
  * <p>Both directions need patience: pausing on the first bad second would stop a run for a passing
  * autosave, and resuming on the first good second would restart it into the same wall. So each direction
- * requires the condition to hold CONTINUOUSLY for the grace period, on one shared knob.
+ * requires the condition to hold continuously for the grace period, on one shared knob.
  *
  * <p>MC-free and clock-injectable, so the state machine is testable without a server.
  */
@@ -69,7 +69,7 @@ public final class AutoPause {
         return gatedSince == 0L ? 0L : Math.max(0L, (now - gatedSince) / 1000L);
     }
 
-    /** Record that WE paused this world, so only our own pause is ever auto-resumed. */
+    /** Record that we paused this world, so only our own pause is ever auto-resumed. */
     public static void markAutoPaused(final String world) {
         autoPaused = true;
         pausedWorld = world;

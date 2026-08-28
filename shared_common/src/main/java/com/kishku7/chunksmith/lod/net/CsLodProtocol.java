@@ -108,7 +108,7 @@ public final class CsLodProtocol {
     /**
      * C2S: has anything changed? -- the periodic sync (v2). An id and a dimension name: 22 bytes.
      *
-     * <p>Deliberately NOT "send me the index": the index is the expensive thing. The client pays for a real
+     * <p>Deliberately not "send me the index": the index is the expensive thing. The client pays for a real
      * index only when {@link #S2C_SUMMARY}'s two numbers disagree.
      */
     public static final byte C2S_REQUEST_SUMMARY = 5;

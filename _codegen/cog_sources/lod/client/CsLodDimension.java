@@ -9,10 +9,10 @@ import net.minecraft.world.level.Level;
  * Every read, every write and every injection is scoped by this key -- {@code chunksmith/lod/&lt;server&gt;/
  * &lt;dimension&gt;/r.x.z.cslod} -- and getting it wrong does not fail, it succeeds against the wrong world.
  *
- * <p>3.1.0-beta-2's client took the dimension from the FIRST entry of the server's hello list and never
- * looked at it again, so a player who walked through a Nether portal kept pulling the OVERWORLD's records
+ * <p>3.1.0-beta-2's client took the dimension from the first entry of the server's hello list and never
+ * looked at it again, so a player who walked through a Nether portal kept pulling the overworld's records
  * and the injector pushed them into the level the player was now in. Grass and oceans in the Nether sky,
- * and every log line reporting success. Ask the LEVEL, every tick; never remember an answer across a
+ * and every log line reporting success. Ask the level, every tick; never remember an answer across a
  * dimension change.
  *
  * <p>The value matches the server's {@code LodSupport.dimensionKey}: the dimension's resource id with
@@ -26,7 +26,7 @@ public final class CsLodDimension {
     }
 
     /**
-     * The key for the level the player is in RIGHT NOW, or {@code ""} when no level is loaded (during a
+     * The key for the level the player is in right now, or {@code ""} when no level is loaded (during a
      * dimension change there is a window where there is no level at all -- callers must treat "" as
      * "ask me again next tick", never as a dimension).
      */

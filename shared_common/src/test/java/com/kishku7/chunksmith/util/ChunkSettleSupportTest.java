@@ -15,10 +15,10 @@ import static org.junit.Assert.assertTrue;
  * The tick pump, added in 3.5.1.
  *
  * <p>Before it, the only production caller of {@code releaseDue} was the window's own {@code offer()},
- * so a held ticket came back only when a NEW chunk arrived. That is fine while a run is flowing and
+ * so a held ticket came back only when a new chunk arrived. That is fine while a run is flowing and
  * wrong the moment it is not: with dispatch held by the residency gate there are no arrivals, so the
  * frontier could not shrink, so residency could not fall, so the gate stayed shut. These tests exist
- * to prove a release now depends on TIME PASSING and not on more work being dispatched.
+ * to prove a release now depends on time passing and not on more work being dispatched.
  */
 public class ChunkSettleSupportTest {
 

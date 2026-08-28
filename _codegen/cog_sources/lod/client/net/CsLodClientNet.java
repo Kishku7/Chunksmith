@@ -85,9 +85,9 @@ public final class CsLodClientNet {
     private static volatile String host = "";
 
     /**
-     * The dimension we are currently pulling for. ALWAYS the one the player is actually in. This field held
+     * The dimension we are currently pulling for. always the one the player is actually in. This field held
      * {@code hello.dimensions().get(0)} in 3.1.0-beta-2 and never changed again, which is the failure
-     * {@code CsLodDimension} documents. Now re-derived from the LEVEL ({@link #dimensionTick}); a dimension
+     * {@code CsLodDimension} documents. Now re-derived from the level ({@link #dimensionTick}); a dimension
      * change clears it and re-arms the exchange. Empty means "not pulling for anything".
      */
     private static volatile String activeDimension = "";
@@ -128,8 +128,8 @@ public final class CsLodClientNet {
     private static final long HELLO_TIMEOUT_MILLIS = 10_000L;
 
     /**
-     * The entries of the LAST index the server gave us -- the set the sync poll folds over (see
-     * {@link #summary}). Deliberately the SERVER's answer rather than a listing of our own store: the
+     * The entries of the last index the server gave us -- the set the sync poll folds over (see
+     * {@link #summary}). Deliberately the server's answer rather than a listing of our own store: the
      * server excludes regions its pregen is still writing, so folding our own directory would disagree on
      * every poll and pull a full index every interval for the entire length of a pregen.
      */
@@ -290,7 +290,7 @@ public final class CsLodClientNet {
      * bytes out, 34 bytes back, and ~86 server-side syscalls on a background thread with ZERO bytes of file
      * content -- one {@code openat} + ~3 {@code getdents64} + one {@code close} to list the 340 names, then
      * one {@code statx} per region actually in range (the name and radius tests both run before the stat).
-     * mtime and size come out of that stat, and they ARE the freshness token now -- against the whole-file
+     * mtime and size come out of that stat, and they are the freshness token now -- against the whole-file
      * reads a 3.1.0-beta-3 index did on the server main thread; see {@code CsLodServerNet}.
      */
     private static void syncTick() {
@@ -311,7 +311,7 @@ public final class CsLodClientNet {
     }
 
     /**
-     * The server folded its in-range index to two numbers. Fold OURS the same way and compare. Equal
+     * The server folded its in-range index to two numbers. Fold ours the same way and compare. Equal
      * means the server holds exactly the regions it last told us about, at exactly those versions, and we
      * hold every one -- the 99% case, and it costs nothing. A difference means one of three things, and
      * all three have the same answer (pull the index and let the diff work it out): the server's store
@@ -399,7 +399,7 @@ public final class CsLodClientNet {
             return;
         }
             // Singleplayer. The world's own injector already draws these LODs directly, so this path would
-            // be a DUPLICATE -- and a duplicate is the last thing that should be put on a timer.
+            // be a duplicate -- and a duplicate is the last thing that should be put on a timer.
         if (host.isEmpty()) {
             return;
         }
@@ -459,7 +459,7 @@ public final class CsLodClientNet {
         } else {
             LOGGER.info("Chunksmith: hello -- voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
         }
-        // Name the DH the player ACTUALLY has, at join: we compile against the standalone
+        // Name the DH the player actually has, at join: we compile against the standalone
         // distanthorizonsapi artifact and support a wide range of DH releases. DhTarget hard-references DH
         // types, so only touch it when DH is really present.
         if (dh) {
@@ -538,7 +538,7 @@ public final class CsLodClientNet {
         }
         if (!capsVoxy && !capsDh) {
             // No renderer. Our hello was an introduction so /cslod set can reach us, and it has been
-            // answered. Do NOT arm a dimension, request an index, or enter the empty-store retry loop
+            // answered. Do not arm a dimension, request an index, or enter the empty-store retry loop
             // against a server that is quite right not to send us anything.
             LOGGER.debug("Chunksmith: the server answered our hello; with no renderer installed nothing"
                     + " will be fetched, but /cslod set can now reach this client");
@@ -574,7 +574,7 @@ public final class CsLodClientNet {
 
         if (!serverDimensions.contains(mine)) {
         // The server has data, just not for the dimension we are in. Normal enough (most operators pregen
-        // only the overworld), and NOT a reason to render another dimension's terrain here.
+        // only the overworld), and not a reason to render another dimension's terrain here.
             if (!awaitingStore) {
                 awaitingStore = true;
                 LOGGER.info("Chunksmith: the server has LOD data for {}, but nothing for {} -- the"
@@ -746,7 +746,7 @@ public final class CsLodClientNet {
     }
 
     /**
-     * Reassemble an in-band region file, slice by slice. Written to a .part file and MOVED into place only
+     * Reassemble an in-band region file, slice by slice. Written to a .part file and moved into place only
      * when the last slice lands, so a transfer cut off half way can never be mistaken for a cached region
      * on the next join.
      */
@@ -904,8 +904,8 @@ public final class CsLodClientNet {
             return;
         }
 
-        // SETTING_SET. A refused value is a SHAPE error -- a word where a number belongs. An out-of-range
-        // value is accepted and CLAMPED, so the reply reports what was stored, not what was typed.
+        // SETTING_SET. A refused value is a shape error -- a word where a number belongs. An out-of-range
+        // value is accepted and clamped, so the reply reports what was stored, not what was typed.
         if (!setting.write(request.value())) {
             final var expected = setting.kind().completions();
             say(player, Component.literal(

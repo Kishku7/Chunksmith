@@ -43,8 +43,8 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void theVeryFIRSTSampleIsNotSwallowedByInitialisation() {
-        // 3.9.0 reset on a player-count change and RETURNED, and lastPlayerCount starts at -1 -- so
+    public void firstSampleIsNotSwallowedByInit() {
+        // 3.9.0 reset on a player-count change and returned, and lastPlayerCount starts at -1 -- so
         // the first call of every run was discarded. That call is also the only moment a run has
         // nothing in flight, so the baseline could never be learned and the throttle silently fell
         // back to its absolute target, pinned at 2/50.
@@ -60,7 +60,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void baselineRISESToo_itIsNotARunningMinimum() {
+    public void baselineRisesToo() {
         // The first attempt at this tracked the cheapest reading ever seen, so it anchored low and
         // the effective target silently collapsed back to the absolute one.
         settle(48.0D, false, 0, 60);
@@ -100,7 +100,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void theAllowanceCannotRUNAWAY() {
+    public void allowanceCannotRunAway() {
         // Live failure: the allowance is twice our cost, and a pre-gen pushes until it reaches its
         // allowance -- so cost chased allowance chased cost. TickBudget#MAX_ALLOWANCE_FACTOR has the
         // numbers; this is the clamp that stops it.
@@ -146,7 +146,7 @@ public class TickBudgetTest {
         assertEquals(50.0D, TickBudget.baseline(), 0.5D);
         assertTrue(TickBudget.ourCost() > 0.0D);
 
-        // Somebody joined and the server now costs 90. The learned values must be DISCARDED and the
+        // Somebody joined and the server now costs 90. The learned values must be discarded and the
         // new reading taken at face value -- not blended with the old one, which would leave the
         // throttle steering by a number from before the join for many seconds.
         TickBudget.sample(90.0D, false, 1);
@@ -184,7 +184,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void aMOMENTARYgapBetweenChunksIsNotABaselineReading() {
+    public void momentaryGapIsNotABaseline() {
         // The failure TickBudget#IDLE_TICKS_BEFORE_TRUSTED exists for. "Nothing in flight" is true for
         // a tick or two between one chunk landing and the next dispatching, and that tick is still
         // paying for the chunk that just landed -- its save, its unload, the GC of what it allocated.
@@ -203,7 +203,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void sustainedIDLEstillMovesTheBaseline_soAPausedRunReMeasures() {
+    public void sustainedIdleMovesTheBaseline() {
         // The other half of the same rule. Ignoring brief gaps must NOT mean ignoring real idle --
         // a paused run, a held probe, or a server with no pregen at all is exactly when the honest
         // readings are available, and refusing them would leave the baseline frozen for ever.

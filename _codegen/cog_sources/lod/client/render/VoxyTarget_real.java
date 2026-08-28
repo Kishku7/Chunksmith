@@ -15,11 +15,11 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * class-loaded once {@code isModLoaded("voxy")} has passed.
  *
  * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the section and its light
- * DIRECTLY, so voxy gets the REAL light captured on the server at generation time -- the whole point of
+ * directly, so voxy gets the real light captured on the server at generation time -- the whole point of
  * storing sky and block light separately in CSLOD. <b>rawIngest has NO light gate</b>: hand it wrong light
  * and it will cheerfully produce BLACK LODs and report success.
  *
- * <p>Throttled on voxy's own queue: its ingest deque is UNBOUNDED and never reports saturation, so an
+ * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never reports saturation, so an
  * unthrottled replay of a large store would drive the heap into an OOM. (That is the failure that OOMed
  * Voxy WorldGen V2 badly enough that upstream voxy ships a hard `breaks` against it.)
  *
@@ -27,7 +27,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * {@code VoxyCommon.getInstance()}, {@code getIngestService().getTaskCount()} and
  * {@code WorldIdentifier.of} have identical signatures in every fork jar the {@code Renderers} roster
  * names, all checked with {@code javap}, so a reflective per-chunk call would cost real time and absorb
- * nothing. The one place fork drift HAS been observed is voxy's config field, and that is the one place we
+ * nothing. The one place fork drift has been observed is voxy's config field, and that is the one place we
  * reflect -- see {@link VoxyRadius}. If that stops being true, a {@code LinkageError} out of any of these
  * calls disables the voxy sink for the session and says so once.
  */
@@ -49,7 +49,7 @@ public final class VoxyTarget {
     }
 
     /**
-     * Whether THIS loader has a voxy adapter at all. True here; false in the NeoForge copy.
+     * Whether this loader has a voxy adapter at all. True here; false in the NeoForge copy.
      *
      * <p>{@link com.kishku7.chunksmith.lod.client.Renderers#hasVoxy()} is gated on this, so a NeoForge
      * client that somehow has a mod called {@code voxy} is not announced as one we can then feed.
@@ -66,7 +66,7 @@ public final class VoxyTarget {
         try {
             return VoxyCommon.getInstance() != null;
         } catch (final LinkageError error) {
-            // voxy is INSTALLED (its mod id is loaded) but we cannot even ask it for its engine --
+            // voxy is installed (its mod id is loaded) but we cannot even ask it for its engine --
             // silence here means the player sees no distant terrain and no reason why.
             disable(error);
             return false;
@@ -81,7 +81,7 @@ public final class VoxyTarget {
         try {
             return doInject(level, record);
         } catch (final LinkageError error) {
-            // The FIRST call into rawIngest is where a fork with a different ingest signature would surface
+            // The first call into rawIngest is where a fork with a different ingest signature would surface
             // -- as a NoSuchMethodError, which is an Error and would sail straight past `catch (Exception)`.
             disable(error);
             return 0;
@@ -134,7 +134,7 @@ public final class VoxyTarget {
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        // A LinkageError out of getIngestService()/getTaskCount() is deliberately NOT caught here:
+        // A LinkageError out of getIngestService()/getTaskCount() is deliberately not caught here:
         // inject() catches it one frame up, so it is one disable and one warning, not two.
     }
 }

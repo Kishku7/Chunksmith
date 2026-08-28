@@ -16,11 +16,11 @@ import org.slf4j.LoggerFactory;
  * The NeoForge LOD entrypoint -- everything LOD, and nothing else.
  *
  * <p>A GAME-bus {@code @EventBusSubscriber} rather than a hook inside {@code ChunksmithNeoForge}: FML
- * registers every subscriber automatically, so a cell WITHOUT the LOD feature simply does not ship this
+ * registers every subscriber automatically, so a cell without the LOD feature simply does not ship this
  * class and the general entrypoint never learns that LOD exists. The payload registration is a MOD-bus
  * event and lives in {@code CsLodChannel}.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {

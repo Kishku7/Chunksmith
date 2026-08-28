@@ -15,21 +15,21 @@ import java.util.function.Consumer;
 /**
  * The CLIENT-side platform facade -- classic FORGE (MC 1.20.1 / Forge 47), the SimpleChannel era.
  *
- * <p><b>THE ONE REGISTRATION.</b> Forge 47 predates {@code CustomPacketPayload}: the transport is a
+ * <p><b>The one registration.</b> Forge 47 predates {@code CustomPacketPayload}: the transport is a
  * versioned {@code SimpleChannel} built through {@code NetworkRegistry}, and it must be built while the
- * network registry is still OPEN (mod construction). {@link CsLodChannel} owns that -- ONE channel, ONE
+ * network registry is still open (mod construction). {@link CsLodChannel} owns that -- one channel, one
  * {@code messageBuilder}, built by its static initializer on both sides. This class registers nothing; it
- * installs the CLIENT SINK that {@code CsLodChannel.Message.handle} drains into when the message arrived
+ * installs the client sink that {@code CsLodChannel.Message.handle} drains into when the message arrived
  * from a server ({@code context.getSender() == null}). On a dedicated server the sink is never set and that
  * branch is dead.
  *
  * <p>Forge's SimpleChannel prefixes every message with a discriminator byte that a raw Fabric channel does
  * not, so a Forge client is wire-compatible with a Forge server and a Fabric client with a Fabric server.
- * Chunksmith ships BOTH loaders on 1.20.1, so both pairings exist; a Forge client on a Fabric 1.20.1 server
+ * Chunksmith ships both loaders on 1.20.1, so both pairings exist; a Forge client on a Fabric 1.20.1 server
  * never completes the SimpleChannel handshake, {@link #sendToServer} sees no remote channel, and the LOD
  * client stays quiet -- exactly what it does on any server that is not running Chunksmith.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod/client. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod/client. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class ClientPlatform {

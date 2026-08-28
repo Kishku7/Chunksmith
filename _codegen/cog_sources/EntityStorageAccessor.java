@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 /**
  * Exposes the per-world entity store's backing storage, the route (worker -> RegionFileStorage ->
  * folder) by which the entity-unload fix tells whether a chunk has persisted entity data on disk
- * WITHOUT the full async read vanilla otherwise does.
+ * without the full async read vanilla otherwise does.
  *
  * <p>COG DRIFT (AXIS B, drift matrix 2a): SimpleRegionStorage landed at MC 1.20.5. On 1.20.1/1.20.4
  * it does not exist -- EntityStorage holds its {@code IOWorker worker} directly, so the accessor

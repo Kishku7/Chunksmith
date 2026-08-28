@@ -114,7 +114,7 @@ public final class CsLodServerNet {
     private static MinecraftServer server;
 
     /**
-     * The one thread that is allowed to touch the store on behalf of a request. ONE thread, not a pool: a
+     * The one thread that is allowed to touch the store on behalf of a request. one thread, not a pool: a
      * scan is a readdir plus a stat per in-range region -- ~86 syscalls and no file content at all for a
      * 340-region store at a 4-region radius -- so it is microseconds and there is nothing to parallelise.
      * A single thread also means the store is never scanned concurrently with itself, and gives the work a
@@ -343,7 +343,7 @@ public final class CsLodServerNet {
         }
         if (!hello.hasVoxy() && !hello.hasDh()) {
             // No renderer, no DATA. Answer with an empty hello and stop before the store is even looked at:
-            // no token minted, no dimension list built, no radius recorded, and deliberately NOT added to
+            // no token minted, no dimension list built, no radius recorded, and deliberately not added to
             // WAITING, so storeWatchTick never wakes them with an offer they cannot accept.
             send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                     CsLodProtocol.VERSION, false, 0, "", List.of())));
@@ -696,7 +696,7 @@ public final class CsLodServerNet {
     }
 
     /**
-     * The store key of the dimension the player is ACTUALLY in -- the authority for everything we serve
+     * The store key of the dimension the player is actually in -- the authority for everything we serve
      * them. Resolved by identity against the server's own levels, so it is the same string
      * {@link LodSupport#storeRoot} named that dimension's directory with. The empty return is unreachable
      * in practice; it exists so a caller can never get a plausible-looking wrong answer.

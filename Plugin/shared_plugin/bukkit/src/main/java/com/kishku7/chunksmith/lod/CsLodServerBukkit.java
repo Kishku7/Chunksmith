@@ -39,7 +39,7 @@ import java.util.Arrays;
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
  *
- * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for SENDING it --
+ * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for sending it --
  * the wire format, the token store, the HTTP backchannel -- has shipped inside the plugin jar all
  * along, because those classes live in {@code shared_common}. What was missing was the code that
  * connects them: nothing registered a channel, nothing started the HTTP server, nothing answered a
@@ -52,7 +52,7 @@ import java.util.Arrays;
  * {@code 0 files} beside a live token. Both requests are answered here now.
  *
  * <p><b>Bukkit will not let us reply unless we ask it to.</b> Bukkit keeps a per-player set of the
- * channels the CLIENT announced with a {@code minecraft:register} plugin message, and
+ * channels the client announced with a {@code minecraft:register} plugin message, and
  * {@code sendPluginMessage} does nothing at all for a channel outside that set -- no exception, no
  * log line, no packet. A modern Fabric client negotiates the other direction perfectly (its hello
  * reaches us) but puts nothing in that set, so the server hears the client and the client never hears
@@ -85,7 +85,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Players who have actually spoken to us on {@link #CHANNEL}.
      *
-     * <p>This is the ONLY warrant for {@link #ensureChannel(Player)} forcing a channel registration,
+     * <p>This is the only warrant for {@link #ensureChannel(Player)} forcing a channel registration,
      * and the reason a re-advertise does not spray a payload at every vanilla player on the server.
      * A player lands here because they sent us a hello, which is proof they understand the channel.
      */
@@ -206,7 +206,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         if (!CHANNEL.equals(channel)) {
             return;
         }
-        // STRIP THE LENGTH PREFIX. Fabric frames the payload with buf.writeByteArray(), which is a
+        // Strip the length prefix. Fabric frames the payload with buf.writeByteArray(), which is a
         // VarInt length followed by the bytes; the mod's receiver calls readByteArray() and never
         // sees it. Bukkit hands us the packet payload raw, so the prefix is still on the front and
         // the first byte is a length, not a message id.
@@ -264,7 +264,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * no business on a tick, and the snapshot is the thread boundary: after this method returns, the
      * scan never touches a game object again.
      *
-     * <p>The index is served for the dimension the player is STANDING IN, not the one they asked about.
+     * <p>The index is served for the dimension the player is standing in, not the one they asked about.
      * An index is a set of regions filtered by a radius measured from a position, and a position only
      * means something in one world; answering the overworld's index to somebody in the Nether returns
      * overworld regions selected by Nether coordinates, which the client will then draw. A 3.1.0-beta-2
@@ -393,7 +393,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * <p>Reflective because Bukkit's {@code Player} interface exposes the set read-only
      * ({@code getListeningPluginChannels}) and offers no way to add to it; the implementation class
      * has always had a public {@code addChannel(String)} and that is what the vanilla register path
-     * itself calls. Looked up by NAME off the live object, so no server package is named and no
+     * itself calls. Looked up by name off the live object, so no server package is named and no
      * relocated or version-stamped class has to be guessed at -- and nothing here touches
      * {@code net.minecraft}.
      *
@@ -458,7 +458,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * Bukkit worlds do not share a parent, so each dimension resolves to its own world folder.
      *
      * <p>Also the containment check for a dimension id that came off the wire: it is compared against
-     * the keys of the LOADED worlds, so there is no string to sanitise and nothing to escape from.
+     * the keys of the loaded worlds, so there is no string to sanitise and nothing to escape from.
      * An id we do not recognise resolves to null and is answered with silence.
      */
     private static Path rootFor(final String dimension) {

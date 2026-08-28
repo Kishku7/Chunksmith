@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The two new v2 messages, ON THE WIRE -- including the number the whole design rests on: one idle sync
+ * The two new v2 messages, on the wire -- including the number the whole design rests on: one idle sync
  * poll is 22 bytes out and 34 bytes back.
  *
  * <p>That is the reason a 30-second poll from a hundred clients is affordable, so it is asserted here

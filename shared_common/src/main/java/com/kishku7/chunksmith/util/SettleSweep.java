@@ -3,7 +3,7 @@ package com.kishku7.chunksmith.util;
 import java.util.BitSet;
 
 /**
- * Decides WHERE, just behind the generation front, to briefly re-load a neighbourhood so that other mods
+ * Decides where, just behind the generation front, to briefly re-load a neighbourhood so that other mods
  * can finish work they could not do while the pregen was racing past.
  *
  * <p>{@link ChunkSettleWindow} keeps a chunk loaded until its eight neighbours exist, which is enough
@@ -12,7 +12,7 @@ import java.util.BitSet;
  * Widening the hold does not scale -- the held band follows the whole sweep edge, so at a seven-chunk
  * radius a modest pregen would hold some 11,000 chunks.
  *
- * <p>So instead we let it go and come back: a small window slides along BEHIND the front, loads a
+ * <p>So instead we let it go and come back: a small window slides along behind the front, loads a
  * neighbourhood, gives the server a moment to tick, and moves on. Peak cost is one window and does not
  * grow with the size of the run. Chunks are re-read from disk rather than regenerated, so this is I/O,
  * not worldgen. It trails rather than waiting for the end because ground more than a radius behind the

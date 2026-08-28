@@ -14,10 +14,10 @@ import java.util.logging.Logger;
 /**
  * Bukkit-native counterpart to the Fabric/Forge/NeoForge {@code LodSupport}
  * (canonical: _codegen/cog_sources/lod/LodSupport.java). Resolves the active {@link LodSink} per
- * world and drives the generation hook, mirroring that class's structure and the SAME
+ * world and drives the generation hook, mirroring that class's structure and the same
  * {@code lodEnabled} tristate semantics -- but see the scope note below.
  *
- * <p>Server-side generation ONLY (mod_support #9 follow-up / #11 sibling work). There is no renderer
+ * <p>Server-side generation only (mod_support #9 follow-up / #11 sibling work). There is no renderer
  * adapter and no client-streaming channel here yet -- that is Chunksmith-Client's job on the mod loaders
  * and does not exist on the Plugin platform. This class only ever creates a {@link CsLodStoreSink}: the
  * durable CSLOD store gets built, and nothing consumes it yet. Deliberately incomplete; the streaming
@@ -26,7 +26,7 @@ import java.util.logging.Logger;
  * <p>The dedicated-server carve-out is simpler here. The mod-loader {@code decide()} treats
  * {@code AUTO} as ON when either a renderer is detected in the JVM, OR the server is a dedicated
  * server (a dedicated server cannot run voxy and does not need DH locally, but the CSLOD store is
- * exactly what a remote client downloads). A Bukkit/Paper/Folia process IS ALWAYS the dedicated-server
+ * exactly what a remote client downloads). A Bukkit/Paper/Folia process is always the dedicated-server
  * case -- there is no Bukkit integrated-server / singleplayer concept -- so here {@code AUTO} simply
  * means ON, unconditionally. No renderer detection is attempted (nothing can run one on this
  * platform), matching the same scoping direction: generation now, client support later.
@@ -56,7 +56,7 @@ public final class LodSupport {
      * Offer a freshly generated chunk. Called from the generation hook on the main thread, right
      * after the chunk finishes loading (see {@code BukkitWorld#getChunkAtAsync}).
      *
-     * <p>Extraction happens HERE, synchronously, for the same reason the mod-loader version does it
+     * <p>Extraction happens here, synchronously, for the same reason the mod-loader version does it
      * synchronously: the moment is now, and everything downstream of extraction (the writer thread)
      * is asynchronous.
      */
@@ -114,7 +114,7 @@ public final class LodSupport {
         if (lodEnabled(config)) {
             // Say what it means for the operator, not what the code does. The old wording ("no renderer
             // feed on this platform yet") was true and useless: what they need to know is that their
-            // PLAYERS get nothing and no client-side mod will change that. mod_support #18 was somebody
+            // Players get nothing and no client-side mod will change that. mod_support #18 was somebody
             // working that out the hard way with this line already in their log.
             LOGGER.info("Chunksmith: LOD generation ON -- writing a CSLOD store, and serving it to"
                     + " players who have Chunksmith installed. Watch for the backchannel line just"

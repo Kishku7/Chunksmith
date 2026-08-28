@@ -11,14 +11,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * On a DH-enabled server with real-time updates on (the default),
  * {@code DhClientLevel.shouldProcessChunkUpdate} drops any chunk update for a position DH has seen in the
  * last ten minutes -- and {@code overwriteChunkDataAsync} still returns success (see {@link DhPushGuard}).
- * This forces the gate open for OUR pushes only via a thread-local flag; other updates take DH's own path.
+ * This forces the gate open for our pushes only via a thread-local flag; other updates take DH's own path.
  *
  * <p>{@code remap = false} because {@code com.seibel.*} is a plain library, not Minecraft: no intermediary
- * mappings to apply, and the method is public, so no access widener. The target is named as a CLASS rather
+ * mappings to apply, and the method is public, so no access widener. The target is named as a class rather
  * than a {@code targets = "..."} string -- same bytecode, but javac checks it, so a DH refactor that moved
- * this class fails the BUILD instead of silently no-op'ing at runtime.
+ * this class fails the build instead of silently no-op'ing at runtime.
  *
- * <p><b>DH is an OPTIONAL soft dependency, so {@code chunksmith_lodclient.mixins.json} MUST stay
+ * <p><b>DH is an optional soft dependency, so {@code chunksmith_lodclient.mixins.json} MUST stay
  * {@code "required": false}.</b> Mixin resolves target classes at PREPARE time, and under
  * {@code required: true} this missing class is a FATAL bootstrap error on any client with no DH -- it
  * would take the game down for every voxy-only player. The injector itself stays at {@code require = 1}.

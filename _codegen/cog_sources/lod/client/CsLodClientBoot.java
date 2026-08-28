@@ -30,7 +30,7 @@ public final class CsLodClientBoot {
     /**
      * Bind to Distant Horizons before it can announce a level.
      *
-     * <p>DH fires its level-load event DURING world load, so the listener has to exist before then --
+     * <p>DH fires its level-load event during world load, so the listener has to exist before then --
      * binding it lazily would miss the only announcement we get. {@link DhTarget} hard-references DH types,
      * so it is only class-loaded once DH is known present.
      */

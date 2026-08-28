@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  * plain files, so it is testable without a game.
  *
  * <p><b>The local store IS the cache.</b> The server sends a freshness token per region; we compare each
- * against the token we RECORDED when we stored our copy ({@link CsLodManifest}) and download only what is
+ * against the token we recorded when we stored our copy ({@link CsLodManifest}) and download only what is
  * missing or changed, so a re-join downloads nothing. We do not re-hash our own files to find out -- that
  * read the whole store on every index, and it was half of the bug that killed the server.
  *
@@ -59,7 +59,7 @@ public final class CsLodDownloader {
      */
     private volatile CsLodManifest manifest;
 
-    /** @param storeRoot the CLIENT's own store, e.g. {@code .minecraft/chunksmith/lod/<server>/<dim>} */
+    /** @param storeRoot the client's own store, e.g. {@code .minecraft/chunksmith/lod/<server>/<dim>} */
     public CsLodDownloader(final Path storeRoot) {
         this.storeRoot = storeRoot;
     }
@@ -74,7 +74,7 @@ public final class CsLodDownloader {
     public void download(final String host, final int port, final String token,
                          final CsLodMessages.RegionIndex index, final Consumer<String> progress) {
         cancelled.set(false);
-        // The dimension came off the wire from a server we do not trust to be honest. Gate it BEFORE it
+        // The dimension came off the wire from a server we do not trust to be honest. Gate it before it
         // becomes a path, exactly as the in-band and cache consumers do -- a "../.." here would write
         // region files outside the client's store. If it is malformed we refuse the whole transfer.
         final Path dimDir = CsLodStore.dimensionDir(storeRoot, index.dimension());
@@ -96,8 +96,8 @@ public final class CsLodDownloader {
                 })
                 .toList();
 
-        // The server has ALREADY filtered its index down to what our announced radius can draw, so this
-        // count is "regions within my radius", NOT "regions the server holds". Saying "on the server" here
+        // The server has already filtered its index down to what our announced radius can draw, so this
+        // count is "regions within my radius", not "regions the server holds". Saying "on the server" here
         // hid a real bug: a voxy client asking for a 256-block radius was told "1 regions on the server"
         // when the server held nine.
         progress.accept("LOD: " + index.regions().size() + " regions within my radius, " + skipped.get()
@@ -139,7 +139,7 @@ public final class CsLodDownloader {
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        // Record what we now hold ONCE, after the transfer. A manifest we fail to write costs a re-download
+        // Record what we now hold once, after the transfer. A manifest we fail to write costs a re-download
         // next session and nothing else, so it is reported and not thrown.
         try {
             this.manifest.save();
@@ -229,7 +229,7 @@ public final class CsLodDownloader {
         final long stored = Files.size(target);
         bytes.addAndGet(stored);
 
-        // The region is on disk. Record the SERVER's token and the size we ACTUALLY received rather than the
+        // The region is on disk. Record the server's token and the size we actually received rather than the
         // advertised one, so a short or padded transfer shows as a mismatch next check instead of caching good.
         this.manifest.put(entry.regionX(), entry.regionZ(), entry.hash(), stored);
     }

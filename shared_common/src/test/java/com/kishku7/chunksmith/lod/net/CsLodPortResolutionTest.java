@@ -130,7 +130,7 @@ public class CsLodPortResolutionTest {
 
     @Test
     public void theGamesOwnPortIsRefusedBeforeItIsStored() {
-        // The bind refuses it too, but a bind happens AFTER the write. Accepting it here stored a
+        // The bind refuses it too, but a bind happens after the write. Accepting it here stored a
         // value that killed the backchannel, answered "done", and kept it dead across every restart.
         CsLodControl.register(() -> 0, () -> 25565, () -> "x");
         try {

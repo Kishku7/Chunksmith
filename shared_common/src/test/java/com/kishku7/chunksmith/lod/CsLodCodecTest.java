@@ -16,13 +16,13 @@ import static org.junit.Assert.assertNull;
 /**
  * Round-trip tests for the CSLOD format.
  *
- * <p>The format is the DISK format is the WIRE format: the same bytes are written into the region store,
+ * <p>The format is the disk format is the wire format: the same bytes are written into the region store,
  * served over the HTTP backchannel, dripped through the in-band fallback, and decoded by a completely
  * separate mod (Chunksmith-Client). Nothing else in the codebase pins that contract down, so an encoding
  * bug would surface only as corrupt terrain on somebody else's screen.
  *
- * <p>Both shapes of section are exercised on purpose: the DENSE one (explicit per-voxel arrays) and the
- * UNIFORM one (a single palette index standing in for 4096 voxels) -- the uniform path is what makes
+ * <p>Both shapes of section are exercised on purpose: the dense one (explicit per-voxel arrays) and the
+ * uniform one (a single palette index standing in for 4096 voxels) -- the uniform path is what makes
  * carrying light to the build ceiling affordable, and it is the one with something to get wrong.
  */
 public class CsLodCodecTest {
@@ -40,7 +40,7 @@ public class CsLodCodecTest {
     public void regionStoreReadsBackWhatItWrote() throws Exception {
         final Path root = Files.createTempDirectory("cslod-test");
         try {
-            // Two chunks in the SAME region file, one of them at a negative coordinate -- the region/chunk
+            // Two chunks in the same region file, one of them at a negative coordinate -- the region/chunk
             // index arithmetic is where an off-by-one would hide.
             final CsLodChunk first = sample("minecraft:overworld", 0, 0);
             final CsLodChunk second = sample("minecraft:overworld", -1, 5);
@@ -75,7 +75,7 @@ public class CsLodCodecTest {
 
     // ------------------------------------------------------------------ helpers
 
-    /** A chunk with one DENSE section and one UNIFORM section. */
+    /** A chunk with one dense section and one uniform section. */
     private static CsLodChunk sample(final String dimension, final int chunkX, final int chunkZ) {
         final int[] blocks = new int[CsLodChunk.BLOCKS_PER_SECTION];
         for (int i = 0; i < blocks.length; i++) {

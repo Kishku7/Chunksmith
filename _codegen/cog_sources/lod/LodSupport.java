@@ -273,7 +273,7 @@ public final class LodSupport {
      * only during a pregen the operator started (~5.8 KB per chunk on disk), and one config line ends it.
      *
      * <p>The wall-clock cost was quoted here as ~16 percent until it was re-measured on a dedicated server
-     * on 2026-08-20. That date is the one thing that matters about the number: the measurement SUPERSEDES
+     * on 2026-08-20. That date is the one thing that matters about the number: the measurement supersedes
      * the old figure, and any claim about LOD cost older than it is stale. 36.1 cps with LOD on against
      * 34.2 cps with it off over matched windows -- no measurable difference, and the OFF run was slightly
      * slower, which is terrain noise. Extraction runs on the server thread, and once dispatch width was

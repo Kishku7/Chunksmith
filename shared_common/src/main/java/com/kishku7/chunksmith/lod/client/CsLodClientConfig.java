@@ -11,17 +11,17 @@ import java.util.Properties;
  * The LOD client's own settings: how often to ask the server whether anything changed, and whether to
  * re-inject everything on the next join.
  *
- * <p>No settings SCREEN, deliberately -- a config UI is 3.2's problem. This is a plain
+ * <p>No settings screen, deliberately -- a config UI is 3.2's problem. This is a plain
  * {@code config/chunksmith-lod.properties} the client writes with its defaults and comments on first run,
  * discoverable by anyone who opens the folder and editable without a mod menu.
  *
  * <p><b>Both settings are also reachable from {@code /cslod set}</b> (3.3.0): a setting you can only change
  * by editing a file and restarting is not a setting on a running game. The command writes through
  * {@link #setSyncSeconds(int)} / {@link #setReinjectOnJoin(boolean)}, which apply the value to the running
- * client AND save the file, so the two can never disagree. {@link CsLodClientSettings} is the registry that
+ * client and save the file, so the two can never disagree. {@link CsLodClientSettings} is the registry that
  * exposes them, and a coverage test fails by name if a key here is not in it.
  *
- * <p><b>The floor is enforced in CODE, not in the file.</b> The value is clamped to
+ * <p><b>The floor is enforced in code, not in the file.</b> The value is clamped to
  * {@link #MIN_SYNC_SECONDS} every time it is read AND on the way in when set by command, so nothing
  * downstream can see a smaller number whatever the file says.
  */
@@ -161,7 +161,7 @@ public final class CsLodClientConfig {
         return "syncing with the server every " + clamped + "s";
     }
 
-    /** The interval, in MILLISECONDS, already clamped. */
+    /** The interval, in milliseconds, already clamped. */
     public static long syncIntervalMillis() {
         return syncSeconds * 1000L;
     }
@@ -179,7 +179,7 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Set the sync interval and save it. Clamped ON WRITE as well as on read, so the file can never hold a
+     * Set the sync interval and save it. Clamped on write as well as on read, so the file can never hold a
      * number the client would refuse to honour.
      *
      * @return the value actually stored, which is what the command reports rather than echoing the input
@@ -196,7 +196,7 @@ public final class CsLodClientConfig {
         save();
     }
 
-    /** The floor, applied to any value from any source. Public so the unit test asserts the SAME function. */
+    /** The floor, applied to any value from any source. Public so the unit test asserts the same function. */
     public static int clamp(final int seconds) {
         return Math.max(MIN_SYNC_SECONDS, seconds);
     }
@@ -212,7 +212,7 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Write the values CURRENTLY in force -- not the defaults. A failure is swallowed: the value is already
+     * Write the values currently in force -- not the defaults. A failure is swallowed: the value is already
      * in effect in memory, and a player who cannot write their own config directory has a bigger problem.
      */
     private static void save() {

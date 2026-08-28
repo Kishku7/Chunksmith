@@ -13,10 +13,10 @@ import static org.junit.Assert.assertTrue;
  * The settle window -- and the bug it exists to fix (mod_support #14).
  *
  * <p>A pregen dropped each chunk's ticket the instant generation finished, so a mod that reacts to a new
- * chunk on a LATER tick found the chunk and its neighbours already unloaded -- see
+ * chunk on a later tick found the chunk and its neighbours already unloaded -- see
  * {@link ChunkSettleWindow} for the mod, the version and the counts.
  *
- * <p>The rule under test is spatial, and the two directions matter equally: a chunk must NOT be released
+ * <p>The rule under test is spatial, and the two directions matter equally: a chunk must not be released
  * while its neighbourhood is still open (that is the bug), and it MUST be released once the sweep has
  * moved past (a ticket we forget to drop is a chunk that never unloads, which would turn a pregen's flat
  * memory profile into a leak).
@@ -40,7 +40,7 @@ public class ChunkSettleWindowTest {
         }
     }
 
-    /** THE BUG. A lone chunk has no neighbours yet, so it must still be held. */
+    /** The bug. A lone chunk has no neighbours yet, so it must still be held. */
     @Test
     public void aChunkWithAnOpenNeighbourhoodIsNotReleased() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);

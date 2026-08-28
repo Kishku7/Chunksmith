@@ -94,7 +94,7 @@ public class CsLodRetryTest {
         assertEquals(0, retry.attempts());
 
         // And the clock is cleared, not left holding the old deadline: the next join stamps it with
-        // started(), and the first retry is a full first-delay away from THAT, not from the last session.
+        // started(), and the first retry is a full first-delay away from that, not from the last session.
         retry.started(500_000L);
         assertFalse(retry.due(500_000L));
         assertFalse(retry.due(514_999L));

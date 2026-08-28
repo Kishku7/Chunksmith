@@ -21,17 +21,17 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * The CLIENT-side platform facade -- NEOFORGE (our 1.21.1, 1.21.11 and 26 LOD cells).
+ * The client-side platform facade -- NEOFORGE (our 1.21.1, 1.21.11 and 26 LOD cells).
  *
  * <p>Seam twin of the Fabric copies: same package, same name, same static signatures, so the shared
  * LOD-client tree compiles unchanged.
  *
- * <p><b>THE ONE REGISTRATION -- and on NeoForge it is structurally impossible to get wrong.</b> NeoForge
- * keys its payload registry on the payload ID, so registering {@code chunksmith:lod} twice is a HARD load
+ * <p><b>The one registration -- and on NeoForge it is structurally impossible to get wrong.</b> NeoForge
+ * keys its payload registry on the payload ID, so registering {@code chunksmith:lod} twice is a hard load
  * failure ({@code UnsupportedOperationException: Cannot register payload chunksmith:lod as it is already
  * registered}). That is exactly what happened when the LOD client was a separate mod. So this class
- * registers NOTHING: {@link CsLodChannel#registerPayloads} owns the single {@code playBidirectional} call,
- * and {@link #registerClientNetworking} merely installs the CLIENT SINK that its clientbound handler drains
+ * registers nothing: {@link CsLodChannel#registerPayloads} owns the single {@code playBidirectional} call,
+ * and {@link #registerClientNetworking} merely installs the client sink that its clientbound handler drains
  * into. The common seam never names a client class; on a dedicated server the sink is simply null and the
  * clientbound branch is dead.
  *
@@ -39,13 +39,13 @@ import java.util.function.Consumer;
  * neoforge-21.11.42) and both emitted by {@code compat.py}:
  * <ol>
  *   <li><b>the client's send.</b> On 21.1 it is {@code PacketDistributor.sendToServer} and
- *       {@code ClientPacketDistributor} DOES NOT EXIST; by 21.11 the method has moved to
+ *       {@code ClientPacketDistributor} does not exist; by 21.11 the method has moved to
  *       {@code ClientPacketDistributor.sendToServer} and {@code PacketDistributor.sendToServer} is GONE.
  *       A hard either/or, not a deprecation.</li>
  *   <li><b>the bidirectional registration</b> -- see {@code CsLodChannel}, which owns it.</li>
  * </ol>
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod/client. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod/client. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class ClientPlatform {
@@ -72,7 +72,7 @@ public final class ClientPlatform {
     /**
      * Run once the client is far enough up to talk to other mods' APIs.
      *
-     * <p>NOT the {@code @Mod} constructor. NeoForge constructs mods in dependency order, and Distant
+     * <p>not the {@code @Mod} constructor. NeoForge constructs mods in dependency order, and Distant
      * Horizons is a soft dependency we deliberately do not declare a load order against -- so our
      * constructor can run BEFORE DH's, and {@code DhApi.events} would not exist yet.
      * {@code FMLClientSetupEvent} runs after every mod is constructed and still long before DH fires its

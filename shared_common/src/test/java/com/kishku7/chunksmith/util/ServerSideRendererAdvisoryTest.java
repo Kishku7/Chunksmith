@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 /**
- * The advisory has exactly one job and one way to get it badly wrong: firing on a CLIENT.
+ * The advisory has exactly one job and one way to get it badly wrong: firing on a client.
  *
  * <p>A single-player world runs an integrated server inside a client that absolutely does need a
  * renderer, so telling that player to remove Distant Horizons would be advice that breaks their game.

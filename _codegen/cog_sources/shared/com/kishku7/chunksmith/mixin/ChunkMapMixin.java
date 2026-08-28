@@ -34,7 +34,7 @@ public interface ChunkMapMixin {
 
     // --- unload diagnostics (3.5.5) ---------------------------------------------------------------
     // The question these answer: when a drain frees nothing, is it because the chunk system has
-    // nothing ELIGIBLE to unload (tickets still held), or because eligible work is not getting done?
+    // nothing eligible to unload (tickets still held), or because eligible work is not getting done?
     // UnloadDiagnostics has the reading of ChunkMap.processUnloads that rules the second out, and
     // toDrop is the number that says which case a live server is in.
     //

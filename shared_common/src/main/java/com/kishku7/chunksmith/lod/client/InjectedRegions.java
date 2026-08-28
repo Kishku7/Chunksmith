@@ -4,14 +4,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Which regions have already been handed to a renderer THIS SESSION -- keyed by DIMENSION as well as by
- * region coordinates, and remembering WHICH VERSION of each one we drew.
+ * Which regions have already been handed to a renderer this session -- keyed by dimension as well as by
+ * region coordinates, and remembering which version of each one we drew.
  *
  * <p>Every pull returns the whole in-radius set, most of it already drawn, and re-injecting those
  * re-pushes terrain the renderer has -- with voxy, hundreds of thousands of sections.
  *
  * <p>The key needs the dimension because it used to be a {@code Set<Long>} of packed region x/z alone,
- * and region (0,0) is a DIFFERENT PLACE in every dimension: once the overworld's (0,0) had been
+ * and region (0,0) is a different place in every dimension: once the overworld's (0,0) had been
  * injected, the Nether's was considered "already done" and silently skipped forever -- the player walked
  * into the Nether, its LODs never appeared, and every counter and log line reported success.
  *
@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the re-fetched, bigger file away silently: the far ring of new regions appeared while the terrain
  * under the player's feet stayed frozen at the version they joined on.
  *
- * <p>The SESSION half, cleared on disconnect; {@link InjectedIndex} is the on-disk record a join seeds
+ * <p>The session half, cleared on disconnect; {@link InjectedIndex} is the on-disk record a join seeds
  * this map from via {@link #seed}. Thread-safe: the injector runs off the game thread and the network
  * handler releases regions from another.
  */
@@ -47,7 +47,7 @@ public final class InjectedRegions {
         return true;
     }
 
-    /** Pre-load a claim a PREVIOUS session made and wrote down -- see {@link InjectedIndex}. */
+    /** Pre-load a claim a previous session made and wrote down -- see {@link InjectedIndex}. */
     public void seed(final String dimension, final int regionX, final int regionZ, final long hash) {
         this.injected.put(key(dimension, regionX, regionZ), hash);
     }

@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * the shared LOD-client tree calls {@code ClientPlatform.x()} and names no loader type. The facade is the
  * only place a loader symbol appears.
  *
- * <p>This class does NOT register the payload type. It cannot, and that is what the 3.1.0 merge bought.
+ * <p>This class does not register the payload type. It cannot, and that is what the 3.1.0 merge bought.
  * Before it the LOD client was a separate mod, and both mods registered {@code chunksmith:lod} in
  * {@code PayloadTypeRegistry} -- so a player who had both (a self-hoster who plays singleplayer and joins
  * a friend's Chunksmith server) got

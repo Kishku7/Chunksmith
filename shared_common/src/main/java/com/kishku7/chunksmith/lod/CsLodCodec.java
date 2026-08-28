@@ -191,7 +191,7 @@ public final class CsLodCodec {
 
     private static List<String> readPalette(final DataInputStream in) throws IOException {
         final int size = readVarInt(in);
-        // Bound BEFORE allocating: size is off the wire/disk. At most 65536 entries are ever addressable
+        // Bound before allocating: size is off the wire/disk. At most 65536 entries are ever addressable
         // (indices are 1 or 2 bytes wide), so a larger count is malformed, not merely large.
         if (size < 0 || size > CsLodProtocol.MAX_PALETTE_SIZE) {
             throw new IOException("CSLOD record: palette size " + size + " out of range [0, "

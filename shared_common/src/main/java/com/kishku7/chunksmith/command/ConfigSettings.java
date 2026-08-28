@@ -78,8 +78,8 @@ public final class ConfigSettings {
                         if (asked < Integer.MIN_VALUE || asked > Integer.MAX_VALUE) {
                             return false;
                         }
-                        // REFUSE the game's own port here, before it is stored. The bind refuses it
-                        // too, but a bind happens AFTER the write: accepting it would save a value
+                        // Refuse the game's own port here, before it is stored. The bind refuses it
+                        // too, but a bind happens after the write: accepting it would save a value
                         // that kills the backchannel, answer "done", and keep it dead across every
                         // restart until somebody thought to look. Found by driving this on a live
                         // server, not by reading it.

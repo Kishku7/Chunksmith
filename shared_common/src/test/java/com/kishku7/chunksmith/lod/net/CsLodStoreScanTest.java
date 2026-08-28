@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue;
  *       again for the rest of the session.</li>
  * </ul>
  *
- * <p>So: a dimension is servable when it CONTAINS a region the writer has FINISHED with.
+ * <p>So: a dimension is servable when it contains a region the writer has finished with.
  *
  * <p>The clock is passed in, so "ten seconds later" costs nothing to test.
  */

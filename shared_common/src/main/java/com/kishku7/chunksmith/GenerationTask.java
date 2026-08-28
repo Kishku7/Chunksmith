@@ -743,7 +743,7 @@ public class GenerationTask implements Runnable {
                 // baseline sampled once at the start and then trusted for ever is how a run came to
                 // attribute the server's own GC pressure to itself and throttle to 1/50.
                 //
-                // The probe holds dispatch but is NOT a throttle gate. Conflating the two crashed a
+                // The probe holds dispatch but is not a throttle gate. Conflating the two crashed a
                 // live server (2026-08-20 18:08): entering a gate used to hand back the whole settle
                 // frontier at once, so a two-second measurement window was dumping hundreds of ticket
                 // mutations into the distance manager every two minutes.
@@ -883,7 +883,7 @@ public class GenerationTask implements Runnable {
         ChunkResidency.noteGenerationHeld(false);
         finishSettleSweep();
         selection.world().settleDrain();
-        // Ending a task is NOT the same as finishing the work. The tickets come back now; the chunks do
+        // Ending a task is not the same as finishing the work. The tickets come back now; the chunks do
         // not go away until the distance manager has propagated that and the unload pass has run.
         // 3.5.0 stopped driving the unload pass the moment a task ended, which orphaned the backlog
         // until the next restart -- ChunkResidency has the measurement. Declare the debt here; the

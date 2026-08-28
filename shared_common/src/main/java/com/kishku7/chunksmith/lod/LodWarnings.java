@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * declares {@code float} produced a {@code NoSuchFieldError}, which was swallowed, which silently
  * collapsed the LOD radius from 8192 blocks to the 256-block protocol default -- a 32x collapse, reported
  * as success. Never again: a renderer that fails to accept our data, or whose settings we cannot read, is
- * a thing the player must be TOLD about, in words, naming what broke and what we did instead.
+ * a thing the player must be told about, in words, naming what broke and what we did instead.
  */
 public final class LodWarnings {
 

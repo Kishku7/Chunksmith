@@ -100,7 +100,7 @@ public final class TickBudget {
     public static void sample(final double mspt, final boolean ourWorkInFlight, final int players) {
         if (players != lastPlayerCount) {
             // A join or a leave is a step change in what the server costs, so throw the learned values
-            // away and re-measure. DO NOT return here: the first call of a run always trips this branch
+            // away and re-measure. Do not return here: the first call of a run always trips this branch
             // (lastPlayerCount starts at -1) and is the only moment a run has nothing in flight, so
             // discarding it meant the baseline was never learned at all -- effectiveTarget stayed -1 and
             // the run was pinned at 2/50. Reset, then use the sample.

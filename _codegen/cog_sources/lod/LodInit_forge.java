@@ -16,15 +16,15 @@ import org.slf4j.LoggerFactory;
  * The classic-Forge LOD entrypoint (MC 1.20.1 / Forge 47) -- everything LOD, and nothing else.
  *
  * <p>A GAME-bus {@code @Mod.EventBusSubscriber} rather than a hook inside {@code ChunksmithForge}: FML
- * registers every subscriber automatically, so a cell WITHOUT the LOD feature simply does not ship this
+ * registers every subscriber automatically, so a cell without the LOD feature simply does not ship this
  * class and the general entrypoint never learns that LOD exists. The channel is built by
  * {@code CsLodChannel}'s static initializer (a MOD-bus subscriber), because Forge's network registry only
  * accepts a new channel during mod construction.
  *
  * <p>{@code TickEvent.ServerTickEvent} did not carry a {@link MinecraftServer} on every Forge 47 build, so
- * the server is CAPTURED on start rather than read off the tick event.
+ * the server is captured on start rather than read off the tick event.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {
@@ -81,8 +81,8 @@ public final class LodInit {
     }
 
     /**
-     * The LOD-streamer conflict check, done at RUNTIME on this cell only: Forge 47's {@code mods.toml} has
-     * NO incompatible dependency type -- only {@code mandatory = true|false} -- so the incompatibility every
+     * The LOD-streamer conflict check, done at runtime on this cell only: Forge 47's {@code mods.toml} has
+     * no incompatible dependency type -- only {@code mandatory = true|false} -- so the incompatibility every
      * other cell declares in its manifest (Fabric {@code breaks}, NeoForge {@code type = "incompatible"})
      * is not expressible here and has to be surfaced in the log instead.
      */

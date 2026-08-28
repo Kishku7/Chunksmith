@@ -12,9 +12,9 @@ import java.util.function.Supplier;
  *   return !networkState.sessionConfig.isRealTimeUpdatesEnabled() || loadedOnceChunks.add(pos);
  * </pre>
  *
- * {@code loadedOnceChunks} is a Guava set with {@code expireAfterWrite(10, MINUTES)}, so on a DH-ENABLED
- * server with real-time updates on (the DEFAULT) any position DH has seen in the last ten minutes makes
- * {@code add()} return false and {@code applyChunkUpdate} return early -- while the caller STILL returns
+ * {@code loadedOnceChunks} is a Guava set with {@code expireAfterWrite(10, MINUTES)}, so on a DH-enabled
+ * server with real-time updates on (the default) any position DH has seen in the last ten minutes makes
+ * {@code add()} return false and {@code applyChunkUpdate} return early -- while the caller still returns
  * {@code DhApiResult.createSuccess()}. DH eats the push and tells us it worked.
  *
  * <p>A flag, not a config change: the DH toggles that would avoid this are not on DH's public API, and

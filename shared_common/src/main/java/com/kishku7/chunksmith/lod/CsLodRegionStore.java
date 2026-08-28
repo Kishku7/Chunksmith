@@ -15,7 +15,7 @@ import java.util.stream.Stream;
  * On-disk store for CSLOD chunk records.
  *
  * <p>Anvil-shaped, deliberately: one region file per 32x32 chunks, a fixed header of (offset, length) slots,
- * then the compressed records. Writes append the payload and THEN rewrite the header slot, so a torn write
+ * then the compressed records. Writes append the payload and then rewrite the header slot, so a torn write
  * loses at most the one chunk being written -- never the file. Rewriting a chunk appends a new record and
  * re-points the slot, leaving the old bytes behind as garbage; pregen writes each chunk once, so in the
  * normal case there is nothing to reclaim.
@@ -55,7 +55,7 @@ public final class CsLodRegionStore {
     /**
      * Persist one chunk record.
      *
-     * @return the number of COMPRESSED bytes written, so callers can account size without re-encoding
+     * @return the number of compressed bytes written, so callers can account size without re-encoding
      */
     public synchronized int write(final CsLodChunk chunk) throws IOException {
         final byte[] payload = CsLodCodec.encode(chunk);
@@ -93,7 +93,7 @@ public final class CsLodRegionStore {
         if (offset <= 0 || length <= 0) {
             return null;
         }
-        // Bound BEFORE allocating: length comes from a header slot whose bytes may have been streamed
+        // Bound before allocating: length comes from a header slot whose bytes may have been streamed
         // in-band from an untrusted server (see MAX_RECORD_BYTES).
         if (length > CsLodProtocol.MAX_RECORD_BYTES) {
             throw new IOException("CSLOD region " + path.getFileName() + " slot " + slot
@@ -107,7 +107,7 @@ public final class CsLodRegionStore {
 
     /**
      * Walk every record in a CSLOD tree and hand each decoded chunk to the visitor. Static and stateless on
-     * purpose: this is how a SECOND process (a backfill/verify tool) reads the store while the game holds
+     * purpose: this is how a second process (a backfill/verify tool) reads the store while the game holds
      * nothing.
      *
      * @return the number of records visited
@@ -156,7 +156,7 @@ public final class CsLodRegionStore {
                 if (offset <= 0 || length <= 0) {
                     continue;
                 }
-                // Bound BEFORE allocating: see read() above and MAX_RECORD_BYTES.
+                // Bound before allocating: see read() above and MAX_RECORD_BYTES.
                 if (length > CsLodProtocol.MAX_RECORD_BYTES) {
                     throw new IOException("CSLOD region " + region.getFileName() + " slot " + slot
                             + ": record length " + length + " exceeds " + CsLodProtocol.MAX_RECORD_BYTES);

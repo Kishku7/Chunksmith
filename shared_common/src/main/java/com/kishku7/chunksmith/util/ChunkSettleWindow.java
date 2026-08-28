@@ -151,7 +151,7 @@ public final class ChunkSettleWindow {
      * <p>For when a throttle gate has held generation. A neighbourhood closes only when new chunks
      * arrive, so with dispatch stopped the frontier sits at its cap holding the very tickets that stop
      * the unloading the gate is waiting for -- the alternative is a run that cannot restart. Unlike
-     * {@link #drain} this does NOT retire the window.
+     * {@link #drain} this does not retire the window.
      */
     public void releaseAllHeld() {
         final List<Long> keys = new ArrayList<>(this.held.keySet());

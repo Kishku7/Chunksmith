@@ -238,7 +238,7 @@ public final class CsLodCommand {
     }
 
     /**
-     * Forward a client-settings request to the player's own client. Deliberately SILENT on success: the
+     * Forward a client-settings request to the player's own client. Deliberately silent on success: the
      * client prints the answer, because it is the side that reads and writes the file.
      *
      * <p>{@link CsLodServerNet#hasLodClient} exists for the refusal path. An unknown message id is dropped

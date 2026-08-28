@@ -111,7 +111,7 @@ public final class VoxyConfigReader {
     /**
      * Read a boolean field by name.
      *
-     * @param fallback what to answer when the field is absent or is not a boolean -- absence is NOT a
+     * @param fallback what to answer when the field is absent or is not a boolean -- absence is not a
      *     "false": a fork that removed a toggle has not turned the feature off
      */
     public static boolean flag(final Object instance, final String name, final boolean fallback) {

@@ -17,12 +17,12 @@ import java.util.stream.Stream;
  * Tests for the CSLOD presence bitmap -- the thing that decides, per chunk, whether a pregen re-run
  * has anything left to do.
  *
- * <p>This is worth pinning down precisely because getting it wrong is SILENT in both directions. A
+ * <p>This is worth pinning down precisely because getting it wrong is silent in both directions. A
  * false "present" makes the pregen skip a chunk that has no LOD, and the hole never gets filled (the
  * exact bug this feature exists to kill). A false "absent" makes it reload and rewrite chunks that
  * were already done, which is the wasteful behaviour we are replacing. Neither shows up as an error.
  *
- * <p>The bitmap is read out of the region file HEADER, so these tests write through the real
+ * <p>The bitmap is read out of the region file header, so these tests write through the real
  * {@link CsLodRegionStore} and then read back through {@link CsLodPresenceIndex} -- if the two ever
  * disagree about what a slot means, that is what fails here.
  */
@@ -115,7 +115,7 @@ public class CsLodPresenceIndexTest {
 
     @Test
     public void readsOneHeaderPerRegionRegardlessOfChunkCount() throws Exception {
-        // The cost claim: presence for a whole region costs ONE 8 KB header read, not one read per
+        // The cost claim: presence for a whole region costs one 8 KB header read, not one read per
         // chunk. If this ever regresses to a per-chunk open, the check stops being free and the whole
         // design argument collapses -- so it is asserted, not assumed.
         final Path root = Files.createTempDirectory("cslod-presence");

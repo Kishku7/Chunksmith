@@ -20,12 +20,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The client's record of what the SERVER said about each region it holds -- and the compare that the
+ * The client's record of what the server said about each region it holds -- and the compare that the
  * periodic sync is built on.
  *
  * <p>Since 3.1.0-beta-4 the freshness token is derived from the server's (mtime, size), which the client
- * cannot reproduce: the mtime of the client's copy is when the CLIENT wrote it. So the token is opaque, and
- * the client's job is to REMEMBER it rather than recompute it. That is this class, and this is its contract.
+ * cannot reproduce: the mtime of the client's copy is when the client wrote it. So the token is opaque, and
+ * the client's job is to remember it rather than recompute it. That is this class, and this is its contract.
  */
 public class CsLodManifestTest {
 

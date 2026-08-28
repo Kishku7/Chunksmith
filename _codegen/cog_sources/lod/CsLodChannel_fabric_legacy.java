@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
  * The in-band channel seam -- FABRIC, legacy raw-channel era (MC &lt; 1.20.2).
  *
  * <p>{@code CustomPacketPayload} does not exist before 1.20.2, so there is no payload object and no
- * StreamCodec: the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair. The WIRE is
+ * StreamCodec: the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair. The wire is
  * nevertheless byte-identical to the modern cells -- a length-prefixed byte array on channel
  * {@code chunksmith:lod} -- because {@code writeByteArray} is the same varint+bytes encoding the modern
  * StreamCodec emits.

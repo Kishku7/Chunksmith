@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * The type-tolerant read of voxy's render-distance setting.
  *
- * <p>These fakes ARE the fork matrix: upstream voxy declares {@code float sectionRenderDistance}, the
+ * <p>These fakes are the fork matrix: upstream voxy declares {@code float sectionRenderDistance}, the
  * srjefers fork (rebased from 0.2.8-alpha) declares {@code int}, and a hypothetical future fork could
  * declare {@code double}, {@code long}, or drop the field altogether. Every one of those must produce the
  * right radius -- or, when it truly cannot be read, a 0 AND a warning, never a silent 0.
@@ -32,7 +32,7 @@ public class VoxyConfigReaderTest {
         public float sectionRenderDistance = 16.0f;
     }
 
-    /** srjefers-style fork: the SAME field, the SAME units, declared int. */
+    /** srjefers-style fork: the same field, the same units, declared int. */
     public static final class IntConfig {
         public boolean enabled = true;
         public boolean enableRendering = true;
@@ -66,7 +66,7 @@ public class VoxyConfigReaderTest {
         public String sectionRenderDistance = "far";
     }
 
-    /** A fork that dropped the on/off toggles. Absent must NOT read as "switched off". */
+    /** A fork that dropped the on/off toggles. Absent must not read as "switched off". */
     public static final class NoFlagsConfig {
         public float sectionRenderDistance = 16.0f;
     }
@@ -100,7 +100,7 @@ public class VoxyConfigReaderTest {
 
     @Test
     public void intFieldReadsTheSameRadiusAsFloat() {
-        // THE REGRESSION: this used to throw NoSuchFieldError, get swallowed, and collapse to 256.
+        // The regression: this used to throw NoSuchFieldError, get swallowed, and collapse to 256.
         assertEquals(8192, VoxyConfigReader.radiusBlocks(new IntConfig()));
         assertEquals(VoxyConfigReader.radiusBlocks(new UpstreamConfig()),
                 VoxyConfigReader.radiusBlocks(new IntConfig()));
@@ -122,7 +122,7 @@ public class VoxyConfigReaderTest {
     }
 
     @Test
-    public void absentFieldIsZeroAND_WARNS() {
+    public void absentFieldIsZeroAndWarns() {
         assertEquals(0, VoxyConfigReader.radiusBlocks(new NoFieldConfig()));
         assertTrue("a 32x radius collapse must never be silent",
                 LodWarnings.saidAlready("voxy-render-distance-field"));

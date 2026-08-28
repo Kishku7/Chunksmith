@@ -24,11 +24,11 @@ import static org.junit.Assert.assertTrue;
  * <p>The two rules that matter most, and are the easiest to break by accident:
  *
  * <ul>
- *   <li><b>Range is measured to the region's BOX, not its corner.</b> A region is 512 blocks square,
+ *   <li><b>Range is measured to the region's box, not its corner.</b> A region is 512 blocks square,
  *       so one whose near edge is inside the radius holds terrain the player can see even though its
  *       origin is far outside it. Testing the corner leaves visible holes at the edge of the draw
  *       distance.</li>
- *   <li><b>The index and the sync summary must be computed over the SAME set.</b> If they are not, an
+ *   <li><b>The index and the sync summary must be computed over the same set.</b> If they are not, an
  *       idle poll finds a difference, pulls a full index, discovers nothing to fetch, and does it
  *       again on the next interval -- forever, on every client.</li>
  * </ul>
@@ -186,7 +186,7 @@ public class CsLodIndexScanTest {
 
     @Test
     public void theRegionCountCapTruncatesAndSaysSo() throws IOException {
-        // Zero-byte regions, so only the COUNT cap can bind. One more than the ceiling.
+        // Zero-byte regions, so only the count cap can bind. One more than the ceiling.
         for (int x = 0; x <= CsLodIndexScan.MAX_REGIONS; x++) {
             region(x, 0, 0);
         }
@@ -195,7 +195,7 @@ public class CsLodIndexScanTest {
         assertEquals(CsLodIndexScan.MAX_REGIONS, result.regions().size());
         assertEquals(CsLodIndexScan.MAX_REGIONS + 1, result.found());
         assertTrue(result.capped());
-        // The one it dropped is the FURTHEST, which is the one the player can least see.
+        // The one it dropped is the furthest, which is the one the player can least see.
         assertEquals(CsLodIndexScan.MAX_REGIONS - 1,
                 result.regions().get(result.regions().size() - 1).regionX());
     }

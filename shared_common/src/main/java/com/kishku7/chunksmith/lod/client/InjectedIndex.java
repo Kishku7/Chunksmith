@@ -11,30 +11,30 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Which regions we have already handed to a renderer, REMEMBERED ACROSS SESSIONS.
+ * Which regions we have already handed to a renderer, remembered across sessions.
  *
  * <p>{@link InjectedRegions} answers "have I drawn this version of this region?" for one session and is
- * thrown away on disconnect, so a JOIN starts from nothing: every region in range is claimed, decoded
+ * thrown away on disconnect, so a join starts from nothing: every region in range is claimed, decoded
  * and pushed again into a renderer that already persisted it -- voxy keeps its own database, Distant
  * Horizons its own sqlite. That was minutes of CPU on every world join, on a large pregenerated world on
  * a two-core machine (mod_support #15). This is the on-disk half: a sidecar per dimension recording the
  * token of the version of each region we last injected, which a join seeds {@link InjectedRegions} from.
  *
- * <p>It records the token, not the coordinates alone, because a pregen does not only create NEW regions,
- * it keeps GROWING the ones the player is standing on. A region whose token has moved must be
+ * <p>It records the token, not the coordinates alone, because a pregen does not only create new regions,
+ * it keeps growing the ones the player is standing on. A region whose token has moved must be
  * re-injected or the terrain under the player's feet freezes at whatever it was the first time they
  * joined.
  *
  * <p>The first line is {@code #epoch=<renderers>|<store version>}; a mismatch discards the whole file
  * and everything is injected again. That covers the otherwise silent and permanent case of a player who
- * had voxy, injected everything, then installed Distant Horizons. What it CANNOT see is the player
+ * had voxy, injected everything, then installed Distant Horizons. What it cannot see is the player
  * emptying the renderer's own database -- nothing we can read says voxy's storage was reset -- so there
  * is {@code reinject-on-join} in {@code config/chunksmith-lod.properties}, and deleting these files by
  * hand does the same.
  *
  * <p>Format: one line per region, {@code x,z=token}, plain ASCII, written atomically via a {@code .part}
- * file and a move. Malformed lines are SKIPPED. Every failure mode here ends at "inject it again":
- * re-injecting costs CPU, but SKIPPING costs the player terrain.
+ * file and a move. Malformed lines are skipped. Every failure mode here ends at "inject it again":
+ * re-injecting costs CPU, but skipping costs the player terrain.
  *
  * <p>Thread-safe. The injector writes it off the game thread while the network handler may be reading.
  */
@@ -84,7 +84,7 @@ public final class InjectedIndex {
         return (voxy ? "voxy" : "-") + "+" + (dh ? "dh" : "-") + "|v" + storeVersion;
     }
 
-    /** Record that this version of this region has been injected. Call AFTER the region is really in. */
+    /** Record that this version of this region has been injected. Call after the region is really in. */
     public void put(final int regionX, final int regionZ, final long token) {
         this.entries.put(key(regionX, regionZ), token);
     }
@@ -128,7 +128,7 @@ public final class InjectedIndex {
 
     /**
      * Read whatever is there. A missing file means only that we cannot vouch for anything and will
-     * inject it all once. A file whose epoch does not match ours is discarded WHOLE -- keeping the half
+     * inject it all once. A file whose epoch does not match ours is discarded whole -- keeping the half
      * that might still apply would mean deciding which renderer each line was for, and the file does not
      * record that.
      */

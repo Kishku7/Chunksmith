@@ -74,7 +74,7 @@ public final class ChunkSettleSupport {
     }
 
     // flushAll() REMOVED (2026-08-20). It handed back every held ticket at once, and its only caller
-    // was the dispatch loop -- which runs on the Chunksmith WORKER thread. Releasing a ticket calls
+    // was the dispatch loop -- which runs on the Chunksmith worker thread. Releasing a ticket calls
     // removeTicketWithRadius, and the server thread is the only thread allowed to touch a chunk ticket
     // (mod_support #16). It corrupted the fastutil ticket graph on a live server and killed it via
     // ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap.rehash plus a 60-second tick. Nothing

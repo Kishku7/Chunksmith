@@ -21,19 +21,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Ticket-level diagnostics -- PRESENCE-GATED to versions that actually have a TicketStorage.
+ * Ticket-level diagnostics -- presence-gated to versions that actually have a TicketStorage.
  *
  * <p>Split out of {@code MinecraftServerMixin} on 2026-08-20. It was written straight against the
  * live server that had the residency bug, against {@code net.minecraft.world.level.TicketStorage}
  * and {@code net.minecraft.world.level.chunk.status.ChunkStatus} -- both of which are 1.21.11-and-newer
- * shapes. Sitting in the shared mixin it broke the build of EVERY older cell, which is how the whole
- * 3.5-3.13 line ended up with no jars outside 1.21.11 and therefore no CRITICAL smoketest coverage.
+ * shapes. Sitting in the shared mixin it broke the build of every older cell, which is how the whole
+ * 3.5-3.13 line ended up with no jars outside 1.21.11 and therefore no critical smoketest coverage.
  *
  * <p>{@code compat.has_ticket_storage()} decides whether this file is generated at all, so on older
  * versions the class does not exist rather than existing as a stub -- the same compile-time-absent
  * seam {@code ChunkStorageAccessor} uses.
  *
- * <p>Diagnostics only: it reads and reports, it never mutates a ticket. The one thing here that DID
+ * <p>Diagnostics only: it reads and reports, it never mutates a ticket. The one thing here that did
  * mutate -- the stale-ticket purge -- was deleted the same day, because a controlled A/B showed it
  * changed residency by 0.1 percent while evicting over ten thousand tickets.
  */
@@ -51,10 +51,10 @@ public abstract class MinecraftServerTicketsMixin {
     @Unique
     private static final long CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS = 10_000L;
 
-    // No Cog here on purpose: this file lives in cog_sources/shared/ and is copied VERBATIM, so
+    // No Cog here on purpose: this file lives in cog_sources/shared/ and is copied verbatim, so
     // it must not carry generator directives. It is gated to modern_11plus, and
     // compat.housekeeping_inject_at() returns TAIL for every version in that era, so the
-    // injection point is not a drift point WITHIN this file's supported range.
+    // injection point is not a drift point within this file's supported range.
     @Inject(method = "tickServer", at = @At("TAIL"))
     private void chunksmith$onTicketDiagnosticsHook(BooleanSupplier booleanSupplier, CallbackInfo ci) {
         this.chunksmith$sampleChunkLevels();
@@ -84,7 +84,7 @@ public abstract class MinecraftServerTicketsMixin {
         long droppable = 0L;
         final StringBuilder sample = new StringBuilder();
         int sampled = 0;
-        // Tally every ticket on every resident chunk BY TYPE. Six sampled strings named the suspect;
+        // Tally every ticket on every resident chunk by type. Six sampled strings named the suspect;
         // this counts it. "How many" is the difference between a clue and a cause.
         final Map<String, Integer> byType = new HashMap<>();
         for (ServerLevel level : this.getAllLevels()) {
@@ -96,7 +96,7 @@ public abstract class MinecraftServerTicketsMixin {
                 for (final Ticket ticket : store.getTickets(pos)) {
                     byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
                 }
-                // Buckets taken from ChunkLevel itself, NOT from hand-written numbers. The first
+                // Buckets taken from ChunkLevel itself, not from hand-written numbers. The first
                 // version of this used 33 and 44 from memory; MAX_LEVEL is actually
                 // 33 + RADIUS_AROUND_FULL_CHUNK, so "44" was wrong and two whole levels of droppable
                 // chunks were being counted as loaded. Reading the constant also makes the buckets
@@ -111,7 +111,7 @@ public abstract class MinecraftServerTicketsMixin {
                         if (sample.length() > 0) {
                             sample.append(" | ");
                         }
-                        // NOT new ChunkPos(long): on the 26 line ChunkPos became a RECORD and lost
+                        // Not new ChunkPos(long): on the 26 line ChunkPos became a RECORD and lost
                         // that constructor, which broke the whole 26 cell. The packed layout is
                         // stable everywhere we support (x in the low int, z in the high int -- see
                         // ChunkPos.asLong), and this is a DEBUG STRING, so decoding it here is both
@@ -123,7 +123,7 @@ public abstract class MinecraftServerTicketsMixin {
                                 .append(" sim=").append(store.getTicketDebugString(pos, true));
                     }
                 } else if (ChunkLevel.isLoaded(chunkLevel)) {
-                    // 34..MAX_LEVEL: not accessible, but still held as worldgen CONTEXT for a FULL
+                    // 34..MAX_LEVEL: not accessible, but still held as worldgen context for a FULL
                     // chunk nearby. A pre-gen inherently keeps this ring around its whole frontier.
                     loadedLevel++;
                 } else {

@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
  * drifts into the general entrypoint, and a cell without LOD simply does not list this entrypoint in its
  * {@code fabric.mod.json}.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class LodInit implements ModInitializer {

@@ -13,10 +13,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashSet;
 
 /**
- * Where the settle sweep is allowed to stop -- and, more importantly, where it is NOT.
+ * Where the settle sweep is allowed to stop -- and, more importantly, where it is not.
  *
  * <p>The dangerous mistake here is not stopping too rarely, it is stopping too early: loading a window
- * that overlaps ungenerated ground does not re-read that ground, it GENERATES it, off-pattern and outside
+ * that overlaps ungenerated ground does not re-read that ground, it generates it, off-pattern and outside
  * the task's own accounting. Every eligibility test below exists to pin that shut.
  */
 public class SettleSweepTest {
@@ -39,7 +39,7 @@ public class SettleSweepTest {
         return stops;
     }
 
-    /** THE RULE. Nothing is eligible while any chunk of its window is still missing. */
+    /** The rule. Nothing is eligible while any chunk of its window is still missing. */
     @Test
     public void aWindowWithUngeneratedGroundIsNeverIssued() {
         final SettleSweep sweep = new SettleSweep(0, 0, 30, 30, 3);

@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 /**
  * Exposes IOWorker internals used by the worldgen entity-unload fix.
  *
- * <p>COG DRIFT (AXIS A, drift matrix 2b): the single-thread executor owning ALL of the worker's
+ * <p>COG DRIFT (AXIS A, drift matrix 2b): the single-thread executor owning all of the worker's
  * mutable state (pendingWrites + the RegionFileStorage region cache) changed at MC 1.21.4 --
  * {@code mailbox}/{@code ProcessorMailbox<StrictQueue.IntRunnable>}/{@code Map} on 1.20.1 ..
  * 1.21.3, {@code consecutiveExecutor}/{@code PriorityConsecutiveExecutor}/{@code SequencedMap} on

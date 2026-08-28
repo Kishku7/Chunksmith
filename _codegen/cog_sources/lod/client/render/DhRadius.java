@@ -7,7 +7,7 @@ public final class DhRadius {
     private DhRadius() {
     }
 
-    /** DH's render distance in BLOCKS, or 0 if unreadable. {@code chunkRenderDistance()} is CHUNKS x 16. */
+    /** DH's render distance in blocks, or 0 if unreadable. {@code chunkRenderDistance()} is chunks x 16. */
     public static int blocks() {
         try {
             final Integer chunks = DhApi.Delayed.configs.graphics().chunkRenderDistance().getValue();

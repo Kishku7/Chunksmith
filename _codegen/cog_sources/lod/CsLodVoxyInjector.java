@@ -15,18 +15,18 @@ import java.util.function.Consumer;
 /**
  * Replays a CSLOD store into voxy. Drives {@code /cslod inject}.
  *
- * <p>Injection goes through {@link VoxelIngestService#rawIngest}, NOT {@code tryAutoIngestChunk}:
- * rawIngest takes the section and its light directly, so we hand voxy the REAL light captured at
+ * <p>Injection goes through {@link VoxelIngestService#rawIngest}, not {@code tryAutoIngestChunk}:
+ * rawIngest takes the section and its light directly, so we hand voxy the real light captured at
  * generation time. rawIngest has no light gate at all, which is precisely why the light we stored has to
  * be right -- a mistake here yields silently black LODs rather than an error.
  *
- * <p>Throttled on voxy's own queue: its ingest deque is UNBOUNDED and never reports saturation, so a
+ * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never reports saturation, so a
  * backfill that just hammered it would OOM. We watch {@code getTaskCount()} and wait.
  *
- * <p>Generated ONLY where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x. See
+ * <p>Generated only where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x. See
  * {@link VoxyLodSink}.
  *
- * <p>SHARED SOURCE -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodVoxyInjector {
 
@@ -39,7 +39,7 @@ public final class CsLodVoxyInjector {
 
     /** True when there is a voxy engine to inject into (i.e. singleplayer / a client instance). */
     public static boolean voxyAvailable() {
-        // Ask the LOADER first. voxy is a client-side mod, so the overwhelmingly common case -- every
+        // Ask the loader first. voxy is a client-side mod, so the overwhelmingly common case -- every
         // dedicated server there is -- is that it is simply not installed, and then the VoxyCommon
         // reference below is an unresolvable class: a NoClassDefFoundError, a LinkageError, which the catch
         // beneath would dutifully report as "voxy is installed, but this build of it does not match ...
@@ -51,7 +51,7 @@ public final class CsLodVoxyInjector {
         try {
             return VoxyCommon.getInstance() != null;
         } catch (final LinkageError error) {
-            // voxy is INSTALLED but we cannot reach its engine. A bare false here used to make
+            // voxy is installed but we cannot reach its engine. A bare false here used to make
             // `/cslod inject` say "voxy is not running" -- a lie that sends the player at the wrong problem.
             warnIncompatible(error);
             return false;
@@ -72,7 +72,7 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Replay the whole store for one dimension into voxy. Runs on the CALLING thread -- callers must hand
+     * Replay the whole store for one dimension into voxy. Runs on the calling thread -- callers must hand
      * it a background thread, not the server thread.
      */
     public static int inject(final ServerLevel level, final Path storeRoot, final Consumer<String> progress)
@@ -94,7 +94,7 @@ public final class CsLodVoxyInjector {
             });
         } catch (final LinkageError error) {
             // rawIngest is our first and only call into voxy's ingest path, so a fork with a different
-            // signature surfaces HERE, as an Error -- past the command's catch(Exception), in total silence.
+            // signature surfaces here, as an Error -- past the command's catch(Exception), in total silence.
             warnIncompatible(error);
             progress.accept("ABORTED after " + chunks[0] + " chunks: this voxy will not accept our data ("
                     + error + ")");
@@ -113,7 +113,7 @@ public final class CsLodVoxyInjector {
         final List<CsLodChunk.Section> sections = record.getSections();
         for (int i = 0; i < sections.size(); i++) {
             final CsLodChunk.Section section = sections.get(i);
-            // The reconstruction (and every MC-version drift in it) lives in ONE place.
+            // The reconstruction (and every MC-version drift in it) lives in one place.
             final LevelChunkSection rebuilt = CsLodSectionBuilder.rebuild(level, record, section);
             final DataLayer sky = light(section.getSkyLight(), section.getUniformSky());
             final DataLayer block = light(section.getBlockLight(), section.getUniformBlockLight());

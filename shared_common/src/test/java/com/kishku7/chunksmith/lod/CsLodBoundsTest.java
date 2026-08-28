@@ -24,9 +24,9 @@ import static org.junit.Assert.fail;
 /**
  * DoS bounds tests (doctrine class D19): every count/length a decoder reads off the wire (or off a
  * region-file header whose bytes may have arrived over the wire) is validated against the ceilings in
- * {@link CsLodProtocol} BEFORE anything is allocated.
+ * {@link CsLodProtocol} before anything is allocated.
  *
- * <p>Each "hostile" case crafts a tiny packet that CLAIMS a huge count. The proof that the guard fires
+ * <p>Each "hostile" case crafts a tiny packet that claims a huge count. The proof that the guard fires
  * before allocation is that the decoder throws a checked {@link IOException} -- NOT an
  * {@link OutOfMemoryError} or {@link NegativeArraySizeException} -- and returns immediately. If the old
  * {@code new ArrayList<>(count)} / {@code new byte[len]} still ran first, a claimed

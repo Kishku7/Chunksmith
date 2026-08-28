@@ -36,19 +36,19 @@ import java.util.Map;
  * <ul>
  *   <li>the paletted containers. Below 1.21.11 you build them by hand
  *       ({@code new PalettedContainer<>(IdMap, default, Strategy.SECTION_STATES)}); from 1.21.11 the
- *       {@code Strategy} constants are GONE and {@code PalettedContainerFactory} makes them for you. The
+ *       {@code Strategy} constants are gone and {@code PalettedContainerFactory} makes them for you. The
  *       two-arg {@code LevelChunkSection(states, biomes)} constructor is the one thing stable across the
  *       whole range, so that is what everything funnels into;</li>
  *   <li>{@code RegistryAccess.registryOrThrow} -&gt; {@code lookupOrThrow} (1.21.11);</li>
  *   <li>{@code Registry.getHolder}/{@code getHolderOrThrow} -&gt; {@code get}/{@code getOrThrow} (1.21.11);</li>
  *   <li>{@code ResourceLocation} -&gt; {@code Identifier} (1.21.11), and the fact that the
- *       {@code (String,String)} constructor is public ONLY on 1.20.1.</li>
+ *       {@code (String,String)} constructor is public only on 1.20.1.</li>
  * </ul>
  * A {@code Registry} is only itself a {@code HolderLookup} from 1.21.11; before that
  * {@code BlockStateParser.parseForBlock} needs {@code .asLookup()} -- which is why the block lookup is
  * emitted too rather than shared.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources. Edit ONLY there; the per-cell copy under
+ * <p>Shared source -- canonical location: _codegen/cog_sources. Edit only there; the per-cell copy under
  * gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodSectionBuilder {

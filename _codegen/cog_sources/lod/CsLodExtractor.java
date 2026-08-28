@@ -20,12 +20,12 @@ import java.util.Map;
 /**
  * Turns a live {@link LevelChunk} into a neutral {@link CsLodChunk}.
  *
- * <p>Runs on the SERVER MAIN THREAD, inside the generation hook, while the chunk is still
+ * <p>Runs on the server main thread, inside the generation hook, while the chunk is still
  * ticket-pinned -- it is the only moment the data exists. Everything it produces is plain arrays and
  * strings, so the rest of the pipeline (codec, store, wire) never touches a Minecraft type.
  *
- * <p>Sky and block light are kept SEPARATE (voxy blends them; Distant Horizons will not), and light is
- * captured for AIR voxels all the way to the build ceiling, because DH renders unlit LODs black
+ * <p>Sky and block light are kept separate (voxy blends them; Distant Horizons will not), and light is
+ * captured for air voxels all the way to the build ceiling, because DH renders unlit LODs black
  * otherwise. Where the light engine has no {@link DataLayer} for a section, the section's light is
  * uniform by construction (nothing has been lit there), so we sample one position through the layer
  * listener and store a single uniform nibble -- which is also what makes carrying sky light to the
@@ -36,7 +36,7 @@ import java.util.Map;
  * {@link BlockStateParser#serialize(BlockState)}, which is exactly the string form DH's wrapper factory
  * consumes.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodExtractor {
@@ -142,7 +142,7 @@ public final class CsLodExtractor {
             biomeIndices = null;
         }
 
-        // ---- light: sky and block, SEPARATE, present even for pure-air sections ----
+        // ---- light: sky and block, separate, present even for pure-air sections ----
         final Light sky = extractLight(light, LightLayer.SKY, pos);
         final Light block = extractLight(light, LightLayer.BLOCK, pos);
 

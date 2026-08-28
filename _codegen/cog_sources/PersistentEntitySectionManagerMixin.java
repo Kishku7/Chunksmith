@@ -62,7 +62,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>Root cause, in vanilla {@code PersistentEntitySectionManager}: worldgen entities enter via
  * {@code addWorldGenChunkEntities}, leaving the chunk's entity load-status {@code FRESH}.
- * {@code storeChunkSections} refuses to free a FRESH chunk's entities until an async disk-read
+ * {@code storeChunkSections} refuses to free a fresh chunk's entities until an async disk-read
  * round-trip completes ({@code requestChunkLoad(); return false;}). That read exists only to merge any
  * already-persisted entities before the store overwrites the region entry. During heavy pre-gen the
  * world disk is saturated by chunk writes, so the unload reads stall and entities pile up.

@@ -75,7 +75,7 @@ public class ChunksmithNeoForge {
     // the fully-constructed handler and does not call back during construction, so the this-escape
     // is benign here. (26/JDK25 does not flag it; pre-26/JDK21 does.)
     //
-    // The MOD bus is injected here because it is the ONLY place NeoForge hands it out, and
+    // The MOD bus is injected here because it is the only place NeoForge hands it out, and
     // @EventBusSubscriber(bus = MOD) is deprecated-for-removal from NeoForge 21.1. Chunksmith itself
     // registers nothing on the mod bus (no registries, no DeferredRegisters) -- but the LOD feature's
     // payload registration is a mod-bus event, so LOD cells forward the bus to CsLodChannel.
@@ -98,7 +98,7 @@ public class ChunksmithNeoForge {
     @SubscribeEvent
     public void onServerStarting(final ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
-        // An LOD renderer on a DEDICATED server is duplicated work Chunksmith does not need -- it
+        // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need -- it
         // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
         // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
         ServerSideRendererAdvisory.message(server.isDedicatedServer(), id -> ModList.get().isLoaded(id))

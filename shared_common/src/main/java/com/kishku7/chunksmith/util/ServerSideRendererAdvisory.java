@@ -9,7 +9,7 @@ import java.util.function.Predicate;
  * Says so when a dedicated server is carrying an LOD renderer it does not need.
  *
  * <p>Chunksmith builds its own LOD data as it pregenerates and serves it to the player's client, which
- * injects it into whichever renderer the PLAYER has. An LOD renderer is a CLIENT-side mod, and a
+ * injects it into whichever renderer the player has. An LOD renderer is a client-side mod, and a
  * dedicated server does not render anything.
  *
  * <p>Installing Distant Horizons server-side is a reasonable-looking mistake -- it is the mod the
@@ -18,7 +18,7 @@ import java.util.function.Predicate;
  * update propagator alongside a Chunksmith pregen already generating the same terrain, and with
  * {@code synchronizeOnLoad} on it re-sent LODs the client already had.
  *
- * <p>Still not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we FEED,
+ * <p>Still not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we feed,
  * and an operator serving vanilla DH clients is entitled to run it. One line, once, at startup.
  *
  * <p>MC-free and loader-free -- a predicate in, a string out -- so the rule is unit-testable.

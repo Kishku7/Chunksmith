@@ -34,7 +34,7 @@ public final class CsLodStoreSink implements LodSink {
             return true;
         }
         if (!queue.offer(record)) {
-            // Writer is behind. Do NOT drop: write it here and now, on the caller, and let the
+            // Writer is behind. Do not drop: write it here and now, on the caller, and let the
             // resulting slowdown be the backpressure.
             synchronousWrites.incrementAndGet();
             persist(record);

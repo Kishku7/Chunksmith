@@ -12,15 +12,15 @@ import java.util.stream.Stream;
 
 /**
  * "Does this chunk already have a CSLOD record?" -- answered without decoding anything, so a pregen re-run
- * FILLS LOD HOLES instead of skipping already-generated chunks forever (they are never loaded, so the LOD
+ * fills LOD holes instead of skipping already-generated chunks forever (they are never loaded, so the LOD
  * hook never sees them) or rewriting the whole selection ({@code forceLoadExistingChunks: true}).
  *
  * <p><b>Why it is cheap.</b> {@link CsLodRegionStore} is Anvil-shaped: every region file opens with a fixed
  * 8192-byte header of 1024 slots x (i32 offset, i32 length), and a record exists iff its slot has
- * {@code offset > 0 && length > 0}. One 8 KB sequential read per REGION FILE gives presence for all 1024 of
+ * {@code offset > 0 && length > 0}. One 8 KB sequential read per region file gives presence for all 1024 of
  * its chunks -- no per-chunk seek, no record bodies, no second open.
  *
- * <p><b>Why it stays correct DURING a run.</b> The store's writer thread is asynchronous, so the on-disk
+ * <p><b>Why it stays correct during a run.</b> The store's writer thread is asynchronous, so the on-disk
  * header lags dispatch by the queue depth. The bitmap, not the disk, is this run's authority:
  * {@link #markLod(int, int)} sets the bit when the chunk is dispatched down the load path, which is exactly
  * the path that fires the LOD hook. Regions load from disk once, on first query; a re-read after eviction
@@ -102,7 +102,7 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * Record that this chunk is now (or is about to be) backed by a CSLOD record. Called at DISPATCH, not
+     * Record that this chunk is now (or is about to be) backed by a CSLOD record. Called at dispatch, not
      * at write-completion -- see the class doc.
      */
     public synchronized void markLod(final int chunkX, final int chunkZ) {
@@ -166,7 +166,7 @@ public final class CsLodPresenceIndex {
     }
 
     /**
-     * One line: the real, measured cost of the presence check SINCE {@code before} -- THIS run, not the
+     * One line: the real, measured cost of the presence check since {@code before} -- this run, not the
      * server's lifetime.
      */
     public String describeCostSince(final Cost before) {

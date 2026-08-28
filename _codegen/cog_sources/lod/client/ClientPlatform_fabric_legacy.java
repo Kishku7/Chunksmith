@@ -18,16 +18,16 @@ import java.util.function.Consumer;
  *
  * <p>{@code CustomPacketPayload} does not exist here, so there is no payload object and no type registry:
  * the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair, and registering a receiver on the
- * CLIENT side is entirely independent of the SERVER-side receiver {@link CsLodChannel#register()} installs.
- * There is therefore nothing that COULD be double-registered on this cell -- but the merged shape is the
+ * CLIENT side is entirely independent of the server-side receiver {@link CsLodChannel#register()} installs.
+ * There is therefore nothing that could be double-registered on this cell -- but the merged shape is the
  * same as every other cell's anyway: the channel id lives in exactly one place ({@link CsLodChannel#ID}) and
  * this class only ever attaches handlers to it.
  *
- * <p>The WIRE is byte-identical to the payload-era cells: a length-prefixed byte array on
+ * <p>The wire is byte-identical to the payload-era cells: a length-prefixed byte array on
  * {@code chunksmith:lod}. {@code writeByteArray} is the same varint+bytes encoding the modern StreamCodec
  * emits.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod/client. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod/client. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 @Environment(EnvType.CLIENT)

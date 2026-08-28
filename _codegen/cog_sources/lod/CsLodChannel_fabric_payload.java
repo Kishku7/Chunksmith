@@ -16,16 +16,16 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * The in-band channel seam -- FABRIC, modern payload era (MC 1.20.5+).
  *
- * <p>Deliberately dumb. ALL the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in
+ * <p>Deliberately dumb. all the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in
  * shared_common, which know nothing about Minecraft -- so the Chunksmith server and Chunksmith-Client
- * (a different mod, in a different repo, possibly on a different loader) share ONE implementation of the
+ * (a different mod, in a different repo, possibly on a different loader) share one implementation of the
  * wire format instead of maintaining two that drift. The same bytes also travel over the HTTP
  * backchannel and sit on disk in the store: one format, three uses.
  *
- * <p>The channel id ({@code chunksmith:lod}) and the payload shape (one raw byte block) are IDENTICAL on
+ * <p>The channel id ({@code chunksmith:lod}) and the payload shape (one raw byte block) are identical on
  * every loader and every MC version -- only the registration API differs, and that difference stops here.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell
  * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodChannel {

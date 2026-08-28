@@ -3,7 +3,7 @@ package com.kishku7.chunksmith.lod.net;
 /**
  * A backed-off retry clock. The client's answer to "the server had nothing when I asked".
  *
- * <p>The old client asked the server ONCE, at join, and if the store was empty it stood down for the whole
+ * <p>The old client asked the server once, at join, and if the store was empty it stood down for the whole
  * session -- no matter how long the player stayed or how far they travelled. That is exactly backwards for
  * how servers are actually run: an operator starts an hours-long pregen with players already on, the store
  * fills up behind them, and every one of them keeps staring at an empty horizon until they think to relog.
@@ -12,7 +12,7 @@ package com.kishku7.chunksmith.lod.net;
  * before the pregen sees their terrain almost at once, and doubles to a ceiling so that a player parked on a
  * server which will NEVER have LOD data costs one tiny packet every couple of minutes.
  *
- * <p>A safety net, not the mechanism: a Chunksmith server NOTIFIES its waiting players the moment the store
+ * <p>A safety net, not the mechanism: a Chunksmith server notifies its waiting players the moment the store
  * becomes servable. The clock covers an older server that cannot notify, and a store filled by something
  * other than a pregen. The caller passes the time in, so the whole policy is unit-testable.
  */

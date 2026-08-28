@@ -28,7 +28,7 @@ import me.cortex.voxy.client.config.VoxyConfig;
  * about. The field is now read by name as whatever numeric type it is, and a field we cannot read is
  * announced ({@link LodWarnings}).
  *
- * <p><b>NEVER call this during mod init.</b> Class-loading {@link VoxyConfig} from our client-init
+ * <p><b>Never call this during mod init.</b> Class-loading {@link VoxyConfig} from our client-init
  * entrypoint leaves voxy permanently inert -- it never logs "Initializing voxy instance", never creates
  * its render system, never ingests anything, and never says why. Proved by control run: same fixture, our
  * jar removed, voxy works. Call this only from the join handshake or later. Reflection does not change

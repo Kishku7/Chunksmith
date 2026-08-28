@@ -3,13 +3,13 @@ package com.kishku7.chunksmith.lod;
 import java.util.List;
 
 /**
- * <b>Why these fields and not others.</b> The format must satisfy the UNION of what voxy and Distant
+ * <b>Why these fields and not others.</b> The format must satisfy the union of what voxy and Distant
  * Horizons need, and DH is the demanding one:
  * <ul>
  *   <li><b>Full block STATE strings</b>, not block ids -- DH has no fluid channel, so water IS a state;
  *       waterlogged / snow layers / stair shapes all matter.</li>
- *   <li><b>Sky light and block light kept SEPARATE</b> (voxy blends them into one byte; DH will not).</li>
- *   <li><b>Light for AIR voxels, all the way to the build ceiling</b> -- DH renders black LODs otherwise,
+ *   <li><b>Sky light and block light kept separate</b> (voxy blends them into one byte; DH will not).</li>
+ *   <li><b>Light for air voxels, all the way to the build ceiling</b> -- DH renders black LODs otherwise,
  *       which is why empty sections are still carried (they collapse to a few bytes).</li>
  * </ul>
  * Voxy needs a strict subset, and mips levels 1-4 itself on insert, so we only ever persist LOD-0.

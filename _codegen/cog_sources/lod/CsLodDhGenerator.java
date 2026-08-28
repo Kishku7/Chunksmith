@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Serves Distant Horizons straight out of the CSLOD store.
  *
- * <p>DH does not accept pushed data -- it PULLS, through a world-generator override. So instead of
+ * <p>DH does not accept pushed data -- it pulls, through a world-generator override. So instead of
  * generating anything, we register as its generator and answer from what ChunkSmith already
  * pregenerated. For a pregenerated area DH's LODs therefore appear essentially instantly, with no
  * worldgen cost at all.
@@ -31,19 +31,19 @@ import org.slf4j.LoggerFactory;
  * <p>Nothing is translated on the way out. DH builds its ids from vanilla registry strings
  * ({@code wrapperFactory.getDefaultBlockStateWrapper("minecraft:oak_stairs[...]", level)}), and CSLOD
  * already stores full block STATE strings -- no re-mapping, no foreign id table. Sky and block light are
- * stored SEPARATELY for the same reason: DH will not take voxy's blended byte.
+ * stored separately for the same reason: DH will not take voxy's blended byte.
  *
- * <p>Light offset: DH samples a column's light from the block ABOVE the surface (y+1), so the data point
+ * <p>Light offset: DH samples a column's light from the block above the surface (y+1), so the data point
  * for a solid block carries the light of the air above it. We apply that offset here.
  *
- * <p><b>The trade-off.</b> Registering a world-generator override REPLACES DH's own distant generator for
- * this level, so chunks ChunkSmith has not pregenerated come back EMPTY -- DH gets no data for them rather
+ * <p><b>The trade-off.</b> Registering a world-generator override replaces DH's own distant generator for
+ * this level, so chunks ChunkSmith has not pregenerated come back empty -- DH gets no data for them rather
  * than generating them itself. Hence opt-in: {@code lodDhOverride}, default false.
  *
  * <p>Loader- and version-blind: every symbol here is {@code com.seibel.*} or ours, and it names no
  * Minecraft type at all, which is why one source compiles unchanged on all eight LOD cells.
  *
- * <p>SHARED SOURCE -- canonical location: _codegen/cog_sources/lod. Edit ONLY there; the per-cell copy
+ * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell copy
  * under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
@@ -57,7 +57,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
 
     /**
      * Wrapper caches: resolve each distinct palette string once, not once per data point. DH drives its
-     * world-generator override from its OWN thread pool, so {@code generateApiChunk} (and therefore
+     * world-generator override from its own thread pool, so {@code generateApiChunk} (and therefore
      * {@code computeIfAbsent} on these maps) can run on several threads at once -- ConcurrentHashMap, not
      * HashMap, or a concurrent resolve corrupts the map (a HashMap resize under two threads can spin
      * forever).
@@ -185,12 +185,12 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     /**
      * The "no data" answer for a chunk ChunkSmith never pregenerated: a chunk of empty columns.
      *
-     * <p>It must NOT be null. {@code AbstractDhApiChunkWorldGenerator.generateApiChunks} feeds our
+     * <p>It must not be null. {@code AbstractDhApiChunkWorldGenerator.generateApiChunks} feeds our
      * return value straight to DH's result consumer with no null check, and
      * {@code LodDataBuilder.createFromApiChunkData} dereferences it immediately -- a null throws an
      * NPE inside DH's {@code thenRun}, which never completes the task's future. The task then sits in
      * DH's in-progress map forever, {@code isGeneratorBusy()} latches true, and the level's whole
-     * world-gen queue dies SILENTLY (no log line at all). DH's own API says so explicitly:
+     * world-gen queue dies silently (no log line at all). DH's own API says so explicitly:
      * "If you want to remove all data from a column please clear the list or pass in an empty list."
      */
     private DhApiChunk emptyChunk(final int chunkX, final int chunkZ) {

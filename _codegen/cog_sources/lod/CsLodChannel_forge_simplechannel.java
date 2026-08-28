@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  * length-prefixed byte block ({@code writeByteArray} is the same varint+bytes encoding the modern
  * StreamCodec emits). Forge's handshake adds a harmless protocol-version check of its own on top.
  *
- * <p>A player who does NOT run Chunksmith must still be able to join a Chunksmith server, so the channel
+ * <p>A player who does not run Chunksmith must still be able to join a Chunksmith server, so the channel
  * is optional. Both accepted-version predicates go through
  * {@link NetworkRegistry#acceptMissingOr(String)}, which also accepts the {@code ABSENT}/
  * {@code ACCEPTVANILLA} sentinels the FML login handshake passes for a peer that lacks the channel. A

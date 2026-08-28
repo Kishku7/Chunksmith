@@ -24,8 +24,8 @@ import static org.junit.Assert.assertTrue;
  * in-range store into renderers that had persisted every bit of it since the last session. The reporter's
  * two-core machine made it obvious; on a fast machine it was merely invisible waste.
  *
- * <p>The tests below pin BOTH directions, because the dangerous failure is not the slow one. Skipping a
- * region the renderer does NOT have leaves a permanent hole in the horizon and reports success while it
+ * <p>The tests below pin both directions, because the dangerous failure is not the slow one. Skipping a
+ * region the renderer does not have leaves a permanent hole in the horizon and reports success while it
  * does it -- so every ambiguity here has to resolve towards injecting again.
  */
 public class InjectedIndexTest {
@@ -36,7 +36,7 @@ public class InjectedIndexTest {
     private static final String OVERWORLD = "minecraft_overworld";
     private static final String NETHER = "minecraft_the_nether";
 
-    /** Freshness tokens. Their VALUES are meaningless -- only sameness and difference matter. */
+    /** Freshness tokens. Their values are meaningless -- only sameness and difference matter. */
     private static final long V1 = 0x1111_2222_3333_4444L;
     private static final long V2 = 0x5555_6666_7777_8888L;
 
@@ -47,7 +47,7 @@ public class InjectedIndexTest {
         return temp.getRoot().toPath();
     }
 
-    /** THE BUG. What one session injected, the next session must already know about. */
+    /** The bug. What one session injected, the next session must already know about. */
     @Test
     public void whatWasInjectedLastSessionIsRememberedByTheNext() throws IOException {
         final InjectedIndex first = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -58,7 +58,7 @@ public class InjectedIndexTest {
         final InjectedIndex second = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         assertEquals(2, second.size());
 
-        // And seeding the session set from it means those regions are NOT claimed again -- which is the
+        // And seeding the session set from it means those regions are not claimed again -- which is the
         // entire point: no re-decode, no re-push, no CPU spent redrawing what is already on screen.
         final InjectedRegions session = new InjectedRegions();
         for (final long[] entry : second.entries()) {

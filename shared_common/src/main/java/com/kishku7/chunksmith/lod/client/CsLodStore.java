@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 /**
- * Turns a server-supplied dimension id into a store subdirectory -- SAFELY.
+ * Turns a server-supplied dimension id into a store subdirectory -- safely.
  *
  * <p>The dimension string arrives over the network from the Chunksmith server. A joined player is
  * authenticated with Mojang, but the SERVER they joined is not trusted to be honest or bug-free, and this
