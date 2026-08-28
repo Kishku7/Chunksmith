@@ -41,7 +41,7 @@ public class InjectedRegionsTest {
         assertFalse("...and is not claimed twice", injected.claim(OVERWORLD, 0, 0, V1));
 
         // Under the old x/z-only key this returned false and the Nether's terrain was never drawn.
-        assertTrue("the NETHER's region (0,0) is a different place and must still be injected",
+        assertTrue("the Nether's (0,0) is a different place",
                 injected.claim(NETHER, 0, 0, V1));
         assertTrue("...and so is the End's", injected.claim(END, 0, 0, V1));
 
@@ -58,26 +58,26 @@ public class InjectedRegionsTest {
         // The pregen grew it. The server advertises a new token; the client re-downloaded it. If this
         // returns false the freshly-downloaded terrain is silently discarded and the player's world stays
         // frozen at the version they joined with.
-        assertTrue("a region whose token moved MUST be injected again", injected.claim(OVERWORLD, 4, -2, V2));
+        assertTrue("a moved token", injected.claim(OVERWORLD, 4, -2, V2));
         assertFalse("...but only once, at the new version", injected.claim(OVERWORLD, 4, -2, V2));
 
         assertEquals("re-claiming replaces, it does not duplicate", 1, injected.size());
-        assertEquals("and we remember WHICH version we drew",
+        assertEquals("which version we drew",
                 Long.valueOf(V2), injected.injectedHash(OVERWORLD, 4, -2));
     }
 
     @Test
-    public void anyDifferentTokenCountsAsChanged() {
+    public void anyDifferentTokenCounts() {
         final InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, 0, 0, V1));
         assertTrue(injected.claim(OVERWORLD, 0, 0, V2));
-        assertTrue("a token we saw two versions ago is not the token we drew", injected.claim(OVERWORLD, 0, 0, V1));
+        assertTrue("an older token is still a change", injected.claim(OVERWORLD, 0, 0, V1));
         assertEquals(Long.valueOf(V1), injected.injectedHash(OVERWORLD, 0, 0));
     }
 
     @Test
-    public void aRegionIsClaimedExactlyOncePerDimension() {
+    public void claimedOncePerDimension() {
         final InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(NETHER, -3, 7, V1));
@@ -90,7 +90,7 @@ public class InjectedRegionsTest {
     }
 
     @Test
-    public void releasingLetsALaterRefreshRetryIt() {
+    public void releaseAllowsAReclaim() {
         final InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, 5, 5, V1));
@@ -106,7 +106,7 @@ public class InjectedRegionsTest {
     }
 
     @Test
-    public void releasingAnUpgradeForgetsTheRegionEntirely() {
+    public void releaseForgetsEveryVersion() {
         final InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, 2, 2, V1));
@@ -114,7 +114,7 @@ public class InjectedRegionsTest {
         injected.release(OVERWORLD, 2, 2);
 
         assertFalse(injected.contains(OVERWORLD, 2, 2));
-        assertTrue("even the version we HAD drawn must be re-claimable", injected.claim(OVERWORLD, 2, 2, V1));
+        assertTrue("the old version too", injected.claim(OVERWORLD, 2, 2, V1));
     }
 
     @Test
@@ -131,13 +131,13 @@ public class InjectedRegionsTest {
     }
 
     @Test
-    public void keysCannotCollideAcrossTheSeparator() {
+    public void keysCannotCollide() {
         assertNotEquals(InjectedRegions.key("a", 1, 2), InjectedRegions.key("a/1", 2, 2));
         assertEquals("minecraft_the_nether/-3,7", InjectedRegions.key(NETHER, -3, 7));
     }
 
     @Test
-    public void clearForgetsEverything() {
+    public void clearForgetsAll() {
         final InjectedRegions injected = new InjectedRegions();
         injected.claim(OVERWORLD, 0, 0, V1);
         injected.claim(NETHER, 0, 0, V1);

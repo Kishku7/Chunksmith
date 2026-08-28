@@ -28,7 +28,7 @@ import static org.junit.Assert.assertNull;
 public class CsLodCodecTest {
 
     @Test
-    public void codecRoundTripsDenseAndUniformSections() throws Exception {
+    public void codecRoundTrips() throws Exception {
         final CsLodChunk original = sample("minecraft:overworld", 4, -7);
 
         final CsLodChunk decoded = CsLodCodec.decode(CsLodCodec.encode(original));
@@ -57,7 +57,7 @@ public class CsLodCodecTest {
             try {
                 assertChunkEquals(first, reopened.read(0, 0));
                 assertChunkEquals(second, reopened.read(-1, 5));
-                assertNull("a chunk never written must read back as null", reopened.read(9, 9));
+                assertNull("unwritten chunk", reopened.read(9, 9));
             } finally {
                 reopened.close();
             }

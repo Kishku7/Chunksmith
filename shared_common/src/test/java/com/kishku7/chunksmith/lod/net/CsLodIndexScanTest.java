@@ -59,7 +59,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- nothing to serve
 
     @Test
-    public void aDirectoryThatDoesNotExistScansToNothing() throws IOException {
+    public void aMissingDirectoryScansToNothing() throws IOException {
         final CsLodIndexScan.Result result =
                 CsLodIndexScan.scan(temp.getRoot().toPath().resolve("nope"), at(0, 0, 4096), settled());
         assertTrue(result.regions().isEmpty());
@@ -73,7 +73,7 @@ public class CsLodIndexScanTest {
     }
 
     @Test
-    public void anEmptyStoreScansToNothing() throws IOException {
+    public void emptyStoreIsEmpty() throws IOException {
         assertTrue(CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 4096), settled())
                 .regions().isEmpty());
     }
@@ -81,7 +81,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- what counts as ours
 
     @Test
-    public void onlyRegionFilesAreListed() throws IOException {
+    public void onlyRegionFiles() throws IOException {
         region(0, 0, 16);
         Files.write(temp.getRoot().toPath().resolve("notes.txt"), new byte[16]);
         Files.write(temp.getRoot().toPath().resolve("r.0.0.mca"), new byte[16]);
@@ -108,7 +108,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- the settle rule
 
     @Test
-    public void aRegionTheWriterMayStillBeAppendingToIsNotServed() throws IOException {
+    public void anUnsettledRegionIsNotServed() throws IOException {
         region(0, 0, 16);
         // "now" -- the file was written this instant, so it is inside the settle window.
         assertTrue(CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 4096), System.currentTimeMillis())
@@ -116,7 +116,7 @@ public class CsLodIndexScanTest {
     }
 
     @Test
-    public void aSettledRegionIsServed() throws IOException {
+    public void settledIsServed() throws IOException {
         region(0, 0, 16);
         assertEquals(1, CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 4096), settled())
                 .regions().size());
@@ -125,7 +125,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- range is a box test
 
     @Test
-    public void theNearEdgeOfARegionIsWhatCounts() {
+    public void rangeIsMeasuredToTheNearEdge() {
         // Region 2 spans blocks 1024..1535. A player at the origin is 1024 blocks from its near edge,
         // not 1024+511 from its far one, and not 0 from its "position".
         assertEquals(1024L * 1024L, CsLodIndexScan.distanceSquared(at(0, 0, 1), 2, 0));
@@ -134,13 +134,13 @@ public class CsLodIndexScanTest {
     }
 
     @Test
-    public void aPlayerInsideARegionIsZeroBlocksFromIt() {
+    public void insideIsZeroBlocks() {
         assertEquals(0L, CsLodIndexScan.distanceSquared(at(300, 300, 1), 0, 0));
         assertTrue(CsLodIndexScan.inRange(at(300, 300, 0), 0, 0));
     }
 
     @Test
-    public void regionsBeyondTheRenderersRadiusAreNotSent() throws IOException {
+    public void regionsOutOfRangeAreNotSent() throws IOException {
         region(0, 0, 16);
         region(8, 8, 16);   // near edge at 4096,4096
 
@@ -153,7 +153,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- ordering
 
     @Test
-    public void nearestRegionsComeFirst() throws IOException {
+    public void nearestFirst() throws IOException {
         region(4, 0, 16);
         region(1, 0, 16);
         region(2, 0, 16);
@@ -185,7 +185,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- the caps
 
     @Test
-    public void theRegionCountCapTruncatesAndSaysSo() throws IOException {
+    public void theCountCapTruncatesAndSaysSo() throws IOException {
         // Zero-byte regions, so only the count cap can bind. One more than the ceiling.
         for (int x = 0; x <= CsLodIndexScan.MAX_REGIONS; x++) {
             region(x, 0, 0);
@@ -201,7 +201,7 @@ public class CsLodIndexScanTest {
     }
 
     @Test
-    public void anUncappedScanDoesNotClaimToBeCapped() throws IOException {
+    public void anUncappedScanIsNotCapped() throws IOException {
         region(0, 0, 16);
         final CsLodIndexScan.Result result =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 8192), settled());
@@ -213,7 +213,7 @@ public class CsLodIndexScanTest {
     // ---------------------------------------------------------------- index and summary agree
 
     @Test
-    public void theSummaryIsTheIndexFoldedAndNotASecondOpinion() throws IOException {
+    public void theSummaryIsTheIndexFolded() throws IOException {
         region(0, 0, 16);
         region(1, 0, 32);
         region(9, 9, 64);   // outside the radius below, so it must be in NEITHER answer

@@ -37,7 +37,7 @@ public class ChunkResidencyTest {
     // --- the reading itself ------------------------------------------------------------------
 
     @Test
-    public void unknownBeforeAnythingIsPublished() {
+    public void unknownAtFirst() {
         assertEquals(-1L, ChunkResidency.loadedChunks());
         assertFalse(ChunkResidency.isSupported());
     }
@@ -50,17 +50,17 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void zeroIsARealReadingAndNotAnAbsentOne() {
+    public void zeroIsARealReading() {
         ChunkResidency.report(0L);
         assertEquals(0L, ChunkResidency.loadedChunks());
-        assertTrue("a genuinely empty server is supported, not unknown", ChunkResidency.isSupported());
+        assertTrue("zero is supported", ChunkResidency.isSupported());
     }
 
     @Test
-    public void aPlatformThatCannotSayIsIgnoredRatherThanBelieved() {
+    public void negativeIsIgnored() {
         ChunkResidency.report(1_234L);
         ChunkResidency.report(-1L);
-        assertEquals("a negative report must not erase a good reading", 1_234L, ChunkResidency.loadedChunks());
+        assertEquals("a negative must not erase a reading", 1_234L, ChunkResidency.loadedChunks());
     }
 
     @Test
@@ -71,7 +71,7 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void clearingMeansNoReadingOutlivesItsServer() {
+    public void clearWipesIt() {
         ChunkResidency.report(1_234L);
         ChunkResidency.clear();
         assertEquals(-1L, ChunkResidency.loadedChunks());
@@ -82,7 +82,7 @@ public class ChunkResidencyTest {
     // --- the delta, which is what the gate actually reads --------------------------------------
 
     @Test
-    public void addedChunksIsMeasuredAgainstWhatTheServerAlreadyHad() {
+    public void addedChunksIsRelativeToTheBaseline() {
         ChunkResidency.report(18_000L);
         ChunkResidency.noteTaskStart();
         assertEquals(18_000L, ChunkResidency.baseline());
@@ -91,7 +91,7 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void addedChunksNeverGoesNegativeWhenTheServerShrinksBelowBaseline() {
+    public void addedChunksNeverGoesNegative() {
         ChunkResidency.report(18_000L);
         ChunkResidency.noteTaskStart();
         ChunkResidency.report(9_000L);
@@ -99,7 +99,7 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void addedChunksIsUnknownWithoutABaseline() {
+    public void addedChunksNeedsABaseline() {
         ChunkResidency.report(25_000L);
         assertEquals(-1L, ChunkResidency.addedChunks());
     }
@@ -107,23 +107,23 @@ public class ChunkResidencyTest {
     // --- the drain, whose whole job is to not be forgotten -------------------------------------
 
     @Test
-    public void aFinishedRunOwesADrainUntilTheChunksAreActuallyGone() {
+    public void aFinishedRunOwesADrain() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);
         ChunkResidency.noteTaskEnd(T0 + 2_000L);
-        assertTrue("the task ended; the work has not", ChunkResidency.isDraining());
+        assertTrue("still draining after task end", ChunkResidency.isDraining());
 
         ChunkResidency.report(30_000L, T0 + 3_000L);
         assertTrue(ChunkResidency.isDraining());
         ChunkResidency.report(12_000L, T0 + 4_000L);
         assertTrue(ChunkResidency.isDraining());
         ChunkResidency.report(5_100L, T0 + 5_000L);
-        assertFalse("back to where we started -- the debt is paid", ChunkResidency.isDraining());
+        assertFalse("back to baseline", ChunkResidency.isDraining());
     }
 
     @Test
-    public void drainGivesUpWhenNothingIsMovingBecauseTheRestIsNotOurs() {
+    public void drainGivesUpWhenNothingIsMoving() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);
@@ -137,12 +137,12 @@ public class ChunkResidencyTest {
         ChunkResidency.report(40_000L, T0 + 32_000L);
         assertTrue("29 s of no movement is not yet a verdict", ChunkResidency.isDraining());
         ChunkResidency.report(40_000L, T0 + 33_001L);
-        assertFalse("no further unload pass will move it, so stop arming one",
+        assertFalse("a stalled drain gives up",
                 ChunkResidency.isDraining());
     }
 
     @Test
-    public void aDrainOnAStarvedBudgetIsNeverConvictedOfStalling() {
+    public void noStallVerdictWithoutABudget() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);
@@ -154,11 +154,11 @@ public class ChunkResidencyTest {
         for (long dt = 3_000L; dt <= 123_000L; dt += 5_000L) {
             ChunkResidency.report(45_000L, T0 + dt);
         }
-        assertTrue("not trying is not the same as nothing left to do", ChunkResidency.isDraining());
+        assertTrue("a starved budget is not a stall", ChunkResidency.isDraining());
     }
 
     @Test
-    public void theLastPlayerLeavingGivesAGivenUpDrainAnotherGo() {
+    public void theLastPlayerLeavingRetriesAGivenUpDrain() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);
@@ -177,17 +177,17 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void reconsideringDoesNothingWhenThereIsNothingLeftToDrain() {
+    public void reconsiderIsANoOpAtBaseline() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(5_050L, T0 + 1_000L);
         ChunkResidency.reconsiderDrain(T0 + 2_000L);
-        assertFalse("already back at baseline -- do not arm the unload pass for nothing",
+        assertFalse("already at baseline",
                 ChunkResidency.isDraining());
     }
 
     @Test
-    public void drainHasAnAbsoluteCeilingSoItCannotArmTheUnloadPassForEver() {
+    public void drainHasATenMinuteCeiling() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(500_000L, T0 + 1_000L);
@@ -206,7 +206,7 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void describeSaysUnknownRatherThanZeroWhenItHasNothing() {
+    public void describeSaysUnknownNotZero() {
         final String snapshot = ChunkResidency.describe();
         assertTrue(snapshot, snapshot.contains("resident=unknown"));
         assertTrue(snapshot, snapshot.contains("baseline=unset"));
@@ -229,7 +229,7 @@ public class ChunkResidencyTest {
     }
 
     @Test
-    public void describeReportsHowTheLastDrainEnded() {
+    public void describeNamesTheDrainOutcome() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);
@@ -239,13 +239,13 @@ public class ChunkResidencyTest {
         ChunkResidency.report(5_100L, T0 + 3_000L);
         final String snapshot = ChunkResidency.describe();
         assertTrue(snapshot, snapshot.contains("draining=false"));
-        assertTrue("an operator must be able to see WHY it stopped, not just that it did",
+        assertTrue("describe names why it stopped",
                 snapshot.contains("back to where the run started"));
         assertTrue("and how much it actually freed", snapshot.contains("39900 freed"));
     }
 
     @Test
-    public void startingANewRunClearsAnyOutstandingDrain() {
+    public void aNewRunClearsTheDrain() {
         ChunkResidency.report(5_000L, T0);
         ChunkResidency.noteTaskStart(T0);
         ChunkResidency.report(45_000L, T0 + 1_000L);

@@ -33,25 +33,25 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void tickTroubleCountsEvenWhenNoGateOfOursIsClosed() {
+    public void tickTroubleCountsWithNoGateOfOursClosed() {
         // The 3.7.0 flaw: keyed on our gates alone, auto-pause sat idle through twelve "Can't keep
         // up" warnings because the chunk gate was off and the heap was under its threshold.
         AutoPause.noteStruggling(true, T0);
-        assertTrue("struggling is struggling, whoever caused it", AutoPause.shouldPause(T0 + GRACE));
+        assertTrue("struggling with no gate of ours closed", AutoPause.shouldPause(T0 + GRACE));
     }
 
     @Test
-    public void aBriefStallDoesNotPauseARun() {
+    public void aBlipDoesNotPause() {
         AutoPause.noteStruggling(true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE - 1));
         // Recovered before the grace expired: the clock must start over, not carry on.
         AutoPause.noteStruggling(false, T0 + GRACE - 1);
         AutoPause.noteStruggling(true, T0 + GRACE);
-        assertFalse("an autosave must not stop a run", AutoPause.shouldPause(T0 + GRACE + 1));
+        assertFalse("a brief stall must not pause", AutoPause.shouldPause(T0 + GRACE + 1));
     }
 
     @Test
-    public void aSustainedStallDoesPauseIt() {
+    public void aSustainedStallPauses() {
         AutoPause.noteStruggling(true, T0);
         AutoPause.noteStruggling(true, T0 + 60_000L);
         assertTrue(AutoPause.shouldPause(T0 + GRACE));
@@ -65,12 +65,12 @@ public class AutoPauseTest {
         assertFalse(AutoPause.shouldResume(T0 + GRACE - 1));
         AutoPause.noteHealthy(false, T0 + GRACE - 1);
         AutoPause.noteHealthy(true, T0 + GRACE);
-        assertFalse("resuming on a blip walks back into the same wall",
+        assertFalse("must not resume on a blip",
                 AutoPause.shouldResume(T0 + GRACE + 1));
     }
 
     @Test
-    public void aSustainedRecoveryDoesResume() {
+    public void sustainedRecoveryResumes() {
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
         assertTrue(AutoPause.shouldResume(T0 + GRACE));
@@ -78,14 +78,14 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void onlyOurOwnPauseIsEverResumed() {
+    public void onlyOurPauseResumes() {
         AutoPause.noteHealthy(true, T0);
-        assertFalse("nothing paused it, so there is nothing to resume",
+        assertFalse("nothing to resume",
                 AutoPause.shouldResume(T0 + GRACE * 10));
     }
 
     @Test
-    public void aHumanPauseOutranksUsInBothDirections() {
+    public void aHumanPauseOutranksUsBothWays() {
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
         AutoPause.clear();
@@ -94,7 +94,7 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void disabledMeansNeitherDirectionEverFires() {
+    public void disabledMeansNothingFires() {
         AutoPause.configure(false, GRACE);
         AutoPause.noteStruggling(true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE * 10));
@@ -104,17 +104,17 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void pausingTwiceIsNotPossible() {
+    public void noDoublePause() {
         AutoPause.noteStruggling(true, T0);
         assertTrue(AutoPause.shouldPause(T0 + GRACE));
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteStruggling(true, T0 + GRACE);
-        assertFalse("already paused -- there is nothing left to stop",
+        assertFalse("already paused",
                 AutoPause.shouldPause(T0 + GRACE * 3));
     }
 
     @Test
-    public void resumingClearsTheStateSoTheNextStallStartsFresh() {
+    public void resumingResetsTheState() {
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
         assertTrue(AutoPause.shouldResume(T0 + GRACE));
@@ -124,7 +124,7 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void describeCarriesNoPercentSignBecauseTheSenderFormatsIt() {
+    public void describeHasNoPercent() {
         AutoPause.markAutoPaused("minecraft:overworld");
         assertFalse(AutoPause.describe().contains("%"));
         assertTrue(String.format(AutoPause.describe()).length() > 0);

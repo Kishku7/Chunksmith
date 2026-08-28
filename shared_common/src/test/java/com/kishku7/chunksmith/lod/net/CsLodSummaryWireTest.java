@@ -36,7 +36,7 @@ public class CsLodSummaryWireTest {
     public void answeringCosts34Bytes() throws IOException {
         final byte[] reply = CsLodMessages.encode(
                 new CsLodMessages.RegionSummary(OVERWORLD, 81, 0x0BAD_C0FFEE_1234L));
-        assertEquals("a sync answer must stay tiny -- it is NOT an index", 34, reply.length);
+        assertEquals("a sync answer must stay tiny", 34, reply.length);
         assertEquals(CsLodProtocol.S2C_SUMMARY, reply[0]);
     }
 
@@ -95,7 +95,7 @@ public class CsLodSummaryWireTest {
         try (DataInputStream in = CsLodMessages.reader(wire)) {
             in.readByte();
             CsLodMessages.decodeRegionSummary(in);
-            fail("a negative region count must be refused, not reasoned about");
+            fail("a negative region count must be refused");
         } catch (final IOException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("out of range"));
         }

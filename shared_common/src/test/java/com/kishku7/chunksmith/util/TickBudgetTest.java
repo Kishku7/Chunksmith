@@ -36,10 +36,10 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void nothingIsClaimedBeforeAnythingIsMeasured() {
+    public void nothingIsClaimedBeforeMeasuring() {
         assertTrue(TickBudget.baseline() < 0.0D);
         assertTrue(TickBudget.ourCost() < 0.0D);
-        assertEquals("caller must fall back to its absolute target", -1.0D, TickBudget.effectiveTarget(), 0.001D);
+        assertEquals("no target before measuring", -1.0D, TickBudget.effectiveTarget(), 0.001D);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void baselineIsWhatTheServerCostsWithNothingOfOursInFlight() {
+    public void baselineIsTheServersIdleCost() {
         settle(74.9D, false, 0, 60);
         assertEquals(74.9D, TickBudget.baseline(), 0.5D);
     }
@@ -70,28 +70,28 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void ourCostIsTheDifferenceWeMake() {
+    public void ourCostIsTheDelta() {
         settle(74.9D, false, 0, 60);
         settle(88.4D, true, 0, 120);
         assertEquals("13.5ms, which is what was measured live", 13.5D, TickBudget.ourCost(), 1.5D);
     }
 
     @Test
-    public void theAllowanceIsTwiceWhatWeCost() {
+    public void allowanceIsTwiceOurCost() {
         settle(50.0D, false, 0, 60);
         settle(70.0D, true, 0, 200);
         assertEquals("20ms measured -> 40ms allowed", 40.0D, TickBudget.allowance(), 3.0D);
     }
 
     @Test
-    public void theConfiguredBudgetIsAFloorNotACeiling() {
+    public void budgetIsAFloor() {
         settle(50.0D, false, 0, 60);
         settle(51.0D, true, 0, 200);   // we cost ~1ms, doubled is 2ms
         assertEquals("floored at the configured 25", 25.0D, TickBudget.allowance(), 1.0D);
     }
 
     @Test
-    public void theTargetIsTheServersOwnCostPlusOurAllowance() {
+    public void targetIsBaselinePlusAllowance() {
         settle(74.9D, false, 0, 60);
         settle(88.4D, true, 0, 200);
         // baseline ~74.9 + allowance max(25, 2*13.5) = 27  ->  ~102
@@ -100,18 +100,18 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void allowanceCannotRunAway() {
+    public void allowanceIsClamped() {
         // Live failure: the allowance is twice our cost, and a pre-gen pushes until it reaches its
         // allowance -- so cost chased allowance chased cost. TickBudget#MAX_ALLOWANCE_FACTOR has the
         // numbers; this is the clamp that stops it.
         settle(50.0D, false, 0, 60);
         settle(500.0D, true, 0, 400);   // a preposterous measured cost
-        assertTrue("must be clamped, not doubled forever", TickBudget.allowance() <= 75.0D + 0.001D);
+        assertTrue("the allowance is clamped", TickBudget.allowance() <= 75.0D + 0.001D);
         assertTrue(TickBudget.effectiveTarget() < 130.0D);
     }
 
     @Test
-    public void theCeilingScalesWithTheConfiguredFloor() {
+    public void theCeilingScalesWithTheFloor() {
         TickBudget.configure(10L, 0L, 0L);
         settle(50.0D, false, 0, 60);
         settle(500.0D, true, 0, 400);
@@ -119,7 +119,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void eachPlayerTakesRoomOutOfOurAllowance() {
+    public void playersTakeAllowance() {
         settle(50.0D, false, 0, 60);
         settle(90.0D, true, 0, 200);
         final double empty = TickBudget.allowance();
@@ -132,7 +132,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void weNeverYieldOurselvesDownToNothing() {
+    public void neverYieldsToZero() {
         settle(50.0D, false, 10, 60);
         settle(55.0D, true, 10, 200);
         assertTrue("ten players would reserve 200ms; a floor keeps the run alive",
@@ -140,7 +140,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void aJoinOrLeaveThrowsTheMeasurementsAwayRatherThanDecayingToThem() {
+    public void joinResetsTheBaseline() {
         settle(50.0D, false, 0, 60);
         settle(70.0D, true, 0, 200);
         assertEquals(50.0D, TickBudget.baseline(), 0.5D);
@@ -150,13 +150,13 @@ public class TickBudgetTest {
         // new reading taken at face value -- not blended with the old one, which would leave the
         // throttle steering by a number from before the join for many seconds.
         TickBudget.sample(90.0D, false, 1);
-        assertEquals("a step change is adopted whole, not decayed toward",
+        assertEquals("a step change is adopted whole",
                 90.0D, TickBudget.baseline(), 0.001D);
-        assertTrue("our own cost is meaningless against the old baseline", TickBudget.ourCost() < 0.0D);
+        assertTrue("cost is unknown after a reset", TickBudget.ourCost() < 0.0D);
     }
 
     @Test
-    public void anUnreadableTickIsIgnoredRatherThanAveragedIn() {
+    public void anUnreadableTickIsIgnored() {
         settle(74.9D, false, 0, 60);
         final double before = TickBudget.baseline();
         TickBudget.sample(-1.0D, false, 0);
@@ -164,7 +164,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void theBaselineIsRemeasuredPeriodicallyRatherThanTrustedForEver() {
+    public void theBaselineIsRemeasuredPeriodically() {
         // Live failure: the baseline read 50.2ms for fifteen minutes while the server's real cost
         // climbed past 125ms, so the whole increase was attributed to us -- ourCost "measured" 76.4ms
         // against a true ~16ms and the throttle collapsed to 1/50 on a number that was long stale.
@@ -198,7 +198,7 @@ public class TickBudgetTest {
             TickBudget.sample(140.0D, false, 0);
             TickBudget.sample(140.0D, false, 0);
         }
-        assertEquals("a gap is not idle: the baseline must not have moved",
+        assertEquals("a gap must not move the baseline",
                 50.0D, TickBudget.baseline(), 0.5D);
     }
 
@@ -213,7 +213,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void anAbsoluteCeilingStopsTheTargetWanderingIntoUnplayableTerritory() {
+    public void theAbsoluteCeilingHoldsTheTarget() {
         // The absolute ceiling from TickBudget#effectiveTarget. Without it the adaptive target wanders
         // into territory nothing else objects to, because the heap gate is under its threshold and
         // auto-pause compares against this very target.
@@ -225,7 +225,7 @@ public class TickBudgetTest {
     }
 
     @Test
-    public void aHealthyServerNeverNoticesTheCeiling() {
+    public void noCeilingWhenHealthy() {
         TickBudget.configure(25L, 0L, 150L);
         settle(50.0D, false, 0, 60);
         settle(66.0D, true, 0, 200);

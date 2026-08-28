@@ -22,13 +22,13 @@ public class ServerSideRendererAdvisoryTest {
     private static final Set<String> BOTH = Set.of("distanthorizons", "voxy");
 
     @Test
-    public void saysNothingOnAnIntegratedServerEvenWithEveryRendererInstalled() {
-        assertFalse("an integrated server IS a client -- it needs the renderer",
+    public void silentOnAnIntegratedServerWithEveryRenderer() {
+        assertFalse("an integrated server needs the renderer",
                 ServerSideRendererAdvisory.message(false, BOTH::contains).isPresent());
     }
 
     @Test
-    public void saysNothingOnADedicatedServerWithNoRenderer() {
+    public void silentWithNoRenderer() {
         assertFalse(ServerSideRendererAdvisory.message(true, id -> false).isPresent());
     }
 
@@ -42,14 +42,14 @@ public class ServerSideRendererAdvisoryTest {
     }
 
     @Test
-    public void namesBothAndAgreesWithItselfGrammatically() {
+    public void namesBothRenderers() {
         final String message = ServerSideRendererAdvisory.message(true, BOTH::contains).orElseThrow();
         assertTrue(message.contains("distanthorizons and voxy are installed"));
         assertTrue(message.contains("does not need them"));
     }
 
     @Test
-    public void saysWhyRatherThanJustWhat() {
+    public void saysWhyNotJustWhat() {
         final String message = ServerSideRendererAdvisory.message(true, BOTH::contains).orElseThrow();
         // A warning an operator cannot act on is noise. It has to say what to do and when NOT to.
         assertTrue("must say what to do", message.contains("Removing it is the recommended setup"));
@@ -58,10 +58,10 @@ public class ServerSideRendererAdvisoryTest {
     }
 
     @Test
-    public void onlyAdvisesAboutRenderersItCanActuallyFeed() {
+    public void onlyAdvisesAboutOurRenderers() {
         assertEquals(List.of("distanthorizons", "voxy"),
                 ServerSideRendererAdvisory.rendererIds());
-        assertFalse("somebody else's mod is none of our business",
+        assertFalse("an unrelated mod is ignored",
                 ServerSideRendererAdvisory.message(true, "some_other_mod"::equals).isPresent());
     }
 }

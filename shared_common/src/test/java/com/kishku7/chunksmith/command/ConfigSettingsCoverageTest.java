@@ -46,7 +46,7 @@ public class ConfigSettingsCoverageTest {
     }
 
     @Test
-    public void everyConfigKeyIsReachableFromACommand() throws ClassNotFoundException {
+    public void everyKeyHasACommand() throws ClassNotFoundException {
         final List<String> missing = new ArrayList<>();
         for (final String field : configModelFields()) {
             if (NOT_SETTINGS.contains(field)) {
@@ -57,14 +57,14 @@ public class ConfigSettingsCoverageTest {
             }
         }
         if (!missing.isEmpty()) {
-            fail("config keys with no /cs set entry (add them to ConfigSettings, or to NOT_SETTINGS "
-                    + "with a reason): " + missing);
+            fail("config keys with no /cs set entry: "
+                    + missing);
         }
     }
 
     /** The mirror of the above: a setting that names a key the config does not have is a typo. */
     @Test
-    public void everyCommandSettingNamesARealConfigKey() throws ClassNotFoundException {
+    public void everyCommandSettingNamesARealKey() throws ClassNotFoundException {
         final List<String> fields = configModelFields();
         final List<String> unknown = new ArrayList<>();
         for (final ConfigSetting setting : ConfigSettings.all()) {
@@ -78,24 +78,24 @@ public class ConfigSettingsCoverageTest {
     }
 
     @Test
-    public void lookupIsCaseInsensitiveBecauseNobodyTypesCamelCaseCorrectly() {
+    public void caseInsensitiveLookup() {
         assertTrue(ConfigSettings.find("pregensettleradius").isPresent());
         assertTrue(ConfigSettings.find("PREGENSETTLERADIUS").isPresent());
         assertTrue(ConfigSettings.find("pregenSettleRadius").isPresent());
     }
 
     @Test
-    public void booleanAndTristateSettingsOfferCompletions() {
+    public void offersCompletions() {
         final ConfigSetting settle = ConfigSettings.find("pregenSettle").orElseThrow();
         assertTrue(settle.kind().completions().contains("true"));
 
         final ConfigSetting lod = ConfigSettings.find("lodEnabled").orElseThrow();
-        assertTrue("lodEnabled is a tristate, so auto must be offered",
+        assertTrue("lodEnabled offers auto",
                 lod.kind().completions().contains("auto"));
     }
 
     @Test
-    public void namesAreUniqueSoLookupIsUnambiguous() {
+    public void settingNamesAreUnique() {
         final List<String> seen = new ArrayList<>();
         for (final ConfigSetting setting : ConfigSettings.all()) {
             final String lower = setting.name().toLowerCase(Locale.ROOT);

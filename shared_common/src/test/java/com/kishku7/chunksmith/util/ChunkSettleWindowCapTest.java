@@ -25,13 +25,13 @@ public class ChunkSettleWindowCapTest {
             final int captured = x;
             window.offer(x, 0, 0L, () -> released.add(captured));
         }
-        assertTrue("a line never closes a neighbourhood, so nothing may be released by the rule",
+        assertTrue("a line closes no neighbourhood",
                 cap > 0 || released.isEmpty());
         return released;
     }
 
     @Test
-    public void withoutACapAStrandedFrontierGrowsForever() {
+    public void anUncappedFrontierGrowsForever() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
         offerLine(window, 5_000, 0L);
         assertEquals("this is the leak: every one of them is still held", 5_000, window.heldCount());
@@ -47,7 +47,7 @@ public class ChunkSettleWindowCapTest {
     }
 
     @Test
-    public void evictionIsOldestFirstBecauseAgeIsTheEvidence() {
+    public void evictionIsOldestFirst() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L, 3L);
         final List<Integer> released = new ArrayList<>();
         for (int x = 0; x < 6; x++) {
@@ -59,7 +59,7 @@ public class ChunkSettleWindowCapTest {
     }
 
     @Test
-    public void everyTicketStillComesBackExactlyOnce() {
+    public void everyTicketReturns() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L, 10L);
         final List<Integer> released = new ArrayList<>();
         for (int x = 0; x < 500; x++) {
@@ -70,11 +70,11 @@ public class ChunkSettleWindowCapTest {
         assertEquals("no ticket may be dropped and none may run twice", 500, released.size());
         assertEquals(500, released.stream().distinct().count());
         assertEquals(0, window.heldCount());
-        assertEquals("bookkeeping does not outlive the run", 0, window.trackedCount());
+        assertEquals("bookkeeping is cleared", 0, window.trackedCount());
     }
 
     @Test
-    public void aCapLargerThanTheFrontierChangesNothing() {
+    public void slackCapDoesNothing() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L, 100_000L);
         offerLine(window, 1_000, 100_000L);
         assertEquals(1_000, window.heldCount());

@@ -59,14 +59,14 @@ public class SettleSweepTest {
     }
 
     @Test
-    public void nothingIsIssuedBeforeAnythingIsGenerated() {
+    public void nothingIssuedBeforeGeneration() {
         final SettleSweep sweep = new SettleSweep(0, 0, 20, 20, 3);
         assertNull(sweep.nextStop());
         assertEquals(0, sweep.stopsIssued());
     }
 
     @Test
-    public void everyStopIsIssuedOnceAndThenTheSweepIsComplete() {
+    public void everyStopOnce() {
         final SettleSweep sweep = new SettleSweep(0, 0, 12, 12, 3);
         fill(sweep, -8, -8, 20, 20);
 
@@ -105,7 +105,7 @@ public class SettleSweepTest {
     }
 
     @Test
-    public void finishedGroundIsSweptWhileTheRestIsStillGenerating() {
+    public void finishedGroundSweepsEarly() {
         final SettleSweep sweep = new SettleSweep(0, 0, 40, 10, 3);
         // Only the western third exists so far.
         fill(sweep, 0, 0, 13, 9);
@@ -127,7 +127,7 @@ public class SettleSweepTest {
     }
 
     @Test
-    public void theEdgeOfTheTaskDoesNotStrandStops() {
+    public void edgeStopsAreNotStranded() {
         final SettleSweep sweep = new SettleSweep(0, 0, 9, 9, 4);
         fill(sweep, 0, 0, 8, 8);   // exactly the bounds and not one chunk more
 

@@ -36,27 +36,27 @@ public class CsLodClientConfigTest {
     }
 
     @Test
-    public void anythingBelowThirtySecondsIsClampedToThirty() {
+    public void clampRaisesToFloor() {
         assertEquals(30, CsLodClientConfig.clamp(29));
         assertEquals(30, CsLodClientConfig.clamp(10));
         assertEquals(30, CsLodClientConfig.clamp(1));
         assertEquals(30, CsLodClientConfig.clamp(0));
-        assertEquals("a negative interval is not a fast one", 30, CsLodClientConfig.clamp(-600));
+        assertEquals("a negative interval", 30, CsLodClientConfig.clamp(-600));
         assertEquals(30, CsLodClientConfig.clamp(Integer.MIN_VALUE));
     }
 
     @Test
-    public void legalValuesAreNotTouched() {
+    public void clampLeavesLegalValues() {
         assertEquals(30, CsLodClientConfig.clamp(30));
         assertEquals(31, CsLodClientConfig.clamp(31));
         assertEquals(300, CsLodClientConfig.clamp(300));
         assertEquals(86_400, CsLodClientConfig.clamp(86_400));
-        assertEquals("there is no ceiling -- a long interval only hurts the person who set it",
+        assertEquals("there is no ceiling",
                 Integer.MAX_VALUE, CsLodClientConfig.clamp(Integer.MAX_VALUE));
     }
 
     @Test
-    public void aMissingConfigIsWrittenWithTheDefaults() throws IOException {
+    public void aMissingConfigIsWritten() throws IOException {
         final Path dir = temp.newFolder("config").toPath();
 
         final String said = CsLodClientConfig.load(dir);
@@ -65,23 +65,23 @@ public class CsLodClientConfigTest {
         assertEquals(300_000L, CsLodClientConfig.syncIntervalMillis());
         assertTrue(CsLodClientConfig.isLoaded());
         assertTrue(said, said.contains("wrote"));
-        assertTrue("the file is there for a player to find",
+        assertTrue("config file was not written",
                 Files.isRegularFile(dir.resolve(CsLodClientConfig.FILE_NAME)));
     }
 
     @Test
-    public void aConfiguredValueBelowTheFloorIsClamped() throws IOException {
+    public void aConfiguredValueIsClamped() throws IOException {
         final Path dir = write("sync-interval-seconds=5");
 
         final String said = CsLodClientConfig.load(dir);
 
         assertEquals("5 seconds is not honoured", 30, CsLodClientConfig.syncIntervalSeconds());
         assertEquals(30_000L, CsLodClientConfig.syncIntervalMillis());
-        assertTrue("and the player is TOLD why: " + said, said.contains("minimum"));
+        assertTrue(said, said.contains("minimum"));
     }
 
     @Test
-    public void aConfiguredValueAboveTheFloorIsHonoured() throws IOException {
+    public void aLegalValueSticks() throws IOException {
         final Path dir = write("sync-interval-seconds=45");
 
         CsLodClientConfig.load(dir);
@@ -91,7 +91,7 @@ public class CsLodClientConfigTest {
     }
 
     @Test
-    public void anUnparseableValueFallsBackToTheDefault() throws IOException {
+    public void garbageFallsBackToTheDefault() throws IOException {
         final Path dir = write("sync-interval-seconds=soon");
 
         final String said = CsLodClientConfig.load(dir);

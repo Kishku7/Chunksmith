@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public class CsLodPresenceIndexTest {
 
     @Test
-    public void reportsWrittenChunksPresentAndUnwrittenChunksAbsent() throws Exception {
+    public void presentOnlyForWrittenChunks() throws Exception {
         final Path root = Files.createTempDirectory("cslod-presence");
         try {
             final CsLodRegionStore store = new CsLodRegionStore(root);
@@ -46,12 +46,12 @@ public class CsLodPresenceIndexTest {
 
             final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
 
-            assertTrue("written chunk must read as present", index.hasLod(0, 0));
+            assertTrue("written chunk", index.hasLod(0, 0));
             assertTrue(index.hasLod(5, 9));
-            assertTrue("negative coords must map to the same slot the store wrote", index.hasLod(-1, -1));
+            assertTrue("negative coords", index.hasLod(-1, -1));
             assertTrue(index.hasLod(-33, 40));
 
-            assertFalse("a chunk never written must read as absent", index.hasLod(1, 0));
+            assertFalse("never written", index.hasLod(1, 0));
             assertFalse(index.hasLod(31, 31));
             assertFalse(index.hasLod(-2, -1));
         } finally {
@@ -60,7 +60,7 @@ public class CsLodPresenceIndexTest {
     }
 
     @Test
-    public void reportsEverythingAbsentWhenNoStoreExists() throws Exception {
+    public void noStoreMeansAbsent() throws Exception {
         // The "LOD off, then turned on" case: chunks on disk, no CSLOD tree at all. Every chunk must
         // come back absent, so the re-run loads them and builds the LODs.
         final Path root = Files.createTempDirectory("cslod-presence").resolve("never-created");
@@ -69,11 +69,11 @@ public class CsLodPresenceIndexTest {
         assertFalse(index.hasLod(0, 0));
         assertFalse(index.hasLod(100, -100));
         assertEquals(0L, index.getHeaderBytesRead());
-        assertFalse("a presence query must never create the store", Files.exists(root));
+        assertFalse("query created the store", Files.exists(root));
     }
 
     @Test
-    public void markLodIsVisibleImmediatelyWithoutTouchingDisk() throws Exception {
+    public void markLodIsVisibleBeforeTheWriteLands() throws Exception {
         // The same-run guarantee. The store writes asynchronously, so the on-disk header lags dispatch;
         // the in-memory bitmap is what stops a chunk generated early in a run from being re-processed
         // later in that same run.
@@ -84,9 +84,9 @@ public class CsLodPresenceIndexTest {
 
             index.markLod(7, 7);
 
-            assertTrue("a marked chunk must be present at once, before any write lands", index.hasLod(7, 7));
-            assertFalse("marking one chunk must not mark its neighbour", index.hasLod(8, 7));
-            assertFalse("nothing was written, so no region file may exist", Files.exists(root.resolve("r.0.0.cslod")));
+            assertTrue("marked chunk", index.hasLod(7, 7));
+            assertFalse("neighbour was marked too", index.hasLod(8, 7));
+            assertFalse("region file exists", Files.exists(root.resolve("r.0.0.cslod")));
         } finally {
             delete(root);
         }
@@ -114,7 +114,7 @@ public class CsLodPresenceIndexTest {
     }
 
     @Test
-    public void readsOneHeaderPerRegionRegardlessOfChunkCount() throws Exception {
+    public void oneHeaderPerRegion() throws Exception {
         // The cost claim: presence for a whole region costs one 8 KB header read, not one read per
         // chunk. If this ever regresses to a per-chunk open, the check stops being free and the whole
         // design argument collapses -- so it is asserted, not assumed.
@@ -149,7 +149,7 @@ public class CsLodPresenceIndexTest {
     }
 
     @Test
-    public void countRecordsMatchesWhatWasWritten() throws Exception {
+    public void countsRecords() throws Exception {
         // Backs /cslod status: the number an operator compares against their chunk count.
         final Path root = Files.createTempDirectory("cslod-presence");
         try {
@@ -180,7 +180,7 @@ public class CsLodPresenceIndexTest {
     }
 
     @Test
-    public void truncatedRegionFileReportsAbsentRatherThanThrowing() throws Exception {
+    public void truncatedRegionFileReadsAbsent() throws Exception {
         // A half-created region file must not blow up a pregen. Absent is the safe direction: we
         // rebuild LODs we may already have had, instead of skipping chunks that have none.
         final Path root = Files.createTempDirectory("cslod-presence");

@@ -48,13 +48,13 @@ public class ChunkSettleWindowTest {
 
         window.offer(0, 0, 0L, rec.of(0, 0));
 
-        assertEquals("nothing may be released while the sweep is still next to it", 0, rec.count());
+        assertEquals("held while the neighbourhood is open", 0, rec.count());
         assertEquals(1, window.heldCount());
         assertFalse(window.neighbourhoodComplete(0, 0));
     }
 
     @Test
-    public void aChunkIsReleasedWhenItsNeighbourhoodCloses() {
+    public void releasedWhenTheNeighbourhoodCloses() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
         final Recorder rec = new Recorder();
 
@@ -64,14 +64,14 @@ public class ChunkSettleWindowTest {
             }
         }
 
-        assertTrue("the centre's neighbourhood is complete, so it goes", rec.has(0, 0));
+        assertTrue("the centre is complete", rec.has(0, 0));
         // The eight around it are still on the frontier -- each is missing neighbours of its own.
         assertFalse(rec.has(1, 1));
         assertEquals(8, window.heldCount());
     }
 
     @Test
-    public void theDelayHoldsTheChunkPastNeighbourhoodCompletion() {
+    public void theDelayHoldsPastCompletion() {
         final ChunkSettleWindow window = new ChunkSettleWindow(40L);
         final Recorder rec = new Recorder();
 
@@ -81,7 +81,7 @@ public class ChunkSettleWindowTest {
             }
         }
         assertEquals("complete but not yet due", 0, rec.count());
-        assertTrue("the rule itself: all nine have arrived", window.neighbourhoodComplete(0, 0));
+        assertTrue("all nine have arrived", window.neighbourhoodComplete(0, 0));
         assertFalse("a frontier chunk is still missing neighbours", window.neighbourhoodComplete(1, 1));
 
         window.releaseDue(139L);
@@ -92,7 +92,7 @@ public class ChunkSettleWindowTest {
     }
 
     @Test
-    public void onlyTheFrontierIsHeldDuringASweep() {
+    public void onlyTheFrontierIsHeld() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
         final Recorder rec = new Recorder();
 
@@ -107,12 +107,12 @@ public class ChunkSettleWindowTest {
         assertTrue(rec.has(1, 0));
         assertTrue(rec.has(5, 0));
         assertFalse("the leading column is still the frontier", rec.has(6, 0));
-        assertTrue("held set stays small and does not grow with the sweep",
+        assertTrue("held set does not grow with the sweep",
                 window.heldCount() <= 21);
     }
 
     @Test
-    public void drainReleasesTheWholeFrontier() {
+    public void drainReleasesAll() {
         final ChunkSettleWindow window = new ChunkSettleWindow(1000L);
         final Recorder rec = new Recorder();
 
@@ -129,7 +129,7 @@ public class ChunkSettleWindowTest {
     }
 
     @Test
-    public void aChunkOfferedTwiceIsReleasedOnce() {
+    public void offeredTwiceReleasesOnce() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
         final Recorder rec = new Recorder();
 
@@ -157,7 +157,7 @@ public class ChunkSettleWindowTest {
     }
 
     @Test
-    public void drainOnAnEmptyWindowIsHarmless() {
+    public void emptyDrain() {
         final ChunkSettleWindow window = new ChunkSettleWindow(20L);
         window.drain();
         assertEquals(0, window.heldCount());

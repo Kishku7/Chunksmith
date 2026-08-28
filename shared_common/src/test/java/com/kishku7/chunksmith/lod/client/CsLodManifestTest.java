@@ -53,7 +53,7 @@ public class CsLodManifestTest {
     // ------------------------------------------------------------------ the record itself
 
     @Test
-    public void whatWeWroteIsWhatWeReadBack() throws IOException {
+    public void roundTrips() throws IOException {
         setUpStore();
         final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 0xDEAD_BEEF_1234_5678L, 4_812_345L);
@@ -70,14 +70,14 @@ public class CsLodManifestTest {
 
     /** An UPGRADE from 3.1.0-beta-3: regions on disk, no manifest. Everything is re-fetched, once. */
     @Test
-    public void aStoreWithNoManifestVouchesForNothing() throws IOException {
+    public void noManifestNoClaims() throws IOException {
         setUpStore();
         region(0, 0, 100);
 
         final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
 
         assertEquals(0, manifest.size());
-        assertFalse("the file is there, but we cannot say WHICH version it is",
+        assertFalse("no manifest, no claim",
                 manifest.holds(this.root.resolve(DIM), entry(0, 0, 777L, 100L)));
     }
 
@@ -93,7 +93,7 @@ public class CsLodManifestTest {
 
         final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
 
-        assertEquals("the good lines survive, the bad ones are dropped", 2, manifest.size());
+        assertEquals("good lines survive", 2, manifest.size());
         assertEquals(111L, manifest.get(0, 0).hash());
         assertEquals(222L, manifest.get(2, 2).hash());
         assertNull(manifest.get(1, 1));
@@ -102,7 +102,7 @@ public class CsLodManifestTest {
     // ------------------------------------------------------------------ holds()
 
     @Test
-    public void weHoldARegionWhenTheTokenAndTheSizeBothMatch() throws IOException {
+    public void holdsWhenTokenAndSizeMatch() throws IOException {
         setUpStore();
         region(0, 0, 100);
         final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
@@ -112,7 +112,7 @@ public class CsLodManifestTest {
     }
 
     @Test
-    public void aMovedTokenMeansWeDoNotHoldIt() throws IOException {
+    public void aMovedTokenIsNotHeld() throws IOException {
         setUpStore();
         region(0, 0, 100);
         final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
@@ -131,7 +131,7 @@ public class CsLodManifestTest {
 
         Files.delete(this.root.resolve(DIM).resolve("r.0.0.cslod"));
 
-        assertFalse("a manifest entry is not a region file", 
+        assertFalse("deleted region still held",
                 manifest.holds(this.root.resolve(DIM), entry(0, 0, 999L, 100L)));
     }
 
@@ -168,7 +168,7 @@ public class CsLodManifestTest {
     // ------------------------------------------------------------------ fold() -- the sync compare
 
     @Test
-    public void holdingEverythingFoldsToTheServersOwnAnswer() throws IOException {
+    public void holdingEverythingMatchesTheServer() throws IOException {
         setUpStore();
         region(0, 0, 100);
         region(0, 1, 200);
@@ -190,11 +190,11 @@ public class CsLodManifestTest {
         }
 
         assertEquals(3, ours.count());
-        assertEquals("nothing changed -> no index, no fetch", server, ours.aggregate());
+        assertEquals("same set, same aggregate", server, ours.aggregate());
     }
 
     @Test
-    public void aRegionWeHaveNeverSeenMakesUsDisagree() throws IOException {
+    public void anUnseenRegionMakesUsDisagree() throws IOException {
         setUpStore();
         region(0, 0, 100);
         final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
@@ -205,12 +205,12 @@ public class CsLodManifestTest {
 
         final CsLodSummary.Snapshot ours = manifest.fold(this.root.resolve(DIM), index);
 
-        assertEquals("we can only vouch for one of the two", 1, ours.count());
+        assertEquals("one of the two", 1, ours.count());
         assertNotEquals(2, ours.count());
     }
 
     @Test
-    public void deletingARegionFromOurOwnStoreMakesUsDisagree() throws IOException {
+    public void deletingOurCopyMakesUsDisagree() throws IOException {
         setUpStore();
         region(0, 0, 100);
         region(0, 1, 200);
@@ -244,7 +244,7 @@ public class CsLodManifestTest {
                 manifest.fold(this.root.resolve(DIM), List.of(entry(0, 0, 999L, 140L)));
 
         assertEquals(1, same.count());
-        assertEquals("we cannot vouch for the version the server now has", 0, grown.count());
+        assertEquals("the server's version is newer", 0, grown.count());
         assertNotEquals(same.aggregate(), grown.aggregate());
     }
 }

@@ -94,7 +94,7 @@ public class VoxyConfigReaderTest {
     }
 
     @Test
-    public void floatFieldGivesVoxysDefaultRadius() {
+    public void floatFieldReads() {
         assertEquals(8192, VoxyConfigReader.radiusBlocks(new UpstreamConfig()));
     }
 
@@ -104,7 +104,7 @@ public class VoxyConfigReaderTest {
         assertEquals(8192, VoxyConfigReader.radiusBlocks(new IntConfig()));
         assertEquals(VoxyConfigReader.radiusBlocks(new UpstreamConfig()),
                 VoxyConfigReader.radiusBlocks(new IntConfig()));
-        assertFalse("a field we CAN read must not warn",
+        assertFalse("warned about a readable field",
                 LodWarnings.saidAlready("voxy-render-distance-field"));
     }
 
@@ -129,13 +129,13 @@ public class VoxyConfigReaderTest {
     }
 
     @Test
-    public void aFieldThatIsNotANumberIsZeroAndWarns() {
+    public void nonNumberWarns() {
         assertEquals(0, VoxyConfigReader.radiusBlocks(new NotANumberConfig()));
         assertTrue(LodWarnings.saidAlready("voxy-render-distance-field"));
     }
 
     @Test
-    public void theWarningIsSaidOnlyOnce() {
+    public void warnsOnlyOnce() {
         VoxyConfigReader.radiusBlocks(new NoFieldConfig());
         assertTrue(LodWarnings.saidAlready("voxy-render-distance-field"));
         // Second call must not re-warn -- once() is the contract; a per-chunk warning would bury the log.
@@ -149,9 +149,9 @@ public class VoxyConfigReaderTest {
     }
 
     @Test
-    public void renderingSwitchedOffIsAQuietZero() {
+    public void renderingOffIsAQuietZero() {
         assertEquals(0, VoxyConfigReader.radiusBlocks(new RenderingOffConfig()));
-        assertFalse("the player turning voxy's renderer off is not a fault",
+        assertFalse("warned about a disabled renderer",
                 LodWarnings.saidAlready("voxy-render-distance-field"));
     }
 
@@ -164,13 +164,13 @@ public class VoxyConfigReaderTest {
     }
 
     @Test
-    public void nullConfigIsAQuietZero() {
+    public void nullConfigIsZero() {
         assertEquals(0, VoxyConfigReader.radiusBlocks(null));
         assertFalse(LodWarnings.saidAlready("voxy-render-distance-field"));
     }
 
     @Test
-    public void inheritedNonPublicFieldIsStillRead() {
+    public void inheritedFieldIsRead() {
         assertEquals(4096, VoxyConfigReader.radiusBlocks(new InheritedConfig()));
     }
 
@@ -183,7 +183,7 @@ public class VoxyConfigReaderTest {
     }
 
     @Test
-    public void flagFallsBackWhenTheFieldIsGone() {
+    public void flagFallsBack() {
         assertTrue(VoxyConfigReader.flag(new NoFlagsConfig(), "enabled", true));
         assertFalse(VoxyConfigReader.flag(new NoFlagsConfig(), "enabled", false));
         assertFalse(VoxyConfigReader.flag(new RenderingOffConfig(), "enableRendering", true));

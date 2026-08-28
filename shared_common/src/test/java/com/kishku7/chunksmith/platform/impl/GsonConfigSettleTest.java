@@ -32,9 +32,9 @@ public class GsonConfigSettleTest {
     }
 
     @Test
-    public void freshConfigCarriesTheDocumentedDefaults() throws IOException {
+    public void settleDefaults() throws IOException {
         final GsonConfig config = new GsonConfig(configPath());
-        assertTrue("settle is ON by default -- off silently breaks every mod that builds on new land",
+        assertTrue("settle is ON by default",
                 config.isPregenSettleEnabled());
         assertEquals(40L, config.getPregenSettleDelayTicks());
         assertEquals(7, config.getPregenSettleRadius());
@@ -42,7 +42,7 @@ public class GsonConfigSettleTest {
     }
 
     @Test
-    public void freshConfigIsWrittenWithTheSettleKeys() throws IOException {
+    public void freshConfigHasSettleKeys() throws IOException {
         final Path path = configPath();
         new GsonConfig(path);
         final String written = Files.readString(path);
@@ -66,7 +66,7 @@ public class GsonConfigSettleTest {
     }
 
     @Test
-    public void outOfRangeValuesAreClampedBeforeTheyReachTheFile() throws IOException {
+    public void clampsBeforeWrite() throws IOException {
         final Path path = configPath();
         final GsonConfig config = new GsonConfig(path);
 
@@ -80,10 +80,10 @@ public class GsonConfigSettleTest {
         assertEquals("radius clamps to its documented maximum", 16, config.getPregenSettleRadius());
 
         config.setPregenSettleRadius(0);
-        assertEquals("a radius of zero would load nothing at all", 1, config.getPregenSettleRadius());
+        assertEquals("radius floors at 1", 1, config.getPregenSettleRadius());
 
         final GsonConfig reloaded = new GsonConfig(path);
-        assertEquals("the CLAMPED value is what was persisted", 1, reloaded.getPregenSettleRadius());
+        assertEquals("clamped value was persisted", 1, reloaded.getPregenSettleRadius());
         assertEquals(0L, reloaded.getPregenSettleDelayTicks());
     }
 

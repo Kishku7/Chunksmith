@@ -97,7 +97,7 @@ public class CsLodSummaryTest {
     @Test
     public void duplicateTokensDoNotCancel() {
         final List<R> twins = List.of(new R(0, 0, 0x1234L), new R(5, 5, 0x1234L));
-        assertNotEquals("two regions with the same token are not an empty store", 0L, fold(twins));
+        assertNotEquals("twin tokens", 0L, fold(twins));
     }
 
     @Test

@@ -30,25 +30,25 @@ public class CsLodPortResolutionTest {
     }
 
     @Test
-    public void deriveHasNowhereToGoFromTheTopOfTheRange() {
+    public void deriveFailsAtTheTopOfTheRange() {
         assertEquals(0, CsLodProtocol.httpPort(65535, 0));
     }
 
     @Test
-    public void anExplicitPortIsHonouredExactly() {
+    public void explicitPortIsKept() {
         // The whole point of the key: the operator names a port their host actually gave them, and
         // that is the port, with no arithmetic applied to it.
         assertEquals(30000, CsLodProtocol.httpPort(25565, 30000));
     }
 
     @Test
-    public void anExplicitPortWinsEvenWhenTheDerivedOneWouldHaveWorked() {
-        assertEquals("a configured port is an operator decision, never second-guessed",
+    public void anExplicitPortWinsOverTheDerivedOne() {
+        assertEquals("a configured port wins",
                 40000, CsLodProtocol.httpPort(25565, 40000));
     }
 
     @Test
-    public void theGamesOwnPortIsRefusedRatherThanAttempted() {
+    public void theGamesOwnPortIsRefused() {
         // Binding it cannot succeed -- the game holds it -- and refusing here lets the caller report
         // a cause instead of an anonymous bind failure the operator has to guess at.
         assertEquals(0, CsLodProtocol.httpPort(25565, 25565));
@@ -56,7 +56,7 @@ public class CsLodPortResolutionTest {
 
     @Test
     public void privilegedAndOutOfRangePortsAreRefused() {
-        assertEquals("a privileged port is far likelier to be a typo than an intention",
+        assertEquals("a privileged port",
                 0, CsLodProtocol.httpPort(25565, 80));
         assertEquals(0, CsLodProtocol.httpPort(25565, 1023));
         assertEquals(0, CsLodProtocol.httpPort(25565, 65536));
@@ -64,7 +64,7 @@ public class CsLodPortResolutionTest {
     }
 
     @Test
-    public void theBoundariesThemselvesAreLegal() {
+    public void boundariesAreLegal() {
         assertEquals(1024, CsLodProtocol.httpPort(25565, 1024));
         assertEquals(65535, CsLodProtocol.httpPort(25565, 65535));
     }
@@ -79,7 +79,7 @@ public class CsLodPortResolutionTest {
     // --- the command seam -------------------------------------------------------------------------
 
     @Test
-    public void theSettingIsReachableFromTheCommand() {
+    public void settingHasACommand() {
         // ConfigSettingsCoverageTest proves every config key has a command; this proves THIS key is
         // spelled the way an operator would type it, and is found case-insensitively like the rest.
         assertTrue(ConfigSettings.find("lodBackchannelPort").isPresent());
@@ -89,14 +89,14 @@ public class CsLodPortResolutionTest {
     }
 
     @Test
-    public void rebindIsANoOpWhenNothingHasRegistered() {
+    public void rebindIsANoOpWhenUnregistered() {
         // Bukkit, or before a server exists. It must report "nothing to rebind" rather than claim a
         // port moved -- a setting that silently does nothing is the failure this issue is about.
         CsLodControl.clear();
-        assertFalse("with no action registered, apply() must be empty, not 0",
+        assertFalse("apply() must be empty, not 0",
                 CsLodControl.apply().isPresent());
         assertFalse("and it must not invent a game port either", CsLodControl.gamePort().isPresent());
-        assertTrue("describe() must be absent, not an empty string that reads like a real answer",
+        assertTrue("describe() must be absent, not empty",
                 CsLodControl.describe().isEmpty());
     }
 
@@ -120,7 +120,7 @@ public class CsLodPortResolutionTest {
     }
 
     @Test
-    public void clearStopsAStoppedServerFromEverBeingRebound() {
+    public void clearStopsRebinds() {
         CsLodControl.register(() -> 1, () -> 25565, () -> "x");
         CsLodControl.clear();
         assertFalse(CsLodControl.apply().isPresent());
@@ -129,22 +129,22 @@ public class CsLodPortResolutionTest {
     // --- the game-port refusal (found by driving a live server, not by reading the code) -----------
 
     @Test
-    public void theGamesOwnPortIsRefusedBeforeItIsStored() {
+    public void theGamesOwnPortIsNeverStored() {
         // The bind refuses it too, but a bind happens after the write. Accepting it here stored a
         // value that killed the backchannel, answered "done", and kept it dead across every restart.
         CsLodControl.register(() -> 0, () -> 25565, () -> "x");
         try {
             final int[] seen = {0, -1};
-            assertFalse("setting the game's own port must be REFUSED, not accepted",
+            assertFalse("the game's own port",
                     port().write(recording(seen), "25565"));
-            assertEquals("nothing may be written when it is refused", 0, seen[0]);
+            assertEquals("refused write reached the config", 0, seen[0]);
         } finally {
             CsLodControl.clear();
         }
     }
 
     @Test
-    public void aLegalPortIsStillAcceptedWhileAServerIsRunning() {
+    public void aLegalPortIsAcceptedWhileRunning() {
         CsLodControl.register(() -> 30000, () -> 25565, () -> "x");
         try {
             final int[] seen = {0, -1};
@@ -157,7 +157,7 @@ public class CsLodPortResolutionTest {
     }
 
     @Test
-    public void zeroIsAcceptedEvenWhileAServerIsRunning() {
+    public void zeroIsAcceptedWhileRunning() {
         // 0 means "derive" and must never be caught by the game-port guard.
         CsLodControl.register(() -> 25566, () -> 25565, () -> "x");
         try {
@@ -170,7 +170,7 @@ public class CsLodPortResolutionTest {
     }
 
     @Test
-    public void aWordWhereAPortBelongsIsRefused() {
+    public void aWordIsRefused() {
         final int[] seen = {0, -1};
         assertFalse(port().write(recording(seen), "nonsense"));
         assertEquals(0, seen[0]);

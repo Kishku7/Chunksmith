@@ -38,7 +38,7 @@ public class CsLodBoundsTest {
     // ------------------------------------------------------------------ server hello (dimension count)
 
     @Test
-    public void helloRejectsHugeDimensionCountWithoutAllocating() throws Exception {
+    public void helloRejectsHugeDimensionCount() throws Exception {
         final byte[] payload = helloBytes(Integer.MAX_VALUE, /*writeEntries=*/0);
         assertThrowsIOException(() -> CsLodMessages.decodeServerHello(reader(payload)));
     }
@@ -56,7 +56,7 @@ public class CsLodBoundsTest {
     }
 
     @Test
-    public void helloAtExactlyTheCeilingStillDecodes() throws Exception {
+    public void helloAtTheCeiling() throws Exception {
         final int n = CsLodProtocol.MAX_HELLO_DIMENSIONS;
         final byte[] payload = helloBytes(n, n);
         final CsLodMessages.ServerHello hello = CsLodMessages.decodeServerHello(reader(payload));
@@ -67,7 +67,7 @@ public class CsLodBoundsTest {
     // ------------------------------------------------------------------ region index (region count)
 
     @Test
-    public void indexRejectsHugeRegionCountWithoutAllocating() throws Exception {
+    public void indexRejectsHugeRegionCount() throws Exception {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeUTF("minecraft:overworld");
@@ -94,7 +94,7 @@ public class CsLodBoundsTest {
     // ------------------------------------------------------------------ region slice (payload length)
 
     @Test
-    public void sliceRejectsHugePayloadLengthWithoutAllocating() throws Exception {
+    public void sliceRejectsHugePayloadLength() throws Exception {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeUTF("minecraft:overworld");
@@ -120,7 +120,7 @@ public class CsLodBoundsTest {
     }
 
     @Test
-    public void sliceAtExactlyTheCeilingStillDecodes() throws Exception {
+    public void sliceAtTheCeiling() throws Exception {
         final byte[] data = new byte[CsLodProtocol.MAX_SLICE_BYTES];
         for (int i = 0; i < data.length; i++) {
             data[i] = (byte) (i & 0xFF);
@@ -136,7 +136,7 @@ public class CsLodBoundsTest {
     // ------------------------------------------------------------------ codec palette (varint size)
 
     @Test
-    public void codecRejectsHugePaletteSizeWithoutAllocating() throws Exception {
+    public void codecRejectsHugePaletteSize() throws Exception {
         final byte[] record = recordWithBlockPaletteVarint(Integer.MAX_VALUE);
         assertThrowsIOException(() -> CsLodCodec.decode(record));
     }
@@ -149,7 +149,7 @@ public class CsLodBoundsTest {
     }
 
     @Test
-    public void codecDecodesAPaletteAtTheCeiling() throws Exception {
+    public void paletteAtTheCeiling() throws Exception {
         final int n = CsLodProtocol.MAX_PALETTE_SIZE;
         final List<String> blockPalette = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -166,7 +166,7 @@ public class CsLodBoundsTest {
     // ------------------------------------------------------------------ region store (header slot length)
 
     @Test
-    public void regionStoreRejectsHugeSlotLengthWithoutAllocating() throws Exception {
+    public void regionStoreRejectsHugeSlotLength() throws Exception {
         final Path root = Files.createTempDirectory("cslod-bounds");
         try {
             // Header is 1024 slots x 8 bytes. slotIndex(0,0) == 0, so slot 0 points at a bogus record
@@ -249,7 +249,7 @@ public class CsLodBoundsTest {
             body.run();
             fail("expected an IOException from an out-of-range wire count");
         } catch (final IOException expected) {
-            assertTrue("guard must report the offending value",
+            assertTrue("empty guard message",
                     expected.getMessage() != null && !expected.getMessage().isEmpty());
         }
     }

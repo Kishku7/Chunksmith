@@ -53,9 +53,9 @@ public class CsLodClientSettingsCoverageTest {
     }
 
     @Test
-    public void everyClientConfigKeyIsReachableFromACommand() throws IllegalAccessException {
+    public void everyClientConfigKeyHasACommand() throws IllegalAccessException {
         final List<String> declared = declaredKeys();
-        assertFalse("reflection found no KEY_* constants -- the test would pass vacuously", declared.isEmpty());
+        assertFalse("no KEY_* constants found", declared.isEmpty());
 
         final List<String> missing = new ArrayList<>();
         for (final String key : declared) {
@@ -74,7 +74,7 @@ public class CsLodClientSettingsCoverageTest {
 
     /** The mirror of the above: a setting that names a key the config does not have is a typo. */
     @Test
-    public void everyCommandSettingNamesARealClientConfigKey() throws IllegalAccessException {
+    public void everySettingNamesARealKey() throws IllegalAccessException {
         final List<String> declared = declaredKeys();
         final List<String> unknown = new ArrayList<>();
         for (final CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
@@ -94,7 +94,7 @@ public class CsLodClientSettingsCoverageTest {
     }
 
     @Test
-    public void namesAreUniqueSoLookupIsUnambiguous() {
+    public void namesAreUnique() {
         final List<String> seen = new ArrayList<>();
         for (final CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
             final String lower = setting.name().toLowerCase(Locale.ROOT);
@@ -114,11 +114,11 @@ public class CsLodClientSettingsCoverageTest {
     }
 
     @Test
-    public void theIntervalIsClampedOnWriteNotOnlyOnRead() {
+    public void clampedOnWriteNotJustOnRead() {
         final CsLodClientSettings.Setting sync =
                 CsLodClientSettings.find(CsLodClientConfig.KEY_SYNC_SECONDS).orElseThrow();
         assertTrue(sync.write("1"));
-        assertEquals("a value under the floor must be STORED as the floor, not merely read back as it",
+        assertEquals("not stored as the floor",
                 Integer.toString(CsLodClientConfig.MIN_SYNC_SECONDS), sync.read());
 
         assertTrue(sync.write("600"));
@@ -126,12 +126,12 @@ public class CsLodClientSettingsCoverageTest {
     }
 
     @Test
-    public void aValueOfTheWrongShapeIsRefusedRatherThanBecomingADefault() {
+    public void aBadValueIsRefusedNotDefaulted() {
         final CsLodClientSettings.Setting sync =
                 CsLodClientSettings.find(CsLodClientConfig.KEY_SYNC_SECONDS).orElseThrow();
         assertTrue(sync.write("120"));
         assertFalse(sync.write("soon"));
-        assertEquals("a refused write must leave the previous value alone", "120", sync.read());
+        assertEquals("refused write changed the value", "120", sync.read());
 
         // Out of int range is a shape error too: narrowing it silently would store the wrapped value.
         assertFalse(sync.write("4000000000"));

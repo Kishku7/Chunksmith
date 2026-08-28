@@ -49,7 +49,7 @@ public class InjectedIndexTest {
 
     /** The bug. What one session injected, the next session must already know about. */
     @Test
-    public void whatWasInjectedLastSessionIsRememberedByTheNext() throws IOException {
+    public void lastSessionsInjectionsAreRemembered() throws IOException {
         final InjectedIndex first = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         first.put(0, 0, V1);
         first.put(-3, 7, V1);
@@ -69,7 +69,7 @@ public class InjectedIndexTest {
     }
 
     @Test
-    public void aRegionWhoseTokenMovedIsStillInjectedAgain() throws IOException {
+    public void aMovedTokenIsInjectedAgain() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(2, 2, V1);
         index.save();
@@ -78,7 +78,7 @@ public class InjectedIndexTest {
         for (final long[] entry : InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).entries()) {
             session.seed(OVERWORLD, (int) entry[0], (int) entry[1], entry[2]);
         }
-        assertTrue("a grown region must be re-injected", session.claim(OVERWORLD, 2, 2, V2));
+        assertTrue("grown region", session.claim(OVERWORLD, 2, 2, V2));
     }
 
     @Test
@@ -88,7 +88,7 @@ public class InjectedIndexTest {
         voxyOnly.put(1, 1, V1);
         voxyOnly.save();
 
-        assertEquals("a different renderer set must not inherit the claims",
+        assertEquals("different renderer set",
                 0, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY_DH, false).size());
         assertEquals("the original set still reads its own record",
                 2, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).size());
@@ -104,7 +104,7 @@ public class InjectedIndexTest {
     }
 
     @Test
-    public void dimensionsDoNotShareARecord() throws IOException {
+    public void dimensionsDoNotShare() throws IOException {
         final InjectedIndex overworld = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         overworld.put(0, 0, V1);
         overworld.save();
@@ -130,7 +130,7 @@ public class InjectedIndexTest {
     }
 
     @Test
-    public void aRecordWithNoEpochIsDiscarded() throws IOException {
+    public void noEpochIsDiscarded() throws IOException {
         final Path dir = root().resolve(OVERWORLD);
         Files.createDirectories(dir);
         Files.write(dir.resolve(".injected"), Arrays.asList("0,0=" + V1), StandardCharsets.US_ASCII);
@@ -144,7 +144,7 @@ public class InjectedIndexTest {
     }
 
     @Test
-    public void removingARegionMakesTheNextJoinRetryIt() throws IOException {
+    public void removalIsRetried() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(5, 5, V1);
         index.remove(5, 5);
@@ -154,7 +154,7 @@ public class InjectedIndexTest {
     }
 
     @Test
-    public void theWriteLeavesNoPartFile() throws IOException {
+    public void noPartFileIsLeft() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(0, 0, V1);
         index.save();

@@ -35,7 +35,7 @@ public class ChunkSettleSupportTest {
     }
 
     @Test
-    public void aWindowHandedOutIsAWindowThePumpKnowsAbout() {
+    public void newWindowsAreRegistered() {
         assertEquals(0, ChunkSettleSupport.liveWindowCount());
         ChunkSettleSupport.newWindow();
         ChunkSettleSupport.newWindow();
@@ -43,7 +43,7 @@ public class ChunkSettleSupportTest {
     }
 
     @Test
-    public void settlingOffStillHandsBackNullAndRegistersNothing() {
+    public void settlingOffReturnsNull() {
         ChunkSettleSupport.configure(false, 40L, 0L);
         assertEquals(null, ChunkSettleSupport.newWindow());
         assertEquals(0, ChunkSettleSupport.liveWindowCount());
@@ -69,30 +69,30 @@ public class ChunkSettleSupportTest {
         assertTrue("still inside the delay", released.isEmpty());
 
         ChunkSettleSupport.tick(40L);
-        assertEquals("time alone released it -- no offer() was needed", List.of("0,0"), released);
+        assertEquals("released by time alone", List.of("0,0"), released);
     }
 
     @Test
-    public void aDrainedWindowIsDroppedRatherThanPumpedForEver() {
+    public void aDrainedWindowIsNotPumpedForEver() {
         final ChunkSettleWindow window = ChunkSettleSupport.newWindow();
         window.offer(0, 0, 0L, () -> { });
         assertEquals(1, ChunkSettleSupport.liveWindowCount());
 
         window.drain();
         ChunkSettleSupport.tick(1L);
-        assertEquals("the adapter should not have to remember to deregister",
+        assertEquals("a drained window deregisters itself",
                 0, ChunkSettleSupport.liveWindowCount());
     }
 
     @Test
-    public void pumpingWithNoWindowsIsHarmless() {
+    public void tickWithNoWindows() {
         ChunkSettleSupport.tick(1L);
         ChunkSettleSupport.tick(2L);
         assertEquals(0, ChunkSettleSupport.liveWindowCount());
     }
 
     @Test
-    public void forgetDropsEverythingBecauseTheServerIsGoingAway() {
+    public void forgetDropsEverything() {
         ChunkSettleSupport.newWindow();
         ChunkSettleSupport.newWindow();
         ChunkSettleSupport.forget();

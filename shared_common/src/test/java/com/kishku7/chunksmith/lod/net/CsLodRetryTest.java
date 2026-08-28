@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 public class CsLodRetryTest {
 
     @Test
-    public void nothingIsDueBeforeTheFirstDelayHasElapsed() {
+    public void nothingIsDueBeforeTheFirstDelay() {
         final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         retry.started(1_000L);
 
@@ -33,7 +33,7 @@ public class CsLodRetryTest {
 
     // 15s, 30s, 60s, then 120s forever.
     @Test
-    public void theDelayDoublesUpToTheCeilingAndStaysThere() {
+    public void theDelayDoublesToTheCeiling() {
         final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         retry.started(0L);
 
@@ -48,7 +48,7 @@ public class CsLodRetryTest {
         // And it never goes past the ceiling, however long the player sits there.
         for (int i = 0; i < 100; i++) {
             retry.attempted(200_000L + i * 120_000L);
-            assertEquals("the ceiling is a ceiling", 120_000L, retry.delayMillis());
+            assertEquals("past the ceiling", 120_000L, retry.delayMillis());
         }
         assertEquals(103, retry.attempts());
     }
@@ -61,13 +61,13 @@ public class CsLodRetryTest {
         assertTrue(retry.due(15_000L));
         retry.attempted(15_000L);
 
-        assertFalse("just asked -- next one is 30s away, not now", retry.due(15_001L));
+        assertFalse("not due yet", retry.due(15_001L));
         assertFalse(retry.due(44_999L));
         assertTrue(retry.due(45_000L));
     }
 
     @Test
-    public void attemptsAreCountedSoTheLogCanSaySoInPlainWords() {
+    public void countsAttempts() {
         final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         assertEquals(0, retry.attempts());
         retry.started(0L);
@@ -110,12 +110,12 @@ public class CsLodRetryTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void aCeilingBelowTheFirstDelayIsNonsenseAndIsRefused() {
+    public void aBackwardsCeilingIsRefused() {
         new CsLodRetry(60_000L, 15_000L);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void aZeroDelayWouldBeAPacketStormAndIsRefused() {
+    public void aZeroDelayIsRefused() {
         new CsLodRetry(0L, 120_000L);
     }
 }

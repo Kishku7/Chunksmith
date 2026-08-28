@@ -64,7 +64,7 @@ public class CsLodRegionHashTest {
     }
 
     @Test
-    public void adjacentInputsProduceUnrelatedTokens() {
+    public void adjacentInputsScatter() {
         final long a = CsLodRegionHash.of(1_700_000_000_000L, 4_000_000L);
         final long b = CsLodRegionHash.of(1_700_000_000_001L, 4_000_000L);
         assertTrue("one millisecond apart must flip roughly half the bits, not one",

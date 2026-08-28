@@ -23,34 +23,34 @@ public class HeapPressureTest {
     }
 
     @Test
-    public void aThresholdOfZeroDisablesTheGateEntirely() {
+    public void zeroThresholdIsOff() {
         for (int i = 0; i < 10; i++) {
-            assertFalse("0 means the operator turned it off", HeapPressure.shouldHold(false, 0L, 99.0D));
+            assertFalse("threshold 0 is off", HeapPressure.shouldHold(false, 0L, 99.0D));
         }
         assertFalse(HeapPressure.shouldHold(true, 0L, 99.0D));
     }
 
     @Test
-    public void oneHighSampleIsNotEnoughToStopARun() {
-        assertFalse("garbage that has not been collected must not stop a healthy run",
+    public void oneSampleIsNotEnough() {
+        assertFalse("one high sample is not enough",
                 HeapPressure.shouldHold(false, 85L, 92.0D));
     }
 
     @Test
-    public void aSustainedHighReadingDoesStopIt() {
+    public void sustainedHighHolds() {
         boolean held = false;
         for (int i = 0; i < HeapPressure.CONFIRM_SAMPLES; i++) {
             held = HeapPressure.shouldHold(false, 85L, 92.0D);
         }
-        assertTrue("a heap that stays full across samples is holding live data", held);
+        assertTrue("a sustained high reading holds", held);
     }
 
     @Test
-    public void oneDipBreaksTheStreakBecauseTheCollectorIsWinning() {
+    public void aDipBreaksTheStreak() {
         HeapPressure.shouldHold(false, 85L, 92.0D);
         HeapPressure.shouldHold(false, 85L, 92.0D);
         HeapPressure.shouldHold(false, 85L, 40.0D);
-        assertFalse("a collection happened -- start counting again",
+        assertFalse("a dip restarts the streak",
                 HeapPressure.shouldHold(false, 85L, 92.0D));
     }
 
@@ -62,12 +62,12 @@ public class HeapPressureTest {
     }
 
     @Test
-    public void onceHeldItNeedsRealHeadroomBeforeResuming() {
+    public void needsRealHeadroomToResume() {
         for (int i = 0; i < HeapPressure.CONFIRM_SAMPLES; i++) {
             HeapPressure.shouldHold(false, 85L, 92.0D);
         }
         assertTrue("still over the threshold", HeapPressure.shouldHold(true, 85L, 92.0D));
-        assertTrue("under the threshold but inside the margin -- resuming here just re-fills it",
+        assertTrue("inside the resume margin",
                 HeapPressure.shouldHold(true, 85L, 82.0D));
         assertFalse("real headroom at last", HeapPressure.shouldHold(true, 85L, 69.0D));
     }
@@ -79,7 +79,7 @@ public class HeapPressureTest {
     }
 
     @Test
-    public void resetForgetsTheStreakSoNoRunInheritsAnother() {
+    public void resetForgetsIt() {
         for (int i = 0; i < HeapPressure.CONFIRM_SAMPLES - 1; i++) {
             HeapPressure.shouldHold(false, 85L, 92.0D);
         }
@@ -88,7 +88,7 @@ public class HeapPressureTest {
     }
 
     @Test
-    public void reportsNumbersAnOperatorCanActOn() {
+    public void reportsSaneNumbers() {
         assertTrue(HeapPressure.maxMegabytes() > 0L);
         assertTrue(HeapPressure.usedMegabytes() >= 0L);
         assertTrue(HeapPressure.usedMegabytes() <= HeapPressure.maxMegabytes());
