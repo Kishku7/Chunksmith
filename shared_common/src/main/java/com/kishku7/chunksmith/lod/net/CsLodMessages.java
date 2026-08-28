@@ -27,7 +27,7 @@ public final class CsLodMessages {
     private CsLodMessages() {
     }
 
-    // ------------------------------------------------------------------ client hello
+    // client hello
 
     /** What the client tells us on join: its protocol version, and WHICH RENDERERS it actually has. */
     public record ClientHello(int protocolVersion, boolean hasVoxy, boolean hasDh, int radiusBlocks) {
@@ -51,7 +51,7 @@ public final class CsLodMessages {
         return new ClientHello(in.readInt(), in.readBoolean(), in.readBoolean(), in.readInt());
     }
 
-    // ------------------------------------------------------------------ server hello
+    // server hello
 
     /**
      * What the server answers with.
@@ -103,7 +103,7 @@ public final class CsLodMessages {
         return new ServerHello(version, available, port, token, dimensions);
     }
 
-    // ------------------------------------------------------------------ region index
+    // region index
 
     /**
      * One region the server holds, and a hash of its contents.
@@ -150,7 +150,7 @@ public final class CsLodMessages {
         return new RegionIndex(dimension, regions);
     }
 
-    // ------------------------------------------------------------------ the periodic sync (v2)
+    // the periodic sync (v2)
 
     /**
      * The server's whole in-range index, folded to two numbers.
@@ -202,7 +202,7 @@ public final class CsLodMessages {
         return new RegionSummary(dimension, count, in.readLong());
     }
 
-    // ------------------------------------------------------------------ simple requests
+    // simple requests
 
     /** Ask for a dimension's index. */
     public static byte[] requestIndex(final String dimension) throws IOException {
@@ -229,7 +229,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    // ------------------------------------------------------------------ in-band region data (the fallback)
+    // in-band region data (the fallback)
 
     /**
      * One slice of a region file, sent in-band.

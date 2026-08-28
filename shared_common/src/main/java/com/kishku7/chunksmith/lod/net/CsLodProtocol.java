@@ -86,7 +86,7 @@ public final class CsLodProtocol {
     /** Default LOD radius, in BLOCKS, when the client cannot tell us what its renderer is set to. */
     public static final int DEFAULT_RADIUS_BLOCKS = 256;
 
-    // ---- decode-time input ceilings (DoS guard) ----
+    // decode-time input ceilings (DoS guard)
     //
     // Every count/length below is read straight off the wire (or off a region file whose bytes may have
     // arrived over the wire) from a peer we do NOT trust: a hostile or simply buggy server can send a
@@ -145,7 +145,7 @@ public final class CsLodProtocol {
      */
     public static final int MAX_RECORD_BYTES = 32 << 20;
 
-    // ---- packet ids (first byte of every in-band payload) ----
+    // packet ids (first byte of every in-band payload)
 
     /** C2S: client hello -- protocol version + which renderers it has. */
     public static final byte C2S_HELLO = 1;
@@ -205,7 +205,7 @@ public final class CsLodProtocol {
      */
     public static final byte S2C_CLIENT_SETTING = 106;
 
-    // ---- actions carried by S2C_CLIENT_SETTING ----
+    // actions carried by S2C_CLIENT_SETTING
 
     /** List every client setting with the value in force. */
     public static final byte SETTING_LIST = 0;

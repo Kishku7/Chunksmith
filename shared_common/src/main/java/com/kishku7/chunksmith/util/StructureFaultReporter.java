@@ -84,7 +84,7 @@ public final class StructureFaultReporter {
         this.maxSampleChunks = Math.max(1, maxSampleChunks);
     }
 
-    // ---- structure-placement context (mixin platforms) ----
+    // structure-placement context (mixin platforms)
 
     public void pushContext(final String structureId, final int chunkX, final int chunkZ) {
         if (!enabled) {
@@ -103,7 +103,6 @@ public final class StructureFaultReporter {
         }
     }
 
-    // ---- recording ----
 
     /** Structured record from the mixin path. {@code missingAnchor} = the {@code null}/legacy case. */
     public void recordBlockAttached(final boolean missingAnchor) {
@@ -135,7 +134,7 @@ public final class StructureFaultReporter {
         totalFaults.incrementAndGet();
     }
 
-    // ---- periodic file output ----
+    // periodic file output
 
     /** Called once per server tick (mixin) or scheduler tick (plugin). */
     public void tick(final boolean taskRunning) {
