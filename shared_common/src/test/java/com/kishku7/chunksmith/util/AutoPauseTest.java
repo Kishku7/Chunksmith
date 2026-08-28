@@ -51,7 +51,7 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void asustainedStallDoesPauseIt() {
+    public void aSustainedStallDoesPauseIt() {
         AutoPause.noteStruggling(true, T0);
         AutoPause.noteStruggling(true, T0 + 60_000L);
         assertTrue(AutoPause.shouldPause(T0 + GRACE));
@@ -70,7 +70,7 @@ public class AutoPauseTest {
     }
 
     @Test
-    public void asustainedRecoveryDoesResume() {
+    public void aSustainedRecoveryDoesResume() {
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
         assertTrue(AutoPause.shouldResume(T0 + GRACE));

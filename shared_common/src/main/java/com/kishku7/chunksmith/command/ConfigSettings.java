@@ -121,7 +121,6 @@ public final class ConfigSettings {
         return ALL.stream().map(ConfigSetting::name).toList();
     }
 
-
     private interface BoolGetter {
         boolean get(Config config);
     }

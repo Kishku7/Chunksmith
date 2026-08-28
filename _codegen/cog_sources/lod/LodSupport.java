@@ -224,7 +224,6 @@ public final class LodSupport {
         return List.of(sink);
     }
 
-
     /**
      * Mod ids that mean "something in this JVM can draw an LOD". Read out of the published jars and fork
      * sources themselves, not off a wiki:

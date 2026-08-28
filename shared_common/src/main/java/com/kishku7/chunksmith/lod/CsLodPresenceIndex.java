@@ -222,7 +222,6 @@ public final class CsLodPresenceIndex {
         return count;
     }
 
-
     /** The region's bitmap, read from its header on first use and cached thereafter. */
     private long[] bitmapFor(final int regionX, final int regionZ) {
         final long key = regionKey(regionX, regionZ);

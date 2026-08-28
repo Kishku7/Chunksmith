@@ -62,7 +62,6 @@ public final class StructureFaultReporter {
         this.maxSampleChunks = Math.max(1, maxSampleChunks);
     }
 
-
     public void pushContext(final String structureId, final int chunkX, final int chunkZ) {
         if (!enabled) {
             return;
@@ -79,7 +78,6 @@ public final class StructureFaultReporter {
             stack.pop();
         }
     }
-
 
     public void recordBlockAttached(final boolean missingAnchor) {
         if (!enabled) {
@@ -105,7 +103,6 @@ public final class StructureFaultReporter {
         culprits.computeIfAbsent(namespace, k -> new Culprit()).add(type, structure, ctx, maxSampleChunks);
         totalFaults.incrementAndGet();
     }
-
 
     public void tick(final boolean taskRunning) {
         if (!enabled || reportFile == null) {
