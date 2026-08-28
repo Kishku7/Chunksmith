@@ -68,13 +68,6 @@ public class InjectedIndexTest {
         assertFalse(session.claim(OVERWORLD, -3, 7, V1));
     }
 
-    /**
-     * A region that has CHANGED is still injected again.
-     *
-     * <p>Persisting the claim must not resurrect the bug {@link InjectedRegions} was given tokens to
-     * prevent: a pregen keeps GROWING the region under the player, and freezing that terrain at whatever it
-     * was on their first ever join is stranger than never drawing it at all.
-     */
     @Test
     public void aRegionWhoseTokenMovedIsStillInjectedAgain() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -88,13 +81,6 @@ public class InjectedIndexTest {
         assertTrue("a grown region must be re-injected", session.claim(OVERWORLD, 2, 2, V2));
     }
 
-    /**
-     * Installing a renderer that has never seen any of it discards the whole record.
-     *
-     * <p>Without this, a player who ran voxy for a month and then added Distant Horizons would be told, by
-     * our own file, that DH already had everything -- and DH would stay empty forever with nothing in any
-     * log to say why.
-     */
     @Test
     public void addingARendererDiscardsTheRecord() throws IOException {
         final InjectedIndex voxyOnly = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -108,7 +94,6 @@ public class InjectedIndexTest {
                 2, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).size());
     }
 
-    /** The escape hatch: reinject-on-join starts empty no matter what is on disk. */
     @Test
     public void reinjectOnJoinIgnoresTheRecord() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -118,7 +103,6 @@ public class InjectedIndexTest {
         assertEquals(0, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, true).size());
     }
 
-    /** Region (0,0) is a different place in every dimension, and the sidecars are per dimension. */
     @Test
     public void dimensionsDoNotShareARecord() throws IOException {
         final InjectedIndex overworld = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -128,7 +112,6 @@ public class InjectedIndexTest {
         assertEquals(0, InjectedIndex.open(root(), NETHER, EPOCH_VOXY, false).size());
     }
 
-    /** A record we cannot read is a record we do not have -- inject again, never crash, never guess. */
     @Test
     public void malformedLinesAreSkippedAndTheRestSurvives() throws IOException {
         final Path dir = root().resolve(OVERWORLD);
@@ -146,7 +129,6 @@ public class InjectedIndexTest {
         assertEquals("only the two readable lines count", 2, index.size());
     }
 
-    /** A file with no epoch line at all predates the mechanism: draw everything once. */
     @Test
     public void aRecordWithNoEpochIsDiscarded() throws IOException {
         final Path dir = root().resolve(OVERWORLD);
@@ -156,13 +138,11 @@ public class InjectedIndexTest {
         assertEquals(0, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).size());
     }
 
-    /** No file yet is the normal first-run case, not an error. */
     @Test
     public void aMissingRecordIsEmptyNotFatal() {
         assertEquals(0, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).size());
     }
 
-    /** A released region is forgotten, so the next join retries it rather than skipping it forever. */
     @Test
     public void removingARegionMakesTheNextJoinRetryIt() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -173,7 +153,6 @@ public class InjectedIndexTest {
         assertEquals(0, InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).size());
     }
 
-    /** The write is atomic and leaves no {@code .part} behind for a later read to trip over. */
     @Test
     public void theWriteLeavesNoPartFile() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
@@ -185,10 +164,6 @@ public class InjectedIndexTest {
         assertFalse(Files.exists(dir.resolve(".injected.part")));
     }
 
-    /**
-     * The dimension id comes off the network and is used to build a path. It is gated exactly as every
-     * other store consumer gates it, and a caller that gets null must refuse the whole operation.
-     */
     @Test
     public void aMalformedDimensionIdIsRefused() {
         assertNull(InjectedIndex.open(root(), "../evil", EPOCH_VOXY, false));
@@ -196,7 +171,6 @@ public class InjectedIndexTest {
         assertNull(InjectedIndex.open(root(), "Minecraft:Overworld", EPOCH_VOXY, false));
     }
 
-    /** Negative region coordinates round-trip -- they pack into the key and must come back out intact. */
     @Test
     public void negativeCoordinatesRoundTrip() throws IOException {
         final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);

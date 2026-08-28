@@ -24,12 +24,10 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * COG DRIFT (drift matrix section 2f): {@code getChunkFutureMainThread}'s result type changed at MC
- * 1.20.5 -- ancient (1.20.1/1.20.4) returns a {@code CompletableFuture<Either<ChunkAccess,
- * ChunkHolder.ChunkLoadingFailure>>}; transitional and newer return
- * {@code CompletableFuture<ChunkResult<ChunkAccess>>}. This is a structural @Invoker (bound by
- * signature), so a reflection facade cannot help -- Cog emits the correct return type + imports.
- * 26 additionally exposes {@code broadcastChangedChunks} (Cog-gated).
+ * COG DRIFT (drift matrix 2f): {@code getChunkFutureMainThread} returns
+ * {@code CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>>} on 1.20.1/1.20.4
+ * and {@code CompletableFuture<ChunkResult<ChunkAccess>>} from 1.20.5. A structural @Invoker binds
+ * by signature, so a reflection facade cannot help. 26 also exposes {@code broadcastChangedChunks}.
  */
 @Mixin(ServerChunkCache.class)
 public interface ServerChunkCacheMixin {

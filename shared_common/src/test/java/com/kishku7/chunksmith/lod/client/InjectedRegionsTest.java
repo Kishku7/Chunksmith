@@ -33,7 +33,6 @@ public class InjectedRegionsTest {
     private static final long V1 = 0x1111_2222_3333_4444L;
     private static final long V2 = 0x5555_6666_7777_8888L;
 
-    /** THE FIRST BUG. Same region coordinates, different dimension: both must be injectable. */
     @Test
     public void theNetherIsNotTheOverworld() {
         final InjectedRegions injected = new InjectedRegions();
@@ -49,10 +48,6 @@ public class InjectedRegionsTest {
         assertEquals(3, injected.size());
     }
 
-    /**
-     * THE SECOND BUG. A region we have already drawn, whose token has MOVED, is a different region as far as
-     * the renderer is concerned -- and it is the whole reason the periodic sync is worth having.
-     */
     @Test
     public void aRegionThatCHANGEDMustBeInjectedAgain() {
         final InjectedRegions injected = new InjectedRegions();
@@ -71,7 +66,6 @@ public class InjectedRegionsTest {
                 Long.valueOf(V2), injected.injectedHash(OVERWORLD, 4, -2));
     }
 
-    /** Going BACK to a version we already drew is still a change, and is still re-injected. */
     @Test
     public void anyDifferentTokenCountsAsChanged() {
         final InjectedRegions injected = new InjectedRegions();
@@ -95,7 +89,6 @@ public class InjectedRegionsTest {
         assertFalse(injected.contains(OVERWORLD, -3, 7));
     }
 
-    /** A region we could not read, or could not inject, must be retried -- not skipped forever. */
     @Test
     public void releasingLetsALaterRefreshRetryIt() {
         final InjectedRegions injected = new InjectedRegions();
@@ -112,13 +105,6 @@ public class InjectedRegionsTest {
         assertTrue("the Nether's claim survives the overworld's release", injected.contains(NETHER, 5, 5));
     }
 
-    /**
-     * A release must FORGET the region, not restore the version that was there before it.
-     *
-     * <p>An upgrade that was claimed and then abandoned (the player walked through a portal mid-inject) must
-     * leave us saying "I do not know what the renderer has", so the next index re-claims and re-injects.
-     * Restoring the old token would leave us believing we had drawn a version we had not.
-     */
     @Test
     public void releasingAnUpgradeForgetsTheRegionEntirely() {
         final InjectedRegions injected = new InjectedRegions();
@@ -144,7 +130,6 @@ public class InjectedRegionsTest {
         assertEquals(4, injected.size());
     }
 
-    /** The key must not let a dimension id and a coordinate run together into the same string. */
     @Test
     public void keysCannotCollideAcrossTheSeparator() {
         assertNotEquals(InjectedRegions.key("a", 1, 2), InjectedRegions.key("a/1", 2, 2));

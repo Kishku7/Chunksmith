@@ -81,7 +81,6 @@ public class CsLodManifestTest {
                 manifest.holds(this.root.resolve(DIM), entry(0, 0, 777L, 100L)));
     }
 
-    /** A malformed manifest is a manifest we re-download from. It is never a crash. */
     @Test
     public void aCorruptManifestIsSurvivable() throws IOException {
         setUpStore();
@@ -112,7 +111,6 @@ public class CsLodManifestTest {
         assertTrue(manifest.holds(this.root.resolve(DIM), entry(0, 0, 999L, 100L)));
     }
 
-    /** The server grew the region: its token moved, so our copy is stale and must be re-fetched. */
     @Test
     public void aMovedTokenMeansWeDoNotHoldIt() throws IOException {
         setUpStore();
@@ -123,7 +121,6 @@ public class CsLodManifestTest {
         assertFalse(manifest.holds(this.root.resolve(DIM), entry(0, 0, 1000L, 120L)));
     }
 
-    /** The file was DELETED under us. The manifest still lists it -- the stat is what catches this. */
     @Test
     public void aDeletedRegionIsNotHeld() throws IOException {
         setUpStore();
@@ -138,7 +135,6 @@ public class CsLodManifestTest {
                 manifest.holds(this.root.resolve(DIM), entry(0, 0, 999L, 100L)));
     }
 
-    /** The file was TRUNCATED. Same story. */
     @Test
     public void aTruncatedRegionIsNotHeld() throws IOException {
         setUpStore();
@@ -151,7 +147,6 @@ public class CsLodManifestTest {
         assertFalse(manifest.holds(this.root.resolve(DIM), entry(0, 0, 999L, 100L)));
     }
 
-    /** A zero token is the server declining to describe the region. We never vouch for one. */
     @Test
     public void aZeroTokenIsNeverHeld() throws IOException {
         setUpStore();
@@ -162,7 +157,6 @@ public class CsLodManifestTest {
         assertFalse(manifest.holds(this.root.resolve(DIM), entry(0, 0, 0L, 100L)));
     }
 
-    /** A traversal attempt in the dimension id is refused before it becomes a path. */
     @Test
     public void aMalformedDimensionIsRefused() throws IOException {
         setUpStore();
@@ -173,10 +167,6 @@ public class CsLodManifestTest {
 
     // ------------------------------------------------------------------ fold() -- the sync compare
 
-    /**
-     * THE SYNC, in miniature. We hold everything the server last described -> our fold equals the server's,
-     * and the poll is free.
-     */
     @Test
     public void holdingEverythingFoldsToTheServersOwnAnswer() throws IOException {
         setUpStore();
@@ -203,7 +193,6 @@ public class CsLodManifestTest {
         assertEquals("nothing changed -> no index, no fetch", server, ours.aggregate());
     }
 
-    /** THE SERVER GREW. It advertises a region we have never seen -> we disagree, and pull an index. */
     @Test
     public void aRegionWeHaveNeverSeenMakesUsDisagree() throws IOException {
         setUpStore();
@@ -220,7 +209,6 @@ public class CsLodManifestTest {
         assertNotEquals(2, ours.count());
     }
 
-    /** THE CLIENT LOST REGIONS. Delete one from disk -> our count falls and the aggregate moves. */
     @Test
     public void deletingARegionFromOurOwnStoreMakesUsDisagree() throws IOException {
         setUpStore();
@@ -243,7 +231,6 @@ public class CsLodManifestTest {
         assertNotEquals(before.aggregate(), after.aggregate());
     }
 
-    /** A REGION CHANGED. The server's token moved -> ours stops contributing -> we disagree. */
     @Test
     public void aChangedRegionMakesUsDisagree() throws IOException {
         setUpStore();

@@ -29,20 +29,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Captures which structure (and chunk) is currently being placed, so that worldgen faults raised
- * deep inside placement - notably the vanilla "Block-attached entity at invalid position" error,
- * intercepted by {@link BlockAttachedEntityMixin} - can be attributed to the owning datapack/mod.
- * <p>
- * {@code StructureStart.placeInChunk} runs synchronously on the worldgen worker thread and all
- * piece/entity placement happens within it, so a ThreadLocal pushed at HEAD and popped at RETURN
- * is live for every fault that fires during the placement.
+ * Captures which structure (and chunk) is being placed, so worldgen faults raised deep inside
+ * placement - notably the "Block-attached entity at invalid position" error intercepted by
+ * {@link BlockAttachedEntityMixin} - can be attributed to the owning datapack/mod.
+ * {@code placeInChunk} runs synchronously on the worldgen worker thread and all piece/entity
+ * placement happens within it, so a ThreadLocal pushed at HEAD and popped at RETURN is live for
+ * every fault fired during the placement.
  *
- * <p>COG DRIFT: the structure-key type is resources.ResourceLocation (&lt;=1.21.10) vs
- * resources.Identifier (1.21.11/26), and ChunkPos exposes x/z as fields (&lt;=1.21.10) vs methods
- * x()/z() (1.21.11/26), and the RegistryAccess fetch is registryOrThrow (ancient+transitional,
- * <=1.21.1) vs lookupOrThrow (modern, >=1.21.4) -- on the older lines lookupOrThrow returns a
- * RegistryLookup, not a Registry, so the method name itself must switch. All Cog-emitted so one
- * source compiles on every runtime.
+ * <p>COG DRIFT: structure-key type ResourceLocation (&lt;=1.21.10) vs Identifier (1.21.11/26);
+ * ChunkPos x/z as fields (&lt;=1.21.10) vs methods x()/z(); and registryOrThrow (&lt;=1.21.1) vs
+ * lookupOrThrow (&gt;=1.21.4) -- the name must switch because on the older lines lookupOrThrow
+ * returns a RegistryLookup, not a Registry. All Cog-emitted.
  */
 @Mixin(StructureStart.class)
 public abstract class StructureStartMixin {

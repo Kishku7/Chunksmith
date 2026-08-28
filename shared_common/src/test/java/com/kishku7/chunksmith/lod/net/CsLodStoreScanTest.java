@@ -59,7 +59,6 @@ public class CsLodStoreScanTest {
         assertFalse(CsLodStoreScan.hasData(temp.newFile("minecraft_overworld").toPath(), settled()));
     }
 
-    /** The original bug, in one assertion: the pregen has made the folder but not yet written into it. */
     @Test
     public void anEmptyDimensionDirectoryIsNotServable() throws IOException {
         final Path dir = temp.newFolder("minecraft_overworld").toPath();
@@ -68,7 +67,6 @@ public class CsLodStoreScanTest {
                 CsLodStoreScan.hasData(dir, settled()));
     }
 
-    /** A half-written region is not a region. The client writes .part and moves it into place when whole. */
     @Test
     public void aPartialRegionIsNotServable() throws IOException {
         final Path dir = temp.newFolder("minecraft_overworld").toPath();
@@ -77,10 +75,6 @@ public class CsLodStoreScanTest {
         assertFalse(CsLodStoreScan.hasData(dir, settled()));
     }
 
-    /**
-     * The region the pregen is writing RIGHT NOW is not servable, even though it exists and has bytes in it.
-     * This is the EOF the notification would otherwise hand every player.
-     */
     @Test
     public void aRegionTheWriterIsStillTouchingIsNotServable() throws IOException {
         final Path dir = temp.newFolder("minecraft_overworld").toPath();
@@ -99,7 +93,6 @@ public class CsLodStoreScanTest {
         assertTrue(CsLodStoreScan.hasData(dir, justWritten + CsLodStoreScan.SETTLE_MILLIS));
     }
 
-    /** And the transition itself: the same directory, one finished region later. */
     @Test
     public void oneFinishedRegionFileMakesItServable() throws IOException {
         final Path dir = temp.newFolder("minecraft_overworld").toPath();
@@ -125,7 +118,6 @@ public class CsLodStoreScanTest {
                 CsLodStoreScan.servable(List.of(overworld, nether, end), settled()));
     }
 
-    /** A store whose only region is still being written reads as "nothing to serve yet" -- correctly. */
     @Test
     public void servableSkipsADimensionWhoseOnlyRegionIsStillBeingWritten() throws IOException {
         final Path overworld = temp.newFolder("minecraft_overworld").toPath();
@@ -138,7 +130,6 @@ public class CsLodStoreScanTest {
                 CsLodStoreScan.servable(List.of(overworld), justWritten + CsLodStoreScan.SETTLE_MILLIS));
     }
 
-    /** A region that is re-written (a re-run filling holes) goes hot again, then settles again. */
     @Test
     public void aRewrittenRegionGoesHotAgainAndThenSettles() throws IOException {
         final Path dir = temp.newFolder("minecraft_overworld").toPath();

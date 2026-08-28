@@ -20,28 +20,17 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 /**
  * Exposes IOWorker internals used by the worldgen entity-unload fix.
  *
- * <p>COG DRIFT (AXIS A -- IOWorker executor primitive, drift matrix section 2b): the single-thread
- * executor that owns ALL of the worker's mutable state (pendingWrites + the RegionFileStorage region
- * cache) changed shape at MC 1.21.4.
- * <ul>
- *   <li>LEGACY (1.20.1 .. 1.21.3): field {@code mailbox}, a
- *       {@code ProcessorMailbox<StrictQueue.IntRunnable>}, and {@code pendingWrites} declared as a
- *       plain {@code Map}.</li>
- *   <li>MODERN (1.21.4 .. 26): field {@code consecutiveExecutor}, a
- *       {@code PriorityConsecutiveExecutor}, and {@code pendingWrites} a {@code SequencedMap}.</li>
- * </ul>
- * The entity-unload fix submits its "does this chunk have persisted entity data?" probe onto this
- * executor so the check observes a consistent snapshot -- serialized against in-flight stores --
+ * <p>COG DRIFT (AXIS A, drift matrix 2b): the single-thread executor owning ALL of the worker's
+ * mutable state (pendingWrites + the RegionFileStorage region cache) changed at MC 1.21.4 --
+ * {@code mailbox}/{@code ProcessorMailbox<StrictQueue.IntRunnable>}/{@code Map} on 1.20.1 ..
+ * 1.21.3, {@code consecutiveExecutor}/{@code PriorityConsecutiveExecutor}/{@code SequencedMap} on
+ * 1.21.4 .. 26. The entity probe is submitted onto this executor so it sees a consistent snapshot
  * instead of racing the writer thread.
  *
- * <p>{@code pendingWrites} holds chunk writes queued-but-not-yet-flushed. It is a plain
- * (non-thread-safe) map mutated solely on the executor thread; only ever touch it from inside an
- * executor task. The fix calls {@code containsKey} there to catch entities that are persisted-but-not-
- * yet-on-disk (the case a raw region-file read would miss). Its {@code size()} is also read elsewhere
- * for write backpressure.
- *
- * <p>{@code storage} is the RegionFileStorage the worker writes through (byte-stable across every
- * version); the fix uses it only to resolve the entity-region folder Path (read-only metadata).
+ * <p>{@code pendingWrites} is a plain non-thread-safe map mutated solely on the executor thread:
+ * only ever touch it from inside an executor task. {@code containsKey} there catches entities
+ * persisted-but-not-yet-on-disk, which a raw region-file read would miss. {@code storage} is
+ * byte-stable across every version; used only to resolve the entity-region folder Path.
  */
 @Mixin(IOWorker.class)
 public interface IOWorkerAccessor {

@@ -20,7 +20,6 @@ import static org.junit.Assert.assertTrue;
  */
 public class SettleSweepTest {
 
-    /** Fill a rectangle of chunk coordinates into the sweep as generated. */
     private static void fill(final SettleSweep sweep, final int x0, final int z0,
                              final int x1, final int z1) {
         for (int x = x0; x <= x1; x++) {
@@ -58,7 +57,6 @@ public class SettleSweepTest {
         assertFalse("one missing chunk disqualifies the whole window", holed.windowGenerated(0, 0));
     }
 
-    /** An empty area yields nothing at all rather than stopping everywhere. */
     @Test
     public void nothingIsIssuedBeforeAnythingIsGenerated() {
         final SettleSweep sweep = new SettleSweep(0, 0, 20, 20, 3);
@@ -66,7 +64,6 @@ public class SettleSweepTest {
         assertEquals(0, sweep.stopsIssued());
     }
 
-    /** Once the ground is there, every stop is issued exactly once and the grid completes. */
     @Test
     public void everyStopIsIssuedOnceAndThenTheSweepIsComplete() {
         final SettleSweep sweep = new SettleSweep(0, 0, 12, 12, 3);
@@ -80,12 +77,6 @@ public class SettleSweepTest {
         assertNull("a completed sweep hands out nothing more", sweep.nextStop());
     }
 
-    /**
-     * The windows between them cover every chunk of the area.
-     *
-     * <p>This is the property that makes a grid stride legitimate: visiting one chunk in {@code radius}
-     * is only acceptable if no chunk is left outside every window.
-     */
     @Test
     public void theStopsCoverTheWholeArea() {
         final int w = 20;
@@ -112,10 +103,6 @@ public class SettleSweepTest {
         }
     }
 
-    /**
-     * The sweep trails the front: ground already finished becomes eligible while the far side is still
-     * being generated, which is what makes structures appear DURING a run instead of after it.
-     */
     @Test
     public void finishedGroundIsSweptWhileTheRestIsStillGenerating() {
         final SettleSweep sweep = new SettleSweep(0, 0, 40, 10, 3);
@@ -138,10 +125,6 @@ public class SettleSweepTest {
         assertNotNull("the east becomes eligible once it exists", sweep.nextStop());
     }
 
-    /**
-     * A window at the edge of the task legitimately hangs over ground nobody asked for. Waiting for
-     * chunks that will never be generated would strand every edge stop forever.
-     */
     @Test
     public void theEdgeOfTheTaskDoesNotStrandStops() {
         final SettleSweep sweep = new SettleSweep(0, 0, 9, 9, 4);
@@ -152,7 +135,6 @@ public class SettleSweepTest {
         assertTrue(sweep.isComplete());
     }
 
-    /** Negative bounds work -- half of any centred pregen is negative. */
     @Test
     public void negativeBoundsAreHandled() {
         final SettleSweep sweep = new SettleSweep(-20, -20, 12, 12, 3);
@@ -166,7 +148,6 @@ public class SettleSweepTest {
         }
     }
 
-    /** A degenerate task must not divide by zero or hand out phantom stops. */
     @Test
     public void anEmptyAreaIsHarmless() {
         final SettleSweep sweep = new SettleSweep(0, 0, 0, 0, 5);
@@ -175,7 +156,6 @@ public class SettleSweepTest {
         assertTrue(sweep.isComplete());
     }
 
-    /** Radius is clamped to at least one, so a nonsense config cannot make the grid infinite. */
     @Test
     public void radiusIsAtLeastOne() {
         assertEquals(1, new SettleSweep(0, 0, 4, 4, 0).radius());

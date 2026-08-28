@@ -17,14 +17,12 @@ import static org.junit.Assert.assertTrue;
  */
 public class CsLodRegionHashTest {
 
-    /** The same region, unchanged, is the same token. Otherwise every re-join re-downloads the world. */
     @Test
     public void anUnchangedRegionKeepsItsToken() {
         assertEquals(CsLodRegionHash.of(1_700_000_000_000L, 4_812_345L),
                 CsLodRegionHash.of(1_700_000_000_000L, 4_812_345L));
     }
 
-    /** A rewritten region has a new mtime. That alone must move the token. */
     @Test
     public void aNewMtimeMovesTheToken() {
         final long size = 4_812_345L;
@@ -32,7 +30,6 @@ public class CsLodRegionHashTest {
                 CsLodRegionHash.of(1_700_000_000_001L, size));
     }
 
-    /** A grown region has a new size -- the pregen's normal case. That alone must move the token too. */
     @Test
     public void aNewSizeMovesTheToken() {
         final long mtime = 1_700_000_000_000L;
@@ -40,13 +37,6 @@ public class CsLodRegionHashTest {
                 CsLodRegionHash.of(mtime, 4_812_346L));
     }
 
-    /**
-     * The two fields must not be able to cancel each other out.
-     *
-     * <p>A naive {@code mtime ^ size} lets a region written one millisecond later and one byte shorter land
-     * on the token of the region it replaced -- and the client would keep the stale copy forever, with no
-     * mechanism that could ever correct it. Every field goes through the avalanche for this reason.
-     */
     @Test
     public void mtimeAndSizeCannotCancel() {
         final long mtime = 1_700_000_000_000L;
@@ -61,10 +51,6 @@ public class CsLodRegionHashTest {
         assertNotEquals(CsLodRegionHash.of(4321L, 1234L), CsLodRegionHash.of(1234L, 4321L));
     }
 
-    /**
-     * The realistic worst case: a pregen writing one region per second, each a little bigger than the last,
-     * for an hour. Every single one must be distinguishable from every other.
-     */
     @Test
     public void aPregensWholeRunOfRegionsIsCollisionFree() {
         final Set<Long> tokens = new HashSet<>();
@@ -78,7 +64,6 @@ public class CsLodRegionHashTest {
         assertEquals("3600 consecutive (mtime, size) pairs, no collisions", 3600, tokens.size());
     }
 
-    /** Adjacent milliseconds at an identical size must avalanche, not sit next to each other. */
     @Test
     public void adjacentInputsProduceUnrelatedTokens() {
         final long a = CsLodRegionHash.of(1_700_000_000_000L, 4_000_000L);
@@ -87,7 +72,6 @@ public class CsLodRegionHashTest {
                 Long.bitCount(a ^ b) > 16);
     }
 
-    /** Degenerate inputs must not be special-cased into a shared value. */
     @Test
     public void zeroesAreNotSpecial() {
         assertNotEquals(CsLodRegionHash.of(0L, 0L), CsLodRegionHash.of(0L, 1L));

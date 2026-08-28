@@ -26,15 +26,13 @@ import java.util.function.Supplier;
 
 /**
  * Captures vanilla "Detected setBlock in a far chunk" worldgen overreaches and routes them to
- * {@link WorldgenOverreachReporter} (aggregated single-line reports), while SUPPRESSING the
- * vanilla per-block log spam at its source. The block is still refused exactly as vanilla does
- * (ensureCanWrite still returns false) - only the logging is intercepted.
+ * {@link WorldgenOverreachReporter} as aggregated single-line reports. The block is still refused
+ * exactly as vanilla does (ensureCanWrite still returns false) - only the logging is intercepted.
  *
- * <p>COG DRIFT: the far-write log call is Util.logAndPauseIfInIde(String), whose owning class
- * moved package at 1.21.11 (net.minecraft.Util -> net.minecraft.util.Util). That is a STRING inside
- * a mixin annotation, so a reflection facade cannot touch it; the @At target descriptor is emitted
- * by Cog (compat.util_at_target). The dimension-id accessor (location()/identifier()) and the
- * ChunkPos coord access (field x/z vs method x()/z()) also drift and are Cog-emitted.
+ * <p>COG DRIFT: the far-write log call is Util.logAndPauseIfInIde(String), whose owning class moved
+ * package at 1.21.11 (net.minecraft.Util -> net.minecraft.util.Util). That is a STRING inside a
+ * mixin annotation, so a reflection facade cannot touch it; the @At target descriptor is Cog-emitted
+ * (compat.util_at_target), as are the dimension-id accessor and the ChunkPos coord access.
  */
 @Mixin(WorldGenRegion.class)
 public abstract class WorldGenRegionMixin {
@@ -72,8 +70,6 @@ public abstract class WorldGenRegionMixin {
             //[[[end]]]
     )
     private void chunksmith$captureFarWrite(final String message, final BlockPos pos) {
-        // Replaces the vanilla log call: record structured data, emit nothing here (spam gone).
-        // ensureCanWrite still returns false on its own - only the log line is intercepted.
         try {
             final String feature = this.currentlyGenerating == null ? null : String.valueOf(this.currentlyGenerating.get());
             //[[[cog

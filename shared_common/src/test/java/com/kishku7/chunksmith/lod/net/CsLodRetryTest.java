@@ -31,7 +31,7 @@ public class CsLodRetryTest {
         assertTrue(retry.due(16_000L));
     }
 
-    /** The shipped curve: 15s, 30s, 60s, then 120s forever. */
+    // 15s, 30s, 60s, then 120s forever.
     @Test
     public void theDelayDoublesUpToTheCeilingAndStaysThere() {
         final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
@@ -53,7 +53,6 @@ public class CsLodRetryTest {
         assertEquals(103, retry.attempts());
     }
 
-    /** Each attempt restarts the wait -- a retry may never fire twice on one deadline. */
     @Test
     public void anAttemptRestartsTheClock() {
         final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
@@ -79,7 +78,6 @@ public class CsLodRetryTest {
         assertEquals(2, retry.attempts());
     }
 
-    /** The store turned up (or we disconnected): back to square one, so the next session starts fresh. */
     @Test
     public void resetPutsItBackToTheFirstDelay() {
         final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);

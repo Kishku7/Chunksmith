@@ -10,22 +10,14 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
- * Exposes the per-world entity store's backing storage, from which the entity-region folder is
- * reached (worker -> RegionFileStorage -> folder) so the entity-unload fix can cheaply tell whether
- * a chunk has any persisted entity data on disk WITHOUT the full async read vanilla otherwise does.
+ * Exposes the per-world entity store's backing storage, the route (worker -> RegionFileStorage ->
+ * folder) by which the entity-unload fix tells whether a chunk has persisted entity data on disk
+ * WITHOUT the full async read vanilla otherwise does.
  *
- * <p>COG DRIFT (AXIS B -- storage layering, drift matrix section 2a): the SimpleRegionStorage layer
- * landed at MC 1.20.5.
- * <ul>
- *   <li>ANCIENT (1.20.1, 1.20.4): EntityStorage holds its {@code IOWorker worker} DIRECTLY -- there
- *       is no SimpleRegionStorage. The accessor targets {@code worker} and returns the IOWorker; the
- *       PESM fix casts that IOWorker straight to {@link IOWorkerAccessor}.</li>
- *   <li>TRANSITIONAL .. 26: EntityStorage holds a {@code SimpleRegionStorage simpleRegionStorage};
- *       the fix reaches the worker via {@link SimpleRegionStorageAccessor}. On 1.20.1/1.20.4 the
- *       SimpleRegionStorage class does not even exist.</li>
- * </ul>
- * Cog emits the correct target field, return type, import and getter name per version
- * (compat.entity_storage_accessor_*).
+ * <p>COG DRIFT (AXIS B, drift matrix 2a): SimpleRegionStorage landed at MC 1.20.5. On 1.20.1/1.20.4
+ * it does not exist -- EntityStorage holds its {@code IOWorker worker} directly, so the accessor
+ * targets {@code worker} and the fix casts straight to {@link IOWorkerAccessor}. From 1.20.6 on it
+ * holds a {@code SimpleRegionStorage} and the worker comes via {@link SimpleRegionStorageAccessor}.
  */
 @Mixin(EntityStorage.class)
 public interface EntityStorageAccessor {

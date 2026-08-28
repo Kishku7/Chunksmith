@@ -53,7 +53,6 @@ public class ChunkSettleWindowTest {
         assertFalse(window.neighbourhoodComplete(0, 0));
     }
 
-    /** Once the whole 3x3 exists, the centre is safe to let go. */
     @Test
     public void aChunkIsReleasedWhenItsNeighbourhoodCloses() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
@@ -71,7 +70,6 @@ public class ChunkSettleWindowTest {
         assertEquals(8, window.heldCount());
     }
 
-    /** The delay is what gives the other mod's tick a turn; before it elapses, nothing moves. */
     @Test
     public void theDelayHoldsTheChunkPastNeighbourhoodCompletion() {
         final ChunkSettleWindow window = new ChunkSettleWindow(40L);
@@ -93,12 +91,6 @@ public class ChunkSettleWindowTest {
         assertTrue("due at exactly now + delay", rec.has(0, 0));
     }
 
-    /**
-     * A sweep across a strip releases the trailing column and keeps only the frontier.
-     *
-     * <p>This is the property that makes the window safe to leave on by default: what is held is the edge
-     * of the sweep, not a growing pile.
-     */
     @Test
     public void onlyTheFrontierIsHeldDuringASweep() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
@@ -119,7 +111,6 @@ public class ChunkSettleWindowTest {
                 window.heldCount() <= 21);
     }
 
-    /** Every ticket must come back, even the ones whose neighbours never arrived. */
     @Test
     public void drainReleasesTheWholeFrontier() {
         final ChunkSettleWindow window = new ChunkSettleWindow(1000L);
@@ -137,7 +128,6 @@ public class ChunkSettleWindowTest {
         assertEquals(5L, window.releasedCount());
     }
 
-    /** A release must run exactly once -- twice would drop a ticket that is no longer ours. */
     @Test
     public void aChunkOfferedTwiceIsReleasedOnce() {
         final ChunkSettleWindow window = new ChunkSettleWindow(0L);
@@ -151,7 +141,6 @@ public class ChunkSettleWindowTest {
         assertEquals(1L, window.releasedCount());
     }
 
-    /** Negative coordinates pack and unpack intact -- half of any centred pregen is negative. */
     @Test
     public void negativeCoordinatesAreDistinct() {
         assertFalse(ChunkSettleWindow.key(-1, 0) == ChunkSettleWindow.key(0, -1));
@@ -167,7 +156,6 @@ public class ChunkSettleWindowTest {
         assertTrue(rec.has(-4, -4));
     }
 
-    /** Drain on an empty window is a no-op, not a crash -- a cancelled task may never have offered. */
     @Test
     public void drainOnAnEmptyWindowIsHarmless() {
         final ChunkSettleWindow window = new ChunkSettleWindow(20L);

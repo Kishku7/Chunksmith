@@ -65,7 +65,6 @@ public class CsLodSummaryTest {
         assertEquals(0L, CsLodSummary.Snapshot.EMPTY.aggregate());
     }
 
-    /** The pregen settled a new region. The client must notice without being told. */
     @Test
     public void anAddedRegionMovesTheAggregate() {
         final List<R> grown = store();
@@ -73,7 +72,6 @@ public class CsLodSummaryTest {
         assertNotEquals(fold(store()), fold(grown));
     }
 
-    /** The player deleted regions from their own store. The client must notice that too. */
     @Test
     public void aRemovedRegionMovesTheAggregate() {
         final List<R> lost = store();
@@ -81,7 +79,6 @@ public class CsLodSummaryTest {
         assertNotEquals(fold(store()), fold(lost));
     }
 
-    /** The pregen GREW a region we already hold -- the case the injector used to throw away. */
     @Test
     public void aChangedRegionMovesTheAggregate() {
         final List<R> changed = store();
@@ -89,12 +86,6 @@ public class CsLodSummaryTest {
         assertNotEquals(fold(store()), fold(changed));
     }
 
-    /**
-     * The same token at DIFFERENT coordinates is a different set.
-     *
-     * <p>This is why the token is bound to (x, z) before it is XORed. A plain XOR of hashes would call these
-     * two stores identical, and a region that had moved would be invisible.
-     */
     @Test
     public void aMovedRegionMovesTheAggregate() {
         final List<R> moved = store();
@@ -102,20 +93,12 @@ public class CsLodSummaryTest {
         assertNotEquals(fold(store()), fold(moved));
     }
 
-    /**
-     * Two regions with the SAME token must not cancel each other to zero.
-     *
-     * <p>A plain XOR of raw hashes does exactly that: {@code h ^ h == 0}, so a store holding two identical
-     * regions would fold to the same value as an empty one. Binding each to its coordinates first is what
-     * stops it.
-     */
     @Test
     public void duplicateTokensDoNotCancel() {
         final List<R> twins = List.of(new R(0, 0, 0x1234L), new R(5, 5, 0x1234L));
         assertNotEquals("two regions with the same token are not an empty store", 0L, fold(twins));
     }
 
-    /** Negative region coordinates are ordinary coordinates and must not alias positive ones. */
     @Test
     public void negativeCoordinatesDoNotAlias() {
         assertNotEquals(CsLodSummary.token(-1, -1, 7L), CsLodSummary.token(1, 1, 7L));

@@ -32,7 +32,6 @@ public class GsonConfigSettleTest {
         return folder.newFolder("chunksmith").toPath().resolve("config.json");
     }
 
-    /** Defaults are the documented ones: on, 40 ticks, radius 7. */
     @Test
     public void freshConfigCarriesTheDocumentedDefaults() throws IOException {
         final GsonConfig config = new GsonConfig(configPath());
@@ -43,7 +42,6 @@ public class GsonConfigSettleTest {
         assertTrue("a real platform supports settle", config.isPregenSettleSupported());
     }
 
-    /** A fresh config must WRITE the keys, or nobody can discover them by reading the file. */
     @Test
     public void freshConfigIsWrittenWithTheSettleKeys() throws IOException {
         final Path path = configPath();
@@ -54,7 +52,6 @@ public class GsonConfigSettleTest {
         assertTrue(written.contains("pregenSettleRadius"));
     }
 
-    /** The whole point of the command: the change is still there after a restart. */
     @Test
     public void settingsSurviveAReload() throws IOException {
         final Path path = configPath();
@@ -69,13 +66,6 @@ public class GsonConfigSettleTest {
         assertEquals(11, reloaded.getPregenSettleRadius());
     }
 
-    /**
-     * Out-of-range values are clamped ON WRITE, not just on read.
-     *
-     * <p>If the setter stored the raw value and only the getter clamped it, the file would hold a number
-     * the mod refuses to honour -- and every later reader (a support request, a diff, the operator) would
-     * see a setting that is not actually in force.
-     */
     @Test
     public void outOfRangeValuesAreClampedBeforeTheyReachTheFile() throws IOException {
         final Path path = configPath();
@@ -98,11 +88,6 @@ public class GsonConfigSettleTest {
         assertEquals(0L, reloaded.getPregenSettleDelayTicks());
     }
 
-    /**
-     * A config written by an older Chunksmith has none of these keys. It must read as the defaults
-     * rather than as false/0/0 -- that is the difference between "upgraded quietly" and "the feature
-     * silently turned itself off for every existing user".
-     */
     @Test
     public void aConfigFromAnEarlierVersionReadsAsTheDefaults() throws IOException {
         final Path path = configPath();

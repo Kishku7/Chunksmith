@@ -22,7 +22,7 @@ public class CsLodSummaryWireTest {
     /** The dimension id every normal server sends: 19 characters. */
     private static final String OVERWORLD = "minecraft_overworld";
 
-    /** THE COST OF ASKING. id (1) + UTF length prefix (2) + "minecraft_overworld" (19) = 22 bytes. */
+    // id (1) + UTF length prefix (2) + "minecraft_overworld" (19) = 22 bytes.
     @Test
     public void askingCosts22Bytes() throws IOException {
         final byte[] request = CsLodMessages.requestSummary(OVERWORLD);
@@ -30,7 +30,7 @@ public class CsLodSummaryWireTest {
         assertEquals(CsLodProtocol.C2S_REQUEST_SUMMARY, request[0]);
     }
 
-    /** THE COST OF ANSWERING. id (1) + UTF (2 + 19) + count (4) + aggregate (8) = 34 bytes. */
+    // id (1) + UTF (2 + 19) + count (4) + aggregate (8) = 34 bytes.
     @Test
     public void answeringCosts34Bytes() throws IOException {
         final byte[] reply = CsLodMessages.encode(
@@ -71,7 +71,6 @@ public class CsLodSummaryWireTest {
         }
     }
 
-    /** An empty store folds to (0, 0) and that must survive the wire like anything else. */
     @Test
     public void anEmptySummaryRoundTrips() throws IOException {
         final byte[] wire = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 0, 0L));
@@ -83,7 +82,6 @@ public class CsLodSummaryWireTest {
         }
     }
 
-    /** A count off the wire is still range-checked, even though nothing is allocated from it. */
     @Test
     public void aNonsenseCountIsRefused() throws IOException {
         final byte[] wire = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 0, 0L));
@@ -102,7 +100,6 @@ public class CsLodSummaryWireTest {
         }
     }
 
-    /** v2. The bump is deliberate (see CsLodProtocol.VERSION) and is pinned so it cannot drift back. */
     @Test
     public void theProtocolIsV2() {
         assertEquals(2, CsLodProtocol.VERSION);

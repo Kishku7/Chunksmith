@@ -35,7 +35,6 @@ public class CsLodClientConfigTest {
         assertEquals(30, CsLodClientConfig.MIN_SYNC_SECONDS);
     }
 
-    /** THE CLAMP. Anything under thirty seconds becomes thirty seconds. */
     @Test
     public void anythingBelowThirtySecondsIsClampedToThirty() {
         assertEquals(30, CsLodClientConfig.clamp(29));
@@ -46,7 +45,6 @@ public class CsLodClientConfigTest {
         assertEquals(30, CsLodClientConfig.clamp(Integer.MIN_VALUE));
     }
 
-    /** ...and the clamp is a FLOOR, not a rewrite. Legal values pass through untouched. */
     @Test
     public void legalValuesAreNotTouched() {
         assertEquals(30, CsLodClientConfig.clamp(30));
@@ -57,7 +55,6 @@ public class CsLodClientConfigTest {
                 Integer.MAX_VALUE, CsLodClientConfig.clamp(Integer.MAX_VALUE));
     }
 
-    /** A missing config file is written with the defaults, and the defaults are what we then use. */
     @Test
     public void aMissingConfigIsWrittenWithTheDefaults() throws IOException {
         final Path dir = temp.newFolder("config").toPath();
@@ -72,7 +69,6 @@ public class CsLodClientConfigTest {
                 Files.isRegularFile(dir.resolve(CsLodClientConfig.FILE_NAME)));
     }
 
-    /** A CONFIGURED VALUE BELOW THE FLOOR IS CLAMPED -- read from a real file, through the real loader. */
     @Test
     public void aConfiguredValueBelowTheFloorIsClamped() throws IOException {
         final Path dir = write("sync-interval-seconds=5");
@@ -94,7 +90,6 @@ public class CsLodClientConfigTest {
         assertEquals(45_000L, CsLodClientConfig.syncIntervalMillis());
     }
 
-    /** Garbage in the file must never be the reason a player gets no terrain. */
     @Test
     public void anUnparseableValueFallsBackToTheDefault() throws IOException {
         final Path dir = write("sync-interval-seconds=soon");
@@ -114,7 +109,6 @@ public class CsLodClientConfigTest {
         assertEquals(300, CsLodClientConfig.syncIntervalSeconds());
     }
 
-    /** There is no way to obtain an unclamped interval, whatever the file said. */
     @Test
     public void theAccessorsCanNeverReturnLessThanTheFloor() throws IOException {
         for (final String value : new String[]{"0", "1", "-1", "-2147483648", "29"}) {
