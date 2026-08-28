@@ -9,17 +9,17 @@ import java.util.function.Consumer;
 public interface ChunksmithAPI {
     int version();
 
-    boolean isRunning(final String world);
+    boolean isRunning(String world);
 
-    boolean startTask(final String world, final String shape, final double centerX, final double centerZ, final double radiusX, final double radiusZ, final String pattern);
+    boolean startTask(String world, String shape, double centerX, double centerZ, double radiusX, double radiusZ, String pattern);
 
-    boolean pauseTask(final String world);
+    boolean pauseTask(String world);
 
-    boolean continueTask(final String world);
+    boolean continueTask(String world);
 
-    boolean cancelTask(final String world);
+    boolean cancelTask(String world);
 
-    void onGenerationProgress(final Consumer<GenerationProgressEvent> listener);
+    void onGenerationProgress(Consumer<GenerationProgressEvent> listener);
 
-    void onGenerationComplete(final Consumer<GenerationCompleteEvent> listener);
+    void onGenerationComplete(Consumer<GenerationCompleteEvent> listener);
 }

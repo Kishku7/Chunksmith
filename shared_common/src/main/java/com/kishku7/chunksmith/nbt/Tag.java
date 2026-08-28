@@ -8,11 +8,11 @@ public abstract class Tag {
     protected static final int INDENT = 2;
     protected final String name;
 
-    protected Tag(final String name) {
+    protected Tag(String name) {
         this.name = name;
     }
 
-    public static Tag load(final DataInput input) throws IOException {
+    public static Tag load(DataInput input) throws IOException {
         final byte type = input.readByte();
         if (TagType.END == type) {
             return new EndTag();
@@ -23,7 +23,7 @@ public abstract class Tag {
         return tag;
     }
 
-    public static byte pass(final DataInput input) throws IOException {
+    public static byte pass(DataInput input) throws IOException {
         final byte type = input.readByte();
         if (TagType.END == type) {
             return type;
@@ -34,7 +34,7 @@ public abstract class Tag {
         return type;
     }
 
-    public static void save(final DataOutput output, final Tag tag) throws IOException {
+    public static void save(DataOutput output, Tag tag) throws IOException {
         final byte type = tag.type();
         output.writeByte(type);
         if (TagType.END == type) {
@@ -44,7 +44,7 @@ public abstract class Tag {
         tag.write(output);
     }
 
-    public static Tag find(final DataInput input, final byte type, final String name) throws IOException {
+    public static Tag find(DataInput input, byte type, String name) throws IOException {
         final byte t = input.readByte();
         if (TagType.END == t) {
             return new EndTag();
@@ -58,7 +58,7 @@ public abstract class Tag {
         return tag.search(input, type, name);
     }
 
-    public static Tag create(final byte type, final String name) {
+    public static Tag create(byte type, String name) {
         return switch (type) {
             case TagType.END -> new EndTag();
             case TagType.BYTE -> new ByteTag(name);
@@ -81,19 +81,19 @@ public abstract class Tag {
         return name;
     }
 
-    abstract void read(final DataInput input) throws IOException;
+    abstract void read(DataInput input) throws IOException;
 
-    abstract void skip(final DataInput input) throws IOException;
+    abstract void skip(DataInput input) throws IOException;
 
-    abstract void write(final DataOutput output) throws IOException;
+    abstract void write(DataOutput output) throws IOException;
 
-    abstract Tag search(final DataInput input, final byte type, final String name) throws IOException;
+    abstract Tag search(DataInput input, byte type, String name) throws IOException;
 
     abstract byte type();
 
     abstract String typeName();
 
-    abstract String print(final int level);
+    abstract String print(int level);
 
     @Override
     public String toString() {

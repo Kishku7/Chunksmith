@@ -22,11 +22,11 @@ public final class RegionFile {
     private final Set<Chunk> chunks = new HashSet<>();
     private final Map<ChunkPos, Chunk> chunkMap = new HashMap<>();
 
-    public RegionFile(final File file) {
+    public RegionFile(File file) {
         this(file, null);
     }
 
-    public RegionFile(final File file, final ChunkFilter filter) {
+    public RegionFile(File file, ChunkFilter filter) {
         try (final RandomAccessFile region = new RandomAccessFile(file, "r")) {
             if (region.length() < 4096) {
                 return;
@@ -46,7 +46,7 @@ public final class RegionFile {
             try {
                 regionX = Integer.parseInt(regionCoordinates.substring(0, separator));
                 regionZ = Integer.parseInt(regionCoordinates.substring(separator + 1));
-            } catch (final NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 return;
             }
             final int[] offsetTable = new int[ENTRIES];
@@ -100,7 +100,7 @@ public final class RegionFile {
         return chunks;
     }
 
-    public Optional<Chunk> getChunk(final int x, final int z) {
+    public Optional<Chunk> getChunk(int x, int z) {
         return Optional.ofNullable(chunkMap.get(ChunkPos.of(x, z)));
     }
 }

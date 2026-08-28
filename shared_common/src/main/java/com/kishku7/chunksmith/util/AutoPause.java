@@ -13,8 +13,6 @@ package com.kishku7.chunksmith.util;
  * <p>Both directions need patience: pausing on the first bad second would stop a run for a passing
  * autosave, and resuming on the first good second would restart it into the same wall. So each direction
  * requires the condition to hold continuously for the grace period, on one shared knob.
- *
- * <p>MC-free and clock-injectable, so the state machine is testable without a server.
  */
 public final class AutoPause {
 
@@ -31,7 +29,7 @@ public final class AutoPause {
     }
 
     /** Called when a run starts, from the config that run was created with. */
-    public static void configure(final boolean enabled, final long graceMillis) {
+    public static void configure(boolean enabled, long graceMillis) {
         AutoPause.enabled = enabled;
         AutoPause.graceMillis = Math.max(1_000L, graceMillis);
     }
@@ -52,7 +50,7 @@ public final class AutoPause {
      * warnings and generation fell to 5 chunks per second. So: either gate holding, OR the tick running
      * far past the target the throttle steers to.
      */
-    public static void noteStruggling(final boolean struggling, final long now) {
+    public static void noteStruggling(boolean struggling, long now) {
         if (!struggling) {
             gatedSince = 0L;
         } else if (gatedSince == 0L) {
@@ -61,16 +59,16 @@ public final class AutoPause {
     }
 
     /** True once generation has been held continuously for the whole grace period. */
-    public static boolean shouldPause(final long now) {
+    public static boolean shouldPause(long now) {
         return enabled && !autoPaused && gatedSince != 0L && now - gatedSince >= graceMillis;
     }
 
-    public static long strugglingSeconds(final long now) {
+    public static long strugglingSeconds(long now) {
         return gatedSince == 0L ? 0L : Math.max(0L, (now - gatedSince) / 1000L);
     }
 
     /** Record that we paused this world, so only our own pause is ever auto-resumed. */
-    public static void markAutoPaused(final String world) {
+    public static void markAutoPaused(String world) {
         autoPaused = true;
         pausedWorld = world;
         gatedSince = 0L;
@@ -86,7 +84,7 @@ public final class AutoPause {
     }
 
     /** Report whether the server currently looks well enough to carry a run. */
-    public static void noteHealthy(final boolean healthy, final long now) {
+    public static void noteHealthy(boolean healthy, long now) {
         if (!healthy) {
             healthySince = 0L;
         } else if (healthySince == 0L) {
@@ -95,7 +93,7 @@ public final class AutoPause {
     }
 
     /** True once the server has looked healthy continuously for the whole grace period. */
-    public static boolean shouldResume(final long now) {
+    public static boolean shouldResume(long now) {
         return enabled && autoPaused && healthySince != 0L && now - healthySince >= graceMillis;
     }
 

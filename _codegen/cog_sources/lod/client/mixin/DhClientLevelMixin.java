@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class DhClientLevelMixin {
 
     @Inject(method = "shouldProcessChunkUpdate", at = @At("HEAD"), cancellable = true, remap = false)
-    private void chunksmith$alwaysAcceptOurPushes(final CallbackInfoReturnable<Boolean> cir) {
+    private void chunksmith$alwaysAcceptOurPushes(CallbackInfoReturnable<Boolean> cir) {
         if (DhPushGuard.isPushing()) {
             DhPushGuard.forced();
             cir.setReturnValue(Boolean.TRUE);

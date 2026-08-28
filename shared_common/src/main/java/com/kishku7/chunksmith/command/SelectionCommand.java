@@ -13,12 +13,12 @@ import static com.kishku7.chunksmith.util.Translator.translate;
 public class SelectionCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public SelectionCommand(final Chunksmith chunky) {
+    public SelectionCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Selection current = chunky.getSelection().build();
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SELECTION);
         sender.sendMessage(TranslationKey.FORMAT_SELECTION_WORLD, current.world().getName());
@@ -34,7 +34,7 @@ public class SelectionCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

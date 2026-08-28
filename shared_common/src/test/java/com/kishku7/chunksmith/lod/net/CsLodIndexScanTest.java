@@ -46,11 +46,11 @@ public class CsLodIndexScanTest {
         return System.currentTimeMillis() + CsLodStoreScan.SETTLE_MILLIS * 10L;
     }
 
-    private static CsLodIndexScan.Request at(final int px, final int pz, final int radius) {
+    private static CsLodIndexScan.Request at(int px, int pz, int radius) {
         return new CsLodIndexScan.Request("minecraft_overworld", px, pz, radius);
     }
 
-    private Path region(final int x, final int z, final int bytes) throws IOException {
+    private Path region(int x, int z, int bytes) throws IOException {
         final Path file = temp.getRoot().toPath().resolve("r." + x + "." + z + ".cslod");
         Files.write(file, new byte[bytes]);
         return file;
@@ -224,7 +224,7 @@ public class CsLodIndexScanTest {
         assertEquals(2, regions.size());
 
         long expected = 0L;
-        for (final CsLodMessages.RegionEntry entry : regions) {
+        for (CsLodMessages.RegionEntry entry : regions) {
             expected = CsLodSummary.fold(expected, entry.regionX(), entry.regionZ(), entry.hash());
         }
         assertEquals(expected, CsLodIndexScan.aggregate(regions));

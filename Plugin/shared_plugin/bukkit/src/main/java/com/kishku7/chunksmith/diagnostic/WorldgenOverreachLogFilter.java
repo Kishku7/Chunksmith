@@ -53,7 +53,7 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
             config.getRootLogger().addFilter(filter);
             ctx.updateLoggers();
             return filter;
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return null;
         }
     }
@@ -66,19 +66,19 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
                 ctx.updateLoggers();
             }
             this.stop();
-        } catch (final Throwable ignored) {
+        } catch (Throwable ignored) {
             // best-effort
         }
     }
 
-    private Result evaluate(final Level level, final String message) {
+    private Result evaluate(Level level, String message) {
         if (level == null || message == null || !level.isMoreSpecificThan(Level.WARN)) {
             return Result.NEUTRAL;
         }
         if (message.contains(WorldgenOverreachReporter.FAR_CHUNK_MARKER)) {
             try {
                 reporter.recordFromMessage(message);
-            } catch (final Throwable ignored) {
+            } catch (Throwable ignored) {
                 // never break logging on account of the diagnostic
             }
             return Result.DENY;
@@ -86,7 +86,7 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
         if (message.contains(StructureFaultReporter.BLOCK_ATTACHED_MARKER)) {
             try {
                 StructureFaultReporter.get().recordBlockAttachedBestEffort(message);
-            } catch (final Throwable ignored) {
+            } catch (Throwable ignored) {
                 // never break logging on account of the diagnostic
             }
             return Result.DENY;
@@ -95,7 +95,7 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
     }
 
     @Override
-    public Result filter(final LogEvent event) {
+    public Result filter(LogEvent event) {
         if (event == null) {
             return Result.NEUTRAL;
         }

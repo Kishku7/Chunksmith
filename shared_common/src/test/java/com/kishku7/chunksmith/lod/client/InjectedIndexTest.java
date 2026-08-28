@@ -61,7 +61,7 @@ public class InjectedIndexTest {
         // And seeding the session set from it means those regions are not claimed again -- which is the
         // entire point: no re-decode, no re-push, no CPU spent redrawing what is already on screen.
         final InjectedRegions session = new InjectedRegions();
-        for (final long[] entry : second.entries()) {
+        for (long[] entry : second.entries()) {
             session.seed(OVERWORLD, (int) entry[0], (int) entry[1], entry[2]);
         }
         assertFalse(session.claim(OVERWORLD, 0, 0, V1));
@@ -75,7 +75,7 @@ public class InjectedIndexTest {
         index.save();
 
         final InjectedRegions session = new InjectedRegions();
-        for (final long[] entry : InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).entries()) {
+        for (long[] entry : InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).entries()) {
             session.seed(OVERWORLD, (int) entry[0], (int) entry[1], entry[2]);
         }
         assertTrue("grown region", session.claim(OVERWORLD, 2, 2, V2));

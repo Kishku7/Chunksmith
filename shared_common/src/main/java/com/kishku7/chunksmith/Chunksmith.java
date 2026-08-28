@@ -68,7 +68,7 @@ public final class Chunksmith {
     private final Map<String, ChunksmithCommand> commands;
     private final ChunksmithAPI api;
 
-    public Chunksmith(final Server server, final Config config) {
+    public Chunksmith(Server server, Config config) {
         this.server = server;
         this.config = config;
         this.taskLoader = new TaskLoader(this);
@@ -179,17 +179,17 @@ public final class Chunksmith {
         return selection;
     }
 
-    public Optional<Runnable> getPendingAction(final Sender sender) {
+    public Optional<Runnable> getPendingAction(Sender sender) {
         pendingActions.values().removeIf(PendingAction::hasExpired);
         final PendingAction pendingAction = pendingActions.remove(sender.getName());
         return Optional.ofNullable(pendingAction).map(PendingAction::getAction);
     }
 
-    public void setPendingAction(final Sender sender, final Runnable action) {
+    public void setPendingAction(Sender sender, Runnable action) {
         pendingActions.put(sender.getName(), new PendingAction(action));
     }
 
-    public void setLanguage(final String language) {
+    public void setLanguage(String language) {
         Translator.setLanguage(language);
     }
 

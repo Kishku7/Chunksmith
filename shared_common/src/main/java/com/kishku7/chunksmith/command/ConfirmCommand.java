@@ -10,12 +10,12 @@ import java.util.Optional;
 public class ConfirmCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public ConfirmCommand(final Chunksmith chunky) {
+    public ConfirmCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<Runnable> pendingAction = chunky.getPendingAction(sender);
         if (pendingAction.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_CONFIRM);
@@ -25,7 +25,7 @@ public class ConfirmCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

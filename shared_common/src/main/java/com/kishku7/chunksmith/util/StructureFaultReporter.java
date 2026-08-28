@@ -49,20 +49,20 @@ public final class StructureFaultReporter {
     private StructureFaultReporter() {
     }
 
-    public void setReportFile(final Path file) {
+    public void setReportFile(Path file) {
         this.reportFile = file;
     }
 
-    public void setEnabled(final boolean enabled) {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
-    public void configure(final long writeIntervalMillis, final int maxSampleChunks) {
+    public void configure(long writeIntervalMillis, int maxSampleChunks) {
         this.writeIntervalMillis = Math.max(5_000L, writeIntervalMillis);
         this.maxSampleChunks = Math.max(1, maxSampleChunks);
     }
 
-    public void pushContext(final String structureId, final int chunkX, final int chunkZ) {
+    public void pushContext(String structureId, int chunkX, int chunkZ) {
         if (!enabled) {
             return;
         }
@@ -79,7 +79,7 @@ public final class StructureFaultReporter {
         }
     }
 
-    public void recordBlockAttached(final boolean missingAnchor) {
+    public void recordBlockAttached(boolean missingAnchor) {
         if (!enabled) {
             return;
         }
@@ -88,7 +88,7 @@ public final class StructureFaultReporter {
         record(namespaceOf(structure), missingAnchor ? TYPE_MISSING : TYPE_FAR, structure, ctx);
     }
 
-    public boolean recordBlockAttachedBestEffort(final String message) {
+    public boolean recordBlockAttachedBestEffort(String message) {
         if (message == null || !message.contains(BLOCK_ATTACHED_MARKER)) {
             return false;
         }
@@ -99,12 +99,12 @@ public final class StructureFaultReporter {
         return true;
     }
 
-    private void record(final String namespace, final String type, final String structure, final Ctx ctx) {
+    private void record(String namespace, String type, String structure, Ctx ctx) {
         culprits.computeIfAbsent(namespace, k -> new Culprit()).add(type, structure, ctx, maxSampleChunks);
         totalFaults.incrementAndGet();
     }
 
-    public void tick(final boolean taskRunning) {
+    public void tick(boolean taskRunning) {
         if (!enabled || reportFile == null) {
             return;
         }
@@ -124,13 +124,13 @@ public final class StructureFaultReporter {
         }
     }
 
-    public void flush(final boolean taskRunning) {
+    public void flush(boolean taskRunning) {
         if (enabled && reportFile != null && totalFaults.get() > 0L) {
             writeReport(taskRunning);
         }
     }
 
-    private void writeReport(final boolean taskRunning) {
+    private void writeReport(boolean taskRunning) {
         try {
             final StringBuilder sb = new StringBuilder(512);
             sb.append("Chunksmith - Worldgen Fault Report\n");
@@ -143,7 +143,7 @@ public final class StructureFaultReporter {
 
             final List<Map.Entry<String, Culprit>> sorted = new ArrayList<>(culprits.entrySet());
             sorted.sort((a, b) -> Long.compare(b.getValue().total, a.getValue().total));
-            for (final Map.Entry<String, Culprit> entry : sorted) {
+            for (Map.Entry<String, Culprit> entry : sorted) {
                 final Culprit c = entry.getValue();
                 sb.append("mod/datapack: ").append(entry.getKey()).append('\n');
                 sb.append("  total faults: ").append(c.total).append('\n');
@@ -173,15 +173,15 @@ public final class StructureFaultReporter {
             try {
                 Files.write(tmp, bytes);
                 Files.move(tmp, reportFile, StandardCopyOption.REPLACE_EXISTING);
-            } catch (final IOException atomicFail) {
+            } catch (IOException atomicFail) {
                 Files.write(reportFile, bytes);
             }
-        } catch (final Throwable ignored) {
+        } catch (Throwable ignored) {
             // A diagnostic must never break the server.
         }
     }
 
-    private static String namespaceOf(final String structureId) {
+    private static String namespaceOf(String structureId) {
         if (structureId == null || structureId.isEmpty()) {
             return "<unknown> (no structure context)";
         }
@@ -194,7 +194,7 @@ public final class StructureFaultReporter {
         final int cx;
         final int cz;
 
-        Ctx(final String structure, final int cx, final int cz) {
+        Ctx(String structure, int cx, int cz) {
             this.structure = structure;
             this.cx = cx;
             this.cz = cz;
@@ -207,7 +207,7 @@ public final class StructureFaultReporter {
         final Map<String, AtomicLong> structures = new ConcurrentHashMap<>();
         final Set<String> sampleChunks = ConcurrentHashMap.newKeySet();
 
-        synchronized void add(final String type, final String structure, final Ctx ctx, final int maxSamples) {
+        synchronized void add(String type, String structure, Ctx ctx, int maxSamples) {
             total++;
             typeCounts.computeIfAbsent(type, k -> new AtomicLong()).incrementAndGet();
             if (structure != null) {

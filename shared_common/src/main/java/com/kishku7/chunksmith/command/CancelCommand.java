@@ -15,12 +15,12 @@ import java.util.Optional;
 public class CancelCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public CancelCommand(final Chunksmith chunky) {
+    public CancelCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         final Map<String, TrimCommand.Task> trimTasks = chunky.getTrimTasks();
         if (generationTasks.isEmpty()
@@ -62,7 +62,7 @@ public class CancelCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));

@@ -19,7 +19,7 @@ public final class ShapeUtil {
      * @param cz Point C z
      * @return Whether point C can be considered inside of line AB.
      */
-    public static boolean insideLine(final double ax, final double az, final double bx, final double bz, final double cx, final double cz) {
+    public static boolean insideLine(double ax, double az, double bx, double bz, double cx, double cz) {
         // Compute whether the point is inside the line using a cross product
         return (bx - ax) * (cz - az) > (bz - az) * (cx - ax);
     }
@@ -37,7 +37,7 @@ public final class ShapeUtil {
      * @param l2z2 Line 2 point 2 z
      * @return An optional containing the intersection point, or empty if no intersection.
      */
-    public static Optional<Vector2> intersection(final double l1x1, final double l1z1, final double l1x2, final double l1z2, final double l2x1, final double l2z1, final double l2x2, final double l2z2) {
+    public static Optional<Vector2> intersection(double l1x1, double l1z1, double l1x2, double l1z2, double l2x1, double l2z1, double l2x2, double l2z2) {
         final double a1 = l1z2 - l1z1;
         final double a2 = l2z2 - l2z1;
         final double b1 = l1x1 - l1x2;
@@ -65,7 +65,7 @@ public final class ShapeUtil {
      * @param angle   Angle in radians
      * @return The point on the ellipse.
      */
-    public static Vector2 pointOnEllipse(final double centerX, final double centerZ, final double radiusX, final double radiusZ, final double angle) {
+    public static Vector2 pointOnEllipse(double centerX, double centerZ, double radiusX, double radiusZ, double angle) {
         final double x = centerX + radiusX * Math.cos(angle);
         final double z = centerZ + radiusZ * Math.sin(angle);
         return Vector2.of(x, z);
@@ -82,7 +82,7 @@ public final class ShapeUtil {
      * @param p2z Line point 2 z
      * @return The closest point to the position on the line.
      */
-    public static Vector2 closestPointOnLine(final double posX, final double posZ, final double p1x, final double p1z, final double p2x, final double p2z) {
+    public static Vector2 closestPointOnLine(double posX, double posZ, double p1x, double p1z, double p2x, double p2z) {
         final double dx = p2x - p1x;
         final double dz = p2z - p1z;
         final double perpendicularSlope = -dx / dz;
@@ -106,7 +106,7 @@ public final class ShapeUtil {
      * @param p2z Point 2 z
      * @return The distance between the 2 points.
      */
-    public static double distanceBetweenPoints(final double p1x, final double p1z, final double p2x, final double p2z) {
+    public static double distanceBetweenPoints(double p1x, double p1z, double p2x, double p2z) {
         return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1z - p2z, 2));
     }
 }

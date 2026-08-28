@@ -1,16 +1,15 @@
 package com.kishku7.chunksmith.lod.net;
 
 /**
- * A backed-off retry clock. The client's answer to "the server had nothing when I asked".
- *
- * <p>The old client asked the server once, at join, and if the store was empty it stood down for the whole
+ * The old client asked the server once, at join, and if the store was empty it stood down for the whole
  * session -- no matter how long the player stayed or how far they travelled. That is exactly backwards for
  * how servers are actually run: an operator starts an hours-long pregen with players already on, the store
  * fills up behind them, and every one of them keeps staring at an empty horizon until they think to relog.
+ * So the client keeps asking, on a backed-off clock.
  *
- * <p>So the client keeps asking, cheaply: the interval starts short enough that a player who joins seconds
- * before the pregen sees their terrain almost at once, and doubles to a ceiling so that a player parked on a
- * server which will NEVER have LOD data costs one tiny packet every couple of minutes.
+ * <p>The interval starts short enough that a player who joins seconds before the pregen sees their terrain
+ * almost at once, and doubles to a ceiling so that a player parked on a server which will NEVER have LOD
+ * data costs one tiny packet every couple of minutes.
  *
  * <p>A safety net, not the mechanism: a Chunksmith server notifies its waiting players the moment the store
  * becomes servable. The clock covers an older server that cannot notify, and a store filled by something
@@ -36,7 +35,7 @@ public final class CsLodRetry {
         this(FIRST_DELAY_MILLIS, MAX_DELAY_MILLIS);
     }
 
-    public CsLodRetry(final long firstDelayMillis, final long maxDelayMillis) {
+    public CsLodRetry(long firstDelayMillis, long maxDelayMillis) {
         if (firstDelayMillis <= 0L || maxDelayMillis < firstDelayMillis) {
             throw new IllegalArgumentException("a retry delay must be positive and may not exceed its own ceiling");
         }
@@ -49,16 +48,16 @@ public final class CsLodRetry {
      * Start the clock, without counting an attempt. Called when the FIRST ask goes out -- the join
      * handshake. That ask is not a retry, but it is what the first delay is measured from.
      */
-    public synchronized void started(final long nowMillis) {
+    public synchronized void started(long nowMillis) {
         lastAttemptMillis = nowMillis;
     }
 
-    public synchronized boolean due(final long nowMillis) {
+    public synchronized boolean due(long nowMillis) {
         return nowMillis - lastAttemptMillis >= delayMillis;
     }
 
     /** Record an ask, and back off before the next one. */
-    public synchronized void attempted(final long nowMillis) {
+    public synchronized void attempted(long nowMillis) {
         lastAttemptMillis = nowMillis;
         attempts++;
         delayMillis = Math.min(maxDelayMillis, delayMillis * 2L);

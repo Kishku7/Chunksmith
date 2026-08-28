@@ -111,7 +111,7 @@ public class CsLodClientConfigTest {
 
     @Test
     public void theAccessorsCanNeverReturnLessThanTheFloor() throws IOException {
-        for (final String value : new String[]{"0", "1", "-1", "-2147483648", "29"}) {
+        for (String value : new String[]{"0", "1", "-1", "-2147483648", "29"}) {
             CsLodClientConfig.load(write("sync-interval-seconds=" + value));
             assertTrue("interval=" + value,
                     CsLodClientConfig.syncIntervalSeconds() >= CsLodClientConfig.MIN_SYNC_SECONDS);
@@ -120,7 +120,7 @@ public class CsLodClientConfigTest {
         }
     }
 
-    private Path write(final String line) throws IOException {
+    private Path write(String line) throws IOException {
         final Path dir = temp.newFolder().toPath();
         Files.write(dir.resolve(CsLodClientConfig.FILE_NAME),
                 line.getBytes(StandardCharsets.US_ASCII));

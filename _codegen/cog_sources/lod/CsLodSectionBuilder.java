@@ -47,9 +47,6 @@ import java.util.Map;
  * A {@code Registry} is only itself a {@code HolderLookup} from 1.21.11; before that
  * {@code BlockStateParser.parseForBlock} needs {@code .asLookup()} -- which is why the block lookup is
  * emitted too rather than shared.
- *
- * <p>Shared source -- canonical location: _codegen/cog_sources. Edit only there; the per-cell copy under
- * gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodSectionBuilder {
 
@@ -123,7 +120,7 @@ public final class CsLodSectionBuilder {
     }
 
     /** Block STATE string -> BlockState. Unknown block (a mod was removed since pregen) -> air. */
-    public static BlockState blockState(final Level level, final String value) {
+    public static BlockState blockState(Level level, String value) {
         return BLOCK_CACHE.computeIfAbsent(value, key -> {
             try {
                 //[[[cog
@@ -131,7 +128,7 @@ public final class CsLodSectionBuilder {
                 // cog.outl(compat.block_lookup_expr(mcver))
                 //]]]
                 //[[[end]]]
-            } catch (final CommandSyntaxException e) {
+            } catch (CommandSyntaxException e) {
                 return Blocks.AIR.defaultBlockState();
             }
         });
@@ -145,7 +142,7 @@ public final class CsLodSectionBuilder {
     //     cog.outl(sup)
     //]]]
     //[[[end]]]
-    public static Holder<Biome> biome(final Level level, final String value) {
+    public static Holder<Biome> biome(Level level, String value) {
         return BIOME_CACHE.computeIfAbsent(value, key -> {
             //[[[cog
             // import cog, compat

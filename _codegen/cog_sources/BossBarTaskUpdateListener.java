@@ -58,7 +58,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
     }
 
     @Override
-    public void accept(final GenerationTaskUpdateEvent event) {
+    public void accept(GenerationTaskUpdateEvent event) {
         final GenerationTask task = event.generationTask();
         final Chunksmith chunky = task.getChunky();
         final World world = task.getSelection().world();
@@ -77,7 +77,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
             bossBar.setVisible(!silent);
         }
         final MinecraftServer server = serverWorld.getWorld().getServer();
-        for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             //[[[cog
             // import cog, compat
             // cog.outl("if (%s) {" % compat.gamemaster_permission_check(mcver, "player"))

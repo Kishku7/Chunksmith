@@ -7,7 +7,7 @@ import com.kishku7.chunksmith.shape.ShapeType;
 public class NeoForgeBorder implements Border {
     private final WorldBorder worldBorder;
 
-    public NeoForgeBorder(final WorldBorder worldBorder) {
+    public NeoForgeBorder(WorldBorder worldBorder) {
         this.worldBorder = worldBorder;
     }
 

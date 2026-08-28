@@ -7,12 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Whether there is actually anything to serve -- the one answer, for the whole LOD server.
+ * Answers whether a dimension has anything to serve yet. It is servable when it holds at least one
+ * region file, and not before.
  *
  * <p>A pregen creates {@code <world>/chunksmith/lod/<dim>/} the moment it starts and only fills it
  * minutes later, so testing "the directory exists" made the server advertise a dimension it could not
  * serve a single region for, and issue a backchannel token to go with it (the "1 live token, 0 files"
- * report). A dimension is servable when it holds at least one region file, and not before.
+ * report).
  *
  * <p>Also the transition detector behind the store-availability notice: a player who joined before the
  * pregen ran got an empty dimension list and stood down for the whole session. Poll this -- cheaply, and
@@ -45,10 +46,10 @@ public final class CsLodStoreScan {
      * Is this region file finished -- has the writer left it alone long enough that what we would hand a
      * client is what is actually in it? A file we cannot stat is treated as not settled.
      */
-    public static boolean isSettled(final Path file, final long nowMillis) {
+    public static boolean isSettled(Path file, long nowMillis) {
         try {
             return nowMillis - Files.getLastModifiedTime(file).toMillis() >= SETTLE_MILLIS;
-        } catch (final IOException e) {
+        } catch (IOException e) {
             return false;
         }
     }
@@ -57,13 +58,13 @@ public final class CsLodStoreScan {
      * Does this dimension directory hold at least one finished region file? Stops at the first match -- it
      * never lists a whole store. A directory that is missing, not a directory, or unreadable answers "no".
      */
-    public static boolean hasData(final Path dimensionDir, final long nowMillis) {
+    public static boolean hasData(Path dimensionDir, long nowMillis) {
         if (dimensionDir == null || !Files.isDirectory(dimensionDir)) {
             return false;
         }
         try (var entries = Files.list(dimensionDir)) {
             return entries.anyMatch(file -> isRegionFile(file) && isSettled(file, nowMillis));
-        } catch (final IOException e) {
+        } catch (IOException e) {
             return false;
         }
     }
@@ -73,12 +74,12 @@ public final class CsLodStoreScan {
      * The names are what goes on the wire in the server hello, and they are exactly the directory names the
      * store writes, so the client can turn one straight back into a request path.
      */
-    public static List<String> servable(final List<Path> dimensionDirs, final long nowMillis) {
+    public static List<String> servable(List<Path> dimensionDirs, long nowMillis) {
         final List<String> names = new ArrayList<>();
         if (dimensionDirs == null) {
             return names;
         }
-        for (final Path dir : dimensionDirs) {
+        for (Path dir : dimensionDirs) {
             if (hasData(dir, nowMillis)) {
                 names.add(dir.getFileName().toString());
             }
@@ -87,7 +88,7 @@ public final class CsLodStoreScan {
     }
 
     /** Is this one of ours, and a real file? */
-    public static boolean isRegionFile(final Path file) {
+    public static boolean isRegionFile(Path file) {
         return file.getFileName().toString().endsWith(REGION_SUFFIX) && Files.isRegularFile(file);
     }
 }

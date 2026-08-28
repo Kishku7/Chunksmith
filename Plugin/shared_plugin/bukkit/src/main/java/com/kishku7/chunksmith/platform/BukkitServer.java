@@ -14,7 +14,7 @@ public class BukkitServer implements Server {
     private final ChunksmithBukkit plugin;
     private final Map<String, Integration> integrations;
 
-    public BukkitServer(final ChunksmithBukkit plugin) {
+    public BukkitServer(ChunksmithBukkit plugin) {
         this.plugin = plugin;
         this.integrations = new HashMap<>();
     }
@@ -25,7 +25,7 @@ public class BukkitServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         final org.bukkit.World world = plugin.getServer().getWorld(name);
         return Optional.ofNullable(world == null ? null : new BukkitWorld(world));
     }
@@ -55,7 +55,7 @@ public class BukkitServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(plugin.getServer().getPlayer(name)).map(BukkitPlayer::new);
     }
 

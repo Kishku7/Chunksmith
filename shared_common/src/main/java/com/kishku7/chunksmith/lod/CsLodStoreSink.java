@@ -20,7 +20,7 @@ public final class CsLodStoreSink implements LodSink {
     private final AtomicLong synchronousWrites = new AtomicLong();
     private volatile boolean running = true;
 
-    public CsLodStoreSink(final Path root, final int capacity) {
+    public CsLodStoreSink(Path root, int capacity) {
         this.store = new CsLodRegionStore(root);
         this.queue = new ArrayBlockingQueue<>(Math.max(16, capacity));
         this.writer = new Thread(this::drain, "chunksmith-lod-writer");
@@ -29,7 +29,7 @@ public final class CsLodStoreSink implements LodSink {
     }
 
     @Override
-    public boolean offer(final Object chunk) {
+    public boolean offer(Object chunk) {
         if (!(chunk instanceof final CsLodChunk record)) {
             return true;
         }
@@ -65,7 +65,7 @@ public final class CsLodStoreSink implements LodSink {
         writer.interrupt();
         try {
             writer.join(10_000L);
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         CsLodChunk remaining;
@@ -74,7 +74,7 @@ public final class CsLodStoreSink implements LodSink {
         }
         try {
             store.close();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: failed to close the LOD store: " + e);
         }
     }
@@ -84,19 +84,19 @@ public final class CsLodStoreSink implements LodSink {
             try {
                 final CsLodChunk record = queue.take();
                 persist(record);
-            } catch (final InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
             }
         }
     }
 
-    private void persist(final CsLodChunk record) {
+    private void persist(CsLodChunk record) {
         try {
             final int size = store.write(record);
             written.incrementAndGet();
             bytes.addAndGet(size);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn(String.format("Chunksmith: failed to write LOD for chunk %d,%d: %s",
                     record.getChunkX(), record.getChunkZ(), e));
         }

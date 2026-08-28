@@ -189,7 +189,7 @@ public class CsLodPortResolutionTest {
      *
      * @param seen {@code [writeCount, lastPortWritten]}
      */
-    private static Config recording(final int[] seen) {
+    private static Config recording(int[] seen) {
         return (Config) Proxy.newProxyInstance(
                 Config.class.getClassLoader(),
                 new Class<?>[]{Config.class},

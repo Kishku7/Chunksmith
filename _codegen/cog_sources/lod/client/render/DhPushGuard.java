@@ -34,7 +34,7 @@ public final class DhPushGuard {
     private DhPushGuard() {
     }
 
-    public static <T> T pushing(final Supplier<T> push) {
+    public static <T> T pushing(Supplier<T> push) {
         PUSHING.set(Boolean.TRUE);
         try {
             return push.get();

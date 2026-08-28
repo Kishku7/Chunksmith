@@ -7,5 +7,5 @@ import java.util.List;
 public interface ChunksmithCommand {
     void execute(Sender sender, CommandArguments arguments);
 
-    List<String> suggestions(final CommandArguments arguments);
+    List<String> suggestions(CommandArguments arguments);
 }

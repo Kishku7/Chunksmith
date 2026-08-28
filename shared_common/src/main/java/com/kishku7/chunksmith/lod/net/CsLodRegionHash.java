@@ -38,12 +38,12 @@ public final class CsLodRegionHash {
      *
      * @return an opaque 64-bit token; different means "re-fetch it"
      */
-    public static long of(final long lastModifiedMillis, final long sizeBytes) {
+    public static long of(long lastModifiedMillis, long sizeBytes) {
         return mix(mix(lastModifiedMillis) ^ (sizeBytes * 0x9E3779B97F4A7C15L));
     }
 
     /** SplitMix64's finalizer. A full 64-bit avalanche: one input bit flips ~half the output bits. */
-    private static long mix(final long value) {
+    private static long mix(long value) {
         long z = value + 0x9E3779B97F4A7C15L;
         z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
         z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;

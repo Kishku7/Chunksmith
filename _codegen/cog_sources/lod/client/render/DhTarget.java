@@ -19,7 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Feeds downloaded CSLOD records into the player's Distant Horizons.
+ * DH loads every dimension at startup and does not validate the dimension of data you hand it: it will
+ * happily accept, persist and downsample overworld chunks into the End's database and report success for
+ * every one. It did exactly that, 1089 times, before this was caught. So resolve the wrapper for THIS
+ * level, never "the last one" -- that is the rule this class keeps while it feeds downloaded CSLOD records
+ * into the player's Distant Horizons.
  *
  * <p>We push; DH does not pull from us. DH's world-generator override is built only by a server level --
  * a multiplayer client gets a {@code RemoteWorldRetrievalQueue}, so {@code generateApiChunk} is NEVER
@@ -31,11 +35,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * touches Minecraft's light engine, and the push path calls its own lighting engine unconditionally.
  * What it does need is correct block states with air explicitly present, which CSLOD's gap-free columns
  * guarantee.
- *
- * <p><b>Resolve the wrapper for this level, never "the last one".</b> DH loads every dimension at
- * startup and does not validate the dimension of data you hand it: it will happily accept, persist and
- * downsample overworld chunks into the End's database and report success for every one. (It did exactly
- * that, 1089 times, before this was caught.)
  */
 public final class DhTarget {
 

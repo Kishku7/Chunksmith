@@ -3,7 +3,7 @@ package com.kishku7.chunksmith.lod.client;
 import net.fabricmc.api.ClientModInitializer;
 
 /**
- * The LOD CLIENT entrypoint -- FABRIC.
+ * Attaches the client-side LOD receiver on Fabric.
  *
  * <p>Chunksmith's server-side LOD entrypoint is {@code lod.LodInit} (a {@code "main"} entrypoint) and it
  * runs on both sides, as it must -- it owns the one registration of the {@code chunksmith:lod} payload type.

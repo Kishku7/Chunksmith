@@ -292,7 +292,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * wall. The grace period then requires it to hold.
      */
     @Unique
-    private void chunksmith$tickAutoResume(final boolean generationRunning) {
+    private void chunksmith$tickAutoResume(boolean generationRunning) {
         if (!AutoPause.isAutoPaused() || generationRunning) {
             return;
         }
@@ -323,7 +323,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     }
 
     @Override
-    public void chunksmith$atTicketSafePoint(final Runnable task) {
+    public void chunksmith$atTicketSafePoint(Runnable task) {
         this.chunksmith$ticketSafePointQueue.add(task);
         // A released pre-gen ticket only becomes an unloadable chunk once the holders are
         // downgraded, which is what housekeeping does -- so arm it rather than leave the job half done.

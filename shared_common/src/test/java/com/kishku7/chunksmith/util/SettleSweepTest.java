@@ -30,7 +30,7 @@ public class SettleSweepTest {
         }
     }
 
-    private static List<String> drain(final SettleSweep sweep) {
+    private static List<String> drain(SettleSweep sweep) {
         final List<String> stops = new ArrayList<>();
         int[] stop;
         while ((stop = sweep.nextStop()) != null) {
@@ -116,7 +116,7 @@ public class SettleSweepTest {
 
         // Everything eligible now is in the west; the east is still off-limits.
         final List<String> early = drain(sweep);
-        for (final String s : early) {
+        for (String s : early) {
             assertTrue("no stop may be issued in ungenerated ground: " + s,
                     Integer.parseInt(s.split(",")[0]) <= 13);
         }
@@ -143,7 +143,7 @@ public class SettleSweepTest {
 
         final List<String> stops = drain(sweep);
         assertEquals(sweep.stopCount(), stops.size());
-        for (final String s : stops) {
+        for (String s : stops) {
             final int x = Integer.parseInt(s.split(",")[0]);
             assertTrue("stops stay inside the task bounds", x >= -20 && x < -8);
         }

@@ -23,8 +23,6 @@ import org.slf4j.LoggerFactory;
  *
  * <p>{@code TickEvent.ServerTickEvent} did not carry a {@link MinecraftServer} on every Forge 47 build, so
  * the server is captured on start rather than read off the tick event.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {
@@ -35,7 +33,7 @@ public final class LodInit {
     }
 
     @SubscribeEvent
-    public static void onRegisterCommands(final RegisterCommandsEvent event) {
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(CsLodCommand.build());
     }
 
@@ -45,7 +43,7 @@ public final class LodInit {
      * level-load event. {@code ServerStartedEvent} would already be too late to override its generator.
      */
     @SubscribeEvent
-    public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
+    public static void onServerAboutToStart(ServerAboutToStartEvent event) {
         //[[[cog
         // import cog, compat
         // if compat.has_dh(mcver, loader):
@@ -70,7 +68,7 @@ public final class LodInit {
 
     /** The HTTP backchannel binds once the server is up and its port is known. */
     @SubscribeEvent
-    public static void onServerStarted(final ServerStartedEvent event) {
+    public static void onServerStarted(ServerStartedEvent event) {
         warnOnConflicts();
         server = event.getServer();
         LodSupport.announce(event.getServer());
@@ -87,7 +85,7 @@ public final class LodInit {
      * is not expressible here and has to be surfaced in the log instead.
      */
     private static void warnOnConflicts() {
-        for (final String other : new String[] {"lss", "voxyserver", "lodserver"}) {
+        for (String other : new String[] {"lss", "voxyserver", "lodserver"}) {
             if (ModList.get().isLoaded(other)) {
                 LoggerFactory.getLogger("Chunksmith").error(
                         "The mod '" + other + "' also streams LOD data to clients. Running it alongside "
@@ -107,7 +105,7 @@ public final class LodInit {
     }
 
     @SubscribeEvent
-    public static void onServerStopped(final ServerStoppedEvent event) {
+    public static void onServerStopped(ServerStoppedEvent event) {
         server = null;
         CsLodServerNet.onServerStopped();
         // Flush the writer queue and close the region files, or a pregen that ends at shutdown loses
@@ -116,7 +114,7 @@ public final class LodInit {
     }
 
     @SubscribeEvent
-    public static void onServerTick(final TickEvent.ServerTickEvent event) {
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }

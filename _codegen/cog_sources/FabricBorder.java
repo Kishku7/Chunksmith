@@ -7,7 +7,7 @@ import com.kishku7.chunksmith.shape.ShapeType;
 public class FabricBorder implements Border {
     private final WorldBorder worldBorder;
 
-    public FabricBorder(final WorldBorder worldBorder) {
+    public FabricBorder(WorldBorder worldBorder) {
         this.worldBorder = worldBorder;
     }
 

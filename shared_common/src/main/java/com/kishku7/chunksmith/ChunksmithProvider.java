@@ -18,7 +18,7 @@ public final class ChunksmithProvider {
         return instance != null;
     }
 
-    static void register(final Chunksmith instance) {
+    static void register(Chunksmith instance) {
         ChunksmithProvider.instance = instance;
     }
 

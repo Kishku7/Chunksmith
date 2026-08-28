@@ -6,8 +6,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
- * Exposes the IOWorker that backs a chunk/region storage. ChunkMap extends
- * SimpleRegionStorage, so casting a ChunkMap to this accessor yields its worker.
+ * ChunkMap extends SimpleRegionStorage, so casting a ChunkMap to this accessor yields the IOWorker
+ * backing its chunk/region storage.
  */
 @Mixin(SimpleRegionStorage.class)
 public interface SimpleRegionStorageAccessor {

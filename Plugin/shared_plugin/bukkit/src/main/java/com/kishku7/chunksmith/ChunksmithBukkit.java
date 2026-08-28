@@ -146,14 +146,14 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
 
     // Canonical permission namespace is chunksmith.command.*; the pre-rename chunky.command.* nodes
     // are still honoured so existing server permission setups keep working after the rename.
-    private static boolean hasCommandPermission(final CommandSender sender, final String name) {
+    private static boolean hasCommandPermission(CommandSender sender, String name) {
         return sender.hasPermission(COMMAND_PERMISSION_KEY + name)
                 || sender.hasPermission(LEGACY_COMMAND_PERMISSION_KEY + name);
     }
 
     @SuppressWarnings("NullableProblems")
     @Override
-    public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         final Sender bukkitSender = sender instanceof final Player player ? new BukkitPlayer(player) : new BukkitSender(sender);
         if (CommandLiteral.CHUNKY.equalsIgnoreCase(label) || CommandLiteral.CY.equalsIgnoreCase(label)) {
             bukkitSender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
@@ -174,7 +174,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
 
     @SuppressWarnings("NullableProblems")
     @Override
-    public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length < 1) {
             return List.of();
         }
@@ -196,13 +196,13 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onPlayerQuit(final PlayerQuitEvent event) {
+    public void onPlayerQuit(PlayerQuitEvent event) {
         // A LOD download token is bound to one session. It must not outlive it.
         CsLodServerBukkit.onQuit(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
-    public void onWorldInit(final WorldInitEvent event) {
+    public void onWorldInit(WorldInitEvent event) {
         chunky.getRegionCache().clear(event.getWorld().getName());
     }
 
@@ -222,7 +222,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
                     e.printStackTrace();
                 }
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

@@ -52,7 +52,7 @@ public final class VoxyRadius {
             // Even the holder is fetched by name: a fork that renamed or removed {@code CONFIG} degrades to
             // "no config" instead of throwing a NoSuchFieldError out of our own bytecode.
             config = VoxyConfigReader.staticField(VoxyConfig.class, "CONFIG");
-        } catch (final RuntimeException | LinkageError e) {
+        } catch (RuntimeException | LinkageError e) {
             LodWarnings.once(CAUSE_CONFIG,
                     "voxy is installed but its configuration could not be read (" + e + ")."
                             + " Falling back to a LOD radius of " + CsLodProtocol.DEFAULT_RADIUS_BLOCKS

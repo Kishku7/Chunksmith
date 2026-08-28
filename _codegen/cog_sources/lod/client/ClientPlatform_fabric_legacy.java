@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * The CLIENT-side platform facade -- FABRIC, legacy raw-channel era (MC &lt; 1.20.2: our 1.20.1 cell).
+ * Attaches the client's LOD handlers on Fabric before MC 1.20.2 (our 1.20.1 cell).
  *
  * <p>{@code CustomPacketPayload} does not exist here, so there is no payload object and no type registry:
  * the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair, and registering a receiver on the
@@ -26,9 +26,6 @@ import java.util.function.Consumer;
  * <p>The wire is byte-identical to the payload-era cells: a length-prefixed byte array on
  * {@code chunksmith:lod}. {@code writeByteArray} is the same varint+bytes encoding the modern StreamCodec
  * emits.
- *
- * <p>Shared source -- canonical location: _codegen/cog_sources/lod/client. Edit only there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
  */
 @Environment(EnvType.CLIENT)
 public final class ClientPlatform {
@@ -36,10 +33,10 @@ public final class ClientPlatform {
     private ClientPlatform() {
     }
 
-    public static void bootstrap(final Object bus) {
+    public static void bootstrap(Object bus) {
     }
 
-    public static boolean isModLoaded(final String modId) {
+    public static boolean isModLoaded(String modId) {
         return FabricLoader.getInstance().isModLoaded(modId);
     }
 
@@ -47,12 +44,12 @@ public final class ClientPlatform {
         return FabricLoader.getInstance().getGameDir();
     }
 
-    public static void onClientSetup(final Runnable action) {
+    public static void onClientSetup(Runnable action) {
         action.run();
     }
 
     /** Hand every server message to {@code onPayload}, on the client thread. */
-    public static void registerClientNetworking(final Consumer<byte[]> onPayload) {
+    public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         ClientPlayNetworking.registerGlobalReceiver(CsLodChannel.ID, (client, handler, buf, responseSender) -> {
             // Read on the NETTY thread. The buffer is released the instant this handler returns, so the
             // bytes MUST be copied out before hopping to the main thread -- reading it inside the
@@ -64,7 +61,7 @@ public final class ClientPlatform {
     }
 
     /** Silently does nothing when the server does not speak our channel -- which is most servers. */
-    public static void sendToServer(final byte[] data) {
+    public static void sendToServer(byte[] data) {
         if (!ClientPlayNetworking.canSend(CsLodChannel.ID)) {
             return;
         }
@@ -73,15 +70,15 @@ public final class ClientPlatform {
         ClientPlayNetworking.send(CsLodChannel.ID, buf);
     }
 
-    public static void onJoin(final Runnable action) {
+    public static void onJoin(Runnable action) {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> action.run());
     }
 
-    public static void onDisconnect(final Runnable action) {
+    public static void onDisconnect(Runnable action) {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> action.run());
     }
 
-    public static void onClientTick(final Runnable action) {
+    public static void onClientTick(Runnable action) {
         ClientTickEvents.END_CLIENT_TICK.register(client -> action.run());
     }
 }

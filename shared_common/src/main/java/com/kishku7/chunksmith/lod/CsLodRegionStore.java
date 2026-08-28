@@ -48,7 +48,7 @@ public final class CsLodRegionStore {
     private final Map<Long, RandomAccessFile> open = new HashMap<>();
 
     /** @param root the per-dimension directory, e.g. {@code <world>/chunksmith/lod/minecraft_overworld} */
-    public CsLodRegionStore(final Path root) {
+    public CsLodRegionStore(Path root) {
         this.root = root;
     }
 
@@ -57,7 +57,7 @@ public final class CsLodRegionStore {
      *
      * @return the number of compressed bytes written, so callers can account size without re-encoding
      */
-    public synchronized int write(final CsLodChunk chunk) throws IOException {
+    public synchronized int write(CsLodChunk chunk) throws IOException {
         final byte[] payload = CsLodCodec.encode(chunk);
         final int rx = Math.floorDiv(chunk.getChunkX(), REGION_CHUNKS);
         final int rz = Math.floorDiv(chunk.getChunkZ(), REGION_CHUNKS);
@@ -78,7 +78,7 @@ public final class CsLodRegionStore {
     }
 
     /** Read one chunk record back, or null if this chunk was never written. */
-    public synchronized CsLodChunk read(final int chunkX, final int chunkZ) throws IOException {
+    public synchronized CsLodChunk read(int chunkX, int chunkZ) throws IOException {
         final int rx = Math.floorDiv(chunkX, REGION_CHUNKS);
         final int rz = Math.floorDiv(chunkZ, REGION_CHUNKS);
         final Path path = regionPath(rx, rz);
@@ -112,7 +112,7 @@ public final class CsLodRegionStore {
      *
      * @return the number of records visited
      */
-    public static int forEachChunk(final Path root, final ChunkVisitor visitor) throws IOException {
+    public static int forEachChunk(Path root, ChunkVisitor visitor) throws IOException {
         if (!Files.isDirectory(root)) {
             return 0;
         }
@@ -122,7 +122,7 @@ public final class CsLodRegionStore {
                     .filter(path -> path.getFileName().toString().endsWith(".cslod"))
                     .sorted()
                     .toList();
-            for (final Path region : regions) {
+            for (Path region : regions) {
                 visited += forEachChunkIn(region, visitor);
             }
         }
@@ -146,7 +146,7 @@ public final class CsLodRegionStore {
         return forEachChunkIn(region, visitor);
     }
 
-    private static int forEachChunkIn(final Path region, final ChunkVisitor visitor) throws IOException {
+    private static int forEachChunkIn(Path region, ChunkVisitor visitor) throws IOException {
         int visited = 0;
         try (RandomAccessFile file = new RandomAccessFile(region.toFile(), "r")) {
             for (int slot = 0; slot < SLOTS; slot++) {
@@ -180,10 +180,10 @@ public final class CsLodRegionStore {
     /** Close every open region file. */
     public synchronized void close() throws IOException {
         IOException first = null;
-        for (final RandomAccessFile file : open.values()) {
+        for (RandomAccessFile file : open.values()) {
             try {
                 file.close();
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 if (first == null) {
                     first = e;
                 }
@@ -195,7 +195,7 @@ public final class CsLodRegionStore {
         }
     }
 
-    private RandomAccessFile region(final int rx, final int rz) throws IOException {
+    private RandomAccessFile region(int rx, int rz) throws IOException {
         final long key = ((long) rx << 32) ^ (rz & 0xFFFFFFFFL);
         RandomAccessFile file = open.get(key);
         if (file != null) {
@@ -211,11 +211,11 @@ public final class CsLodRegionStore {
         return file;
     }
 
-    private Path regionPath(final int rx, final int rz) {
+    private Path regionPath(int rx, int rz) {
         return root.resolve("r." + rx + "." + rz + ".cslod");
     }
 
-    private static int slotIndex(final int chunkX, final int chunkZ) {
+    private static int slotIndex(int chunkX, int chunkZ) {
         final int localX = Math.floorMod(chunkX, REGION_CHUNKS);
         final int localZ = Math.floorMod(chunkZ, REGION_CHUNKS);
         return localZ * REGION_CHUNKS + localX;

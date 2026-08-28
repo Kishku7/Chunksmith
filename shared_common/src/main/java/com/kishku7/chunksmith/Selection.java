@@ -34,7 +34,7 @@ public final class Selection {
     private final int diameterRegionsX;
     private final int diameterRegionsZ;
 
-    private Selection(final Chunksmith chunky, final World world, final double centerX, final double centerZ, final double radiusX, final double radiusZ, final Parameter pattern, final String shape) {
+    private Selection(Chunksmith chunky, World world, double centerX, double centerZ, double radiusX, double radiusZ, Parameter pattern, String shape) {
         this.chunky = chunky;
         this.world = world;
         this.centerX = centerX;
@@ -57,7 +57,7 @@ public final class Selection {
         this.diameterRegionsZ = 2 * radiusRegionsZ + 1;
     }
 
-    public static Builder builder(final Chunksmith chunky, final World world) {
+    public static Builder builder(Chunksmith chunky, World world) {
         return new Builder(chunky, world);
     }
 
@@ -151,54 +151,54 @@ public final class Selection {
         private Parameter pattern = Parameter.of(PatternType.REGION);
         private String shape = ShapeType.SQUARE;
 
-        private Builder(final Chunksmith chunky, final World world) {
+        private Builder(Chunksmith chunky, World world) {
             this.chunky = chunky;
             this.world = world;
         }
 
-        public Builder world(final World world) {
+        public Builder world(World world) {
             this.world = world;
             return this;
         }
 
-        public Builder center(final double centerX, final double centerZ) {
+        public Builder center(double centerX, double centerZ) {
             this.centerX = centerX;
             this.centerZ = centerZ;
             return this;
         }
 
-        public Builder centerX(final double centerX) {
+        public Builder centerX(double centerX) {
             this.centerX = centerX;
             return this;
         }
 
-        public Builder centerZ(final double centerZ) {
+        public Builder centerZ(double centerZ) {
             this.centerZ = centerZ;
             return this;
         }
 
-        public Builder radius(final double radius) {
+        public Builder radius(double radius) {
             this.radiusX = radius;
             this.radiusZ = radius;
             return this;
         }
 
-        public Builder radiusX(final double radiusX) {
+        public Builder radiusX(double radiusX) {
             this.radiusX = radiusX;
             return this;
         }
 
-        public Builder radiusZ(final double radiusZ) {
+        public Builder radiusZ(double radiusZ) {
             this.radiusZ = radiusZ;
             return this;
         }
 
-        public Builder pattern(final Parameter pattern) {
+        public Builder pattern(Parameter pattern) {
             this.pattern = pattern;
             return this;
         }
 
-        public Builder shape(final String shape) {
+        public Builder shape(String shape) {
             this.shape = shape;
             return this;
         }

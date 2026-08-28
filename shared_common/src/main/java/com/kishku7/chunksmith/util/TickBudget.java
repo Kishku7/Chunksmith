@@ -1,12 +1,10 @@
 package com.kishku7.chunksmith.util;
 
 /**
- * What the server costs without us, what we cost, and therefore how hard we may push.
- *
- * <p>The throttle used to steer on absolute tick time, which cannot work. Measured on a live server, the
- * tick cost 74.9 ms with the pre-gen paused against a configured target of 75, so the ramp window was
- * unreachable whatever Chunksmith did: the governor pinned dispatch at its floor permanently and
- * throttled the run to 2 chunks/sec, while the run itself cost 10 ms.
+ * Measured on a live server: 74.9 ms per tick with the pre-gen paused, against a configured target of 75.
+ * The throttle used to steer on absolute tick time, so that ramp window was unreachable whatever
+ * Chunksmith did -- the governor pinned dispatch at its floor permanently and throttled the run to
+ * 2 chunks/sec, while the run itself cost 10 ms.
  *
  * <p>So three measurements instead of one assumption. The <i>baseline</i> is the tick cost with nothing
  * of ours in flight -- a decaying average, and never a running minimum: the first attempt tracked the
@@ -97,7 +95,7 @@ public final class TickBudget {
      *
      * @param mspt smoothed tick cost right now, or negative if the platform cannot say
      */
-    public static void sample(final double mspt, final boolean ourWorkInFlight, final int players) {
+    public static void sample(double mspt, boolean ourWorkInFlight, int players) {
         if (players != lastPlayerCount) {
             // A join or a leave is a step change in what the server costs, so throw the learned values
             // away and re-measure. Do not return here: the first call of a run always trips this branch
@@ -182,7 +180,7 @@ public final class TickBudget {
      * {@link #PROBE_DURATION_MS} once every {@link #PROBE_INTERVAL_MS}; while it is true the caller must
      * not dispatch, so the ticks that follow are genuine baseline samples.
      */
-    public static boolean shouldProbe(final long now) {
+    public static boolean shouldProbe(long now) {
         if (probeStartedAt != 0L) {
             if (now - probeStartedAt < PROBE_DURATION_MS) {
                 return true;

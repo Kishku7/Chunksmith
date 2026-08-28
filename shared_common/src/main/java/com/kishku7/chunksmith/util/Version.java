@@ -7,13 +7,13 @@ public class Version implements Comparable<Version> {
     public static final Version MINECRAFT_1_13_2 = new Version(1, 13, 2);
     private int major = 0, minor = 0, patch = 0;
 
-    public Version(final int major, final int minor, final int patch) {
+    public Version(int major, int minor, int patch) {
         this.major = major;
         this.minor = minor;
         this.patch = patch;
     }
 
-    public Version(final String version) {
+    public Version(String version) {
         if (version == null || version.isEmpty()) {
             this.major = Integer.MIN_VALUE;
             return;
@@ -30,27 +30,27 @@ public class Version implements Comparable<Version> {
         }
     }
 
-    public Version(final String version, final boolean minecraft) {
+    public Version(String version, boolean minecraft) {
         this(minecraft && version.indexOf('-') > -1 ? version.substring(0, version.indexOf('-')) : version);
     }
 
-    public boolean isEqualTo(final Version o) {
+    public boolean isEqualTo(Version o) {
         return compareTo(o) == 0;
     }
 
-    public boolean isHigherThan(final Version o) {
+    public boolean isHigherThan(Version o) {
         return compareTo(o) > 0;
     }
 
-    public boolean isHigherThanOrEqualTo(final Version o) {
+    public boolean isHigherThanOrEqualTo(Version o) {
         return compareTo(o) >= 0;
     }
 
-    public boolean isLowerThan(final Version o) {
+    public boolean isLowerThan(Version o) {
         return compareTo(o) < 0;
     }
 
-    public boolean isLowerThanOrEqualTo(final Version o) {
+    public boolean isLowerThanOrEqualTo(Version o) {
         return compareTo(o) <= 0;
     }
 
@@ -59,7 +59,7 @@ public class Version implements Comparable<Version> {
     }
 
     @Override
-    public int compareTo(final Version o) {
+    public int compareTo(Version o) {
         if (this.major != o.major) {
             return this.major - o.major;
         }
@@ -70,7 +70,7 @@ public class Version implements Comparable<Version> {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }

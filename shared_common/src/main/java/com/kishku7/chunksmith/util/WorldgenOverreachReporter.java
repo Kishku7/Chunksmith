@@ -39,11 +39,11 @@ public final class WorldgenOverreachReporter {
     private WorldgenOverreachReporter() {
     }
 
-    public void setEnabled(final boolean enabled) {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
-    public void configure(final long debounceMillis, final long rollupMillis) {
+    public void configure(long debounceMillis, long rollupMillis) {
         this.debounceMillis = Math.max(0L, debounceMillis);
         this.rollupMillis = Math.max(1_000L, rollupMillis);
     }
@@ -58,7 +58,7 @@ public final class WorldgenOverreachReporter {
         accumulate(key, f, s, d, sourceChunkX, sourceChunkZ, writeRadius, false, farChunkX, farChunkZ, y);
     }
 
-    public boolean recordFromMessage(final String message) {
+    public boolean recordFromMessage(String message) {
         if (message == null || !message.contains(FAR_CHUNK_MARKER)) {
             return false;
         }
@@ -87,7 +87,7 @@ public final class WorldgenOverreachReporter {
             }
             final String key = "best|" + feature + '|' + step;
             accumulate(key, feature, step, null, Integer.MIN_VALUE, Integer.MIN_VALUE, -1, true, farX, farZ, y);
-        } catch (final RuntimeException ignored) {
+        } catch (RuntimeException ignored) {
         }
         return true;
     }
@@ -114,7 +114,7 @@ public final class WorldgenOverreachReporter {
         }
     }
 
-    public void tick(final boolean taskRunning) {
+    public void tick(boolean taskRunning) {
         if (!enabled) {
             return;
         }
@@ -131,8 +131,8 @@ public final class WorldgenOverreachReporter {
         wasRunning = taskRunning;
     }
 
-    private void flushIdle(final long now, final boolean force) {
-        for (final Iterator<Map.Entry<String, Bucket>> it = active.entrySet().iterator(); it.hasNext(); ) {
+    private void flushIdle(long now, boolean force) {
+        for (Iterator<Map.Entry<String, Bucket>> it = active.entrySet().iterator(); it.hasNext(); ) {
             final Bucket b = it.next().getValue();
             final Bucket snap;
             synchronized (b) {
@@ -154,8 +154,8 @@ public final class WorldgenOverreachReporter {
         }
     }
 
-    private void emitRollups(final long now) {
-        for (final Map.Entry<String, FeatureStats> e : features.entrySet()) {
+    private void emitRollups(long now) {
+        for (Map.Entry<String, FeatureStats> e : features.entrySet()) {
             final FeatureStats fs = e.getValue();
             if (fs.firstEmitted && now - fs.lastRollupAt >= rollupMillis && fs.totalBlocks > fs.lastRollupBlocks) {
                 final long delta = fs.totalBlocks - fs.lastRollupBlocks;
@@ -169,7 +169,7 @@ public final class WorldgenOverreachReporter {
     }
 
     private void summarizeAndReset() {
-        for (final Map.Entry<String, FeatureStats> e : features.entrySet()) {
+        for (Map.Entry<String, FeatureStats> e : features.entrySet()) {
             final FeatureStats fs = e.getValue();
             log.warn(String.format(
                     "[Chunksmith] overreach summary: %s - clipped in %d chunks (%d blocks refused) this run. "
@@ -180,7 +180,7 @@ public final class WorldgenOverreachReporter {
         active.clear();
     }
 
-    private String detailedLine(final Bucket b) {
+    private String detailedLine(Bucket b) {
         final String yRange = (b.minY == Integer.MAX_VALUE) ? "Y ?" : String.format("Y %d..%d", b.minY, b.maxY);
         if (b.bestEffort) {
             return String.format(

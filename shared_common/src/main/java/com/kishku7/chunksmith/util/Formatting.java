@@ -12,7 +12,7 @@ public final class Formatting {
     private Formatting() {
     }
 
-    public static String bytes(final long bytes) {
+    public static String bytes(long bytes) {
         final long value = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
         if (value < 1024) {
             return String.format("%d B", bytes);
@@ -28,7 +28,7 @@ public final class Formatting {
         return String.format("%.1f %cB", bytes / (double) prefixValue, BINARY_PREFIXES[i]);
     }
 
-    public static String radius(final Selection selection) {
+    public static String radius(Selection selection) {
         if (ShapeType.RECTANGLE.equals(selection.shape()) || ShapeType.ELLIPSE.equals(selection.shape())) {
             return String.format("%s, %s", number(selection.radiusX()), number(selection.radiusZ()));
         } else {
@@ -36,7 +36,7 @@ public final class Formatting {
         }
     }
 
-    public static synchronized String number(final double number) {
+    public static synchronized String number(double number) {
         return NUMBER_FORMAT.format(number);
     }
 }

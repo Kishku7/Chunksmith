@@ -69,7 +69,7 @@ public abstract class WorldGenRegionMixin {
             //]]]
             //[[[end]]]
     )
-    private void chunksmith$captureFarWrite(final String message, final BlockPos pos) {
+    private void chunksmith$captureFarWrite(String message, BlockPos pos) {
         try {
             final String feature = this.currentlyGenerating == null ? null : String.valueOf(this.currentlyGenerating.get());
             //[[[cog
@@ -104,7 +104,7 @@ public abstract class WorldGenRegionMixin {
             // cog.outl('        pos.getY(), writeRadius);')
             //]]]
             //[[[end]]]
-        } catch (final Throwable ignored) {
+        } catch (Throwable ignored) {
             // Diagnostics must never break worldgen.
         }
     }

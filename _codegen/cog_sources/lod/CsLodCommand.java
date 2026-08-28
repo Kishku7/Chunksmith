@@ -48,8 +48,6 @@ import java.io.IOException;
  * <p>Its own root command rather than folded into {@code /chunksmith}: the shared command tree lives in
  * shared_common and is wired to TranslationKey + the lang files, which the LOD feature has no business
  * reaching into.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodCommand {
 
@@ -80,7 +78,7 @@ public final class CsLodCommand {
             long records;
             try {
                 records = CsLodPresenceIndex.countRecords(store);
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 records = -1L;
             }
             final long recordCount = records;
@@ -209,7 +207,7 @@ public final class CsLodCommand {
                         CsLodProtocol.SETTING_LIST, "", ""))
                 .then(Commands.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> {
-                            for (final String name : CsLodClientSettings.names()) {
+                            for (String name : CsLodClientSettings.names()) {
                                 builder.suggest(name);
                             }
                             return builder.buildFuture();
@@ -223,7 +221,7 @@ public final class CsLodCommand {
                                     final var setting = CsLodClientSettings.find(
                                             StringArgumentType.getString(context, "name"));
                                     if (setting.isPresent()) {
-                                        for (final String option : setting.get().kind().completions()) {
+                                        for (String option : setting.get().kind().completions()) {
                                             builder.suggest(option);
                                         }
                                     }
@@ -313,7 +311,7 @@ public final class CsLodCommand {
     //]]]
     //[[[end]]]
 
-    private static long sizeOf(final Path dir) {
+    private static long sizeOf(Path dir) {
         if (!Files.isDirectory(dir)) {
             return 0L;
         }
@@ -321,11 +319,11 @@ public final class CsLodCommand {
             return walk.filter(Files::isRegularFile).mapToLong(path -> {
                 try {
                     return Files.size(path);
-                } catch (final Exception e) {
+                } catch (Exception e) {
                     return 0L;
                 }
             }).sum();
-        } catch (final Exception e) {
+        } catch (Exception e) {
             return 0L;
         }
     }

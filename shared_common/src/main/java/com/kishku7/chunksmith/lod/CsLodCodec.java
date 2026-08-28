@@ -26,7 +26,7 @@ public final class CsLodCodec {
     private CsLodCodec() {
     }
 
-    public static byte[] encode(final CsLodChunk chunk) throws IOException {
+    public static byte[] encode(CsLodChunk chunk) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream(8192);
         try (DataOutputStream out = new DataOutputStream(new DeflaterOutputStream(raw))) {
             out.writeInt(MAGIC);
@@ -43,7 +43,7 @@ public final class CsLodCodec {
             final int blockWidth = indexWidth(chunk.getBlockPalette().size());
             final int biomeWidth = indexWidth(chunk.getBiomePalette().size());
 
-            for (final CsLodChunk.Section section : chunk.getSections()) {
+            for (CsLodChunk.Section section : chunk.getSections()) {
                 int flags = 0;
                 if (section.getUniformBlock() >= 0) {
                     flags |= FLAG_UNIFORM_BLOCK;
@@ -84,7 +84,7 @@ public final class CsLodCodec {
         return raw.toByteArray();
     }
 
-    public static CsLodChunk decode(final byte[] compressed) throws IOException {
+    public static CsLodChunk decode(byte[] compressed) throws IOException {
         try (DataInputStream in = new DataInputStream(
                 new InflaterInputStream(new ByteArrayInputStream(compressed)))) {
             final int magic = in.readInt();
@@ -156,24 +156,24 @@ public final class CsLodCodec {
         }
     }
 
-    private static int indexWidth(final int paletteSize) {
+    private static int indexWidth(int paletteSize) {
         return paletteSize <= 256 ? 1 : 2;
     }
 
-    private static void writeIndices(final DataOutputStream out, final int[] indices, final int width)
+    private static void writeIndices(DataOutputStream out, int[] indices, int width)
             throws IOException {
         if (width == 1) {
-            for (final int index : indices) {
+            for (int index : indices) {
                 out.writeByte(index);
             }
         } else {
-            for (final int index : indices) {
+            for (int index : indices) {
                 out.writeShort(index);
             }
         }
     }
 
-    private static int[] readIndices(final DataInputStream in, final int count, final int width)
+    private static int[] readIndices(DataInputStream in, int count, int width)
             throws IOException {
         final int[] indices = new int[count];
         for (int i = 0; i < count; i++) {
@@ -182,14 +182,14 @@ public final class CsLodCodec {
         return indices;
     }
 
-    private static void writePalette(final DataOutputStream out, final List<String> palette) throws IOException {
+    private static void writePalette(DataOutputStream out, List<String> palette) throws IOException {
         writeVarInt(out, palette.size());
-        for (final String entry : palette) {
+        for (String entry : palette) {
             out.writeUTF(entry);
         }
     }
 
-    private static List<String> readPalette(final DataInputStream in) throws IOException {
+    private static List<String> readPalette(DataInputStream in) throws IOException {
         final int size = readVarInt(in);
         // Bound before allocating: size is off the wire/disk. At most 65536 entries are ever addressable
         // (indices are 1 or 2 bytes wide), so a larger count is malformed, not merely large.
@@ -206,7 +206,7 @@ public final class CsLodCodec {
         return palette;
     }
 
-    private static void writeVarInt(final DataOutputStream out, final int value) throws IOException {
+    private static void writeVarInt(DataOutputStream out, int value) throws IOException {
         int remaining = value;
         while ((remaining & 0xFFFFFF80) != 0) {
             out.writeByte((remaining & 0x7F) | 0x80);
@@ -215,7 +215,7 @@ public final class CsLodCodec {
         out.writeByte(remaining & 0x7F);
     }
 
-    private static int readVarInt(final DataInputStream in) throws IOException {
+    private static int readVarInt(DataInputStream in) throws IOException {
         int result = 0;
         int shift = 0;
         while (true) {

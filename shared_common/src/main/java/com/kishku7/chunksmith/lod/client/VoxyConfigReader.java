@@ -53,7 +53,7 @@ public final class VoxyConfigReader {
      *
      * @param config the voxy {@code VoxyConfig.CONFIG} instance, or null
      */
-    public static int radiusBlocks(final Object config) {
+    public static int radiusBlocks(Object config) {
         if (config == null) {
             return 0;
         }
@@ -90,7 +90,7 @@ public final class VoxyConfigReader {
      *
      * @return its value widened to a double, or empty when it does not exist or is not a number
      */
-    public static OptionalDouble number(final Object instance, final String name) {
+    public static OptionalDouble number(Object instance, String name) {
         final Field field = field(instance, name);
         if (field == null) {
             return OptionalDouble.empty();
@@ -103,7 +103,7 @@ public final class VoxyConfigReader {
                 return OptionalDouble.of(((Number) value).doubleValue());
             }
             return OptionalDouble.empty();
-        } catch (final IllegalAccessException | RuntimeException e) {
+        } catch (IllegalAccessException | RuntimeException e) {
             return OptionalDouble.empty();
         }
     }
@@ -114,7 +114,7 @@ public final class VoxyConfigReader {
      * @param fallback what to answer when the field is absent or is not a boolean -- absence is not a
      *     "false": a fork that removed a toggle has not turned the feature off
      */
-    public static boolean flag(final Object instance, final String name, final boolean fallback) {
+    public static boolean flag(Object instance, String name, boolean fallback) {
         final Field field = field(instance, name);
         if (field == null) {
             return fallback;
@@ -122,7 +122,7 @@ public final class VoxyConfigReader {
         try {
             final Object value = field.get(instance);
             return value instanceof Boolean ? (Boolean) value : fallback;
-        } catch (final IllegalAccessException | RuntimeException e) {
+        } catch (IllegalAccessException | RuntimeException e) {
             return fallback;
         }
     }
@@ -132,26 +132,26 @@ public final class VoxyConfigReader {
      * {@code VoxyConfig.CONFIG} itself: even the holder is fetched by name, so a fork that renamed it
      * degrades to "no config" instead of throwing {@code NoSuchFieldError} out of our own bytecode.
      */
-    public static Object staticField(final Class<?> owner, final String name) {
+    public static Object staticField(Class<?> owner, String name) {
         try {
             final Field field = owner.getField(name);
             if (!Modifier.isStatic(field.getModifiers())) {
                 return null;
             }
             return field.get(null);
-        } catch (final NoSuchFieldException | IllegalAccessException | RuntimeException e) {
+        } catch (NoSuchFieldException | IllegalAccessException | RuntimeException e) {
             return null;
         }
     }
 
     /** Find a field by name: public first (voxy's config fields all are), then the declared hierarchy. */
-    private static Field field(final Object instance, final String name) {
+    private static Field field(Object instance, String name) {
         if (instance == null) {
             return null;
         }
         try {
             return instance.getClass().getField(name);
-        } catch (final NoSuchFieldException | RuntimeException ignored) {
+        } catch (NoSuchFieldException | RuntimeException ignored) {
             // Not public (or not visible): fall through to the declared walk.
         }
         for (Class<?> type = instance.getClass(); type != null; type = type.getSuperclass()) {
@@ -159,9 +159,9 @@ public final class VoxyConfigReader {
                 final Field declared = type.getDeclaredField(name);
                 declared.setAccessible(true);
                 return declared;
-            } catch (final NoSuchFieldException ignored) {
+            } catch (NoSuchFieldException ignored) {
                 continue;
-            } catch (final RuntimeException e) {
+            } catch (RuntimeException e) {
                 // SecurityException / InaccessibleObjectException -- treat as "cannot read".
                 return null;
             }

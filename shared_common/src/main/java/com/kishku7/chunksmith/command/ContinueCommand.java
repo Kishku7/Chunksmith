@@ -15,12 +15,12 @@ import java.util.Optional;
 public class ContinueCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public ContinueCommand(final Chunksmith chunky) {
+    public ContinueCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final List<GenerationTask> loadTasks;
         if (arguments.size() > 0) {
             final Optional<World> world = Input.tryWorld(chunky, arguments.joined());
@@ -56,7 +56,7 @@ public class ContinueCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));

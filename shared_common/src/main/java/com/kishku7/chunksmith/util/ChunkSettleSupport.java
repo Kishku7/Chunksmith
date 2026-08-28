@@ -4,10 +4,9 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * The one place that says whether a pregen should hold its chunks open, for how long, and how many.
- *
- * <p>{@link ChunkSettleWindow} is MC-free and knows nothing about config; the per-loader adapters that
- * own the chunk tickets know Minecraft but have no handle on it. This is the seam between them.
+ * Seam between {@link ChunkSettleWindow}, which knows nothing about Minecraft or about config, and the
+ * per-loader adapters that own the chunk tickets but have no handle on it. The hold policy -- whether,
+ * how long, how many -- is read here.
  *
  * <p><b>It is also the tick pump (3.5.1).</b> Until 3.5.1 the only production caller of
  * {@link ChunkSettleWindow#releaseDue} was the window's own {@code offer()}, so when the residency gate
@@ -30,7 +29,7 @@ public final class ChunkSettleSupport {
     }
 
     /** Called when a generation task starts, from the config that task was created with. */
-    public static void configure(final boolean enabled, final long delayTicks, final long maxHeld) {
+    public static void configure(boolean enabled, long delayTicks, long maxHeld) {
         ChunkSettleSupport.enabled = enabled;
         ChunkSettleSupport.delayTicks = Math.max(0L, delayTicks);
         ChunkSettleSupport.maxHeld = Math.max(0L, maxHeld);
@@ -60,11 +59,11 @@ public final class ChunkSettleSupport {
      * windows are dropped here rather than by the adapter: making the adapter remember to deregister
      * would be exactly the kind of pairing that {@code LodInjector.arm()} taught us not to write.
      */
-    public static void tick(final long gameTime) {
+    public static void tick(long gameTime) {
         if (LIVE.isEmpty()) {
             return;
         }
-        for (final ChunkSettleWindow window : LIVE) {
+        for (ChunkSettleWindow window : LIVE) {
             if (window.isDrained()) {
                 LIVE.remove(window);
                 continue;

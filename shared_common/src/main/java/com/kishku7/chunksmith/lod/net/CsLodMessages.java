@@ -31,7 +31,7 @@ public final class CsLodMessages {
     public record ClientHello(int protocolVersion, boolean hasVoxy, boolean hasDh, int radiusBlocks) {
     }
 
-    public static byte[] encode(final ClientHello hello) throws IOException {
+    public static byte[] encode(ClientHello hello) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_HELLO);
@@ -44,7 +44,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    public static ClientHello decodeClientHello(final DataInputStream in) throws IOException {
+    public static ClientHello decodeClientHello(DataInputStream in) throws IOException {
         return new ClientHello(in.readInt(), in.readBoolean(), in.readBoolean(), in.readInt());
     }
 
@@ -62,7 +62,7 @@ public final class CsLodMessages {
                               String token, List<String> dimensions) {
     }
 
-    public static byte[] encode(final ServerHello hello) throws IOException {
+    public static byte[] encode(ServerHello hello) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_HELLO);
@@ -71,14 +71,14 @@ public final class CsLodMessages {
             out.writeInt(hello.backchannelPort());
             out.writeUTF(hello.token() == null ? "" : hello.token());
             out.writeInt(hello.dimensions().size());
-            for (final String dimension : hello.dimensions()) {
+            for (String dimension : hello.dimensions()) {
                 out.writeUTF(dimension);
             }
         }
         return raw.toByteArray();
     }
 
-    public static ServerHello decodeServerHello(final DataInputStream in) throws IOException {
+    public static ServerHello decodeServerHello(DataInputStream in) throws IOException {
         final int version = in.readInt();
         final boolean available = in.readBoolean();
         final int port = in.readInt();
@@ -107,13 +107,13 @@ public final class CsLodMessages {
     public record RegionIndex(String dimension, List<RegionEntry> regions) {
     }
 
-    public static byte[] encode(final RegionIndex index) throws IOException {
+    public static byte[] encode(RegionIndex index) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_INDEX);
             out.writeUTF(index.dimension());
             out.writeInt(index.regions().size());
-            for (final RegionEntry entry : index.regions()) {
+            for (RegionEntry entry : index.regions()) {
                 out.writeInt(entry.regionX());
                 out.writeInt(entry.regionZ());
                 out.writeLong(entry.hash());
@@ -123,7 +123,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    public static RegionIndex decodeRegionIndex(final DataInputStream in) throws IOException {
+    public static RegionIndex decodeRegionIndex(DataInputStream in) throws IOException {
         final String dimension = in.readUTF();
         final int count = in.readInt();
         // The count is off the wire from an untrusted server, so bound it before allocating.
@@ -151,7 +151,7 @@ public final class CsLodMessages {
     }
 
     /** Ask the server whether anything has changed. 22 bytes for a normal dimension id. */
-    public static byte[] requestSummary(final String dimension) throws IOException {
+    public static byte[] requestSummary(String dimension) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_REQUEST_SUMMARY);
@@ -160,7 +160,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    public static byte[] encode(final RegionSummary summary) throws IOException {
+    public static byte[] encode(RegionSummary summary) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_SUMMARY);
@@ -176,7 +176,7 @@ public final class CsLodMessages {
      * size -- so unlike the index there is no ceiling to enforce. It is still range-checked, because a
      * negative count is not a thing an honest server sends.
      */
-    public static RegionSummary decodeRegionSummary(final DataInputStream in) throws IOException {
+    public static RegionSummary decodeRegionSummary(DataInputStream in) throws IOException {
         final String dimension = in.readUTF();
         final int count = in.readInt();
         if (count < 0 || count > CsLodProtocol.MAX_INDEX_REGIONS) {
@@ -189,7 +189,7 @@ public final class CsLodMessages {
     // simple requests
 
     /** Ask for a dimension's index. */
-    public static byte[] requestIndex(final String dimension) throws IOException {
+    public static byte[] requestIndex(String dimension) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_REQUEST_INDEX);
@@ -199,13 +199,13 @@ public final class CsLodMessages {
     }
 
     /** Ask for regions in-band (the fallback, when the backchannel is unreachable). */
-    public static byte[] requestRegions(final String dimension, final List<RegionEntry> wanted) throws IOException {
+    public static byte[] requestRegions(String dimension, List<RegionEntry> wanted) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_REQUEST_REGIONS);
             out.writeUTF(dimension);
             out.writeInt(wanted.size());
-            for (final RegionEntry entry : wanted) {
+            for (RegionEntry entry : wanted) {
                 out.writeInt(entry.regionX());
                 out.writeInt(entry.regionZ());
             }
@@ -223,7 +223,7 @@ public final class CsLodMessages {
     public record RegionSlice(String dimension, int regionX, int regionZ, boolean last, byte[] data) {
     }
 
-    public static byte[] encode(final RegionSlice slice) throws IOException {
+    public static byte[] encode(RegionSlice slice) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream(slice.data().length + 64);
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_CHUNK);
@@ -237,7 +237,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    public static RegionSlice decodeRegionSlice(final DataInputStream in) throws IOException {
+    public static RegionSlice decodeRegionSlice(DataInputStream in) throws IOException {
         final String dimension = in.readUTF();
         final int x = in.readInt();
         final int z = in.readInt();
@@ -274,7 +274,7 @@ public final class CsLodMessages {
     public record ClientSetting(byte action, String name, String value) {
     }
 
-    public static byte[] encode(final ClientSetting setting) throws IOException {
+    public static byte[] encode(ClientSetting setting) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_CLIENT_SETTING);
@@ -285,7 +285,7 @@ public final class CsLodMessages {
         return raw.toByteArray();
     }
 
-    public static ClientSetting decodeClientSetting(final DataInputStream in) throws IOException {
+    public static ClientSetting decodeClientSetting(DataInputStream in) throws IOException {
         final byte action = in.readByte();
         if (action != CsLodProtocol.SETTING_LIST
                 && action != CsLodProtocol.SETTING_SHOW
@@ -297,7 +297,7 @@ public final class CsLodMessages {
         return new ClientSetting(action, in.readUTF(), in.readUTF());
     }
 
-    public static DataInputStream reader(final byte[] payload) {
+    public static DataInputStream reader(byte[] payload) {
         return new DataInputStream(new ByteArrayInputStream(payload));
     }
 }

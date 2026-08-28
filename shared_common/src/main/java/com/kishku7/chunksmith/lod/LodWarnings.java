@@ -23,13 +23,13 @@ public final class LodWarnings {
     private LodWarnings() {
     }
 
-    public static void once(final String cause, final String message) {
+    public static void once(String cause, String message) {
         if (SAID.add(cause)) {
             LOGGER.warn("Chunksmith: {}", message);
         }
     }
 
-    public static boolean saidAlready(final String cause) {
+    public static boolean saidAlready(String cause) {
         return SAID.contains(cause);
     }
 

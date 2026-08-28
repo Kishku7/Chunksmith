@@ -21,30 +21,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Serves Distant Horizons straight out of the CSLOD store.
- *
- * <p>DH does not accept pushed data -- it pulls, through a world-generator override. So instead of
- * generating anything, we register as its generator and answer from what ChunkSmith already
+ * DH does not accept pushed data -- it pulls, through a world-generator override. So instead of
+ * generating anything, ChunkSmith registers as its generator and answers from what it already
  * pregenerated. For a pregenerated area DH's LODs therefore appear essentially instantly, with no
  * worldgen cost at all.
- *
- * <p>Nothing is translated on the way out. DH builds its ids from vanilla registry strings
- * ({@code wrapperFactory.getDefaultBlockStateWrapper("minecraft:oak_stairs[...]", level)}), and CSLOD
- * already stores full block STATE strings -- no re-mapping, no foreign id table. Sky and block light are
- * stored separately for the same reason: DH will not take voxy's blended byte.
- *
- * <p>Light offset: DH samples a column's light from the block above the surface (y+1), so the data point
- * for a solid block carries the light of the air above it. We apply that offset here.
  *
  * <p><b>The trade-off.</b> Registering a world-generator override replaces DH's own distant generator for
  * this level, so chunks ChunkSmith has not pregenerated come back empty -- DH gets no data for them rather
  * than generating them itself. Hence opt-in: {@code lodDhOverride}, default false.
  *
- * <p>Loader- and version-blind: every symbol here is {@code com.seibel.*} or ours, and it names no
- * Minecraft type at all, which is why one source compiles unchanged on all eight LOD cells.
+ * <p>Nothing is translated on the way out. DH builds its ids from vanilla registry strings
+ * ({@code wrapperFactory.getDefaultBlockStateWrapper("minecraft:oak_stairs[...]", level)}), and CSLOD
+ * already stores full block STATE strings -- no re-mapping, no foreign id table. Sky and block light are
+ * stored separately for the same reason: DH will not take voxy's blended byte. Every symbol in this class
+ * is {@code com.seibel.*} or ours and it names no Minecraft type at all, which is why one source compiles
+ * unchanged on all eight LOD cells.
  *
- * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell copy
- * under gen/ is overwritten by cog-gen on every build.
+ * <p>Light offset: DH samples a column's light from the block above the surface (y+1), so the data point
+ * for a solid block carries the light of the air above it. We apply that offset here.
  */
 public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
 
@@ -65,7 +59,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     private final Map<String, IDhApiBlockStateWrapper> blockWrappers = new ConcurrentHashMap<>();
     private final Map<String, IDhApiBiomeWrapper> biomeWrappers = new ConcurrentHashMap<>();
 
-    public CsLodDhGenerator(final IDhApiLevelWrapper level, final Path storeRoot) {
+    public CsLodDhGenerator(IDhApiLevelWrapper level, Path storeRoot) {
         this.level = level;
         this.store = new CsLodRegionStore(storeRoot);
     }
@@ -82,17 +76,17 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     }
 
     @Override
-    public Object[] generateChunk(final int chunkX, final int chunkZ, final EDhApiDistantGeneratorMode mode) {
+    public Object[] generateChunk(int chunkX, int chunkZ, EDhApiDistantGeneratorMode mode) {
         // Never called: getReturnType() is API_CHUNKS.
         throw new UnsupportedOperationException("ChunkSmith serves API_CHUNKS, not vanilla chunks");
     }
 
     @Override
-    public DhApiChunk generateApiChunk(final int chunkX, final int chunkZ, final EDhApiDistantGeneratorMode mode) {
+    public DhApiChunk generateApiChunk(int chunkX, int chunkZ, EDhApiDistantGeneratorMode mode) {
         final CsLodChunk record;
         try {
             record = store.read(chunkX, chunkZ);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             missed.incrementAndGet();
             return emptyChunk(chunkX, chunkZ);
         }
@@ -119,7 +113,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
      * Build one 1x1 column of data points, bottom-up, gap-free -- DH requires columns that neither
      * overlap nor leave holes.
      */
-    private List<DhApiTerrainDataPoint> column(final CsLodChunk record, final int x, final int z, final int bottomY) {
+    private List<DhApiTerrainDataPoint> column(CsLodChunk record, int x, int z, int bottomY) {
         final List<CsLodChunk.Section> sections = record.getSections();
         final int height = sections.size() * 16;
 
@@ -193,7 +187,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
      * world-gen queue dies silently (no log line at all). DH's own API says so explicitly:
      * "If you want to remove all data from a column please clear the list or pass in an empty list."
      */
-    private DhApiChunk emptyChunk(final int chunkX, final int chunkZ) {
+    private DhApiChunk emptyChunk(int chunkX, int chunkZ) {
         final DhApiChunk chunk = DhApiChunk.create(
                 chunkX, chunkZ, level.getMinHeight(), level.getMaxHeight());
         for (int x = 0; x < 16; x++) {
@@ -205,30 +199,30 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     }
 
     /** DH takes a column's light from the block ABOVE it; at the ceiling there is nothing above. */
-    private static int skyOf(final int[] skyLight, final int y, final int height) {
+    private static int skyOf(int[] skyLight, int y, int height) {
         return y + 1 < height ? skyLight[y + 1] : skyLight[height - 1];
     }
 
-    private static int blockOf(final int[] blockLight, final int y, final int height) {
+    private static int blockOf(int[] blockLight, int y, int height) {
         return y + 1 < height ? blockLight[y + 1] : blockLight[height - 1];
     }
 
-    private IDhApiBlockStateWrapper blockWrapper(final String state) {
+    private IDhApiBlockStateWrapper blockWrapper(String state) {
         return blockWrappers.computeIfAbsent(state, key -> {
             try {
                 return DhApi.Delayed.wrapperFactory.getDefaultBlockStateWrapper(key, level);
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 // Unknown block (a mod was removed since the pregen): air is the honest answer.
                 return DhApi.Delayed.wrapperFactory.getAirBlockStateWrapper();
             }
         });
     }
 
-    private IDhApiBiomeWrapper biomeWrapper(final String biome) {
+    private IDhApiBiomeWrapper biomeWrapper(String biome) {
         return biomeWrappers.computeIfAbsent(biome, key -> {
             try {
                 return DhApi.Delayed.wrapperFactory.getBiomeWrapper(key, level);
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 throw new IllegalStateException("ChunkSmith: DH rejected biome id " + key, e);
             }
         });
@@ -247,7 +241,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
     public void close() {
         try {
             store.close();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: failed to close the LOD store for DH: {}", e.toString());
         }
     }

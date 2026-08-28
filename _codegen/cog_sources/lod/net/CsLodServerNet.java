@@ -131,7 +131,7 @@ public final class CsLodServerNet {
     }
 
     /** A token must never outlive the session that earned it. Called from the disconnect hook. */
-    public static void onDisconnect(final UUID player) {
+    public static void onDisconnect(UUID player) {
         TOKENS.revoke(player);
         CsLodInBandSender.forget(player);
         RADIUS.remove(player);
@@ -147,7 +147,7 @@ public final class CsLodServerNet {
      * the bind on "the store is there" would mean the backchannel never came up until the next restart,
      * with nothing to tell the operator why. An empty store simply 404s until data lands.
      */
-    public static void onServerStarted(final MinecraftServer current) {
+    public static void onServerStarted(MinecraftServer current) {
         server = current;
         if (!LodSupport.lodEnabled(current)) {
             LOGGER.info("Chunksmith: LOD is disabled; not serving LODs");
@@ -156,7 +156,7 @@ public final class CsLodServerNet {
         final Path root = LodSupport.storeRootBase(current);
         try {
             Files.createDirectories(root);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: cannot create the LOD store root " + root + ": " + e);
             return;
         }
@@ -209,7 +209,7 @@ public final class CsLodServerNet {
         final Path root = LodSupport.storeRootBase(current);
         try {
             Files.createDirectories(root);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: cannot create the LOD store root " + root + ": " + e);
             return 0;
         }
@@ -225,11 +225,11 @@ public final class CsLodServerNet {
      * send fails is left alone rather than retried -- they re-hello on their next join, and the in-band
      * channel keeps working meanwhile.
      */
-    private static void readvertise(final MinecraftServer current, final int port) {
+    private static void readvertise(MinecraftServer current, int port) {
         final List<String> dims = dimensions();
         final boolean available = !dims.isEmpty();
         int told = 0;
-        for (final ServerPlayer player : current.getPlayerList().getPlayers()) {
+        for (ServerPlayer player : current.getPlayerList().getPlayers()) {
             if (!GREETED.contains(player.getUUID())) {
                 continue;
             }
@@ -240,7 +240,7 @@ public final class CsLodServerNet {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                         CsLodProtocol.VERSION, available, port, token, dims)));
                 told++;
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 LOGGER.warn("Chunksmith: could not tell {} about the new backchannel port: {}",
                         nameOf(player), e.toString());
             }
@@ -265,7 +265,7 @@ public final class CsLodServerNet {
                 if (!current.awaitTermination(2, TimeUnit.SECONDS)) {
                     current.shutdownNow();
                 }
-            } catch (final InterruptedException e) {
+            } catch (InterruptedException e) {
                 current.shutdownNow();
                 Thread.currentThread().interrupt();
             }
@@ -294,20 +294,20 @@ public final class CsLodServerNet {
      *
      * @return the token, or null when the backchannel is not running
      */
-    public static String issueFor(final ServerPlayer player) {
+    public static String issueFor(ServerPlayer player) {
         if (http == null || http.getPort() == 0) {
             return null;
         }
         return TOKENS.issue(player.getUUID(), addressOf(player));
     }
 
-    private static boolean isOnline(final UUID player) {
+    private static boolean isOnline(UUID player) {
         final MinecraftServer current = server;
         return current != null && current.getPlayerList().getPlayer(player) != null;
     }
 
     /** One inbound protocol message. Always called on the server main thread by {@link CsLodChannel}. */
-    public static void receive(final ServerPlayer player, final byte[] data) {
+    public static void receive(ServerPlayer player, byte[] data) {
         if (data.length == 0) {
             return;
         }
@@ -324,12 +324,12 @@ public final class CsLodServerNet {
                 }
                 default -> LOGGER.warn("Chunksmith: unknown LOD message id " + id);
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: malformed LOD message from " + nameOf(player) + ": " + e);
         }
     }
 
-    private static void hello(final ServerPlayer player, final CsLodMessages.ClientHello hello) throws IOException {
+    private static void hello(ServerPlayer player, CsLodMessages.ClientHello hello) throws IOException {
         if (hello.protocolVersion() != CsLodProtocol.VERSION) {
             LOGGER.info("Chunksmith: " + nameOf(player) + " speaks LOD protocol v"
                     + hello.protocolVersion() + ", we speak v" + CsLodProtocol.VERSION + " -- not serving."
@@ -402,7 +402,7 @@ public final class CsLodServerNet {
      * The fallback for when no backchannel port is open: drip the regions down the game connection
      * instead, at a rate that leaves room for gameplay traffic.
      */
-    private static void inBand(final ServerPlayer player, final DataInputStream in) throws IOException {
+    private static void inBand(ServerPlayer player, DataInputStream in) throws IOException {
         final String requested = in.readUTF();
         final int count = in.readInt();
         // Bound the count before sizing anything: it came off the wire (see CsLodIndexScan.MAX_REGIONS).
@@ -441,8 +441,8 @@ public final class CsLodServerNet {
     }
 
     /** Drip-feed the in-band queues, and watch for the store coming to life. Wired to the server tick. */
-    public static void tick(final MinecraftServer current) {
-        for (final ServerPlayer player : current.getPlayerList().getPlayers()) {
+    public static void tick(MinecraftServer current) {
+        for (ServerPlayer player : current.getPlayerList().getPlayers()) {
             CsLodInBandSender.tick(player);
         }
         storeWatchTick(current);
@@ -457,7 +457,7 @@ public final class CsLodServerNet {
      * ({@link #ANNOUNCED}), so a pregen writing thousands of regions produces one message; and the player
      * leaves {@link #WAITING} the moment they are told, so the watch goes back to sleep.
      */
-    private static void storeWatchTick(final MinecraftServer current) {
+    private static void storeWatchTick(MinecraftServer current) {
         if (WAITING.isEmpty()) {
             sinceStoreWatch = 0;
             return;
@@ -473,7 +473,7 @@ public final class CsLodServerNet {
         }
         final int port = http == null ? 0 : http.getPort();
 
-        for (final UUID uuid : List.copyOf(WAITING)) {
+        for (UUID uuid : List.copyOf(WAITING)) {
             final ServerPlayer player = current.getPlayerList().getPlayer(uuid);
             if (player == null) {
                 WAITING.remove(uuid);
@@ -492,7 +492,7 @@ public final class CsLodServerNet {
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                         CsLodProtocol.VERSION, true, port, token, dims)));
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 LOGGER.warn("Chunksmith: could not tell {} that the LOD store is ready: {}",
                         nameOf(player), e.toString());
                 continue;
@@ -502,7 +502,7 @@ public final class CsLodServerNet {
         }
     }
 
-    public static void sendTo(final ServerPlayer player, final byte[] data) {
+    public static void sendTo(ServerPlayer player, byte[] data) {
         send(player, data);
     }
 
@@ -514,7 +514,7 @@ public final class CsLodServerNet {
      * not required to be greeted (3.4.0) -- the question is whether a Chunksmith is listening, not whether
      * there is anything to draw with.
      */
-    public static boolean hasLodClient(final ServerPlayer player) {
+    public static boolean hasLodClient(ServerPlayer player) {
         return GREETED.contains(player.getUUID());
     }
 
@@ -532,7 +532,7 @@ public final class CsLodServerNet {
         try {
             send(player, CsLodMessages.encode(new CsLodMessages.ClientSetting(action, name, value)));
             return true;
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: could not encode a client-setting message: {}", e.toString());
             return false;
         }
@@ -556,7 +556,7 @@ public final class CsLodServerNet {
      * Take the snapshot, and hand the filesystem work to the scan thread. Always called on the server main
      * thread; it is the last thing on the main thread this feature does, and everything here is O(1).
      */
-    private static void dispatch(final ServerPlayer player, final String requested, final boolean summaryOnly)
+    private static void dispatch(ServerPlayer player, String requested, boolean summaryOnly)
             throws IOException {
         final Path root = storeBase();
         if (root == null) {
@@ -603,7 +603,7 @@ public final class CsLodServerNet {
         }
         try {
             pool.execute(() -> run(root, request));
-        } catch (final RejectedExecutionException e) {
+        } catch (RejectedExecutionException e) {
             // The server is stopping. Nothing to answer, and nothing to complain about.
             SCANNING.remove(uuid);
         }
@@ -614,7 +614,7 @@ public final class CsLodServerNet {
      * that are in range, and either send the whole index or fold it to two numbers. Not one byte of any
      * region file is read.
      */
-    private static void run(final Path root, final Request request) {
+    private static void run(Path root, Request request) {
         try {
             final Path dir = safeDimensionDir(root, request.dimension());
             if (dir == null) {
@@ -655,7 +655,7 @@ public final class CsLodServerNet {
                     send(player, message);
                 }
             });
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: could not scan the LOD store for {}: {}", request.name(), e.toString());
         } finally {
             SCANNING.remove(request.uuid());
@@ -668,7 +668,7 @@ public final class CsLodServerNet {
      * and the normalized result must still start with the store root (catching a "." / ".." the pattern
      * would otherwise admit).
      */
-    private static Path safeDimensionDir(final Path root, final String dimension) {
+    private static Path safeDimensionDir(Path root, String dimension) {
         if (dimension == null || dimension.isEmpty() || !DIM_DIR.matcher(dimension).matches()) {
             return null;
         }
@@ -689,7 +689,7 @@ public final class CsLodServerNet {
             return List.of();
         }
         final List<Path> dirs = new ArrayList<>();
-        for (final ServerLevel level : current.getAllLevels()) {
+        for (ServerLevel level : current.getAllLevels()) {
             dirs.add(LodSupport.storeRoot(level));
         }
         return CsLodStoreScan.servable(dirs, System.currentTimeMillis());
@@ -701,12 +701,12 @@ public final class CsLodServerNet {
      * {@link LodSupport#storeRoot} named that dimension's directory with. The empty return is unreachable
      * in practice; it exists so a caller can never get a plausible-looking wrong answer.
      */
-    private static String dimensionOf(final ServerPlayer player) {
+    private static String dimensionOf(ServerPlayer player) {
         final MinecraftServer current = server;
         if (current == null) {
             return "";
         }
-        for (final ServerLevel level : current.getAllLevels()) {
+        for (ServerLevel level : current.getAllLevels()) {
             if (level == player.level()) {
                 return LodSupport.dimensionKey(level);
             }
@@ -720,7 +720,7 @@ public final class CsLodServerNet {
     }
 
     /** The player's display name. authlib renamed GameProfile.getName() to name() at MC 1.21.9. */
-    private static String nameOf(final ServerPlayer player) {
+    private static String nameOf(ServerPlayer player) {
         //[[[cog
         // import cog, compat
         // cog.outl("return player.getGameProfile().%s();" % compat.profile_name_call(mcver))
@@ -728,7 +728,7 @@ public final class CsLodServerNet {
         //[[[end]]]
     }
 
-    private static String addressOf(final ServerPlayer player) {
+    private static String addressOf(ServerPlayer player) {
         final var address = player.connection.getRemoteAddress();
         if (address instanceof final InetSocketAddress inet && inet.getAddress() != null) {
             return inet.getAddress().getHostAddress();
@@ -736,7 +736,7 @@ public final class CsLodServerNet {
         return "";
     }
 
-    private static void send(final ServerPlayer player, final byte[] data) {
+    private static void send(ServerPlayer player, byte[] data) {
         CsLodChannel.send(player, data);
     }
 }

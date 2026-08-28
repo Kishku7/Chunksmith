@@ -14,11 +14,11 @@ public final class ShapeFactory {
     private ShapeFactory() {
     }
 
-    public static Shape getShape(final Selection selection) {
+    public static Shape getShape(Selection selection) {
         return getShape(selection, true);
     }
 
-    public static Shape getShape(final Selection selection, final boolean chunkAligned) {
+    public static Shape getShape(Selection selection, boolean chunkAligned) {
         return switch (selection.shape()) {
             case ShapeType.CIRCLE -> new Circle(selection, chunkAligned);
             case ShapeType.DIAMOND -> new Diamond(selection, chunkAligned);
@@ -32,7 +32,7 @@ public final class ShapeFactory {
         };
     }
 
-    public static void registerCustom(final String name, final BiFunction<Selection, Boolean, Shape> shapeFunction) {
+    public static void registerCustom(String name, BiFunction<Selection, Boolean, Shape> shapeFunction) {
         custom.put(name, shapeFunction);
         Translator.addCustomTranslation("shape_%s".formatted(name), name);
     }

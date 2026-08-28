@@ -1,7 +1,7 @@
 package com.kishku7.chunksmith.util;
 
 /**
- * How full the heap is -- the constraint everything else in this mod has been talking around.
+ * Reads heap occupancy off {@link Runtime} and decides whether a pregen may keep dispatching.
  *
  * <p>Three releases went into bounding a pregen by counting proxies: queued writes, LOD-sink depth,
  * resident chunks, chunks added since the run started. Every one was wrong on a real server. An absolute
@@ -14,8 +14,6 @@ package com.kishku7.chunksmith.util;
  * several seconds holds live data. And the gate only pauses dispatch, so a false positive costs seconds
  * of throughput while a false negative costs the server: {@link #CONFIRM_SAMPLES} samples close it, and
  * it opens well below the threshold.
- *
- * <p>Deliberately MC-free and dependency-free -- {@link Runtime} is the whole implementation.
  */
 public final class HeapPressure {
 
@@ -56,7 +54,7 @@ public final class HeapPressure {
      * @param currentlyHeld    whether the gate is already closed, so the resume margin can be applied
      * @param thresholdPercent the configured ceiling, or 0 to disable the gate entirely
      */
-    public static boolean shouldHold(final boolean currentlyHeld, final long thresholdPercent) {
+    public static boolean shouldHold(boolean currentlyHeld, long thresholdPercent) {
         return shouldHold(currentlyHeld, thresholdPercent, usedPercent());
     }
 
@@ -64,7 +62,7 @@ public final class HeapPressure {
      * Reading-injecting overload. The confirmation streak and the resume margin are the whole point of
      * this class and cannot be tested against a live heap: a test cannot make the JVM sit at 90 percent.
      */
-    static boolean shouldHold(final boolean currentlyHeld, final long thresholdPercent, final double used) {
+    static boolean shouldHold(boolean currentlyHeld, long thresholdPercent, double used) {
         if (thresholdPercent <= 0L) {
             consecutiveHigh = 0;
             return false;

@@ -11,7 +11,7 @@ import static com.kishku7.chunksmith.shape.ShapeUtil.insideLine;
 public class Triangle extends AbstractPolygon {
     private final double p1x, p1z, p2x, p2z, p3x, p3z;
 
-    public Triangle(final Selection selection, final boolean chunkAligned) {
+    public Triangle(Selection selection, boolean chunkAligned) {
         super(selection, chunkAligned);
         this.p1x = centerX + radiusX;
         this.p1z = centerZ + radiusX;
@@ -31,7 +31,7 @@ public class Triangle extends AbstractPolygon {
     }
 
     @Override
-    public boolean isBounding(final double x, final double z) {
+    public boolean isBounding(double x, double z) {
         if (!insideLine(p1x, p1z, p2x, p2z, x, z)) {
             return false;
         }

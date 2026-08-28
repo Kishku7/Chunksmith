@@ -12,10 +12,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 /**
- * Bukkit-native counterpart to the Fabric/Forge/NeoForge {@code LodSupport}
- * (canonical: _codegen/cog_sources/lod/LodSupport.java). Resolves the active {@link LodSink} per
- * world and drives the generation hook, mirroring that class's structure and the same
- * {@code lodEnabled} tristate semantics -- but see the scope note below.
+ * Resolves the active {@link LodSink} per world and drives the generation hook. Mirrors the
+ * Fabric/Forge/NeoForge {@code LodSupport} (canonical: _codegen/cog_sources/lod/LodSupport.java),
+ * structure and {@code lodEnabled} tristate semantics alike -- but see the scope note below.
  *
  * <p>Server-side generation only (mod_support #9 follow-up / #11 sibling work). There is no renderer
  * adapter and no client-streaming channel here yet -- that is Chunksmith-Client's job on the mod loaders
@@ -45,7 +44,7 @@ public final class LodSupport {
     }
 
     /** The live decision for this platform: ON unless the operator explicitly forced it off. */
-    public static boolean lodEnabled(final Config config) {
+    public static boolean lodEnabled(Config config) {
         if (config == null) {
             return false;
         }
@@ -60,7 +59,7 @@ public final class LodSupport {
      * synchronously: the moment is now, and everything downstream of extraction (the writer thread)
      * is asynchronous.
      */
-    public static void offer(final Config config, final World world, final Chunk chunk) {
+    public static void offer(Config config, World world, Chunk chunk) {
         if (!lodEnabled(config)) {
             return;
         }
@@ -75,12 +74,12 @@ public final class LodSupport {
     }
 
     /** The active sink for a world, resolved once. Never null. */
-    public static LodSink sinkFor(final Config config, final World world) {
+    public static LodSink sinkFor(Config config, World world) {
         final String key = world.getKey().toString();
         return SINKS.computeIfAbsent(key, ignored -> create(config, world));
     }
 
-    private static LodSink create(final Config config, final World world) {
+    private static LodSink create(Config config, World world) {
         final Path root = storeRoot(world);
         final CsLodStoreSink sink = new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY);
         LodSinks.set(sink);
@@ -89,7 +88,7 @@ public final class LodSupport {
     }
 
     /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; matches the mod-loader layout exactly. */
-    public static Path storeRoot(final World world) {
+    public static Path storeRoot(World world) {
         return world.getWorldFolder().toPath()
                 .resolve("chunksmith").resolve("lod")
                 .resolve(dimensionKey(world))
@@ -97,14 +96,14 @@ public final class LodSupport {
     }
 
     /** Mirrors the mod-loader {@code dimensionKey}: the dimension id with ':' and '/' flattened. */
-    public static String dimensionKey(final World world) {
+    public static String dimensionKey(World world) {
         return world.getKey().toString().replace(':', '_').replace('/', '_');
     }
 
     /**
      * Say, once, out loud, what was decided. Called from {@code ChunksmithBukkit#onEnable}.
      */
-    public static void announce(final Config config) {
+    public static void announce(Config config) {
         if (!ANNOUNCED.compareAndSet(false, true)) {
             return;
         }
@@ -130,7 +129,7 @@ public final class LodSupport {
      * that ends at shutdown would lose whatever was still queued.
      */
     public static void shutdown() {
-        for (final LodSink sink : SINKS.values()) {
+        for (LodSink sink : SINKS.values()) {
             if (sink instanceof final CsLodStoreSink store) {
                 LOGGER.info(String.format(
                         "Chunksmith: LOD store: %d chunks, %d bytes (%.1f KB/chunk), %d synchronous writes",

@@ -15,12 +15,12 @@ import static com.kishku7.chunksmith.util.Translator.translate;
 public class PatternCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public PatternCommand(final Chunksmith chunky) {
+    public PatternCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<String> optionalType = arguments.next().flatMap(Input::tryPattern);
         if (optionalType.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_PATTERN);
@@ -38,7 +38,7 @@ public class PatternCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             return PatternType.ALL;
         }

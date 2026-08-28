@@ -32,12 +32,12 @@ import static com.kishku7.chunksmith.util.Translator.translate;
 public class TrimCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public TrimCommand(final Chunksmith chunky) {
+    public TrimCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         if (arguments.size() > 0) {
             final Optional<World> world = arguments.next().flatMap(arg -> Input.tryWorld(chunky, arg));
             if (world.isPresent()) {
@@ -116,7 +116,7 @@ public class TrimCommand implements ChunksmithCommand {
                                 .filter(file -> ChunkCoordinate.fromRegionFile(file.getFileName().toString()).isPresent())
                                 .toList();
                         final long totalRegions = regions.size();
-                        for (final Path region : regions) {
+                        for (Path region : regions) {
                             if (trimTask.isCancelled()) {
                                 break;
                             }
@@ -147,7 +147,7 @@ public class TrimCommand implements ChunksmithCommand {
         }
     }
 
-    private int checkRegion(final World world, final String regionFileName, final Shape shape, final boolean inside, final boolean inhabitedTimeCheck, final int inhabitedTime) {
+    private int checkRegion(World world, String regionFileName, Shape shape, boolean inside, boolean inhabitedTimeCheck, int inhabitedTime) {
         final Optional<ChunkCoordinate> regionCoordinate = ChunkCoordinate.fromRegionFile(regionFileName);
         if (regionCoordinate.isEmpty()) {
             return 0;
@@ -161,7 +161,7 @@ public class TrimCommand implements ChunksmithCommand {
         }
     }
 
-    private boolean shouldDeleteRegion(final Shape shape, final boolean inside, final int chunkX, final int chunkZ) {
+    private boolean shouldDeleteRegion(Shape shape, boolean inside, int chunkX, int chunkZ) {
         for (int offsetX = 0; offsetX < 32; ++offsetX) {
             for (int offsetZ = 0; offsetZ < 32; ++offsetZ) {
                 final int chunkCenterX = ((chunkX + offsetX) << 4) + 8;
@@ -174,7 +174,7 @@ public class TrimCommand implements ChunksmithCommand {
         return true;
     }
 
-    private int deleteRegion(final World world, final String regionFileName) {
+    private int deleteRegion(World world, String regionFileName) {
         try {
             final Path regionPath = world.getRegionDirectory().map(region -> region.resolve(regionFileName)).orElseThrow(IllegalStateException::new);
             Files.deleteIfExists(regionPath);
@@ -193,7 +193,7 @@ public class TrimCommand implements ChunksmithCommand {
         }
     }
 
-    private int trimRegion(final World world, final String regionFileName, final Shape shape, final boolean inside, final int chunkX, final int chunkZ, final boolean inhabitedTimeCheck, final int inhabitedTime) {
+    private int trimRegion(World world, String regionFileName, Shape shape, boolean inside, int chunkX, int chunkZ, boolean inhabitedTimeCheck, int inhabitedTime) {
         final Path regionPath = world.getRegionDirectory().map(region -> region.resolve(regionFileName)).orElseThrow(IllegalStateException::new);
         final Path poiPath = world.getPOIDirectory().map(region -> region.resolve(regionFileName)).orElse(null);
         final Path entitiesPath = world.getEntitiesDirectory().map(region -> region.resolve(regionFileName)).orElse(null);
@@ -265,7 +265,7 @@ public class TrimCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
@@ -283,7 +283,7 @@ public class TrimCommand implements ChunksmithCommand {
             return cancelled;
         }
 
-        public void setCancelled(final boolean cancelled) {
+        public void setCancelled(boolean cancelled) {
             this.cancelled = cancelled;
         }
     }

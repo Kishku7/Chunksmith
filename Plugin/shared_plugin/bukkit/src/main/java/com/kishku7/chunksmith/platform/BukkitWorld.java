@@ -44,7 +44,7 @@ public class BukkitWorld implements World {
         IS_GENERATED_SUPPORTED = isGeneratedSupported;
     }
 
-    public BukkitWorld(final org.bukkit.World world) {
+    public BukkitWorld(org.bukkit.World world) {
         this.world = world;
         this.worldBorder = new BukkitBorder(world.getWorldBorder());
     }
@@ -60,7 +60,7 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Paper.isPaper()) {
             return CompletableFuture.supplyAsync(() -> {
                 try {
@@ -78,7 +78,7 @@ public class BukkitWorld implements World {
         }
     }
 
-    private CompletableFuture<Void> getChunkFuture(final int x, final int z) {
+    private CompletableFuture<Void> getChunkFuture(int x, int z) {
         final CompletableFuture<Chunk> rawFuture;
         if (Paper.isPaper()) {
             rawFuture = Paper.getChunkAtAsync(world, x, z);
@@ -101,7 +101,7 @@ public class BukkitWorld implements World {
                 // pregen, and it must not fail silently either.
                 try {
                     LodSupport.offer(chunky.getConfig(), world, chunk);
-                } catch (final Throwable t) {
+                } catch (Throwable t) {
                     plugin.getLogger().log(java.util.logging.Level.WARNING,
                             "Chunksmith: LOD extraction failed for chunk " + chunk.getX() + "," + chunk.getZ()
                                     + " in " + world.getName() + " -- LOD skipped for this chunk, generation unaffected", t);
@@ -111,7 +111,7 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         final CompletableFuture<Void> chunkFuture = this.getChunkFuture(x, z);
         if (TICKING_LOAD_DURATION > 0) {
             final CompletableFuture<Void> removeTicketFuture = new CompletableFuture<>();
@@ -159,7 +159,7 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public int getElevation(final int x, final int z) {
+    public int getElevation(int x, int z) {
         if (Folia.isFolia() && !Folia.isTickThread(this.world, x >> 4, z >> 4)) {
             throw new IllegalStateException("Async getElevation call");
         } else {
@@ -168,14 +168,14 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Integer> getElevationAtAsync(final int x, final int z) {
+    public CompletableFuture<Integer> getElevationAtAsync(int x, int z) {
         final int chunkX = x >> 4;
         final int chunkZ = z >> 4;
 
         return this.getChunkFuture(chunkX, chunkZ).thenApplyAsync(ignored -> this.getElevationForLocation(x, z), getMainThreadExecutor(chunkX, chunkZ));
     }
 
-    private int getElevationForLocation(final int x, final int z) {
+    private int getElevationForLocation(int x, int z) {
         final int height = world.getHighestBlockYAt(x, z) + 1;
         final int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
@@ -201,7 +201,7 @@ public class BukkitWorld implements World {
      * @param chunkX The chunk x coord (for Folia)
      * @param chunkZ The chunk z coord (for Folia)
      */
-    private Executor getMainThreadExecutor(final int chunkX, final int chunkZ) {
+    private Executor getMainThreadExecutor(int chunkX, int chunkZ) {
         if (!Folia.isFolia()) {
             if (plugin.getServer().isPrimaryThread()) {
                 return Runnable::run;
@@ -223,7 +223,7 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
+    public void playEffect(Player player, String effect) {
         final Effect effectType;
         try {
             effectType = Effect.valueOf(effect.toUpperCase());
@@ -239,7 +239,7 @@ public class BukkitWorld implements World {
     // Sound.valueOf is deprecated-for-removal (Sound became a registry interface) but retained for cross-version
     // string->Sound lookup; the Registry-based replacement is absent on older targeted servers.
     @SuppressWarnings({"deprecation", "removal"})
-    public void playSound(final Player player, final String sound) {
+    public void playSound(Player player, String sound) {
         final Sound soundType;
         try {
             soundType = Sound.valueOf(sound.toUpperCase());
@@ -305,38 +305,38 @@ public class BukkitWorld implements World {
                 return map.size();
             }
             return -1;
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             writeQueueProbeDisabled = true;
             return -1;
         }
     }
 
-    private static Method findMethod(final Class<?> from, final String name) throws NoSuchMethodException {
+    private static Method findMethod(Class<?> from, String name) throws NoSuchMethodException {
         for (Class<?> k = from; k != null; k = k.getSuperclass()) {
             try {
                 final Method m = k.getDeclaredMethod(name);
                 m.setAccessible(true);
                 return m;
-            } catch (final NoSuchMethodException ignored) {
+            } catch (NoSuchMethodException ignored) {
             }
         }
         throw new NoSuchMethodException(name);
     }
 
-    private static Field findField(final Class<?> from, final String name) throws NoSuchFieldException {
+    private static Field findField(Class<?> from, String name) throws NoSuchFieldException {
         for (Class<?> k = from; k != null; k = k.getSuperclass()) {
             try {
                 final Field f = k.getDeclaredField(name);
                 f.setAccessible(true);
                 return f;
-            } catch (final NoSuchFieldException ignored) {
+            } catch (NoSuchFieldException ignored) {
             }
         }
         throw new NoSuchFieldException(name);
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }

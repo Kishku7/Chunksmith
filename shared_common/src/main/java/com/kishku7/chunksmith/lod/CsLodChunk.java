@@ -141,7 +141,7 @@ public final class CsLodChunk {
             return uniformBlockLight;
         }
 
-        public static int nibble(final byte[] packed, final int index) {
+        public static int nibble(byte[] packed, int index) {
             final int b = packed[index >> 1] & 0xFF;
             return (index & 1) == 0 ? (b & 0x0F) : (b >> 4);
         }

@@ -8,17 +8,17 @@ import java.util.Arrays;
 public class IntArrayTag extends Tag {
     private int[] value;
 
-    protected IntArrayTag(final String name) {
+    protected IntArrayTag(String name) {
         super(name);
     }
 
-    public IntArrayTag(final String name, final int[] value) {
+    public IntArrayTag(String name, int[] value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         final int size = input.readInt();
         this.value = new int[size];
         for (int i = 0; i < size; ++i) {
@@ -27,13 +27,13 @@ public class IntArrayTag extends Tag {
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         final int size = input.readInt();
         input.skipBytes(4 * size);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         final int size = value.length;
         output.writeInt(size);
         for (int i : value) {
@@ -42,7 +42,7 @@ public class IntArrayTag extends Tag {
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -58,7 +58,7 @@ public class IntArrayTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): %s".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, Arrays.toString(value));
     }
 
@@ -66,7 +66,7 @@ public class IntArrayTag extends Tag {
         return value;
     }
 
-    public void value(final int[] value) {
+    public void value(int[] value) {
         this.value = value;
     }
 }

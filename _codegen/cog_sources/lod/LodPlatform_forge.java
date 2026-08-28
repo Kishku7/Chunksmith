@@ -6,15 +6,14 @@ import net.minecraftforge.fml.loading.FMLPaths;
 import java.nio.file.Path;
 
 /**
- * The classic-Forge copy of the loader seam (MC 1.20.1 / Forge 47). See the Fabric copy for what this
- * exists for.
+ * Forge 47 / MC 1.20.1 sits behind this seam. See the Fabric copy for what the seam exists for.
  */
 public final class LodPlatform {
 
     private LodPlatform() {
     }
 
-    public static boolean isModLoaded(final String modId) {
+    public static boolean isModLoaded(String modId) {
         return ModList.get().isLoaded(modId);
     }
 

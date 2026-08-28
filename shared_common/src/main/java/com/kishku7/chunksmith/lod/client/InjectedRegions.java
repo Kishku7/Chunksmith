@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Which regions have already been handed to a renderer this session -- keyed by dimension as well as by
- * region coordinates, and remembering which version of each one we drew.
+ * Remembers which version of which region has already been handed to a renderer this session, keyed by
+ * dimension as well as by region coordinates.
  *
  * <p>Every pull returns the whole in-radius set, most of it already drawn, and re-injecting those
  * re-pushes terrain the renderer has -- with voxy, hundreds of thousands of sections.
@@ -34,7 +34,7 @@ public final class InjectedRegions {
      * never injected this (dimension, region), or when the version we injected is not the one being offered.
      * Atomic -- of two concurrent claims exactly one wins, and the winner must inject or {@link #release}.
      */
-    public boolean claim(final String dimension, final int regionX, final int regionZ, final long hash) {
+    public boolean claim(String dimension, int regionX, int regionZ, long hash) {
         final String key = key(dimension, regionX, regionZ);
         final Long previous = this.injected.put(key, hash);
         if (previous == null) {
@@ -48,7 +48,7 @@ public final class InjectedRegions {
     }
 
     /** Pre-load a claim a previous session made and wrote down -- see {@link InjectedIndex}. */
-    public void seed(final String dimension, final int regionX, final int regionZ, final long hash) {
+    public void seed(String dimension, int regionX, int regionZ, long hash) {
         this.injected.put(key(dimension, regionX, regionZ), hash);
     }
 
@@ -58,15 +58,15 @@ public final class InjectedRegions {
      * <p>Releasing forgets the region entirely rather than restoring its previous token; restoring it
      * would let an interrupted upgrade leave us believing we drew what we had not.
      */
-    public void release(final String dimension, final int regionX, final int regionZ) {
+    public void release(String dimension, int regionX, int regionZ) {
         this.injected.remove(key(dimension, regionX, regionZ));
     }
 
-    public boolean contains(final String dimension, final int regionX, final int regionZ) {
+    public boolean contains(String dimension, int regionX, int regionZ) {
         return this.injected.containsKey(key(dimension, regionX, regionZ));
     }
 
-    public Long injectedHash(final String dimension, final int regionX, final int regionZ) {
+    public Long injectedHash(String dimension, int regionX, int regionZ) {
         return this.injected.get(key(dimension, regionX, regionZ));
     }
 
@@ -82,7 +82,7 @@ public final class InjectedRegions {
      * The key. A separator that cannot occur in a dimension id (validated against {@code [a-z0-9_.-]} by
      * {@link CsLodStore}) keeps "a" + "1,2" from colliding with "a1" + ",2".
      */
-    static String key(final String dimension, final int regionX, final int regionZ) {
+    static String key(String dimension, int regionX, int regionZ) {
         return dimension + '/' + regionX + ',' + regionZ;
     }
 }

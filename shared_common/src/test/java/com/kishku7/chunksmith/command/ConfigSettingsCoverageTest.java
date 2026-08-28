@@ -36,7 +36,7 @@ public class ConfigSettingsCoverageTest {
     private static List<String> configModelFields() throws ClassNotFoundException {
         final Class<?> model = Class.forName("com.kishku7.chunksmith.platform.impl.GsonConfig$ConfigModel");
         final List<String> names = new ArrayList<>();
-        for (final Field field : model.getDeclaredFields()) {
+        for (Field field : model.getDeclaredFields()) {
             if (field.isSynthetic() || Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
@@ -48,7 +48,7 @@ public class ConfigSettingsCoverageTest {
     @Test
     public void everyKeyHasACommand() throws ClassNotFoundException {
         final List<String> missing = new ArrayList<>();
-        for (final String field : configModelFields()) {
+        for (String field : configModelFields()) {
             if (NOT_SETTINGS.contains(field)) {
                 continue;
             }
@@ -67,7 +67,7 @@ public class ConfigSettingsCoverageTest {
     public void everyCommandSettingNamesARealKey() throws ClassNotFoundException {
         final List<String> fields = configModelFields();
         final List<String> unknown = new ArrayList<>();
-        for (final ConfigSetting setting : ConfigSettings.all()) {
+        for (ConfigSetting setting : ConfigSettings.all()) {
             if (!fields.contains(setting.name())) {
                 unknown.add(setting.name());
             }
@@ -97,7 +97,7 @@ public class ConfigSettingsCoverageTest {
     @Test
     public void settingNamesAreUnique() {
         final List<String> seen = new ArrayList<>();
-        for (final ConfigSetting setting : ConfigSettings.all()) {
+        for (ConfigSetting setting : ConfigSettings.all()) {
             final String lower = setting.name().toLowerCase(Locale.ROOT);
             if (seen.contains(lower)) {
                 fail("duplicate setting name: " + setting.name());

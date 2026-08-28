@@ -92,8 +92,8 @@ public abstract class MinecraftServerTicketsMixin {
             final DistanceManager distance = map.getDistanceManager();
             final TicketStorage store =
                     ((DistanceManagerMixin) distance).getTicketStorage();
-            for (final long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
-                for (final Ticket ticket : store.getTickets(pos)) {
+            for (long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
+                for (Ticket ticket : store.getTickets(pos)) {
                     byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
                 }
                 // Buckets taken from ChunkLevel itself, not from hand-written numbers. The first

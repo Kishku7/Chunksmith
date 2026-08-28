@@ -15,13 +15,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Sends region files IN-BAND, a few slices per tick -- the fallback for a server with no open backchannel
- * port.
+ * A few hundred KB/s, against the backchannel's ~55 MB/s -- and that is the point. This is the fallback for
+ * a server with no open backchannel port: region files sent IN-BAND, a few slices per tick.
  *
  * <p>Slow on purpose. It rides the same connection as gameplay, so every byte competes with movement,
- * chunks and entities: the backchannel moves ~55 MB/s with the game connection untouched, this dribbles
- * along at a few hundred KB/s. Hard cap of a few slices per tick, never a burst, and the client can stop
- * it at any moment.
+ * chunks and entities, while the backchannel moves its 55 MB/s with the game connection untouched. Hard cap
+ * of a few slices per tick, never a burst, and the client can stop it at any moment.
  */
 public final class CsLodInBandSender {
 
@@ -56,7 +55,7 @@ public final class CsLodInBandSender {
                              final List<CsLodMessages.RegionEntry> wanted) throws IOException {
         cancel(player);
         final Deque<Region> regions = new ArrayDeque<>();
-        for (final CsLodMessages.RegionEntry entry : wanted) {
+        for (CsLodMessages.RegionEntry entry : wanted) {
             final Path file = storeRoot.resolve(dimension)
                     .resolve("r." + entry.regionX() + "." + entry.regionZ() + ".cslod");
             if (!Files.isRegularFile(file)) {
@@ -68,7 +67,7 @@ public final class CsLodInBandSender {
     }
 
     /** Drip-feed. Call once per server tick. */
-    public static void tick(final ServerPlayer player) {
+    public static void tick(ServerPlayer player) {
         final Transfer transfer = TRANSFERS.get(player.getUUID());
         if (transfer == null) {
             return;
@@ -81,25 +80,25 @@ public final class CsLodInBandSender {
                     return;
                 }
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             // A region vanished or the disk complained. Drop the transfer -- the client re-asks.
             finish(player.getUUID(), transfer);
         }
     }
 
     /** The client asked us to stop. Stop. */
-    public static void cancel(final ServerPlayer player) {
+    public static void cancel(ServerPlayer player) {
         forget(player.getUUID());
     }
 
-    public static void forget(final UUID player) {
+    public static void forget(UUID player) {
         final Transfer transfer = TRANSFERS.get(player);
         if (transfer != null) {
             finish(player, transfer);
         }
     }
 
-    private static void finish(final UUID player, final Transfer transfer) {
+    private static void finish(UUID player, Transfer transfer) {
         TRANSFERS.remove(player, transfer);
         transfer.close();
     }
@@ -126,13 +125,13 @@ public final class CsLodInBandSender {
         private InputStream in;
         private long sent;
 
-        private Transfer(final String dimension, final Deque<Region> pending) {
+        private Transfer(String dimension, Deque<Region> pending) {
             this.dimension = dimension;
             this.pending = pending;
         }
 
         /** Send at most one slice. Returns false when there is nothing left to send. */
-        private boolean sendNext(final ServerPlayer player) throws IOException {
+        private boolean sendNext(ServerPlayer player) throws IOException {
             if (this.in == null) {
                 this.current = this.pending.poll();
                 if (this.current == null) {
@@ -171,7 +170,7 @@ public final class CsLodInBandSender {
             if (this.in != null) {
                 try {
                     this.in.close();
-                } catch (final IOException ignored) {
+                } catch (IOException ignored) {
                     // Closing a read-only stream. Nothing useful to do, and nothing at stake.
                 }
                 this.in = null;

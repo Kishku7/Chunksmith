@@ -19,12 +19,12 @@ import static com.kishku7.chunksmith.util.Translator.translate;
 public class StartCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public StartCommand(final Chunksmith chunky) {
+    public StartCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         if (arguments.size() > 0) {
             final Optional<World> world = arguments.next().flatMap(arg -> Input.tryWorld(chunky, arg));
             if (world.isPresent()) {
@@ -95,7 +95,7 @@ public class StartCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));

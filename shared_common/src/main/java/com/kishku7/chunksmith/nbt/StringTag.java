@@ -7,33 +7,33 @@ import java.io.IOException;
 public class StringTag extends Tag {
     private String value;
 
-    protected StringTag(final String name) {
+    protected StringTag(String name) {
         super(name);
     }
 
-    public StringTag(final String name, final String value) {
+    public StringTag(String name, String value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         this.value = input.readUTF();
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         final int size = input.readUnsignedShort();
         input.skipBytes(size);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         output.writeUTF(value);
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -49,7 +49,7 @@ public class StringTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): '%s'".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, value);
     }
 
@@ -57,7 +57,7 @@ public class StringTag extends Tag {
         return value;
     }
 
-    public void value(final String value) {
+    public void value(String value) {
         this.value = value;
     }
 }

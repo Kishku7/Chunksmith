@@ -10,18 +10,18 @@ public class ListTag extends Tag {
     private byte type;
     private List<Tag> value = new ArrayList<>();
 
-    protected ListTag(final String name) {
+    protected ListTag(String name) {
         super(name);
     }
 
-    public ListTag(final String name, final byte type, final List<Tag> value) {
+    public ListTag(String name, byte type, List<Tag> value) {
         super(name);
         this.type = type;
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         this.type = input.readByte();
         final int size = input.readInt();
         this.value = new ArrayList<>();
@@ -33,7 +33,7 @@ public class ListTag extends Tag {
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         this.type = input.readByte();
         final int size = input.readInt();
         final Tag tag = Tag.create(type, "");
@@ -43,17 +43,17 @@ public class ListTag extends Tag {
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         output.writeByte(type);
         final int size = value.size();
         output.writeInt(size);
-        for (final Tag tag : value) {
+        for (Tag tag : value) {
             tag.write(output);
         }
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -69,13 +69,13 @@ public class ListTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         final int size = value.size();
         final String entry = size == 1 ? "entry" : "entries";
         final String indent = " ".repeat(level * Tag.INDENT);
         final StringBuilder listBuilder = new StringBuilder("%s%s('%s'): %d %s".formatted(indent, typeName(), name, size, entry));
         listBuilder.append('\n').append(indent).append("{\n");
-        for (final Tag tag : value) {
+        for (Tag tag : value) {
             listBuilder.append(tag.print(level + 1)).append('\n');
         }
         listBuilder.append(indent).append('}');
@@ -86,7 +86,7 @@ public class ListTag extends Tag {
         return value;
     }
 
-    public void value(final List<Tag> value) {
+    public void value(List<Tag> value) {
         if (!value.isEmpty()) {
             this.type = value.get(0).type();
         }

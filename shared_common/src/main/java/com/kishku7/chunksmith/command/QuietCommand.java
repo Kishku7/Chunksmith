@@ -11,12 +11,12 @@ import java.util.Optional;
 public class QuietCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public QuietCommand(final Chunksmith chunky) {
+    public QuietCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<Integer> newQuiet = arguments.next().flatMap(Input::tryInteger);
         if (newQuiet.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_QUIET);
@@ -28,7 +28,7 @@ public class QuietCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

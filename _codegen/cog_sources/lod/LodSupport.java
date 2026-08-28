@@ -34,8 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p><b>Distant Horizons is not a sink.</b> DH pulls (through the world-generator override) and is pushed
  * to on demand ({@code /cslod dhpush}); it is never fed from this hot path. See {@link CsLodDhSupport}.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class LodSupport {
 
@@ -57,7 +55,7 @@ public final class LodSupport {
      * wiring for "a re-run fills LOD holes". {@code GenerationTask} lives in shared_common and cannot see
      * this class; it asks {@link LodPresence}, and this is what answers.
      */
-    public static void install(final MinecraftServer server) {
+    public static void install(MinecraftServer server) {
         LodPresence.setProvider(worldName -> presenceIndexFor(server, worldName));
     }
 
@@ -66,7 +64,7 @@ public final class LodSupport {
      * {@code GenerationTask} is told "do not do any of this", which is what makes {@code lodEnabled: false}
      * restore the old skip behaviour byte for byte.
      */
-    public static CsLodPresenceIndex presenceIndexFor(final MinecraftServer server, final String worldName) {
+    public static CsLodPresenceIndex presenceIndexFor(MinecraftServer server, String worldName) {
         if (server == null || !lodEnabled(server)) {
             return null;
         }
@@ -78,8 +76,8 @@ public final class LodSupport {
     }
 
     /** The level whose dimension id matches -- the same string {@code World.getName()} returns. */
-    private static ServerLevel levelByName(final MinecraftServer server, final String worldName) {
-        for (final ServerLevel level : server.getAllLevels()) {
+    private static ServerLevel levelByName(MinecraftServer server, String worldName) {
+        for (ServerLevel level : server.getAllLevels()) {
             if (dimensionId(level).equals(worldName)) {
                 return level;
             }
@@ -92,7 +90,7 @@ public final class LodSupport {
      * is still ticket-pinned: extraction happens here, synchronously, because the chunk is unloaded the
      * moment the ticket is released. Everything downstream of extraction is asynchronous.
      */
-    public static void offer(final ServerLevel level, final LevelChunk chunk) {
+    public static void offer(ServerLevel level, LevelChunk chunk) {
         if (!lodEnabled(level.getServer())) {
             return;
         }
@@ -114,7 +112,7 @@ public final class LodSupport {
     }
 
     /** The active sink for a world, resolved once. Never null. */
-    public static LodSink sinkFor(final ServerLevel level) {
+    public static LodSink sinkFor(ServerLevel level) {
         final String key = dimensionId(level);
         return SINKS.computeIfAbsent(key, ignored -> create(level));
     }
@@ -124,8 +122,8 @@ public final class LodSupport {
      * otherwise a pregen that ends at shutdown would lose whatever was still queued.
      */
     public static void shutdown() {
-        for (final LodSink sink : SINKS.values()) {
-            for (final LodSink leaf : leaves(sink)) {
+        for (LodSink sink : SINKS.values()) {
+            for (LodSink leaf : leaves(sink)) {
                 if (leaf instanceof final CsLodStoreSink store) {
                     LOGGER.info(String.format(
                             "Chunksmith: LOD store: %d chunks, %d bytes (%.1f KB/chunk), %d synchronous writes",
@@ -145,7 +143,7 @@ public final class LodSupport {
         PRESENCE.clear();
     }
 
-    private static LodSink create(final ServerLevel level) {
+    private static LodSink create(ServerLevel level) {
         final List<LodSink> sinks = new ArrayList<>(2);
 
         final Path root = storeRoot(level);
@@ -180,12 +178,12 @@ public final class LodSupport {
      * {@code <world>/chunksmith/lod} -- the store root. The backchannel serves this tree and nothing else,
      * so it is the boundary every request path is canonicalized against.
      */
-    public static Path storeRootBase(final MinecraftServer server) {
+    public static Path storeRootBase(MinecraftServer server) {
         return server.getWorldPath(LevelResource.ROOT).resolve("chunksmith").resolve("lod").normalize();
     }
 
     /** {@code <world>/chunksmith/lod/<dim>} -- our own tree; we never touch voxy's or DH's store. */
-    public static Path storeRoot(final ServerLevel level) {
+    public static Path storeRoot(ServerLevel level) {
         final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
         return worldRoot.resolve("chunksmith").resolve("lod").resolve(dimensionKey(level)).normalize();
     }
@@ -196,11 +194,11 @@ public final class LodSupport {
      * the client's injector checks the level against. Derived in one place so the two sides cannot
      * disagree.
      */
-    public static String dimensionKey(final ServerLevel level) {
+    public static String dimensionKey(ServerLevel level) {
         return dimensionId(level).replace(':', '_').replace('/', '_');
     }
 
-    private static String dimensionId(final ServerLevel level) {
+    private static String dimensionId(ServerLevel level) {
         //[[[cog
         // import cog, compat
         // cog.outl("return level.dimension().%s().toString();" % compat.dimension_identifier_call(mcver))
@@ -208,8 +206,8 @@ public final class LodSupport {
         //[[[end]]]
     }
 
-    private static boolean hasStore(final LodSink sink) {
-        for (final LodSink leaf : leaves(sink)) {
+    private static boolean hasStore(LodSink sink) {
+        for (LodSink leaf : leaves(sink)) {
             if (leaf instanceof CsLodStoreSink) {
                 return true;
             }
@@ -217,7 +215,7 @@ public final class LodSupport {
         return false;
     }
 
-    private static List<LodSink> leaves(final LodSink sink) {
+    private static List<LodSink> leaves(LodSink sink) {
         if (sink instanceof final CompositeLodSink composite) {
             return composite.getSinks();
         }
@@ -248,7 +246,7 @@ public final class LodSupport {
             synchronized (LodSupport.class) {
                 if (!rendererResolved) {
                     String found = null;
-                    for (final String id : RENDERER_IDS) {
+                    for (String id : RENDERER_IDS) {
                         if (LodPlatform.isModLoaded(id)) {
                             found = id;
                             break;
@@ -295,7 +293,7 @@ public final class LodSupport {
     }
 
     /** The live decision, or false when Chunksmith is not up yet. */
-    public static boolean lodEnabled(final MinecraftServer server) {
+    public static boolean lodEnabled(MinecraftServer server) {
         // ChunksmithProvider.get() throws when unloaded, so gate on isLoaded() first.
         return ChunksmithProvider.isLoaded()
                 && decide(ChunksmithProvider.get().getConfig(), server);
@@ -305,7 +303,7 @@ public final class LodSupport {
      * Say, once, out loud, what was decided and why. Wired to server-started by {@code LodInit}; exactly
      * one of these lines per server run, and it always says which way it went.
      */
-    public static void announce(final MinecraftServer server) {
+    public static void announce(MinecraftServer server) {
         if (!ANNOUNCED.compareAndSet(false, true)) {
             return;
         }
@@ -341,7 +339,7 @@ public final class LodSupport {
     }
 
     /** One-line summary for {@code /cslod status}. */
-    public static String describeDecision(final MinecraftServer server) {
+    public static String describeDecision(MinecraftServer server) {
         if (!ChunksmithProvider.isLoaded()) {
             return "lod: unknown (chunksmith not loaded)";
         }

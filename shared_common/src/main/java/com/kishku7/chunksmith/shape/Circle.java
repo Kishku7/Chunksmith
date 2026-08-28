@@ -4,12 +4,12 @@ import com.kishku7.chunksmith.Selection;
 import com.kishku7.chunksmith.platform.util.Vector2;
 
 public class Circle extends AbstractEllipse {
-    public Circle(final Selection selection, final boolean chunkAligned) {
+    public Circle(Selection selection, boolean chunkAligned) {
         super(selection, chunkAligned);
     }
 
     @Override
-    public boolean isBounding(final double x, final double z) {
+    public boolean isBounding(double x, double z) {
         return Math.hypot(centerX - x, centerZ - z) <= radiusX;
     }
 

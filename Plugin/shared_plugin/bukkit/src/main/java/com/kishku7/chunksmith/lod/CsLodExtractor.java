@@ -38,7 +38,7 @@ public final class CsLodExtractor {
     }
 
     /** Extract, or null if the world has no vertical extent worth storing (should not happen). */
-    public static CsLodChunk extract(final World world, final Chunk chunk) {
+    public static CsLodChunk extract(World world, Chunk chunk) {
         final ChunkSnapshot snap = chunk.getChunkSnapshot(true, true, false);
         final int minY = world.getMinHeight();
         final int maxY = world.getMaxHeight();
@@ -141,7 +141,7 @@ public final class CsLodExtractor {
                 sky.packed, sky.uniform, block.packed, block.uniform);
     }
 
-    private static Light extractLight(final ChunkSnapshot snap, final int baseY, final boolean sky) {
+    private static Light extractLight(ChunkSnapshot snap, int baseY, boolean sky) {
         final byte[] packed = new byte[CsLodChunk.LIGHT_BYTES];
         int first = -1;
         boolean uniform = true;
@@ -174,7 +174,7 @@ public final class CsLodExtractor {
         private final byte[] packed;
         private final int uniform;
 
-        private Light(final byte[] packed, final int uniform) {
+        private Light(byte[] packed, int uniform) {
             this.packed = packed;
             this.uniform = uniform;
         }
@@ -185,7 +185,7 @@ public final class CsLodExtractor {
         private final Map<String, Integer> ids = new HashMap<>();
         private final List<String> order = new ArrayList<>();
 
-        private int id(final String value) {
+        private int id(String value) {
             final Integer existing = ids.get(value);
             if (existing != null) {
                 return existing;

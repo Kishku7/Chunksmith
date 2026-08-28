@@ -27,7 +27,7 @@ public class RegionChunkIterator implements ChunkIterator {
     private boolean hasNextRegion = true;
     private boolean hasNext = true;
 
-    public RegionChunkIterator(final Selection selection, final long count) {
+    public RegionChunkIterator(Selection selection, long count) {
         this(selection);
         if (count <= 0) {
             return;
@@ -67,7 +67,7 @@ public class RegionChunkIterator implements ChunkIterator {
         }
     }
 
-    public RegionChunkIterator(final Selection selection) {
+    public RegionChunkIterator(Selection selection) {
         this.centerRegionX = selection.centerRegionX();
         this.centerRegionZ = selection.centerRegionZ();
         this.radiusRegions = selection.radiusRegionsX();
@@ -109,7 +109,7 @@ public class RegionChunkIterator implements ChunkIterator {
         return nextRegionChunkProgress(0);
     }
 
-    private RegionChunkProgress nextRegionChunkProgress(final long count) {
+    private RegionChunkProgress nextRegionChunkProgress(long count) {
         if (!hasNextRegion) {
             return null;
         }
@@ -162,7 +162,7 @@ public class RegionChunkIterator implements ChunkIterator {
         private int offsetZ;
         private boolean hasNext = true;
 
-        public RegionChunkProgress(final int x, final int z, final long count) {
+        public RegionChunkProgress(int x, int z, long count) {
             this(x, z);
             if (count <= 0) {
                 return;
@@ -177,7 +177,7 @@ public class RegionChunkIterator implements ChunkIterator {
             }
         }
 
-        public RegionChunkProgress(final int x, final int z) {
+        public RegionChunkProgress(int x, int z) {
             final int lowEdgeX = x << 5;
             final int lowEdgeZ = z << 5;
             final int highEdgeX = lowEdgeX + 31;

@@ -78,7 +78,7 @@ public final class CsLodDhSupport {
         LOGGER.info("Chunksmith: {}", version());
         try {
             bind();
-        } catch (final LinkageError e) {
+        } catch (LinkageError e) {
             disable(e);
         }
     }
@@ -89,7 +89,7 @@ public final class CsLodDhSupport {
             return "Distant Horizons " + DhApi.getModVersion()
                     + " (API " + DhApi.getApiMajorVersion() + "." + DhApi.getApiMinorVersion()
                     + "." + DhApi.getApiPatchVersion() + ")";
-        } catch (final RuntimeException | LinkageError e) {
+        } catch (RuntimeException | LinkageError e) {
             return "Distant Horizons (version unreadable: " + e + ")";
         }
     }
@@ -105,7 +105,7 @@ public final class CsLodDhSupport {
      * against. We claim a wide DH range on the evidence that the methods we call have been signature-stable
      * since DH 2.0.0-a; this is what makes being wrong a logged degradation rather than a crashed server.
      */
-    static void disable(final Throwable cause) {
+    static void disable(Throwable cause) {
         if (disabled) {
             return;
         }
@@ -121,7 +121,7 @@ public final class CsLodDhSupport {
 
         DhApi.events.bind(DhApiLevelLoadEvent.class, new DhApiLevelLoadEvent() {
             @Override
-            public void onLevelLoad(final DhApiEventParam<DhApiLevelLoadEvent.EventParam> event) {
+            public void onLevelLoad(DhApiEventParam<DhApiLevelLoadEvent.EventParam> event) {
                 final IDhApiLevelWrapper level = event.value.levelWrapper;
                 lastWrapper = level;
                 final Object raw = level.getWrappedMcObject();
@@ -146,11 +146,11 @@ public final class CsLodDhSupport {
     }
 
     /** How we translate DH's level wrapper back to a world path. Captured on server-starting. */
-    public static void setServer(final MinecraftServer current) {
+    public static void setServer(MinecraftServer current) {
         server = current;
     }
 
-    private static Path storeFor(final IDhApiLevelWrapper level) {
+    private static Path storeFor(IDhApiLevelWrapper level) {
         final MinecraftServer current = server;
         if (current == null) {
             return null;
@@ -158,7 +158,7 @@ public final class CsLodDhSupport {
         // DH's wrapper exposes the underlying level object; match it against the server's levels rather
         // than trying to reconstruct a dimension id from a display name.
         final Object raw = level.getWrappedMcObject();
-        for (final ServerLevel candidate : current.getAllLevels()) {
+        for (ServerLevel candidate : current.getAllLevels()) {
             if (candidate == raw) {
                 return LodSupport.storeRoot(candidate);
             }
@@ -204,7 +204,7 @@ public final class CsLodDhSupport {
      * The DH level wrapper for this level, or null if DH has not reported it. The only correct way to
      * address DH from the push path -- see {@link #WRAPPERS}.
      */
-    public static IDhApiLevelWrapper wrapperFor(final ServerLevel level) {
+    public static IDhApiLevelWrapper wrapperFor(ServerLevel level) {
         return WRAPPERS.get(level);
     }
 

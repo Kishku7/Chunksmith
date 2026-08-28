@@ -7,32 +7,32 @@ import java.io.IOException;
 public class ShortTag extends Tag {
     private short value;
 
-    protected ShortTag(final String name) {
+    protected ShortTag(String name) {
         super(name);
     }
 
-    public ShortTag(final String name, final short value) {
+    public ShortTag(String name, short value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         this.value = input.readShort();
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         input.skipBytes(2);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         output.writeShort(value);
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -48,7 +48,7 @@ public class ShortTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): %d".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, value);
     }
 
@@ -56,7 +56,7 @@ public class ShortTag extends Tag {
         return value;
     }
 
-    public void value(final short value) {
+    public void value(short value) {
         this.value = value;
     }
 }

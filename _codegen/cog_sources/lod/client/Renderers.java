@@ -8,7 +8,7 @@ import com.kishku7.chunksmith.lod.client.render.VoxyRadius;
 import com.kishku7.chunksmith.lod.client.render.VoxyTarget;
 
 /**
- * Which LOD renderer(s) the player actually has, and how far they are set to draw.
+ * Detects which LOD renderer(s) the player actually has, and how far they are set to draw.
  *
  * <p>Mod ids: {@code voxy} (upstream and every fork) and {@code distanthorizons} (Fabric and NeoForge,
  * ships for 26.1.2 and 26.2). Every voxy fork we could reach keeps the id {@code voxy} and is identical to
@@ -71,7 +71,7 @@ public final class Renderers {
         if (hasDh()) {
             try {
                 blocks = Math.max(blocks, DhRadius.blocks());
-            } catch (final LinkageError error) {
+            } catch (LinkageError error) {
                 // Not "DH is incompatible" -- DhRadius already reports that itself. This is our class
                 // failing to load, which should be impossible. Never silent.
                 LodWarnings.once(CAUSE_DH_SEAM,
@@ -83,7 +83,7 @@ public final class Renderers {
         if (hasVoxy()) {
             try {
                 blocks = Math.max(blocks, VoxyRadius.blocks());
-            } catch (final LinkageError error) {
+            } catch (LinkageError error) {
                 LodWarnings.once(CAUSE_VOXY_SEAM,
                         "voxy is installed but Chunksmith could not load its own voxy radius reader ("
                                 + error + "). Falling back to a LOD radius of "

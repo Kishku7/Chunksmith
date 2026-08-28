@@ -19,7 +19,7 @@ public final class CsLodStore {
     private CsLodStore() {
     }
 
-    public static Path dimensionDir(final Path storeRoot, final String dimension) {
+    public static Path dimensionDir(Path storeRoot, String dimension) {
         if (storeRoot == null || dimension == null || dimension.isEmpty()
                 || !DIM_DIR.matcher(dimension).matches()) {
             return null;

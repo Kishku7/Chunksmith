@@ -25,7 +25,7 @@ import java.util.BitSet;
  * Generated chunks live in a {@link BitSet} over the task bounds: exact, one bit per chunk, a few kB for
  * a large pregen.
  *
- * <p>MC-free by design so the rule can be unit-tested without a server; the caller owns the tickets.
+ * <p>The caller owns the tickets. This says where and when; it never loads a chunk itself.
  */
 public final class SettleSweep {
 
@@ -59,7 +59,7 @@ public final class SettleSweep {
     }
 
     /** Record that a chunk now exists on disk. Out-of-bounds chunks are ignored, not an error. */
-    public void markGenerated(final int chunkX, final int chunkZ) {
+    public void markGenerated(int chunkX, int chunkZ) {
         final int index = index(chunkX, chunkZ);
         if (index >= 0) {
             this.generated.set(index);
@@ -99,7 +99,7 @@ public final class SettleSweep {
      * hangs over ground the task was never asked to generate, and waiting for chunks nobody will make
      * would strand every edge stop forever.
      */
-    public boolean windowGenerated(final int chunkX, final int chunkZ) {
+    public boolean windowGenerated(int chunkX, int chunkZ) {
         for (int x = chunkX - this.radius; x <= chunkX + this.radius; x++) {
             for (int z = chunkZ - this.radius; z <= chunkZ + this.radius; z++) {
                 final int index = index(x, z);
@@ -136,7 +136,7 @@ public final class SettleSweep {
     }
 
     /** Flat index into the bitsets, or -1 when the chunk is outside the task's bounds. */
-    private int index(final int chunkX, final int chunkZ) {
+    private int index(int chunkX, int chunkZ) {
         final int x = chunkX - this.minChunkX;
         final int z = chunkZ - this.minChunkZ;
         if (x < 0 || z < 0 || x >= this.width || z >= this.height) {

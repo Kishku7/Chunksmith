@@ -40,7 +40,7 @@ public class CsLodClientSettingsCoverageTest {
     /** Every config KEY the client config declares, read off its {@code KEY_*} constants. */
     private static List<String> declaredKeys() throws IllegalAccessException {
         final List<String> keys = new ArrayList<>();
-        for (final Field field : CsLodClientConfig.class.getDeclaredFields()) {
+        for (Field field : CsLodClientConfig.class.getDeclaredFields()) {
             if (!field.getName().startsWith("KEY_")) {
                 continue;
             }
@@ -58,7 +58,7 @@ public class CsLodClientSettingsCoverageTest {
         assertFalse("no KEY_* constants found", declared.isEmpty());
 
         final List<String> missing = new ArrayList<>();
-        for (final String key : declared) {
+        for (String key : declared) {
             if (NOT_SETTINGS.contains(key)) {
                 continue;
             }
@@ -77,7 +77,7 @@ public class CsLodClientSettingsCoverageTest {
     public void everySettingNamesARealKey() throws IllegalAccessException {
         final List<String> declared = declaredKeys();
         final List<String> unknown = new ArrayList<>();
-        for (final CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
+        for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
             if (!declared.contains(setting.name())) {
                 unknown.add(setting.name());
             }
@@ -96,7 +96,7 @@ public class CsLodClientSettingsCoverageTest {
     @Test
     public void namesAreUnique() {
         final List<String> seen = new ArrayList<>();
-        for (final CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
+        for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
             final String lower = setting.name().toLowerCase(Locale.ROOT);
             if (seen.contains(lower)) {
                 fail("duplicate setting name: " + setting.name());

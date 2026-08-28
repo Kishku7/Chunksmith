@@ -14,7 +14,7 @@ public class TrimModeSuggestionProvider implements SuggestionProvider<CommandSou
     private static final List<String> TRIM_MODES = List.of("inside", "outside");
 
     @Override
-    public CompletableFuture<Suggestions> getSuggestions(final CommandContext<CommandSourceStack> context, final SuggestionsBuilder builder) {
+    public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
         try {
             final String input = context.getArgument(CommandLiteral.TRIM_MODE, String.class);
             TRIM_MODES.forEach(shape -> {

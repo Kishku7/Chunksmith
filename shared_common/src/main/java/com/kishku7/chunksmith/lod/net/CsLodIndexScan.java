@@ -9,11 +9,11 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * "Which regions can this player see, and how fresh is each one?" -- the one answer, for every platform.
+ * Given a store directory and a player's position, returns the regions in range and how fresh each one
+ * is. A pure function: no game object, no state, no logging.
  *
- * <p>A pure function of a directory and a position: no game object, no state, no logging. The mod loaders
- * and the Bukkit/Paper plugin need the same answer, and only the reading of a player's position and
- * dimension ever differed. The plugin grew an index responder for mod_support #18, and copying the scan out
+ * <p>The mod loaders and the Bukkit/Paper plugin need the same answer, and only the reading of a
+ * player's position and dimension ever differed. The plugin grew an index responder for mod_support #18, and copying the scan out
  * of the mod's {@code CsLodServerNet} would have created two definitions of "in range" that must agree
  * forever with no test that they do -- they would drift, and the symptom would be a client fetching the
  * wrong regions on one platform only.
@@ -56,12 +56,10 @@ public final class CsLodIndexScan {
     }
 
     /**
-     * The regions to serve, plus what was dropped getting there.
-     *
-     * <p>{@code found} is how many passed every filter before the caps, so a caller can say "capped at 4096
-     * of 9000" in its own logger. Returning the number rather than logging keeps this class free of a logging
-     * dependency: shared_common is compiled into a plugin jar and three loader jars, which do not agree on a
-     * logger.
+     * The regions to serve, plus what was dropped getting there. {@code found} is how many passed every
+     * filter before the caps, so a caller can say "capped at 4096 of 9000" in its own logger. Returning the
+     * number rather than logging keeps this class free of a logging dependency: shared_common is compiled
+     * into a plugin jar and three loader jars, which do not agree on a logger.
      */
     public record Result(List<CsLodMessages.RegionEntry> regions, int found, long bytes) {
 
@@ -82,14 +80,14 @@ public final class CsLodIndexScan {
      * @param dimensionDir the directory holding {@code r.<x>.<z>.cslod} files for one dimension
      * @param nowMillis    the clock, injected so the settle rule is testable
      */
-    public static Result scan(final Path dimensionDir, final Request request, final long nowMillis)
+    public static Result scan(Path dimensionDir, Request request, long nowMillis)
             throws IOException {
         final List<CsLodMessages.RegionEntry> found = new ArrayList<>();
         if (dimensionDir == null || !Files.isDirectory(dimensionDir)) {
             return new Result(List.of(), 0, 0L);
         }
         try (var files = Files.list(dimensionDir)) {
-            for (final Path file : files.toList()) {
+            for (Path file : files.toList()) {
                 final String name = file.getFileName().toString();
                 if (!name.endsWith(CsLodStoreScan.REGION_SUFFIX)) {
                     continue;
@@ -103,7 +101,7 @@ public final class CsLodIndexScan {
                 try {
                     regionX = Integer.parseInt(parts[1]);
                     regionZ = Integer.parseInt(parts[2]);
-                } catch (final NumberFormatException ignored) {
+                } catch (NumberFormatException ignored) {
                     continue;   // not one of ours
                 }
                 if (!inRange(request, regionX, regionZ)) {
@@ -112,7 +110,7 @@ public final class CsLodIndexScan {
                 final BasicFileAttributes attrs;
                 try {
                     attrs = Files.readAttributes(file, BasicFileAttributes.class);
-                } catch (final IOException e) {
+                } catch (IOException e) {
                     continue;   // it went away under us; the client re-asks
                 }
                 if (!attrs.isRegularFile()) {
@@ -139,16 +137,16 @@ public final class CsLodIndexScan {
     }
 
     /** Fold a scan result to the two numbers a sync poll compares. */
-    public static long aggregate(final List<CsLodMessages.RegionEntry> regions) {
+    public static long aggregate(List<CsLodMessages.RegionEntry> regions) {
         long aggregate = 0L;
-        for (final CsLodMessages.RegionEntry entry : regions) {
+        for (CsLodMessages.RegionEntry entry : regions) {
             aggregate = CsLodSummary.fold(aggregate, entry.regionX(), entry.regionZ(), entry.hash());
         }
         return aggregate;
     }
 
     /** Apply both caps -- the region count and the byte budget -- to a nearest-first list. */
-    private static Result cap(final List<CsLodMessages.RegionEntry> found) {
+    private static Result cap(List<CsLodMessages.RegionEntry> found) {
         long bytes = 0L;
         for (int i = 0; i < found.size(); i++) {
             final long next = bytes + found.get(i).sizeBytes();
@@ -167,13 +165,13 @@ public final class CsLodIndexScan {
      * A region is 512 blocks square, so the test is against the region's box and not its corner -- one
      * only partly inside the radius still contains terrain the player can see.
      */
-    public static boolean inRange(final Request request, final int regionX, final int regionZ) {
+    public static boolean inRange(Request request, int regionX, int regionZ) {
         return distanceSquared(request, regionX, regionZ)
                 <= (long) request.radiusBlocks() * request.radiusBlocks();
     }
 
     /** Squared distance from the player to the nearest point of a region's box. Also the sort key. */
-    public static long distanceSquared(final Request request, final int regionX, final int regionZ) {
+    public static long distanceSquared(Request request, int regionX, int regionZ) {
         final int minX = regionX * REGION_BLOCKS;
         final int minZ = regionZ * REGION_BLOCKS;
         final int maxX = minX + REGION_BLOCKS - 1;

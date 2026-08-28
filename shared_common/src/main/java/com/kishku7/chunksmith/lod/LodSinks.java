@@ -11,7 +11,7 @@ public final class LodSinks {
         return active;
     }
 
-    public static void set(final LodSink sink) {
+    public static void set(LodSink sink) {
         active = sink == null ? LodSink.NOOP : sink;
     }
 }

@@ -31,7 +31,7 @@ public final class LodInit {
     }
 
     @SubscribeEvent
-    public static void onRegisterCommands(final RegisterCommandsEvent event) {
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(CsLodCommand.build());
     }
 
@@ -42,7 +42,7 @@ public final class LodInit {
      * already be too late to override its generator.
      */
     @SubscribeEvent
-    public static void onServerAboutToStart(final ServerAboutToStartEvent event) {
+    public static void onServerAboutToStart(ServerAboutToStartEvent event) {
         //[[[cog
         // import cog, compat
         // if compat.has_dh(mcver, loader):
@@ -66,7 +66,7 @@ public final class LodInit {
 
     /** The HTTP backchannel binds once the server is up and its port is known. */
     @SubscribeEvent
-    public static void onServerStarted(final ServerStartedEvent event) {
+    public static void onServerStarted(ServerStartedEvent event) {
         LodSupport.announce(event.getServer());
         // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
         // instead of skipping every already-generated chunk (and so never building their LODs).
@@ -75,7 +75,7 @@ public final class LodInit {
     }
 
     @SubscribeEvent
-    public static void onServerStopped(final ServerStoppedEvent event) {
+    public static void onServerStopped(ServerStoppedEvent event) {
         CsLodServerNet.onServerStopped();
         // Flush the writer queue and close the region files, or a pregen that ends at shutdown loses
         // whatever was still queued.
@@ -83,13 +83,13 @@ public final class LodInit {
     }
 
     @SubscribeEvent
-    public static void onServerTick(final ServerTickEvent.Post event) {
+    public static void onServerTick(ServerTickEvent.Post event) {
         CsLodServerNet.tick(event.getServer());
     }
 
     /** A token must never outlive the session that earned it. */
     @SubscribeEvent
-    public static void onLoggedOut(final PlayerEvent.PlayerLoggedOutEvent event) {
+    public static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         CsLodServerNet.onDisconnect(event.getEntity().getUUID());
     }
 }

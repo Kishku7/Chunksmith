@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Replays a CSLOD store into voxy. Drives {@code /cslod inject}.
+ * The {@code /cslod inject} backfill: replays a CSLOD store into voxy.
  *
  * <p>Injection goes through {@link VoxelIngestService#rawIngest}, not {@code tryAutoIngestChunk}:
  * rawIngest takes the section and its light directly, so we hand voxy the real light captured at
@@ -25,8 +25,6 @@ import java.util.function.Consumer;
  *
  * <p>Generated only where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x. See
  * {@link VoxyLodSink}.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodVoxyInjector {
 
@@ -50,7 +48,7 @@ public final class CsLodVoxyInjector {
         }
         try {
             return VoxyCommon.getInstance() != null;
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             // voxy is installed but we cannot reach its engine. A bare false here used to make
             // `/cslod inject` say "voxy is not running" -- a lie that sends the player at the wrong problem.
             warnIncompatible(error);
@@ -63,7 +61,7 @@ public final class CsLodVoxyInjector {
      * {@link LinkageError} out of a voxy call is not a transient condition: the jar that is loaded does not
      * contain the member we compiled against, which is what a drifting fork looks like from the inside.
      */
-    private static void warnIncompatible(final LinkageError error) {
+    private static void warnIncompatible(LinkageError error) {
         LodWarnings.once(CAUSE_INCOMPATIBLE,
                 "voxy is installed, but this build of it does not match the voxy Chunksmith was built"
                         + " against (" + error + "). Chunksmith cannot feed LODs into it. This normally"
@@ -75,7 +73,7 @@ public final class CsLodVoxyInjector {
      * Replay the whole store for one dimension into voxy. Runs on the calling thread -- callers must hand
      * it a background thread, not the server thread.
      */
-    public static int inject(final ServerLevel level, final Path storeRoot, final Consumer<String> progress)
+    public static int inject(ServerLevel level, Path storeRoot, Consumer<String> progress)
             throws IOException {
         final WorldIdentifier world = WorldIdentifier.of(level);
 
@@ -92,7 +90,7 @@ public final class CsLodVoxyInjector {
                     progress.accept("injected " + chunks[0] + " chunks (" + sections[0] + " sections)");
                 }
             });
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             // rawIngest is our first and only call into voxy's ingest path, so a fork with a different
             // signature surfaces here, as an Error -- past the command's catch(Exception), in total silence.
             warnIncompatible(error);
@@ -126,7 +124,7 @@ public final class CsLodVoxyInjector {
         return injected;
     }
 
-    private static DataLayer light(final byte[] packed, final int uniform) {
+    private static DataLayer light(byte[] packed, int uniform) {
         if (packed != null) {
             return new DataLayer(packed.clone());
         }
@@ -139,7 +137,7 @@ public final class CsLodVoxyInjector {
                     && VoxyCommon.getInstance().getIngestService().getTaskCount() > VOXY_QUEUE_LIMIT) {
                 Thread.sleep(20L);
             }
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }

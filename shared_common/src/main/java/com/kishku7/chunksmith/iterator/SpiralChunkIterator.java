@@ -14,7 +14,7 @@ public class SpiralChunkIterator implements ChunkIterator {
     private int direction;
     private boolean hasNext = true;
 
-    public SpiralChunkIterator(final Selection selection, final long count) {
+    public SpiralChunkIterator(Selection selection, long count) {
         this(selection);
         if (count <= 0) {
             return;
@@ -73,7 +73,7 @@ public class SpiralChunkIterator implements ChunkIterator {
         }
     }
 
-    public SpiralChunkIterator(final Selection selection) {
+    public SpiralChunkIterator(Selection selection) {
         final int radiusChunks = selection.radiusChunksX();
         this.x = selection.centerChunkX();
         this.z = selection.centerChunkZ();

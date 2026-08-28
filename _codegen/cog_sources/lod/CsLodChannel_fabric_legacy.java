@@ -8,13 +8,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * The in-band channel seam -- FABRIC, legacy raw-channel era (MC &lt; 1.20.2).
+ * Carries the in-band LOD channel on Fabric before MC 1.20.2, where the modern payload API does not
+ * exist yet.
  *
- * <p>{@code CustomPacketPayload} does not exist before 1.20.2, so there is no payload object and no
- * StreamCodec: the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair. The wire is
- * nevertheless byte-identical to the modern cells -- a length-prefixed byte array on channel
- * {@code chunksmith:lod} -- because {@code writeByteArray} is the same varint+bytes encoding the modern
- * StreamCodec emits.
+ * <p>{@code CustomPacketPayload} is absent here, so there is no payload object and no StreamCodec: the
+ * channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair. The wire is nevertheless
+ * byte-identical to the modern cells -- a length-prefixed byte array on channel {@code chunksmith:lod} --
+ * because {@code writeByteArray} is the same varint+bytes encoding the modern StreamCodec emits.
  *
  * <p>{@code ResourceLocation(String,String)} is still public here (privatized at 1.21 in favour of
  * {@code fromNamespaceAndPath}), so the ctor form is correct and this file needs no Cog.
@@ -41,7 +41,7 @@ public final class CsLodChannel {
                 CsLodServerNet.onDisconnect(handler.getPlayer().getUUID()));
     }
 
-    public static void send(final ServerPlayer player, final byte[] data) {
+    public static void send(ServerPlayer player, byte[] data) {
         final FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeByteArray(data);
         ServerPlayNetworking.send(player, ID, buf);

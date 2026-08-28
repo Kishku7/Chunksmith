@@ -25,10 +25,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Walks the downloaded CSLOD store and hands every record to whichever renderer the player has.
- *
- * <p>Runs off the game thread: rebuilding chunks and pushing them into a renderer is real work, and it must
- * never make the game stutter -- the player keeps playing while their horizon fills in behind them.
+ * The store-to-renderer walk: every downloaded CSLOD record, handed to whichever renderer the player has.
+ * Runs off the game thread -- rebuilding chunks and pushing them into a renderer is real work, and it must
+ * never make the game stutter while the player keeps playing and their horizon fills in behind them.
  */
 public final class LodInjector {
 
@@ -135,7 +134,7 @@ public final class LodInjector {
                     InjectedIndex.epochFor(voxyInstalled, dhInstalled, CsLodCodec.VERSION),
                     CsLodClientConfig.reinjectOnJoin());
             if (opened != null && opened.size() > 0) {
-                for (final long[] entry : opened.entries()) {
+                for (long[] entry : opened.entries()) {
                     INJECTED.seed(dim, (int) entry[0], (int) entry[1], entry[2]);
                 }
                 LOGGER.info("Chunksmith: {} region(s) of {} were already given to this renderer in an"
@@ -148,7 +147,7 @@ public final class LodInjector {
         // advertising a different version of it, which during a pregen is the normal case under the
         // player's feet. Keying on coordinates alone threw a re-downloaded, grown region away.
         final List<CsLodMessages.RegionEntry> fresh = new ArrayList<>();
-        for (final CsLodMessages.RegionEntry region : regions) {
+        for (CsLodMessages.RegionEntry region : regions) {
             if (INJECTED.claim(dimension, region.regionX(), region.regionZ(), region.hash())) {
                 fresh.add(region);
             }
@@ -163,7 +162,7 @@ public final class LodInjector {
         // empty sky while every log line says success.
         if (!awaitRenderer(level)) {
             // Un-mark them: a renderer that shows up later must still get this data.
-            for (final CsLodMessages.RegionEntry region : fresh) {
+            for (CsLodMessages.RegionEntry region : fresh) {
                 INJECTED.release(dimension, region.regionX(), region.regionZ());
                 forget(index, region);
             }
@@ -235,7 +234,7 @@ public final class LodInjector {
                 if (persist) {
                     index.put(region.regionX(), region.regionZ(), region.hash());
                 }
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 // Un-mark it so a later refresh retries this region rather than skipping it forever.
                 INJECTED.release(dimension, region.regionX(), region.regionZ());
                 forget(index, region);
@@ -265,7 +264,7 @@ public final class LodInjector {
      * DH) is normal -- the gate returns true on its own with no network state -- so we only complain when we
      * actually pushed.
      */
-    private static void reportDhGate(final boolean dh) {
+    private static void reportDhGate(boolean dh) {
         if (!dh || dhChunks.get() == 0 || DhPushGuard.forcedCount() > 0) {
             return;
         }
@@ -278,7 +277,7 @@ public final class LodInjector {
     }
 
     /** Drop a region from the on-disk record. Null-safe: not every store has a writable sidecar. */
-    private static void forget(final InjectedIndex index, final CsLodMessages.RegionEntry region) {
+    private static void forget(InjectedIndex index, CsLodMessages.RegionEntry region) {
         if (index != null) {
             index.remove(region.regionX(), region.regionZ());
         }
@@ -289,13 +288,13 @@ public final class LodInjector {
      * sidecar we could not write means the next join re-injects those regions, which is exactly the
      * behaviour this mechanism replaces.
      */
-    private static void flush(final InjectedIndex index, final String dimension) {
+    private static void flush(InjectedIndex index, String dimension) {
         if (index == null) {
             return;
         }
         try {
             index.save();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: could not record which {} LOD regions were injected ({}); they will"
                     + " be injected again on the next join", dimension, e.toString());
         }
@@ -313,7 +312,7 @@ public final class LodInjector {
      * exists; DH when it has fired its level-load event for this level. Both happen shortly after the
      * world loads -- and on a fast connection our download beats them.
      */
-    private static boolean awaitRenderer(final Level level) {
+    private static boolean awaitRenderer(Level level) {
         final long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;
         while (System.currentTimeMillis() < deadline) {
             if ((Renderers.hasVoxy() && VoxyTarget.available())
@@ -322,7 +321,7 @@ public final class LodInjector {
             }
             try {
                 Thread.sleep(READY_POLL_MILLIS);
-            } catch (final InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;
             }

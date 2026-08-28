@@ -8,17 +8,17 @@ import java.util.Arrays;
 public class LongArrayTag extends Tag {
     private long[] value;
 
-    protected LongArrayTag(final String name) {
+    protected LongArrayTag(String name) {
         super(name);
     }
 
-    public LongArrayTag(final String name, final long[] value) {
+    public LongArrayTag(String name, long[] value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         final int size = input.readInt();
         this.value = new long[size];
         for (int i = 0; i < size; ++i) {
@@ -27,13 +27,13 @@ public class LongArrayTag extends Tag {
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         final int size = input.readInt();
         input.skipBytes(8 * size);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         final int size = value.length;
         output.writeLong(size);
         for (long i : value) {
@@ -42,7 +42,7 @@ public class LongArrayTag extends Tag {
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -58,7 +58,7 @@ public class LongArrayTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): %s".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, Arrays.toString(value));
     }
 
@@ -66,7 +66,7 @@ public class LongArrayTag extends Tag {
         return value;
     }
 
-    public void value(final long[] value) {
+    public void value(long[] value) {
         this.value = value;
     }
 }

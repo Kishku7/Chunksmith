@@ -124,7 +124,7 @@ public abstract class PersistentEntitySectionManagerMixin {
                     target = "Lnet/minecraft/world/level/entity/EntityPersistentStorage;loadEntities(Lnet/minecraft/world/level/ChunkPos;)Ljava/util/concurrent/CompletableFuture;"
             )
     )
-    private CompletableFuture chunksmith$skipReadForFreshChunks(final EntityPersistentStorage permanentStorage, final ChunkPos pos) {
+    private CompletableFuture chunksmith$skipReadForFreshChunks(EntityPersistentStorage permanentStorage, ChunkPos pos) {
         if (!(permanentStorage instanceof EntityStorage)) {
             return permanentStorage.loadEntities(pos);
         }
@@ -158,7 +158,7 @@ public abstract class PersistentEntitySectionManagerMixin {
             pendingWrites = worker.chunksmith$getPendingWrites();
             final RegionFileStorage storage = worker.chunksmith$getStorage();
             entityRegionFolder = ((RegionFileStorageAccessor) (Object) storage).chunksmith$getFolder();
-        } catch (final Throwable introspectionFailed) {
+        } catch (Throwable introspectionFailed) {
             // Cannot reach the worker internals -> never gamble, do the real vanilla load.
             return permanentStorage.loadEntities(pos);
         }
@@ -209,7 +209,7 @@ public abstract class PersistentEntitySectionManagerMixin {
     }
 
     @Inject(method = "tick", at = @At("HEAD"), require = 0)
-    private void chunksmith$debugTick(final CallbackInfo ci) {
+    private void chunksmith$debugTick(CallbackInfo ci) {
         if (!Debug.ENABLED) {
             return;
         }
@@ -223,7 +223,7 @@ public abstract class PersistentEntitySectionManagerMixin {
             final String stats = ((PersistentEntitySectionManager) (Object) this).gatherStats();
             CHUNKY$LOG.info("[Chunksmith debug] fastHits={} vanillaFalls={} | known,visible,sections,loadStatuses,visibility,inbox,toUnload={}",
                     this.chunksmith$fastHits.get(), this.chunksmith$vanillaFalls.get(), stats);
-        } catch (final Throwable ignored) {
+        } catch (Throwable ignored) {
         }
     }
 
@@ -233,7 +233,7 @@ public abstract class PersistentEntitySectionManagerMixin {
      * against region writes (no torn header) and never creates a region file (Files.exists gate).
      */
     @Unique
-    private static boolean chunksmith$entitiesOnDisk(final Path folder, final ChunkPos pos) throws IOException {
+    private static boolean chunksmith$entitiesOnDisk(Path folder, ChunkPos pos) throws IOException {
         final Path mca = folder.resolve("r." + pos.getRegionX() + "." + pos.getRegionZ() + ".mca");
         if (!Files.exists(mca)) {
             return false;

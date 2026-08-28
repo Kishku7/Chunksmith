@@ -31,7 +31,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
 
     final org.bukkit.entity.Player player;
 
-    public BukkitPlayer(final org.bukkit.entity.Player player) {
+    public BukkitPlayer(org.bukkit.entity.Player player) {
         super(player);
         this.player = player;
     }
@@ -63,7 +63,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         final org.bukkit.World world = Bukkit.getWorld(location.getWorld().getName());
         final org.bukkit.Location loc = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         final Entity vehicle = player.getVehicle();
@@ -82,7 +82,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
             }
             teleportAsync(player, loc).thenAcceptAsync(ignored -> {
                 teleportAsync(vehicle, loc);
-                for (final Entity passenger : passengers) {
+                for (Entity passenger : passengers) {
                     teleportAsync(passenger, loc);
                     if (passenger instanceof final org.bukkit.entity.Player playerPassenger) {
                         playerPassenger.hideEntity(plugin, vehicle);
@@ -104,7 +104,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
         }
     }
 
-    private CompletableFuture<Boolean> teleportAsync(final Entity entity, final org.bukkit.Location location) {
+    private CompletableFuture<Boolean> teleportAsync(Entity entity, org.bukkit.Location location) {
         if (Paper.isPaper()) {
             return Paper.teleportAsync(entity, location);
         } else {
@@ -117,7 +117,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
     // is deprecated in favour of Adventure, but this pre-Adventure branch must keep the BungeeCord chat
     // API for the older servers it targets.
     @SuppressWarnings("deprecation")
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         if (ACTION_BAR_SUPPORTED) {
             final String message = formatColored(translateKey(key, false));
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));

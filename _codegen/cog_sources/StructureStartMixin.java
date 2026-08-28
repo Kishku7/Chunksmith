@@ -68,7 +68,7 @@ public abstract class StructureStartMixin {
             if (key != null) {
                 id = key.toString();
             }
-        } catch (final Throwable ignored) {
+        } catch (Throwable ignored) {
             // fall through with a null id - the fault is still suppressed + counted, just unattributed
         }
         //[[[cog

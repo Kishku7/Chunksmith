@@ -11,14 +11,14 @@ public final class Input {
     private Input() {
     }
 
-    public static Optional<World> tryWorld(final Chunksmith chunky, final String input) {
+    public static Optional<World> tryWorld(Chunksmith chunky, String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
         return chunky.getServer().getWorld(input);
     }
 
-    public static Optional<String> tryPattern(final String input) {
+    public static Optional<String> tryPattern(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -29,7 +29,7 @@ public final class Input {
         return Optional.empty();
     }
 
-    public static Optional<String> tryShape(final String input) {
+    public static Optional<String> tryShape(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -53,7 +53,7 @@ public final class Input {
      * <p>{@code TaskLoader} reads a stored property through here with {@code orElse(false)}, which is
      * unchanged by this: a malformed stored value was false before and is false now.
      */
-    public static Optional<Boolean> tryBoolean(final String input) {
+    public static Optional<Boolean> tryBoolean(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -67,7 +67,7 @@ public final class Input {
         return Optional.empty();
     }
 
-    public static Optional<Integer> tryInteger(final String input) {
+    public static Optional<Integer> tryInteger(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -78,7 +78,7 @@ public final class Input {
         }
     }
 
-    public static Optional<Integer> tryIntegerSuffixed(final String input) {
+    public static Optional<Integer> tryIntegerSuffixed(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -88,7 +88,7 @@ public final class Input {
                 .orElse(tryInteger(input));
     }
 
-    public static Optional<Double> tryDouble(final String input) {
+    public static Optional<Double> tryDouble(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -99,7 +99,7 @@ public final class Input {
         }
     }
 
-    public static Optional<Double> tryDoubleSuffixed(final String input) {
+    public static Optional<Double> tryDoubleSuffixed(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -109,7 +109,7 @@ public final class Input {
                 .orElse(tryDouble(input));
     }
 
-    public static Optional<Long> tryLong(final String input) {
+    public static Optional<Long> tryLong(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -120,7 +120,7 @@ public final class Input {
         }
     }
 
-    public static Optional<Integer> trySign(final String input) {
+    public static Optional<Integer> trySign(String input) {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
@@ -132,15 +132,15 @@ public final class Input {
         };
     }
 
-    public static boolean isPastWorldLimit(final double value) {
+    public static boolean isPastWorldLimit(double value) {
         return Math.abs(value) > 3e7;
     }
 
-    public static String checkLanguage(final String language) {
+    public static String checkLanguage(String language) {
         return Translator.isValidLanguage(language) ? language : "en";
     }
 
-    private static Optional<Integer> suffixValue(final char suffix) {
+    private static Optional<Integer> suffixValue(char suffix) {
         return switch (Character.toLowerCase(suffix)) {
             case 'c' -> Optional.of(16);
             case 'r' -> Optional.of(512);

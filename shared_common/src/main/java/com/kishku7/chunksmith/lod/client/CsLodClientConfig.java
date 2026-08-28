@@ -104,7 +104,7 @@ public final class CsLodClientConfig {
      *
      * @return the message to log -- one line, said once, and it names the clamp when the clamp bit
      */
-    public static synchronized String load(final Path configDir) {
+    public static synchronized String load(Path configDir) {
         final Path path = configDir.resolve(FILE_NAME);
         file = path;
         final Properties properties = new Properties();
@@ -113,7 +113,7 @@ public final class CsLodClientConfig {
             try (InputStream in = Files.newInputStream(path)) {
                 properties.load(in);
                 present = true;
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 loaded = true;
                 syncSeconds = DEFAULT_SYNC_SECONDS;
                 reinject = false;
@@ -132,7 +132,7 @@ public final class CsLodClientConfig {
         if (raw != null && !raw.isBlank()) {
             try {
                 requested = Integer.parseInt(raw.trim());
-            } catch (final NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 unparseable = true;
             }
         }
@@ -184,30 +184,30 @@ public final class CsLodClientConfig {
      *
      * @return the value actually stored, which is what the command reports rather than echoing the input
      */
-    public static synchronized int setSyncSeconds(final int seconds) {
+    public static synchronized int setSyncSeconds(int seconds) {
         syncSeconds = clamp(seconds);
         save();
         return syncSeconds;
     }
 
     /** Set the one-shot re-injection switch and save it. See {@link #KEY_REINJECT}. */
-    public static synchronized void setReinjectOnJoin(final boolean value) {
+    public static synchronized void setReinjectOnJoin(boolean value) {
         reinject = value;
         save();
     }
 
     /** The floor, applied to any value from any source. Public so the unit test asserts the same function. */
-    public static int clamp(final int seconds) {
+    public static int clamp(int seconds) {
         return Math.max(MIN_SYNC_SECONDS, seconds);
     }
 
     /** Test seam: set the interval directly, as though it had been read from a file. */
-    static void setForTesting(final int seconds) {
+    static void setForTesting(int seconds) {
         syncSeconds = clamp(seconds);
         loaded = true;
     }
 
-    static void setReinjectForTesting(final boolean value) {
+    static void setReinjectForTesting(boolean value) {
         reinject = value;
     }
 
@@ -228,7 +228,7 @@ public final class CsLodClientConfig {
             try (OutputStream stream = Files.newOutputStream(path)) {
                 out.store(stream, COMMENT);
             }
-        } catch (final IOException ignored) {
+        } catch (IOException ignored) {
             // See the javadoc: the defaults are already in effect and nothing downstream depends on the
             // file having been written.
         }

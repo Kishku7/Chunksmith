@@ -24,7 +24,7 @@ public final class TaskLoader {
     private final Path savePath;
     private final Map<String, Properties> tasks = new ConcurrentHashMap<>();
 
-    public TaskLoader(final Chunksmith chunky) {
+    public TaskLoader(Chunksmith chunky) {
         this.chunky = chunky;
         this.savePath = chunky.getConfig().getDirectory().resolve("tasks");
         reload();
@@ -56,7 +56,7 @@ public final class TaskLoader {
         }
     }
 
-    public Optional<GenerationTask> loadTask(final World world) {
+    public Optional<GenerationTask> loadTask(World world) {
         final Properties task = tasks.get(world.getName());
         if (task == null) {
             return Optional.empty();
@@ -83,13 +83,13 @@ public final class TaskLoader {
 
     public List<GenerationTask> loadTasks() {
         final List<GenerationTask> generationTasks = new ArrayList<>();
-        for (final World world : chunky.getServer().getWorlds()) {
+        for (World world : chunky.getServer().getWorlds()) {
             loadTask(world).ifPresent(generationTasks::add);
         }
         return generationTasks;
     }
 
-    public void saveTask(final GenerationTask task) {
+    public void saveTask(GenerationTask task) {
         final Selection selection = task.getSelection();
         final String world = selection.world().getName();
         final Properties properties = tasks.getOrDefault(world, new Properties());
@@ -115,12 +115,12 @@ public final class TaskLoader {
     }
 
     public void saveTasks() {
-        for (final GenerationTask task : chunky.getGenerationTasks().values()) {
+        for (GenerationTask task : chunky.getGenerationTasks().values()) {
             saveTask(task);
         }
     }
 
-    public void cancelTask(final World world) {
+    public void cancelTask(World world) {
         loadTask(world).ifPresent(generationTask -> {
             generationTask.stop(true);
             saveTask(generationTask);
@@ -131,9 +131,9 @@ public final class TaskLoader {
         loadTasks().forEach(generationTask -> cancelTask(generationTask.getSelection().world()));
     }
 
-    private void writeTask(final String world, final Properties properties) {
+    private void writeTask(String world, Properties properties) {
         final StringBuilder propertiesBuilder = new StringBuilder();
-        for (final TaskProperty taskProperty : TaskProperty.values()) {
+        for (TaskProperty taskProperty : TaskProperty.values()) {
             final String propertyValue = properties.getProperty(taskProperty.key());
             if (propertyValue != null) {
                 propertiesBuilder.append(taskProperty.key()).append('=').append(propertyValue).append('\n');
@@ -164,7 +164,7 @@ public final class TaskLoader {
 
         private final String key;
 
-        TaskProperty(final String key) {
+        TaskProperty(String key) {
             this.key = key;
         }
 

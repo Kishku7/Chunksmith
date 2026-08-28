@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 public class ChunksmithAPIImpl implements ChunksmithAPI {
     private final Chunksmith chunky;
 
-    public ChunksmithAPIImpl(final Chunksmith chunky) {
+    public ChunksmithAPIImpl(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
@@ -25,12 +25,12 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
     }
 
     @Override
-    public boolean isRunning(final String world) {
+    public boolean isRunning(String world) {
         return chunky.getGenerationTasks().containsKey(world);
     }
 
     @Override
-    public boolean startTask(final String world, final String shape, final double centerX, final double centerZ, final double radiusX, final double radiusZ, final String pattern) {
+    public boolean startTask(String world, String shape, double centerX, double centerZ, double radiusX, double radiusZ, String pattern) {
         final World implWorld = Input.tryWorld(chunky, world).orElse(null);
         if (implWorld == null) {
             return false;
@@ -49,7 +49,7 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
     }
 
     @Override
-    public boolean pauseTask(final String world) {
+    public boolean pauseTask(String world) {
         final GenerationTask task = chunky.getGenerationTasks().get(world);
         if (task == null) {
             return false;
@@ -59,7 +59,7 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
     }
 
     @Override
-    public boolean continueTask(final String world) {
+    public boolean continueTask(String world) {
         final World implWorld = Input.tryWorld(chunky, world).orElse(null);
         if (implWorld == null) {
             return false;
@@ -77,7 +77,7 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
     }
 
     @Override
-    public boolean cancelTask(final String world) {
+    public boolean cancelTask(String world) {
         final World implWorld = Input.tryWorld(chunky, world).orElse(null);
         if (implWorld == null) {
             return false;
@@ -91,12 +91,12 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
     }
 
     @Override
-    public void onGenerationProgress(final Consumer<GenerationProgressEvent> event) {
+    public void onGenerationProgress(Consumer<GenerationProgressEvent> event) {
         chunky.getEventBus().subscribe(GenerationProgressEvent.class, event);
     }
 
     @Override
-    public void onGenerationComplete(final Consumer<GenerationCompleteEvent> event) {
+    public void onGenerationComplete(Consumer<GenerationCompleteEvent> event) {
         chunky.getEventBus().subscribe(GenerationCompleteEvent.class, event);
     }
 }

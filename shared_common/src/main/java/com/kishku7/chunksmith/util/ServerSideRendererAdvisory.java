@@ -20,8 +20,6 @@ import java.util.function.Predicate;
  *
  * <p>Still not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we feed,
  * and an operator serving vanilla DH clients is entitled to run it. One line, once, at startup.
- *
- * <p>MC-free and loader-free -- a predicate in, a string out -- so the rule is unit-testable.
  */
 public final class ServerSideRendererAdvisory {
 
@@ -45,12 +43,12 @@ public final class ServerSideRendererAdvisory {
      *                   DOES need a renderer, so saying this there would be flatly wrong
      * @param modPresent asks whether a mod id is installed
      */
-    public static Optional<String> message(final boolean dedicated, final Predicate<String> modPresent) {
+    public static Optional<String> message(boolean dedicated, Predicate<String> modPresent) {
         if (!dedicated) {
             return Optional.empty();
         }
         final List<String> found = new ArrayList<>();
-        for (final String id : RENDERER_IDS) {
+        for (String id : RENDERER_IDS) {
             if (modPresent.test(id)) {
                 found.add(id);
             }

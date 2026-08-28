@@ -54,7 +54,7 @@ public class ShapeTest {
         testShape("ellipse", 6503);
     }
 
-    private void testShape(final String type, final int expected) {
+    private void testShape(String type, int expected) {
         final Selection s = SELECTION.shape(type).build();
         final ChunkIterator chunkIterator = ChunkIteratorFactory.getChunkIterator(s);
         final Shape shape = ShapeFactory.getShape(s);

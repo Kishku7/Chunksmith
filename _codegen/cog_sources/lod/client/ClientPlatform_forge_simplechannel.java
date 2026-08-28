@@ -38,10 +38,10 @@ public final class ClientPlatform {
     }
 
     /** Forge hands the client bootstrap nothing it needs. Kept so the entrypoints have one shape. */
-    public static void bootstrap(final Object bus) {
+    public static void bootstrap(Object bus) {
     }
 
-    public static boolean isModLoaded(final String modId) {
+    public static boolean isModLoaded(String modId) {
         return ModList.get().isLoaded(modId);
     }
 
@@ -56,17 +56,17 @@ public final class ClientPlatform {
      * subscriber whose only handler is {@code FMLClientSetupEvent}, and it is what called into here. So this
      * is an immediate call, and the loader -- not a runtime check -- is what kept us off the server.
      */
-    public static void onClientSetup(final Runnable action) {
+    public static void onClientSetup(Runnable action) {
         action.run();
     }
 
     /** Install the client sink. The channel itself was built once, by {@code CsLodChannel}. */
-    public static void registerClientNetworking(final Consumer<byte[]> onPayload) {
+    public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         CsLodChannel.setClientSink(onPayload);
     }
 
     /** Silently does nothing when the server does not speak our channel -- which is most servers. */
-    public static void sendToServer(final byte[] data) {
+    public static void sendToServer(byte[] data) {
         final ClientPacketListener listener = Minecraft.getInstance().getConnection();
         if (listener == null || !CsLodChannel.isRemotePresent(listener.getConnection())) {
             return;
@@ -74,17 +74,17 @@ public final class ClientPlatform {
         CsLodChannel.sendToServer(data);
     }
 
-    public static void onJoin(final Runnable action) {
+    public static void onJoin(Runnable action) {
         MinecraftForge.EVENT_BUS.addListener(
                 (ClientPlayerNetworkEvent.LoggingIn event) -> action.run());
     }
 
-    public static void onDisconnect(final Runnable action) {
+    public static void onDisconnect(Runnable action) {
         MinecraftForge.EVENT_BUS.addListener(
                 (ClientPlayerNetworkEvent.LoggingOut event) -> action.run());
     }
 
-    public static void onClientTick(final Runnable action) {
+    public static void onClientTick(Runnable action) {
         MinecraftForge.EVENT_BUS.addListener((TickEvent.ClientTickEvent event) -> {
             if (event.phase == TickEvent.Phase.END) {
                 action.run();

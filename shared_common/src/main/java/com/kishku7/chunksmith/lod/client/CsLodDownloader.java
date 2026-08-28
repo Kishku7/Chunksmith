@@ -60,7 +60,7 @@ public final class CsLodDownloader {
     private volatile CsLodManifest manifest;
 
     /** @param storeRoot the client's own store, e.g. {@code .minecraft/chunksmith/lod/<server>/<dim>} */
-    public CsLodDownloader(final Path storeRoot) {
+    public CsLodDownloader(Path storeRoot) {
         this.storeRoot = storeRoot;
     }
 
@@ -111,7 +111,7 @@ public final class CsLodDownloader {
             thread.setDaemon(true);
             return thread;
         });
-        for (final CsLodMessages.RegionEntry entry : wanted) {
+        for (CsLodMessages.RegionEntry entry : wanted) {
             pool.submit(() -> {
                 if (cancelled.get()) {
                     return;
@@ -123,7 +123,7 @@ public final class CsLodDownloader {
                         progress.accept("LOD: fetched " + done + "/" + wanted.size()
                                 + " regions (" + (bytes.get() / 1024 / 1024) + " MB)");
                     }
-                } catch (final IOException | InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     failed.incrementAndGet();
                     if (e instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
@@ -136,14 +136,14 @@ public final class CsLodDownloader {
             if (!pool.awaitTermination(30, TimeUnit.MINUTES)) {
                 progress.accept("LOD: download timed out");
             }
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         // Record what we now hold once, after the transfer. A manifest we fail to write costs a re-download
         // next session and nothing else, so it is reported and not thrown.
         try {
             this.manifest.save();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             progress.accept("LOD: could not write the region manifest (" + e + "); these regions will be"
                     + " re-fetched next session");
         }
@@ -238,7 +238,7 @@ public final class CsLodDownloader {
      * Do we already hold exactly what the server is advertising? A manifest lookup and one stat -- see
      * {@link CsLodManifest}. Since beta-4 this no longer reads the client's own store.
      */
-    private boolean haveAlready(final Path dimDir, final CsLodMessages.RegionEntry entry) {
+    private boolean haveAlready(Path dimDir, CsLodMessages.RegionEntry entry) {
         final CsLodManifest current = this.manifest;
         return current != null && current.holds(dimDir, entry);
     }

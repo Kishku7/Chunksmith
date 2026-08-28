@@ -37,8 +37,6 @@ import java.util.function.Consumer;
  *
  * <p>Version-blind: the only Minecraft symbols are {@code LevelChunk(Level, ChunkPos)} and
  * {@code getSections()}, both stable 1.20.1 -&gt; 26. All the drift is inside {@link CsLodSectionBuilder}.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class CsLodDhPusher {
 
@@ -78,7 +76,7 @@ public final class CsLodDhPusher {
                     progress.accept("pushed " + pushed[0] + ", failed " + failed[0]);
                 }
             });
-        } catch (final LinkageError e) {
+        } catch (LinkageError e) {
             CsLodDhSupport.disable(e);
             progress.accept("stopped after " + pushed[0] + " chunks -- this Distant Horizons does not have"
                     + " the API Chunksmith was built against (" + CsLodDhSupport.version() + ")."
@@ -96,7 +94,7 @@ public final class CsLodDhPusher {
      * height; we fill it with sections rebuilt from the record -- the same reconstruction the voxy injector
      * does and that P2 proved correct.
      */
-    private static LevelChunk synthesize(final ServerLevel level, final CsLodChunk record) {
+    private static LevelChunk synthesize(ServerLevel level, CsLodChunk record) {
         final LevelChunk chunk = new LevelChunk(level, new ChunkPos(record.getChunkX(), record.getChunkZ()));
         final LevelChunkSection[] sections = chunk.getSections();
         final int count = Math.min(sections.length, record.getSections().size());

@@ -15,7 +15,7 @@ public final class BukkitConfig implements Config {
     private static final List<String> HEADER = Arrays.asList("Chunksmith Configuration", "https://github.com/pop4959/Chunksmith/wiki/Configuration");
     private final ChunksmithBukkit plugin;
 
-    public BukkitConfig(final ChunksmithBukkit plugin) {
+    public BukkitConfig(ChunksmithBukkit plugin) {
         this.plugin = plugin;
         final FileConfigurationOptions options = plugin.getConfig().options();
         options.copyDefaults(true);
@@ -59,7 +59,7 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
-    public void setSilent(final boolean silent) {
+    public void setSilent(boolean silent) {
         plugin.getConfig().set("silent", silent);
     }
 
@@ -69,7 +69,7 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
-    public void setUpdateInterval(final int updateInterval) {
+    public void setUpdateInterval(int updateInterval) {
         plugin.getConfig().set("update-interval", updateInterval);
     }
 
@@ -180,17 +180,17 @@ public final class BukkitConfig implements Config {
     // future caller's oversight into a crash on a live server for a setting that does nothing anyway.
 
     @Override
-    public void setPregenSettleEnabled(final boolean enabled) {
+    public void setPregenSettleEnabled(boolean enabled) {
         // no-op: Bukkit does not manage chunk tickets, so there is no window to open
     }
 
     @Override
-    public void setPregenSettleDelayTicks(final long ticks) {
+    public void setPregenSettleDelayTicks(long ticks) {
         // no-op: see setPregenSettleEnabled
     }
 
     @Override
-    public void setPregenSettleRadius(final int radius) {
+    public void setPregenSettleRadius(int radius) {
         // no-op: see setPregenSettleEnabled
     }
 
@@ -215,122 +215,122 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
-    public void setLanguage(final String language) {
+    public void setLanguage(String language) {
         plugin.getConfig().set("language", Input.checkLanguage(language));
         plugin.saveConfig();
     }
 
     @Override
-    public void setContinueOnRestart(final boolean continueOnRestart) {
+    public void setContinueOnRestart(boolean continueOnRestart) {
         plugin.getConfig().set("continue-on-restart", continueOnRestart);
         plugin.saveConfig();
     }
 
     @Override
-    public void setForceLoadExistingChunks(final boolean forceLoadExistingChunks) {
+    public void setForceLoadExistingChunks(boolean forceLoadExistingChunks) {
         plugin.getConfig().set("force-load-existing-chunks", forceLoadExistingChunks);
         plugin.saveConfig();
     }
 
     @Override
-    public void setIoThrottleEnabled(final boolean enabled) {
+    public void setIoThrottleEnabled(boolean enabled) {
         plugin.getConfig().set("io-throttle", enabled);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleTargetMspt(final double mspt) {
+    public void setThrottleTargetMspt(double mspt) {
         plugin.getConfig().set("throttle-target-mspt", mspt);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleMaxChunkMillis(final long millis) {
+    public void setThrottleMaxChunkMillis(long millis) {
         plugin.getConfig().set("throttle-max-chunk-millis", millis);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleMaxQueuedWrites(final long writes) {
+    public void setThrottleMaxQueuedWrites(long writes) {
         plugin.getConfig().set("throttle-max-queued-writes", writes);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleMaxAddedChunks(final long chunks) {
+    public void setThrottleMaxAddedChunks(long chunks) {
         plugin.getConfig().set("throttle-max-added-chunks", chunks);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleMaxHeapPercent(final long percent) {
+    public void setThrottleMaxHeapPercent(long percent) {
         plugin.getConfig().set("throttle-max-heap-percent", percent);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleTickBudgetMillis(final long millis) {
+    public void setThrottleTickBudgetMillis(long millis) {
         plugin.getConfig().set("throttle-tick-budget-millis", millis);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottlePlayerReserveMillis(final long millis) {
+    public void setThrottlePlayerReserveMillis(long millis) {
         plugin.getConfig().set("throttle-player-reserve-millis", millis);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleCeilingMillis(final long millis) {
+    public void setThrottleCeilingMillis(long millis) {
         plugin.getConfig().set("throttle-ceiling-millis", millis);
         plugin.saveConfig();
     }
 
     @Override
-    public void setAutoPauseEnabled(final boolean enabled) {
+    public void setAutoPauseEnabled(boolean enabled) {
         plugin.getConfig().set("auto-pause-on-overload", enabled);
         plugin.saveConfig();
     }
 
     @Override
-    public void setAutoPauseGraceSeconds(final int seconds) {
+    public void setAutoPauseGraceSeconds(int seconds) {
         plugin.getConfig().set("auto-pause-grace-seconds", seconds);
         plugin.saveConfig();
     }
 
     @Override
-    public void setPregenSettleMaxHeld(final long maxHeld) {
+    public void setPregenSettleMaxHeld(long maxHeld) {
         // Accepted and persisted so the key round-trips, but this platform holds no tickets to cap.
         plugin.getConfig().set("pregen-settle-max-held", maxHeld);
         plugin.saveConfig();
     }
 
     @Override
-    public void setThrottleMaxLodQueue(final long items) {
+    public void setThrottleMaxLodQueue(long items) {
         plugin.getConfig().set("throttle-max-lod-queue", items);
         plugin.saveConfig();
     }
 
     @Override
-    public void setDispatchMaxConcurrent(final long chunks) {
+    public void setDispatchMaxConcurrent(long chunks) {
         plugin.getConfig().set("dispatch-max-concurrent", chunks);
         plugin.saveConfig();
     }
 
     @Override
-    public void setLodMode(final LodMode mode) {
+    public void setLodMode(LodMode mode) {
         plugin.getConfig().set("lod-enabled", mode.name().toLowerCase(Locale.ROOT));
         plugin.saveConfig();
     }
 
     @Override
-    public void setLodDhOverrideEnabled(final boolean enabled) {
+    public void setLodDhOverrideEnabled(boolean enabled) {
         plugin.getConfig().set("lod-dh-override", enabled);
         plugin.saveConfig();
     }
 
     @Override
-    public void setLodBackchannelPort(final int port) {
+    public void setLodBackchannelPort(int port) {
         plugin.getConfig().set("lod-backchannel-port",
                 (port < 1024 || port > 65535) ? 0 : port);
         plugin.saveConfig();

@@ -29,8 +29,8 @@ public class TaskScheduler {
         this.executor = threadPoolExecutor;
     }
 
-    public void runTask(final Runnable runnable) {
-        futures.add(executor.submit(() -> { try { runnable.run(); } catch (final Throwable t) { LOGGER.error("Generation task threw an uncaught exception", t); throw t; } }));
+    public void runTask(Runnable runnable) {
+        futures.add(executor.submit(() -> { try { runnable.run(); } catch (Throwable t) { LOGGER.error("Generation task threw an uncaught exception", t); throw t; } }));
         futures.removeIf(Future::isDone);
     }
 

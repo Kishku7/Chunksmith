@@ -50,7 +50,7 @@ public final class InjectedIndex {
     private final String epoch;
     private final Map<Long, Long> entries = new ConcurrentHashMap<>();
 
-    private InjectedIndex(final Path file, final String epoch) {
+    private InjectedIndex(Path file, String epoch) {
         this.file = file;
         this.epoch = epoch;
     }
@@ -80,17 +80,17 @@ public final class InjectedIndex {
      * that would otherwise make us skip -- forever and silently -- data a newly-installed renderer has never
      * been given.
      */
-    public static String epochFor(final boolean voxy, final boolean dh, final int storeVersion) {
+    public static String epochFor(boolean voxy, boolean dh, int storeVersion) {
         return (voxy ? "voxy" : "-") + "+" + (dh ? "dh" : "-") + "|v" + storeVersion;
     }
 
     /** Record that this version of this region has been injected. Call after the region is really in. */
-    public void put(final int regionX, final int regionZ, final long token) {
+    public void put(int regionX, int regionZ, long token) {
         this.entries.put(key(regionX, regionZ), token);
     }
 
     /** Forget a region -- it was released, or it failed half way. The next join re-injects it. */
-    public void remove(final int regionX, final int regionZ) {
+    public void remove(int regionX, int regionZ) {
         this.entries.remove(key(regionX, regionZ));
     }
 
@@ -102,7 +102,7 @@ public final class InjectedIndex {
     /** Every remembered region, as {@code {x, z, token}} triples. Used to seed the session's claim set. */
     public List<long[]> entries() {
         final List<long[]> out = new ArrayList<>(this.entries.size());
-        for (final Map.Entry<Long, Long> entry : this.entries.entrySet()) {
+        for (Map.Entry<Long, Long> entry : this.entries.entrySet()) {
             final long packed = entry.getKey();
             out.add(new long[] { (int) (packed >> 32), (int) packed, entry.getValue() });
         }
@@ -116,7 +116,7 @@ public final class InjectedIndex {
     public void save() throws IOException {
         final List<String> lines = new ArrayList<>(this.entries.size() + 1);
         lines.add(EPOCH_PREFIX + this.epoch);
-        for (final Map.Entry<Long, Long> entry : this.entries.entrySet()) {
+        for (Map.Entry<Long, Long> entry : this.entries.entrySet()) {
             final long packed = entry.getKey();
             lines.add((int) (packed >> 32) + "," + (int) packed + "=" + entry.getValue());
         }
@@ -139,7 +139,7 @@ public final class InjectedIndex {
         final List<String> lines;
         try {
             lines = Files.readAllLines(this.file, StandardCharsets.US_ASCII);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             // Unreadable record == no record. We re-inject; we never guess in the direction of skipping.
             return;
         }
@@ -152,7 +152,7 @@ public final class InjectedIndex {
     }
 
     /** {@code x,z=token}. Anything else is skipped in silence -- see the class doc. */
-    private void parse(final String line) {
+    private void parse(String line) {
         final int equals = line.indexOf('=');
         if (equals <= 0) {
             return;
@@ -165,12 +165,12 @@ public final class InjectedIndex {
             this.entries.put(
                     key(Integer.parseInt(coords[0].trim()), Integer.parseInt(coords[1].trim())),
                     Long.parseLong(line.substring(equals + 1).trim()));
-        } catch (final NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             // A line we cannot read is a region we cannot vouch for. Re-inject it; do not crash over it.
         }
     }
 
-    private static long key(final int regionX, final int regionZ) {
+    private static long key(int regionX, int regionZ) {
         return ((long) regionX << 32) | (regionZ & 0xFFFFFFFFL);
     }
 }

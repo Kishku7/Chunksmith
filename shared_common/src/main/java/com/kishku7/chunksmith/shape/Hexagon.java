@@ -11,7 +11,7 @@ import static com.kishku7.chunksmith.shape.ShapeUtil.insideLine;
 public class Hexagon extends AbstractPolygon {
     private final double p1x, p1z, p2x, p2z, p3x, p3z, p4x, p4z, p5x, p5z, p6x, p6z;
 
-    public Hexagon(final Selection selection, final boolean chunkAligned) {
+    public Hexagon(Selection selection, boolean chunkAligned) {
         super(selection, chunkAligned);
         this.p1x = centerX + radiusX * Math.cos(Math.toRadians(60));
         this.p1z = centerZ + radiusX * Math.sin(Math.toRadians(60));
@@ -40,7 +40,7 @@ public class Hexagon extends AbstractPolygon {
     }
 
     @Override
-    public boolean isBounding(final double x, final double z) {
+    public boolean isBounding(double x, double z) {
         final boolean inside12 = insideLine(p1x, p1z, p2x, p2z, x, z);
         final boolean inside23 = insideLine(p2x, p2z, p3x, p3z, x, z);
         final boolean inside34 = insideLine(p3x, p3z, p4x, p4z, x, z);

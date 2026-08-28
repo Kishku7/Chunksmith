@@ -13,12 +13,12 @@ import java.util.Optional;
 public class CenterCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public CenterCommand(final Chunksmith chunky) {
+    public CenterCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<Double> newX = arguments.next().flatMap(Input::tryDoubleSuffixed);
         final Optional<Double> newZ = arguments.next().flatMap(Input::tryDoubleSuffixed);
         final double centerX;
@@ -43,7 +43,7 @@ public class CenterCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

@@ -16,12 +16,12 @@ import com.kishku7.chunksmith.util.AutoPause;
 public class PauseCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public PauseCommand(final Chunksmith chunky) {
+    public PauseCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         // A human pause outranks auto-pause in both directions: it must not be undone by the resume
         // watcher, and it clears any outstanding auto-pause so a later recovery does not restart a
         // run the operator deliberately stopped.
@@ -48,7 +48,7 @@ public class PauseCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));

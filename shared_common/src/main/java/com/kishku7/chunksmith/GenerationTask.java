@@ -173,7 +173,7 @@ public class GenerationTask implements Runnable {
     private static final int SETTLE_HOLD_COMPLETIONS = 60;
     private long prevTime;
 
-    public GenerationTask(final Chunksmith chunky, final Selection selection, final long count, final long time, final boolean cancelled) {
+    public GenerationTask(Chunksmith chunky, Selection selection, long count, long time, boolean cancelled) {
         this(chunky, selection);
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection, count);
         this.finishedChunks.set(count);
@@ -181,7 +181,7 @@ public class GenerationTask implements Runnable {
         this.prevTime = time;
     }
 
-    public GenerationTask(final Chunksmith chunky, final Selection selection) {
+    public GenerationTask(Chunksmith chunky, Selection selection) {
         this.chunky = chunky;
         this.selection = selection;
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection);
@@ -238,7 +238,7 @@ public class GenerationTask implements Runnable {
      * <p>Never fatal. A failure here leaves the bitmap however far it got, and every unseeded chunk
      * takes exactly the path it took before.
      */
-    private void preScanExistingChunks(final boolean forceLoadExistingChunks) {
+    private void preScanExistingChunks(boolean forceLoadExistingChunks) {
         if (forceLoadExistingChunks) {
             return;
         }
@@ -262,13 +262,13 @@ public class GenerationTask implements Runnable {
                         + " generated (found in " + (System.currentTimeMillis() - began)
                         + " ms); they will be skipped without loading.");
             }
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             LOGGER.info("Chunksmith: could not pre-scan the region files (" + t
                     + "); existing chunks will be detected individually as before");
         }
     }
 
-    private synchronized void update(final int chunkX, final int chunkZ, final boolean loaded) {
+    private synchronized void update(int chunkX, int chunkZ, boolean loaded) {
         if (stopped) {
             return;
         }
@@ -410,7 +410,7 @@ public class GenerationTask implements Runnable {
      * Backstop signal. A single chunk load exceeding the absolute latency cap means the
      * disk is stalling regardless of what the tick average has done; back off immediately.
      */
-    private void adjustFromChunkLatency(final long elapsed) {
+    private void adjustFromChunkLatency(long elapsed) {
         if (elapsed > maxChunkMillis) {
             backoff();
         }
@@ -456,7 +456,7 @@ public class GenerationTask implements Runnable {
      * @param burst skip the once-a-second rate limit -- used by the recovery path, where the whole
      *              point is to climb back quickly instead of one step per second after a single spike
      */
-    private void rampUp(final boolean burst) {
+    private void rampUp(boolean burst) {
         final long now = System.currentTimeMillis();
         final long last = lastRampTime.get();
         if (!burst && (now - last < RAMP_INTERVAL_MS || !lastRampTime.compareAndSet(last, now))) {
@@ -475,7 +475,7 @@ public class GenerationTask implements Runnable {
         maybeNotify(current + 1);
     }
 
-    private void maybeNotify(final int newLimit) {
+    private void maybeNotify(int newLimit) {
         final long now = System.currentTimeMillis();
         final long last = lastThrottleNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastThrottleNoticeTime.compareAndSet(last, now)) {
@@ -606,7 +606,7 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * The backstop the chunk counters could not be.
+     * Pauses dispatch when the heap is close to full.
      *
      * <p>Three releases of this mod have tried to bound a pregen by counting proxies -- queued writes,
      * LOD queue depth, resident chunks, chunks added since the run started -- and each has been wrong
@@ -641,7 +641,7 @@ public class GenerationTask implements Runnable {
         }
     }
 
-    private void maybeNotifyResidency(final long added) {
+    private void maybeNotifyResidency(long added) {
         final long now = System.currentTimeMillis();
         final long last = lastResidencyNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastResidencyNoticeTime.compareAndSet(last, now)) {
@@ -650,7 +650,7 @@ public class GenerationTask implements Runnable {
         }
     }
 
-    private void maybeNotifyWrite(final long queued) {
+    private void maybeNotifyWrite(long queued) {
         final long now = System.currentTimeMillis();
         final long last = lastWriteNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastWriteNoticeTime.compareAndSet(last, now)) {
@@ -902,7 +902,7 @@ public class GenerationTask implements Runnable {
     // So do not trust the counter: take a spread of the chunks this run says it generated and ask
     // the world whether they are actually there. At most VERIFY_SAMPLE_MAX status reads, once, at
     // the end of a run -- negligible next to the generation itself.
-    private void noteVerifySample(final int x, final int z) {
+    private void noteVerifySample(int x, int z) {
         if (verifySampleCount.get() >= VERIFY_SAMPLE_MAX) {
             return;
         }
@@ -935,7 +935,7 @@ public class GenerationTask implements Runnable {
         final List<ChunkCoordinate> missing = new ArrayList<>();
         final long deadline = System.currentTimeMillis() + VERIFY_TIMEOUT_MS;
         int checked = 0;
-        for (final ChunkCoordinate coordinate : verifySamples) {
+        for (ChunkCoordinate coordinate : verifySamples) {
             final long remaining = deadline - System.currentTimeMillis();
             if (remaining <= 0L) {
                 break;
@@ -948,10 +948,10 @@ public class GenerationTask implements Runnable {
                 if (!Boolean.TRUE.equals(present)) {
                     missing.add(coordinate);
                 }
-            } catch (final InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
-            } catch (final Exception e) {
+            } catch (Exception e) {
                 // Timed out, or the world could not answer -- a busy or shutting-down server, not
                 // evidence of anything. Stay quiet: a check that cries wolf gets ignored, which is
                 // worse than no check at all. Only a definite "not on disk" is reported.
@@ -980,7 +980,7 @@ public class GenerationTask implements Runnable {
      * let it go and take the next eligible stop. Eligibility is the sweep's business -- it only offers a
      * window whose chunks are all already generated, so nothing here can trigger worldgen.
      */
-    private synchronized void driveSettleSweep(final int chunkX, final int chunkZ) {
+    private synchronized void driveSettleSweep(int chunkX, int chunkZ) {
         if (settleSweep == null || stopped) {
             return;
         }
@@ -1028,7 +1028,7 @@ public class GenerationTask implements Runnable {
     /** How long the tail pass keeps each window. A tick is 50 ms; this is about a second. */
     private static final long SETTLE_TAIL_HOLD_NANOS = 1_000_000_000L;
 
-    public void stop(final boolean cancelled) {
+    public void stop(boolean cancelled) {
         this.stopped = true;
         this.cancelled = cancelled;
     }
@@ -1106,7 +1106,7 @@ public class GenerationTask implements Runnable {
         private int dispatchMax;
         private long lastThrottleStatusPrintMs = 0;
 
-        private Progress(final String world) {
+        private Progress(String world) {
             this.world = world;
         }
 
@@ -1167,7 +1167,7 @@ public class GenerationTask implements Runnable {
             return dispatchMax;
         }
 
-        public void sendUpdate(final Sender sender) {
+        public void sendUpdate(Sender sender) {
             if (complete) {
                 sender.sendMessagePrefixed(TranslationKey.TASK_DONE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), skipped, generated);
             } else {

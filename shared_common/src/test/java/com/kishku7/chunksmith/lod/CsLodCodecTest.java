@@ -76,7 +76,7 @@ public class CsLodCodecTest {
     // ------------------------------------------------------------------ helpers
 
     /** A chunk with one dense section and one uniform section. */
-    private static CsLodChunk sample(final String dimension, final int chunkX, final int chunkZ) {
+    private static CsLodChunk sample(String dimension, int chunkX, int chunkZ) {
         final int[] blocks = new int[CsLodChunk.BLOCKS_PER_SECTION];
         for (int i = 0; i < blocks.length; i++) {
             blocks[i] = i % 3;
@@ -104,7 +104,7 @@ public class CsLodCodecTest {
                 List.of(dense, uniform));
     }
 
-    private static void assertChunkEquals(final CsLodChunk expected, final CsLodChunk actual) {
+    private static void assertChunkEquals(CsLodChunk expected, CsLodChunk actual) {
         assertNotNull("chunk did not survive the round trip", actual);
         assertEquals(expected.getDimension(), actual.getDimension());
         assertEquals(expected.getChunkX(), actual.getChunkX());
@@ -129,12 +129,12 @@ public class CsLodCodecTest {
         }
     }
 
-    private static void delete(final Path root) throws Exception {
+    private static void delete(Path root) throws Exception {
         try (var walk = Files.walk(root)) {
             walk.sorted(Comparator.reverseOrder()).forEach(path -> {
                 try {
                     Files.deleteIfExists(path);
-                } catch (final Exception ignored) {
+                } catch (Exception ignored) {
                     // Temp dir cleanup. A leftover file in the OS temp dir is not worth failing a test over.
                 }
             });

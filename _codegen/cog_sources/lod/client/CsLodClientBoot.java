@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The mod's actual startup -- shared by every loader.
+ * Starts the mod proper, the same way on every loader.
  *
  * <p>Each loader's entrypoint does exactly two things: hand the Platform facade whatever the loader gives
  * it (NeoForge's mod event bus; Fabric has nothing to hand over), then call {@link #init()}. Everything the
@@ -40,7 +40,7 @@ public final class CsLodClientBoot {
         }
         try {
             DhTarget.bind();
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             LOGGER.warn("Distant Horizons present but incompatible, skipping: {}", error.toString());
         }
     }

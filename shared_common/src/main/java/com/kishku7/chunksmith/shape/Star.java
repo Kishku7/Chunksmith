@@ -13,7 +13,7 @@ public class Star extends AbstractPolygon {
     private final double p1x, p1z, p2x, p2z, p3x, p3z, p4x, p4z, p5x, p5z;
     private final double i1x, i1z, i2x, i2z, i3x, i3z, i4x, i4z, i5x, i5z;
 
-    public Star(final Selection selection, final boolean chunkAligned) {
+    public Star(Selection selection, boolean chunkAligned) {
         super(selection, chunkAligned);
         this.p1x = centerX + radiusX * Math.cos(Math.toRadians(54));
         this.p1z = centerZ + radiusX * Math.sin(Math.toRadians(54));
@@ -59,7 +59,7 @@ public class Star extends AbstractPolygon {
     }
 
     @Override
-    public boolean isBounding(final double x, final double z) {
+    public boolean isBounding(double x, double z) {
         final boolean inside13 = insideLine(p1x, p1z, p3x, p3z, x, z);
         final boolean inside24 = insideLine(p2x, p2z, p4x, p4z, x, z);
         final boolean inside35 = insideLine(p3x, p3z, p5x, p5z, x, z);

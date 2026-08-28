@@ -29,10 +29,10 @@ public abstract class HangingEntityMixin {
             at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V", remap = false),
             require = 0
     )
-    private void chunksmith$captureInvalidPosition(final Logger logger, final String message, final Object storedPos) {
+    private void chunksmith$captureInvalidPosition(Logger logger, String message, Object storedPos) {
         try {
             StructureFaultReporter.get().recordBlockAttached(storedPos == null);
-        } catch (final Throwable ignored) {
+        } catch (Throwable ignored) {
         }
     }
 }

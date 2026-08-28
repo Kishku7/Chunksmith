@@ -28,9 +28,9 @@ public class CsLodSummaryTest {
     private record R(int x, int z, long hash) {
     }
 
-    private static long fold(final List<R> regions) {
+    private static long fold(List<R> regions) {
         long aggregate = 0L;
-        for (final R r : regions) {
+        for (R r : regions) {
             aggregate = CsLodSummary.fold(aggregate, r.x(), r.z(), r.hash());
         }
         return aggregate;

@@ -48,7 +48,7 @@ public final class GeneratedChunkScan {
         int scanned = 0;
         int unreadable = 0;
 
-        for (final File file : files) {
+        for (File file : files) {
             final int[] coords = regionCoordinates(file.getName());
             if (coords == null) {
                 continue;
@@ -60,7 +60,7 @@ public final class GeneratedChunkScan {
             try {
                 final RegionFile region = new RegionFile(file, ChunkFilter.of(TagType.STRING, "Status"));
                 scanned++;
-                for (final Chunk chunk : region.getChunks()) {
+                for (Chunk chunk : region.getChunks()) {
                     final int cx = chunk.getX();
                     final int cz = chunk.getZ();
                     if (cx < minChunkX || cx > maxChunkX || cz < minChunkZ || cz > maxChunkZ) {
@@ -71,7 +71,7 @@ public final class GeneratedChunkScan {
                         seeded++;
                     }
                 }
-            } catch (final Throwable t) {
+            } catch (Throwable t) {
                 // Deliberately Throwable: the region reader throws UnsupportedOperationException on a
                 // compression scheme it does not know, and unseeded just means "decide it the slow way".
                 unreadable++;
@@ -85,7 +85,7 @@ public final class GeneratedChunkScan {
         return seeded;
     }
 
-    private static int[] regionCoordinates(final String name) {
+    private static int[] regionCoordinates(String name) {
         final int end = name.indexOf(".mca");
         if (end < 2) {
             return null;
@@ -100,12 +100,12 @@ public final class GeneratedChunkScan {
                     Integer.parseInt(middle.substring(0, dot)),
                     Integer.parseInt(middle.substring(dot + 1))
             };
-        } catch (final NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return null;
         }
     }
 
-    private static boolean isFull(final Chunk chunk) {
+    private static boolean isFull(Chunk chunk) {
         return Optional.ofNullable(chunk.getData())
                 .filter(StringTag.class::isInstance)
                 .map(StringTag.class::cast)

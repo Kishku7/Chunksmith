@@ -108,8 +108,8 @@ public final class ConfigSettings {
         return ALL;
     }
 
-    public static Optional<ConfigSetting> find(final String name) {
-        for (final ConfigSetting setting : ALL) {
+    public static Optional<ConfigSetting> find(String name) {
+        for (ConfigSetting setting : ALL) {
             if (setting.name().equalsIgnoreCase(name)) {
                 return Optional.of(setting);
             }
@@ -164,7 +164,7 @@ public final class ConfigSettings {
         return new ConfigSetting(name, kind, reader, writer, config -> true);
     }
 
-    private static ConfigSetting bool(final String name, final BoolGetter getter, final BoolSetter setter) {
+    private static ConfigSetting bool(String name, BoolGetter getter, BoolSetter setter) {
         return new ConfigSetting(name, ConfigSetting.Kind.BOOLEAN,
                 config -> String.valueOf(getter.get(config)),
                 (config, raw) -> {
@@ -175,7 +175,7 @@ public final class ConfigSettings {
                 config -> true);
     }
 
-    private static ConfigSetting integer(final String name, final LongGetter getter, final LongSetter setter) {
+    private static ConfigSetting integer(String name, LongGetter getter, LongSetter setter) {
         return new ConfigSetting(name, ConfigSetting.Kind.INTEGER,
                 config -> String.valueOf(getter.get(config)),
                 (config, raw) -> {
@@ -186,7 +186,7 @@ public final class ConfigSettings {
                 config -> true);
     }
 
-    private static ConfigSetting settle(final ConfigSetting base) {
+    private static ConfigSetting settle(ConfigSetting base) {
         return new ConfigSetting(base.name(), base.kind(),
                 base::read, base::write, Config::isPregenSettleSupported);
     }

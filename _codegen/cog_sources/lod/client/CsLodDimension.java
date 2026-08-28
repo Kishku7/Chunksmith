@@ -35,7 +35,7 @@ public final class CsLodDimension {
         return level == null ? "" : of(level);
     }
 
-    public static String of(final Level level) {
+    public static String of(Level level) {
         //[[[cog
         // import cog, compat
         // cog.outl("final String id = level.dimension().%s().toString();"

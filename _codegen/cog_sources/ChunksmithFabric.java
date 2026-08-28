@@ -85,7 +85,7 @@ public class ChunksmithFabric implements ModInitializer {
                 try {
                     Files.move(legacyDir, baseDir);
                     LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
-                } catch (final IOException e) {
+                } catch (IOException e) {
                     LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
                     baseDir = legacyDir;
                 }
@@ -115,7 +115,7 @@ public class ChunksmithFabric implements ModInitializer {
         });
     }
 
-    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(final String root) {
+    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(String root) {
         final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
                     final MinecraftServer minecraftServer = serverCommandSource.getServer();
@@ -225,7 +225,7 @@ public class ChunksmithFabric implements ModInitializer {
     }
 
     @SafeVarargs
-    private <S> void registerArguments(final LiteralArgumentBuilder<S> command, final ArgumentBuilder<S, ?>... arguments) {
+    private <S> void registerArguments(LiteralArgumentBuilder<S> command, ArgumentBuilder<S, ?>... arguments) {
         for (int i = arguments.length - 1; i > 0; --i) {
             arguments[i - 1].then(arguments[i].executes(command.getCommand()));
         }

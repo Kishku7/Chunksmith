@@ -13,12 +13,12 @@ import java.util.Locale;
 public class SetCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public SetCommand(final Chunksmith chunky) {
+    public SetCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Config config = chunky.getConfig();
         final Optional<String> key = arguments.next();
 
@@ -60,9 +60,9 @@ public class SetCommand implements ChunksmithCommand {
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SET, setting.name(), setting.read(config));
     }
 
-    private void listAll(final Sender sender, final Config config) {
+    private void listAll(Sender sender, Config config) {
         final StringBuilder list = new StringBuilder();
-        for (final ConfigSetting setting : ConfigSettings.all()) {
+        for (ConfigSetting setting : ConfigSettings.all()) {
             list.append('\n').append(setting.name()).append(": ").append(setting.read(config));
             if (!setting.isSupported(config)) {
                 list.append(" (not used on this platform)");
@@ -71,7 +71,7 @@ public class SetCommand implements ChunksmithCommand {
         sender.sendMessage(TranslationKey.FORMAT_SET_LIST, list.toString());
     }
 
-    private void sendOne(final Sender sender, final Config config, final ConfigSetting setting) {
+    private void sendOne(Sender sender, Config config, ConfigSetting setting) {
         if (!setting.isSupported(config)) {
             sender.sendMessagePrefixed(TranslationKey.ERROR_SET_UNSUPPORTED, setting.name());
             return;
@@ -79,7 +79,7 @@ public class SetCommand implements ChunksmithCommand {
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SET_SHOW, setting.name(), setting.read(config));
     }
 
-    private String expected(final ConfigSetting setting) {
+    private String expected(ConfigSetting setting) {
         final List<String> completions = setting.kind().completions();
         if (!completions.isEmpty()) {
             return String.join("/", completions);
@@ -88,7 +88,7 @@ public class SetCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() < 2) {
             return new ArrayList<>(ConfigSettings.names());
         }

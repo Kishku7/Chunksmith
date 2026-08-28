@@ -12,11 +12,11 @@ public final class LodPresence {
     private LodPresence() {
     }
 
-    public static void setProvider(final Provider value) {
+    public static void setProvider(Provider value) {
         provider = value;
     }
 
-    public static CsLodPresenceIndex indexFor(final String worldName) {
+    public static CsLodPresenceIndex indexFor(String worldName) {
         final Provider current = provider;
         return current == null ? null : current.indexFor(worldName);
     }

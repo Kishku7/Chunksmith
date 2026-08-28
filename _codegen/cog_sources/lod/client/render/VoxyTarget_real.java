@@ -11,7 +11,7 @@ import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
 /**
- * Feeds downloaded CSLOD records into the player's voxy. Hard-references voxy, so it is only ever
+ * Downloaded CSLOD records go into the player's voxy from here. Hard-references voxy, so it is only ever
  * class-loaded once {@code isModLoaded("voxy")} has passed.
  *
  * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the section and its light
@@ -65,7 +65,7 @@ public final class VoxyTarget {
         }
         try {
             return VoxyCommon.getInstance() != null;
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             // voxy is installed (its mod id is loaded) but we cannot even ask it for its engine --
             // silence here means the player sees no distant terrain and no reason why.
             disable(error);
@@ -74,13 +74,13 @@ public final class VoxyTarget {
     }
 
     /** @return sections ingested; 0 if voxy has been ruled out. */
-    public static int inject(final Level level, final CsLodChunk record) {
+    public static int inject(Level level, CsLodChunk record) {
         if (broken) {
             return 0;
         }
         try {
             return doInject(level, record);
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             // The first call into rawIngest is where a fork with a different ingest signature would surface
             // -- as a NoSuchMethodError, which is an Error and would sail straight past `catch (Exception)`.
             disable(error);
@@ -88,7 +88,7 @@ public final class VoxyTarget {
         }
     }
 
-    private static int doInject(final Level level, final CsLodChunk record) {
+    private static int doInject(Level level, CsLodChunk record) {
         final WorldIdentifier world = WorldIdentifier.of(level);
         int ingested = 0;
         for (int i = 0; i < record.getSections().size(); i++) {
@@ -107,7 +107,7 @@ public final class VoxyTarget {
     }
 
     /** Rule voxy out for this session, and SAY SO -- once, loudly, in words a player can act on. */
-    private static void disable(final LinkageError error) {
+    private static void disable(LinkageError error) {
         broken = true;
         LodWarnings.once(CAUSE_INCOMPATIBLE,
                 "voxy is installed, but this build of it does not match the voxy Chunksmith was built"
@@ -118,7 +118,7 @@ public final class VoxyTarget {
     }
 
     /** Rebuild a DataLayer from our packed nibbles, or from a single uniform value. */
-    private static DataLayer light(final byte[] packed, final int uniform) {
+    private static DataLayer light(byte[] packed, int uniform) {
         if (packed != null) {
             return new DataLayer(packed.clone());
         }
@@ -131,7 +131,7 @@ public final class VoxyTarget {
                     && VoxyCommon.getInstance().getIngestService().getTaskCount() > QUEUE_LIMIT) {
                 Thread.sleep(20L);
             }
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         // A LinkageError out of getIngestService()/getTaskCount() is deliberately not caught here:

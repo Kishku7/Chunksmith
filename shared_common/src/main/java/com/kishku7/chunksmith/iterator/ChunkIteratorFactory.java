@@ -7,7 +7,7 @@ public final class ChunkIteratorFactory {
     private ChunkIteratorFactory() {
     }
 
-    public static ChunkIterator getChunkIterator(final Selection selection, final long count) {
+    public static ChunkIterator getChunkIterator(Selection selection, long count) {
         if (selection.pattern().getType().equals(PatternType.WORLD)) {
             return new WorldChunkIterator(selection);
         }
@@ -24,7 +24,7 @@ public final class ChunkIteratorFactory {
         };
     }
 
-    public static ChunkIterator getChunkIterator(final Selection selection) {
+    public static ChunkIterator getChunkIterator(Selection selection) {
         return getChunkIterator(selection, 0);
     }
 }

@@ -14,7 +14,7 @@ public class ConcentricChunkIterator implements ChunkIterator {
     private int down, left, up, right;
     private boolean hasNext = true;
 
-    public ConcentricChunkIterator(final Selection selection, final long count) {
+    public ConcentricChunkIterator(Selection selection, long count) {
         this(selection);
         if (count <= 0) {
             return;
@@ -42,7 +42,7 @@ public class ConcentricChunkIterator implements ChunkIterator {
         }
     }
 
-    public ConcentricChunkIterator(final Selection selection) {
+    public ConcentricChunkIterator(Selection selection) {
         this.radiusChunks = selection.radiusChunksX();
         this.x = selection.centerChunkX();
         this.z = selection.centerChunkZ();

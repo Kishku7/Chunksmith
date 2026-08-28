@@ -13,7 +13,7 @@ public final class LodPlatform {
     private LodPlatform() {
     }
 
-    public static boolean isModLoaded(final String modId) {
+    public static boolean isModLoaded(String modId) {
         return ModList.get().isLoaded(modId);
     }
 

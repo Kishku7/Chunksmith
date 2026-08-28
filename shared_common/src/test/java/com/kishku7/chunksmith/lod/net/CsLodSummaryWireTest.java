@@ -96,7 +96,7 @@ public class CsLodSummaryWireTest {
             in.readByte();
             CsLodMessages.decodeRegionSummary(in);
             fail("a negative region count must be refused");
-        } catch (final IOException expected) {
+        } catch (IOException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("out of range"));
         }
     }

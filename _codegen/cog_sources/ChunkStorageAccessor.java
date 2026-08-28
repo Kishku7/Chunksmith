@@ -6,10 +6,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
- * Exposes the {@link IOWorker} behind a chunk/region storage on MC versions where
- * {@code ChunkMap extends ChunkStorage} (1.20.1 .. 1.21.10). At 1.21.11 ChunkStorage was removed
- * and ChunkMap moved onto {@code SimpleRegionStorage}, so this file is absent there (cog-gen
- * selection, compat.has_chunk_storage_accessor) and callers use {@link SimpleRegionStorageAccessor}.
+ * 1.20.1 .. 1.21.10 only. Over that range {@code ChunkMap extends ChunkStorage}, and this accessor
+ * reaches the {@link IOWorker} behind a chunk/region storage. At 1.21.11 ChunkStorage was removed and
+ * ChunkMap moved onto {@code SimpleRegionStorage}, so cog-gen does not emit this file there
+ * (compat.has_chunk_storage_accessor) and callers use {@link SimpleRegionStorageAccessor} instead.
  */
 @Mixin(ChunkStorage.class)
 public interface ChunkStorageAccessor {

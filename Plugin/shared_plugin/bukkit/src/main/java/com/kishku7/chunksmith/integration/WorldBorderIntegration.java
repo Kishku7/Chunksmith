@@ -8,12 +8,12 @@ import com.kishku7.chunksmith.shape.ShapeType;
 
 public class WorldBorderIntegration implements BorderIntegration {
     @Override
-    public boolean hasBorder(final String world) {
+    public boolean hasBorder(String world) {
         return Config.Border(world) != null;
     }
 
     @Override
-    public Border getBorder(final String world) {
+    public Border getBorder(String world) {
         return new Border() {
             @Override
             public Vector2 getCenter() {

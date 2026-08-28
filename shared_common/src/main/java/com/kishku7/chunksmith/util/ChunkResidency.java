@@ -77,7 +77,7 @@ public final class ChunkResidency {
      *
      * @param loaded total chunk holders across every level, or negative when the platform cannot say
      */
-    public static void report(final long loaded) {
+    public static void report(long loaded) {
         report(loaded, System.currentTimeMillis());
     }
 
@@ -85,7 +85,7 @@ public final class ChunkResidency {
      * Time-injecting overload. The drain's three timing exits are each a never-wedge guarantee, so they
      * have to be testable without a clock that really passes.
      */
-    static void report(final long loaded, final long now) {
+    static void report(long loaded, long now) {
         if (loaded < 0L) {
             return;
         }
@@ -104,7 +104,7 @@ public final class ChunkResidency {
         return loadedChunksAt(System.currentTimeMillis());
     }
 
-    static long loadedChunksAt(final long now) {
+    static long loadedChunksAt(long now) {
         final long value = loadedChunks;
         if (value < 0L) {
             return -1L;
@@ -141,7 +141,7 @@ public final class ChunkResidency {
         noteTaskStart(System.currentTimeMillis());
     }
 
-    static void noteTaskStart(final long now) {
+    static void noteTaskStart(long now) {
         baseline = loadedChunksAt(now);
         draining = false;
         drainBestSeen = Long.MAX_VALUE;
@@ -156,7 +156,7 @@ public final class ChunkResidency {
         noteTaskEnd(System.currentTimeMillis());
     }
 
-    static void noteTaskEnd(final long now) {
+    static void noteTaskEnd(long now) {
         draining = true;
         drainStartedMillis = now;
         drainProgressMillis = now;
@@ -184,7 +184,7 @@ public final class ChunkResidency {
      * 71.5 ms per tick with a full heap until it was restarted, because nothing re-armed it. So the
      * no-progress clock only advances while the drain is allowed to work.
      */
-    public static void noteDrainBudget(final boolean fullBudget) {
+    public static void noteDrainBudget(boolean fullBudget) {
         drainOnFullBudget = fullBudget;
     }
 
@@ -197,7 +197,7 @@ public final class ChunkResidency {
         reconsiderDrain(System.currentTimeMillis());
     }
 
-    static void reconsiderDrain(final long now) {
+    static void reconsiderDrain(long now) {
         if (draining) {
             return;
         }
@@ -225,7 +225,7 @@ public final class ChunkResidency {
      * is ever coming, so the frontier freezes at its cap and prevents the very recovery the gate is
      * waiting for. Measured: 25,638 resident, held for 120 s, count up by 196.
      */
-    public static void noteGenerationHeld(final boolean held) {
+    public static void noteGenerationHeld(boolean held) {
         generationHeld = held;
     }
 
@@ -256,7 +256,7 @@ public final class ChunkResidency {
      * #DRAIN_STALL_MILLIS} means the remainder is pinned by something that is not ours -- players,
      * spawn chunks, another mod's tickets. The ceiling backstops a world that trickles down for ever.
      */
-    private static void evaluateDrain(final long loaded, final long now) {
+    private static void evaluateDrain(long loaded, long now) {
         final long base = baseline;
         if (base >= 0L && loaded <= base + DRAIN_MARGIN) {
             finishDrain(loaded, now, "back to where the run started");
@@ -278,7 +278,7 @@ public final class ChunkResidency {
         }
     }
 
-    private static void finishDrain(final long loaded, final long now, final String reason) {
+    private static void finishDrain(long loaded, long now, String reason) {
         draining = false;
         final long seconds = Math.max(0L, (now - drainStartedMillis) / 1000L);
         final long freed = drainStartedAt < 0L ? -1L : Math.max(0L, drainStartedAt - loaded);

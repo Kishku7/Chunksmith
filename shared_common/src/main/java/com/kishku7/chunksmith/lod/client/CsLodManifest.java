@@ -45,7 +45,7 @@ public final class CsLodManifest {
     private final Path file;
     private final Map<Long, Entry> entries = new ConcurrentHashMap<>();
 
-    private CsLodManifest(final Path file) {
+    private CsLodManifest(Path file) {
         this.file = file;
     }
 
@@ -53,7 +53,7 @@ public final class CsLodManifest {
      * Open (or start) the manifest for one dimension of one server's store. Returns null when the dimension
      * id is malformed -- the caller must then refuse the whole operation, as the downloader and injector do.
      */
-    public static CsLodManifest open(final Path storeRoot, final String dimension) {
+    public static CsLodManifest open(Path storeRoot, String dimension) {
         final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dir == null) {
             return null;
@@ -64,15 +64,15 @@ public final class CsLodManifest {
     }
 
     /** Record what the server said about a region we have just stored, once the file is in place. */
-    public void put(final int regionX, final int regionZ, final long hash, final long sizeBytes) {
+    public void put(int regionX, int regionZ, long hash, long sizeBytes) {
         this.entries.put(key(regionX, regionZ), new Entry(hash, sizeBytes));
     }
 
-    public Entry get(final int regionX, final int regionZ) {
+    public Entry get(int regionX, int regionZ) {
         return this.entries.get(key(regionX, regionZ));
     }
 
-    public void remove(final int regionX, final int regionZ) {
+    public void remove(int regionX, int regionZ) {
         this.entries.remove(key(regionX, regionZ));
     }
 
@@ -89,7 +89,7 @@ public final class CsLodManifest {
      *
      * @param dimensionDir the directory the regions live in -- already gated through {@link CsLodStore}
      */
-    public boolean holds(final Path dimensionDir, final CsLodMessages.RegionEntry advertised) {
+    public boolean holds(Path dimensionDir, CsLodMessages.RegionEntry advertised) {
         final Entry mine = get(advertised.regionX(), advertised.regionZ());
         if (mine == null || mine.hash() != advertised.hash()) {
             return false;
@@ -103,7 +103,7 @@ public final class CsLodManifest {
                 "r." + advertised.regionX() + "." + advertised.regionZ() + ".cslod");
         try {
             return Files.isRegularFile(region) && Files.size(region) == mine.sizeBytes();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             return false;
         }
     }
@@ -125,7 +125,7 @@ public final class CsLodManifest {
                                       final List<CsLodMessages.RegionEntry> advertised) {
         int count = 0;
         long aggregate = 0L;
-        for (final CsLodMessages.RegionEntry entry : advertised) {
+        for (CsLodMessages.RegionEntry entry : advertised) {
             if (!holds(dimensionDir, entry)) {
                 continue;
             }
@@ -141,7 +141,7 @@ public final class CsLodManifest {
      */
     public void save() throws IOException {
         final List<String> lines = new ArrayList<>(this.entries.size());
-        for (final Map.Entry<Long, Entry> entry : this.entries.entrySet()) {
+        for (Map.Entry<Long, Entry> entry : this.entries.entrySet()) {
             final long packed = entry.getKey();
             final int regionX = (int) (packed >> 32);
             final int regionZ = (int) packed;
@@ -165,17 +165,17 @@ public final class CsLodManifest {
         final List<String> lines;
         try {
             lines = Files.readAllLines(this.file, StandardCharsets.US_ASCII);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             // Unreadable manifest == no manifest. We re-fetch; we never guess.
             return;
         }
-        for (final String line : lines) {
+        for (String line : lines) {
             parse(line);
         }
     }
 
     /** {@code x,z=token,size}. Anything else is skipped in silence -- see the class doc. */
-    private void parse(final String line) {
+    private void parse(String line) {
         final int equals = line.indexOf('=');
         if (equals <= 0) {
             return;
@@ -189,12 +189,12 @@ public final class CsLodManifest {
             this.entries.put(
                     key(Integer.parseInt(coords[0].trim()), Integer.parseInt(coords[1].trim())),
                     new Entry(Long.parseLong(values[0].trim()), Long.parseLong(values[1].trim())));
-        } catch (final NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             // A line we cannot read is a region we cannot vouch for. Re-download it; do not crash over it.
         }
     }
 
-    private static long key(final int regionX, final int regionZ) {
+    private static long key(int regionX, int regionZ) {
         return ((long) regionX << 32) | (regionZ & 0xFFFFFFFFL);
     }
 }

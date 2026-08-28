@@ -20,7 +20,7 @@ public final class CsLodClientSettings {
 
         private final List<String> completions;
 
-        Kind(final List<String> completions) {
+        Kind(List<String> completions) {
             this.completions = completions;
         }
 
@@ -70,7 +70,7 @@ public final class CsLodClientSettings {
             return reader.get();
         }
 
-        public boolean write(final String raw) {
+        public boolean write(String raw) {
             return writer.write(raw);
         }
     }
@@ -107,8 +107,8 @@ public final class CsLodClientSettings {
         return ALL;
     }
 
-    public static Optional<Setting> find(final String name) {
-        for (final Setting setting : ALL) {
+    public static Optional<Setting> find(String name) {
+        for (Setting setting : ALL) {
             if (setting.name().equalsIgnoreCase(name)) {
                 return Optional.of(setting);
             }

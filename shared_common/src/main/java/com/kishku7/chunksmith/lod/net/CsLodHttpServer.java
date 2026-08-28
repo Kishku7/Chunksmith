@@ -85,7 +85,7 @@ public final class CsLodHttpServer {
     private boolean derived = true;
 
     /** @param storeRoot the {@code <world>/chunksmith/lod} directory -- dimensions are its subdirectories */
-    public CsLodHttpServer(final Path storeRoot, final CsLodTokens tokens, final CsLodTokens.OnlineCheck onlineCheck) {
+    public CsLodHttpServer(Path storeRoot, CsLodTokens tokens, CsLodTokens.OnlineCheck onlineCheck) {
         this(dimension -> storeRoot.toAbsolutePath().normalize().resolve(dimension),
                 tokens, onlineCheck);
     }
@@ -105,7 +105,7 @@ public final class CsLodHttpServer {
      * @param configuredPort the operator's chosen port, or 0 to derive {@code gamePort + 1}
      * @return the bound port, or 0 if the backchannel is unavailable (in which case: fall back in-band)
      */
-    public int start(final String bindAddress, final int gamePort, final int configuredPort) {
+    public int start(String bindAddress, int gamePort, int configuredPort) {
         derived = configuredPort == 0;
         final int wanted = CsLodProtocol.httpPort(gamePort, configuredPort);
         if (wanted == 0) {
@@ -145,7 +145,7 @@ public final class CsLodHttpServer {
                     + (derived ? ", derived from the game port" : ", set by lodBackchannelPort")
                     + "). Open this port to clients for fast LOD downloads.");
             return port;
-        } catch (final IOException e) {
+        } catch (IOException e) {
             // The mod still works -- the client falls back in-band -- but this is the line that answers
             // "why is no LOD arriving?", so it is a WARN and it names the port. At INFO it was read by
             // nobody and the symptom looked like a broken mod instead of a closed port.
@@ -189,7 +189,7 @@ public final class CsLodHttpServer {
                         + " bytes, " + rejected.get() + " rejected, " + tokens.size() + " live tokens";
     }
 
-    private void handle(final HttpExchange exchange) throws IOException {
+    private void handle(HttpExchange exchange) throws IOException {
         final String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         try {
             final String method = exchange.getRequestMethod();
@@ -222,7 +222,7 @@ public final class CsLodHttpServer {
             } finally {
                 release(ip);
             }
-        } catch (final RuntimeException e) {
+        } catch (RuntimeException e) {
             // Never let a handler bug take the game server with it.
             LOGGER.warn("Chunksmith: LOD backchannel error: " + e);
             fail(exchange);
@@ -236,7 +236,7 @@ public final class CsLodHttpServer {
      * {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, and the canonicalized result must still live under the
      * store root. Either alone would probably do; both are cheap.
      */
-    private Path resolve(final String requestPath) {
+    private Path resolve(String requestPath) {
         if (requestPath == null || !requestPath.startsWith(CsLodProtocol.HTTP_PREFIX)) {
             return null;
         }
@@ -259,7 +259,7 @@ public final class CsLodHttpServer {
         return candidate.startsWith(base) ? candidate : null;
     }
 
-    private void sendFile(final HttpExchange exchange, final Path file, final boolean headOnly) throws IOException {
+    private void sendFile(HttpExchange exchange, Path file, boolean headOnly) throws IOException {
         final long size = Files.size(file);
         final long[] range = parseRange(exchange.getRequestHeaders().getFirst("Range"), size);
 
@@ -302,7 +302,7 @@ public final class CsLodHttpServer {
     }
 
     /** Single range only. A multi-range request is answered with the whole file rather than honoured. */
-    private static long[] parseRange(final String header, final long size) {
+    private static long[] parseRange(String header, long size) {
         if (header == null || !header.startsWith("bytes=") || header.indexOf(',') >= 0) {
             return new long[]{0L, size};
         }
@@ -327,13 +327,13 @@ public final class CsLodHttpServer {
                 return new long[]{0L, size};
             }
             return new long[]{start, end - start + 1};
-        } catch (final NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return new long[]{0L, size};
         }
     }
 
     /** Reserve a slot for this address, atomically. Returns false when the address is already at the cap. */
-    private boolean acquire(final String ip) {
+    private boolean acquire(String ip) {
         final boolean[] admitted = {false};
         inFlightByIp.compute(ip, (key, current) -> {
             final int inFlight = current == null ? 0 : current;
@@ -346,12 +346,12 @@ public final class CsLodHttpServer {
         return admitted[0];
     }
 
-    private void release(final String ip) {
+    private void release(String ip) {
         inFlightByIp.computeIfPresent(ip, (key, current) -> current <= 1 ? null : current - 1);
     }
 
     /** Fail closed: 404 for everything, so a probe cannot learn what exists. */
-    private void fail(final HttpExchange exchange) throws IOException {
+    private void fail(HttpExchange exchange) throws IOException {
         rejected.incrementAndGet();
         exchange.sendResponseHeaders(404, -1);
     }

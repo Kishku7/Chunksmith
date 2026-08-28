@@ -12,7 +12,7 @@ public class Loop2ChunkIterator implements ChunkIterator {
     private int x, z;
     private boolean hasNext = true;
 
-    public Loop2ChunkIterator(final Selection selection, final long count) {
+    public Loop2ChunkIterator(Selection selection, long count) {
         this(selection);
         if (count <= 0) {
             return;
@@ -24,7 +24,7 @@ public class Loop2ChunkIterator implements ChunkIterator {
         }
     }
 
-    public Loop2ChunkIterator(final Selection selection) {
+    public Loop2ChunkIterator(Selection selection) {
         final int radiusChunksX = selection.radiusChunksX();
         final int radiusChunksZ = selection.radiusChunksZ();
         final int centerChunkX = selection.centerChunkX();

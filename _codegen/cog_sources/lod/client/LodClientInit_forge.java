@@ -35,7 +35,7 @@ public final class LodClientInit {
     }
 
     @SubscribeEvent
-    public static void onClientSetup(final FMLClientSetupEvent event) {
+    public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(CsLodClientBoot::init);
     }
 }

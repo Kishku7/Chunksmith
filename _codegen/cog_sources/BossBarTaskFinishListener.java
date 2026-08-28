@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * COG DRIFT: the MC resource-id class was renamed ResourceLocation -> Identifier at 26. Cog emits
- * the correct type + import so one source compiles on every runtime.
+ * One source, every runtime: the MC resource-id class was renamed ResourceLocation -> Identifier at
+ * 26, and Cog emits the correct type and import here.
  */
 public class BossBarTaskFinishListener implements Consumer<GenerationTaskFinishEvent> {
     //[[[cog
@@ -35,7 +35,7 @@ public class BossBarTaskFinishListener implements Consumer<GenerationTaskFinishE
     }
 
     @Override
-    public void accept(final GenerationTaskFinishEvent event) {
+    public void accept(GenerationTaskFinishEvent event) {
         final GenerationTask task = event.generationTask();
         final World world = task.getSelection().world();
         //[[[cog

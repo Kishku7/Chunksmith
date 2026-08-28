@@ -9,15 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Second Fabric entrypoint, owning everything LOD.
+ * Wires up everything LOD on Fabric, from a second entrypoint of its own.
  *
  * <p>Deliberately separate from {@code ChunksmithFabric}: that class is the mod's general entrypoint,
  * and LOD is an OPT-IN feature that only some cells carry. Keeping it here means the LOD wiring never
  * drifts into the general entrypoint, and a cell without LOD simply does not list this entrypoint in its
  * {@code fabric.mod.json}.
- *
- * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class LodInit implements ModInitializer {
 

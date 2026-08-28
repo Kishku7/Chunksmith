@@ -3,7 +3,12 @@ package com.kishku7.chunksmith.util;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * How many chunk tickets Chunksmith has added and not yet given back.
+ * Tracks chunk tickets added and released, as two running totals.
+ *
+ * <p>Totals rather than a gauge: a leak is the difference between two of them, and a double-release
+ * shows up too, which a gauge would silently absorb. An attempt to read the chunk system's own
+ * {@code toDrop} set failed as a measurement for the opposite reason -- that set is emptied every single
+ * tick, so sampling it reads zero on a healthy server and a sick one alike.
  *
  * <p>The last instrument this problem needed. A pregen accumulated chunk holders without bound -- the
  * runaway {@link ChunkResidency} was built to measure -- and was still climbing past 17,000 with every
@@ -11,12 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * its cap, player tickets (nobody online), and heap pressure (40 pct at the time). A starved unload
  * budget went too; see {@link UnloadDiagnostics} for what vanilla's {@code ChunkMap.processUnloads} does
  * and does not budget. "Are OUR tickets still on those chunks?" had been asked three times and answered
- * by inference each time, badly, and an attempt to read the chunk system's own {@code toDrop} set failed
- * as a measurement because that set is emptied every single tick -- sampling it reads zero on a healthy
- * server and a sick one alike.
- *
- * <p>Counters, not gauges: a leak is a difference between two totals, and totals also make a
- * double-release visible, which a gauge would silently absorb.
+ * by inference each time, badly.
  */
 public final class TicketLedger {
 

@@ -57,11 +57,11 @@ public final class ClientPlatform {
     }
 
     /** Called first thing by the client {@code @Mod} entrypoint -- the mod bus is reachable nowhere else. */
-    public static void bootstrap(final Object bus) {
+    public static void bootstrap(Object bus) {
         modBus = (IEventBus) bus;
     }
 
-    public static boolean isModLoaded(final String modId) {
+    public static boolean isModLoaded(String modId) {
         return ModList.get().isLoaded(modId);
     }
 
@@ -78,17 +78,17 @@ public final class ClientPlatform {
      * {@code FMLClientSetupEvent} runs after every mod is constructed and still long before DH fires its
      * level-load event during world load, which is the announcement we must not miss.
      */
-    public static void onClientSetup(final Runnable action) {
+    public static void onClientSetup(Runnable action) {
         modBus.addListener(FMLClientSetupEvent.class, event -> event.enqueueWork(action));
     }
 
     /** Install the client sink. The payload itself was registered once, by {@code CsLodChannel}. */
-    public static void registerClientNetworking(final Consumer<byte[]> onPayload) {
+    public static void registerClientNetworking(Consumer<byte[]> onPayload) {
         CsLodChannel.setClientSink(onPayload);
     }
 
     /** Silently does nothing when the server does not speak our channel -- which is most servers. */
-    public static void sendToServer(final byte[] data) {
+    public static void sendToServer(byte[] data) {
         final ClientPacketListener connection = Minecraft.getInstance().getConnection();
         if (connection != null && NetworkRegistry.hasChannel(connection, CsLodChannel.Payload.TYPE.id())) {
             //[[[cog
@@ -99,15 +99,15 @@ public final class ClientPlatform {
         }
     }
 
-    public static void onJoin(final Runnable action) {
+    public static void onJoin(Runnable action) {
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingIn.class, event -> action.run());
     }
 
-    public static void onDisconnect(final Runnable action) {
+    public static void onDisconnect(Runnable action) {
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> action.run());
     }
 
-    public static void onClientTick(final Runnable action) {
+    public static void onClientTick(Runnable action) {
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> action.run());
     }
 }

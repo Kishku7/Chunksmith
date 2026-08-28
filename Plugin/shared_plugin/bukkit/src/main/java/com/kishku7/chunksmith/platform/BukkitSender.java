@@ -32,7 +32,7 @@ public class BukkitSender implements Sender {
 
     private final CommandSender sender;
 
-    public BukkitSender(final CommandSender sender) {
+    public BukkitSender(CommandSender sender) {
         this.sender = sender;
     }
 
@@ -57,12 +57,12 @@ public class BukkitSender implements Sender {
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         return sender.hasPermission(permission);
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         sender.sendMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -70,7 +70,7 @@ public class BukkitSender implements Sender {
     // deprecated on Paper/Folia but intentionally retained for cross-version colour output; no
     // non-deprecated replacement exists across every targeted server version.
     @SuppressWarnings("deprecation")
-    protected String formatColored(final String message) {
+    protected String formatColored(String message) {
         String coloredMessage = message;
         if (RGB_COLORS_SUPPORTED) {
             Matcher rgbMatcher = RGB_PATTERN.matcher(message);

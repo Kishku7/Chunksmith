@@ -200,7 +200,7 @@ public class CsLodPresenceIndexTest {
     // ------------------------------------------------------------------ helpers
 
     /** Smallest valid record -- the contents are irrelevant here; only the header slot matters. */
-    private static CsLodChunk sample(final int chunkX, final int chunkZ) {
+    private static CsLodChunk sample(int chunkX, int chunkZ) {
         final CsLodChunk.Section uniform =
                 new CsLodChunk.Section(null, 0, null, 0, null, 15, null, 0);
         return new CsLodChunk("minecraft:overworld", chunkX, chunkZ, -4,
@@ -209,12 +209,12 @@ public class CsLodPresenceIndexTest {
                 List.of(uniform));
     }
 
-    private static void delete(final Path root) throws IOException {
+    private static void delete(Path root) throws IOException {
         if (!Files.exists(root)) {
             return;
         }
         try (Stream<Path> walk = Files.walk(root)) {
-            for (final Path path : walk.sorted(Comparator.reverseOrder()).toList()) {
+            for (Path path : walk.sorted(Comparator.reverseOrder()).toList()) {
                 Files.deleteIfExists(path);
             }
         }

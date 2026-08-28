@@ -5,9 +5,8 @@ import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import java.nio.file.Path;
 
 /**
- * The "do I already have this?" check, shared by both transports. Whether regions arrive over HTTP at
- * 55 MB/s or dribble down the game connection, we ask only for what we are missing; a re-join fetches
- * nothing.
+ * Tells the fetchers which regions we are missing. Whether regions arrive over HTTP at 55 MB/s or dribble
+ * down the game connection, we ask only for what we lack; a re-join fetches nothing.
  *
  * <p>It used to read the whole region file and CRC32 it against the server's content hash -- the
  * client's half of the bug that took a live server to 100% RAM. On a 340-region store that was ~1.5 GB

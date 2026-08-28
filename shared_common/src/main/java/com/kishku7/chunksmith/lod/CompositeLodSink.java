@@ -6,7 +6,7 @@ public final class CompositeLodSink implements LodSink {
 
     private final List<LodSink> sinks;
 
-    public CompositeLodSink(final List<LodSink> sinks) {
+    public CompositeLodSink(List<LodSink> sinks) {
         this.sinks = List.copyOf(sinks);
     }
 
@@ -15,9 +15,9 @@ public final class CompositeLodSink implements LodSink {
     }
 
     @Override
-    public boolean offer(final Object chunk) {
+    public boolean offer(Object chunk) {
         boolean accepted = true;
-        for (final LodSink sink : sinks) {
+        for (LodSink sink : sinks) {
             if (!sink.offer(chunk)) {
                 accepted = false;
             }
@@ -28,7 +28,7 @@ public final class CompositeLodSink implements LodSink {
     @Override
     public int queueDepth() {
         int depth = 0;
-        for (final LodSink sink : sinks) {
+        for (LodSink sink : sinks) {
             depth = Math.max(depth, sink.queueDepth());
         }
         return depth;

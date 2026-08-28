@@ -17,7 +17,7 @@ public final class ConfigSetting {
 
         private final List<String> completions;
 
-        Kind(final List<String> completions) {
+        Kind(List<String> completions) {
             this.completions = completions;
         }
 
@@ -65,7 +65,7 @@ public final class ConfigSetting {
         this.explainer = explainer;
     }
 
-    public String explainRefusal(final Config config, final String raw) {
+    public String explainRefusal(Config config, String raw) {
         return explainer == null ? null : explainer.explain(config, raw);
     }
 
@@ -77,15 +77,15 @@ public final class ConfigSetting {
         return kind;
     }
 
-    public String read(final Config config) {
+    public String read(Config config) {
         return reader.apply(config);
     }
 
-    public boolean write(final Config config, final String raw) {
+    public boolean write(Config config, String raw) {
         return writer.write(config, raw);
     }
 
-    public boolean isSupported(final Config config) {
+    public boolean isSupported(Config config) {
         return supported.test(config);
     }
 }

@@ -134,7 +134,7 @@ public final class GsonConfig implements Config {
     private final Path savePath;
     private ConfigModel configModel = new ConfigModel();
 
-    public GsonConfig(final Path savePath) {
+    public GsonConfig(Path savePath) {
         this.savePath = savePath;
         if (Files.exists(this.savePath)) {
             reload();
@@ -175,7 +175,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setSilent(final boolean silent) {
+    public void setSilent(boolean silent) {
         configModel.silent = silent;
         saveConfig();
     }
@@ -186,7 +186,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setUpdateInterval(final int updateInterval) {
+    public void setUpdateInterval(int updateInterval) {
         configModel.updateInterval = Math.max(0, updateInterval);
         saveConfig();
     }
@@ -398,13 +398,13 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setPregenSettleEnabled(final boolean enabled) {
+    public void setPregenSettleEnabled(boolean enabled) {
         configModel.pregenSettle = enabled;
         saveConfig();
     }
 
     @Override
-    public void setPregenSettleDelayTicks(final long ticks) {
+    public void setPregenSettleDelayTicks(long ticks) {
         // Clamp on the way in as well as the way out. The getter clamps because a hand-edited file can
         // hold anything; doing it here too means the file never contains a value we would refuse to read
         // back, so what /cs settle reports and what the file says can never disagree.
@@ -413,7 +413,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setPregenSettleRadius(final int radius) {
+    public void setPregenSettleRadius(int radius) {
         configModel.pregenSettleRadius = Math.max(1, Math.min(SETTLE_RADIUS_MAX, radius));
         saveConfig();
     }
@@ -445,45 +445,45 @@ public final class GsonConfig implements Config {
     // disagree about what is in force -- and the file is what an operator inspects when something is wrong.
 
     @Override
-    public void setLanguage(final String language) {
+    public void setLanguage(String language) {
         configModel.language = Input.checkLanguage(language);
         saveConfig();
         Translator.setLanguage(getLanguage());
     }
 
     @Override
-    public void setContinueOnRestart(final boolean continueOnRestart) {
+    public void setContinueOnRestart(boolean continueOnRestart) {
         configModel.continueOnRestart = continueOnRestart;
         saveConfig();
     }
 
     @Override
-    public void setForceLoadExistingChunks(final boolean forceLoadExistingChunks) {
+    public void setForceLoadExistingChunks(boolean forceLoadExistingChunks) {
         configModel.forceLoadExistingChunks = forceLoadExistingChunks;
         saveConfig();
     }
 
     @Override
-    public void setIoThrottleEnabled(final boolean enabled) {
+    public void setIoThrottleEnabled(boolean enabled) {
         configModel.ioThrottle = enabled;
         saveConfig();
     }
 
     @Override
-    public void setThrottleTargetMspt(final double mspt) {
+    public void setThrottleTargetMspt(double mspt) {
         configModel.throttleTargetMspt = Math.max(TARGET_MSPT_MIN, Math.min(TARGET_MSPT_MAX, mspt));
         saveConfig();
     }
 
     @Override
-    public void setThrottleMaxChunkMillis(final long millis) {
+    public void setThrottleMaxChunkMillis(long millis) {
         configModel.throttleMaxChunkMillis =
                 Math.max(MAX_CHUNK_MILLIS_MIN, Math.min(MAX_CHUNK_MILLIS_MAX, millis));
         saveConfig();
     }
 
     @Override
-    public void setThrottleMaxQueuedWrites(final long writes) {
+    public void setThrottleMaxQueuedWrites(long writes) {
         // 0 is not out of range -- it is the documented "disable the backlog bound" value, so it must
         // survive the clamp rather than being pulled up to the minimum.
         configModel.throttleMaxQueuedWrites = writes <= 0L
@@ -493,7 +493,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setThrottleMaxAddedChunks(final long chunks) {
+    public void setThrottleMaxAddedChunks(long chunks) {
         // 0 is the documented "disable the residency bound" value, as with the write backlog above.
         configModel.throttleMaxAddedChunks = chunks <= 0L
                 ? 0L
@@ -502,7 +502,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setThrottleMaxHeapPercent(final long percent) {
+    public void setThrottleMaxHeapPercent(long percent) {
         // 0 disables, as with the other bounds.
         configModel.throttleMaxHeapPercent = percent <= 0L
                 ? 0L
@@ -511,7 +511,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setThrottleTickBudgetMillis(final long millis) {
+    public void setThrottleTickBudgetMillis(long millis) {
         configModel.throttleTickBudgetMillis = millis <= 0L
                 ? 0L
                 : Math.max(TICK_BUDGET_MIN, Math.min(TICK_BUDGET_MAX, millis));
@@ -519,14 +519,14 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setThrottlePlayerReserveMillis(final long millis) {
+    public void setThrottlePlayerReserveMillis(long millis) {
         configModel.throttlePlayerReserveMillis =
                 Math.max(PLAYER_RESERVE_MIN, Math.min(PLAYER_RESERVE_MAX, millis));
         saveConfig();
     }
 
     @Override
-    public void setThrottleCeilingMillis(final long millis) {
+    public void setThrottleCeilingMillis(long millis) {
         configModel.throttleCeilingMillis = millis <= 0L
                 ? 0L
                 : Math.max(CEILING_MIN, Math.min(CEILING_MAX, millis));
@@ -534,20 +534,20 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setAutoPauseEnabled(final boolean enabled) {
+    public void setAutoPauseEnabled(boolean enabled) {
         configModel.autoPauseOnOverload = enabled;
         saveConfig();
     }
 
     @Override
-    public void setAutoPauseGraceSeconds(final int seconds) {
+    public void setAutoPauseGraceSeconds(int seconds) {
         configModel.autoPauseGraceSeconds =
                 Math.max(AUTO_PAUSE_GRACE_MIN, Math.min(AUTO_PAUSE_GRACE_MAX, seconds));
         saveConfig();
     }
 
     @Override
-    public void setPregenSettleMaxHeld(final long maxHeld) {
+    public void setPregenSettleMaxHeld(long maxHeld) {
         // 0 disables the cap entirely, so it must survive the clamp.
         configModel.pregenSettleMaxHeld = maxHeld <= 0L
                 ? 0L
@@ -556,7 +556,7 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setThrottleMaxLodQueue(final long items) {
+    public void setThrottleMaxLodQueue(long items) {
         // 0 disables, as above.
         configModel.throttleMaxLodQueue = items <= 0L
                 ? 0L
@@ -565,26 +565,26 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public void setDispatchMaxConcurrent(final long chunks) {
+    public void setDispatchMaxConcurrent(long chunks) {
         configModel.dispatchMaxConcurrent = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
                 Math.min(DISPATCH_MAX_CONCURRENT_MAX, chunks));
         saveConfig();
     }
 
     @Override
-    public void setLodMode(final LodMode mode) {
+    public void setLodMode(LodMode mode) {
         configModel.lodEnabled = mode.name().toLowerCase(Locale.ROOT);
         saveConfig();
     }
 
     @Override
-    public void setLodDhOverrideEnabled(final boolean enabled) {
+    public void setLodDhOverrideEnabled(boolean enabled) {
         configModel.lodDhOverride = enabled;
         saveConfig();
     }
 
     @Override
-    public void setLodBackchannelPort(final int port) {
+    public void setLodBackchannelPort(int port) {
         // An out-of-range port falls back to deriving one, rather than clamping to the nearest legal
         // port. Clamping would answer "set it to 80" with "it is now 1024", which is a different server
         // than the one that was asked for; deriving is at least the documented default and is what the
@@ -656,43 +656,43 @@ public final class GsonConfig implements Config {
         private Map<String, TaskModel> tasks;
 
         public Integer getVersion() { return version; }
-        public void setVersion(final Integer version) { this.version = version; }
+        public void setVersion(Integer version) { this.version = version; }
         public String getLanguage() { return language; }
-        public void setLanguage(final String language) { this.language = language; }
+        public void setLanguage(String language) { this.language = language; }
         public Boolean getContinueOnRestart() { return continueOnRestart; }
-        public void setContinueOnRestart(final Boolean continueOnRestart) { this.continueOnRestart = continueOnRestart; }
+        public void setContinueOnRestart(Boolean continueOnRestart) { this.continueOnRestart = continueOnRestart; }
         public Boolean getForceLoadExistingChunks() { return forceLoadExistingChunks; }
-        public void setForceLoadExistingChunks(final Boolean forceLoadExistingChunks) { this.forceLoadExistingChunks = forceLoadExistingChunks; }
+        public void setForceLoadExistingChunks(Boolean forceLoadExistingChunks) { this.forceLoadExistingChunks = forceLoadExistingChunks; }
         public Map<String, TaskModel> getTasks() { return tasks; }
-        public void setTasks(final Map<String, TaskModel> tasks) { this.tasks = tasks; }
+        public void setTasks(Map<String, TaskModel> tasks) { this.tasks = tasks; }
         public boolean isSilent() { return silent; }
-        public void setSilent(final boolean silent) { this.silent = silent; }
+        public void setSilent(boolean silent) { this.silent = silent; }
         public int getUpdateInterval() { return updateInterval; }
-        public void setUpdateInterval(final int updateInterval) { this.updateInterval = updateInterval; }
+        public void setUpdateInterval(int updateInterval) { this.updateInterval = updateInterval; }
         public Boolean getIoThrottle() { return ioThrottle; }
-        public void setIoThrottle(final Boolean ioThrottle) { this.ioThrottle = ioThrottle; }
+        public void setIoThrottle(Boolean ioThrottle) { this.ioThrottle = ioThrottle; }
         public Double getThrottleTargetMspt() { return throttleTargetMspt; }
-        public void setThrottleTargetMspt(final Double throttleTargetMspt) { this.throttleTargetMspt = throttleTargetMspt; }
+        public void setThrottleTargetMspt(Double throttleTargetMspt) { this.throttleTargetMspt = throttleTargetMspt; }
         public Long getThrottleMaxChunkMillis() { return throttleMaxChunkMillis; }
-        public void setThrottleMaxChunkMillis(final Long throttleMaxChunkMillis) { this.throttleMaxChunkMillis = throttleMaxChunkMillis; }
+        public void setThrottleMaxChunkMillis(Long throttleMaxChunkMillis) { this.throttleMaxChunkMillis = throttleMaxChunkMillis; }
         public Long getThrottleMaxQueuedWrites() { return throttleMaxQueuedWrites; }
-        public void setThrottleMaxQueuedWrites(final Long throttleMaxQueuedWrites) { this.throttleMaxQueuedWrites = throttleMaxQueuedWrites; }
+        public void setThrottleMaxQueuedWrites(Long throttleMaxQueuedWrites) { this.throttleMaxQueuedWrites = throttleMaxQueuedWrites; }
         public Long getThrottleMaxAddedChunks() { return throttleMaxAddedChunks; }
-        public void setThrottleMaxAddedChunks(final Long throttleMaxAddedChunks) { this.throttleMaxAddedChunks = throttleMaxAddedChunks; }
+        public void setThrottleMaxAddedChunks(Long throttleMaxAddedChunks) { this.throttleMaxAddedChunks = throttleMaxAddedChunks; }
         public Long getThrottleCeilingMillis() { return throttleCeilingMillis; }
-        public void setThrottleCeilingMillis(final Long throttleCeilingMillis) { this.throttleCeilingMillis = throttleCeilingMillis; }
+        public void setThrottleCeilingMillis(Long throttleCeilingMillis) { this.throttleCeilingMillis = throttleCeilingMillis; }
         public Long getThrottlePlayerReserveMillis() { return throttlePlayerReserveMillis; }
-        public void setThrottlePlayerReserveMillis(final Long throttlePlayerReserveMillis) { this.throttlePlayerReserveMillis = throttlePlayerReserveMillis; }
+        public void setThrottlePlayerReserveMillis(Long throttlePlayerReserveMillis) { this.throttlePlayerReserveMillis = throttlePlayerReserveMillis; }
         public Long getThrottleTickBudgetMillis() { return throttleTickBudgetMillis; }
-        public void setThrottleTickBudgetMillis(final Long throttleTickBudgetMillis) { this.throttleTickBudgetMillis = throttleTickBudgetMillis; }
+        public void setThrottleTickBudgetMillis(Long throttleTickBudgetMillis) { this.throttleTickBudgetMillis = throttleTickBudgetMillis; }
         public Long getThrottleMaxHeapPercent() { return throttleMaxHeapPercent; }
-        public void setThrottleMaxHeapPercent(final Long throttleMaxHeapPercent) { this.throttleMaxHeapPercent = throttleMaxHeapPercent; }
+        public void setThrottleMaxHeapPercent(Long throttleMaxHeapPercent) { this.throttleMaxHeapPercent = throttleMaxHeapPercent; }
         public Boolean getAutoPauseOnOverload() { return autoPauseOnOverload; }
-        public void setAutoPauseOnOverload(final Boolean autoPauseOnOverload) { this.autoPauseOnOverload = autoPauseOnOverload; }
+        public void setAutoPauseOnOverload(Boolean autoPauseOnOverload) { this.autoPauseOnOverload = autoPauseOnOverload; }
         public Integer getAutoPauseGraceSeconds() { return autoPauseGraceSeconds; }
-        public void setAutoPauseGraceSeconds(final Integer autoPauseGraceSeconds) { this.autoPauseGraceSeconds = autoPauseGraceSeconds; }
+        public void setAutoPauseGraceSeconds(Integer autoPauseGraceSeconds) { this.autoPauseGraceSeconds = autoPauseGraceSeconds; }
         public Long getPregenSettleMaxHeld() { return pregenSettleMaxHeld; }
-        public void setPregenSettleMaxHeld(final Long pregenSettleMaxHeld) { this.pregenSettleMaxHeld = pregenSettleMaxHeld; }
+        public void setPregenSettleMaxHeld(Long pregenSettleMaxHeld) { this.pregenSettleMaxHeld = pregenSettleMaxHeld; }
     }
 
     @SuppressWarnings("unused")
@@ -708,22 +708,22 @@ public final class GsonConfig implements Config {
         private Long time;
 
         public Boolean getCancelled() { return cancelled; }
-        public void setCancelled(final Boolean cancelled) { this.cancelled = cancelled; }
+        public void setCancelled(Boolean cancelled) { this.cancelled = cancelled; }
         public Double getRadius() { return radius; }
-        public void setRadius(final Double radius) { this.radius = radius; }
+        public void setRadius(Double radius) { this.radius = radius; }
         public Double getRadiusZ() { return radiusZ; }
-        public void setRadiusZ(final Double radiusZ) { this.radiusZ = radiusZ; }
+        public void setRadiusZ(Double radiusZ) { this.radiusZ = radiusZ; }
         public Double getCenterX() { return centerX; }
-        public void setCenterX(final Double centerX) { this.centerX = centerX; }
+        public void setCenterX(Double centerX) { this.centerX = centerX; }
         public Double getCenterZ() { return centerZ; }
-        public void setCenterZ(final Double centerZ) { this.centerZ = centerZ; }
+        public void setCenterZ(Double centerZ) { this.centerZ = centerZ; }
         public String getIterator() { return iterator; }
-        public void setIterator(final String iterator) { this.iterator = iterator; }
+        public void setIterator(String iterator) { this.iterator = iterator; }
         public String getShape() { return shape; }
-        public void setShape(final String shape) { this.shape = shape; }
+        public void setShape(String shape) { this.shape = shape; }
         public Long getCount() { return count; }
-        public void setCount(final Long count) { this.count = count; }
+        public void setCount(Long count) { this.count = count; }
         public Long getTime() { return time; }
-        public void setTime(final Long time) { this.time = time; }
+        public void setTime(Long time) { this.time = time; }
     }
 }

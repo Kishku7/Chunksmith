@@ -42,11 +42,11 @@ public class CsLodManifestTest {
         return this.root;
     }
 
-    private void region(final int x, final int z, final int size) throws IOException {
+    private void region(int x, int z, int size) throws IOException {
         Files.write(this.root.resolve(DIM).resolve("r." + x + "." + z + ".cslod"), new byte[size]);
     }
 
-    private static CsLodMessages.RegionEntry entry(final int x, final int z, final long hash, final long size) {
+    private static CsLodMessages.RegionEntry entry(int x, int z, long hash, long size) {
         return new CsLodMessages.RegionEntry(x, z, hash, size);
     }
 
@@ -185,7 +185,7 @@ public class CsLodManifestTest {
 
         // What the server would compute over the same set.
         long server = 0L;
-        for (final CsLodMessages.RegionEntry e : index) {
+        for (CsLodMessages.RegionEntry e : index) {
             server = CsLodSummary.fold(server, e.regionX(), e.regionZ(), e.hash());
         }
 

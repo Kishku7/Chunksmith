@@ -80,7 +80,7 @@ public class ChunksmithNeoForge {
     // registers nothing on the mod bus (no registries, no DeferredRegisters) -- but the LOD feature's
     // payload registration is a mod-bus event, so LOD cells forward the bus to CsLodChannel.
     @SuppressWarnings("this-escape")
-    public ChunksmithNeoForge(final IEventBus modBus) {
+    public ChunksmithNeoForge(IEventBus modBus) {
         if (ModList.get().isLoaded("chunky")) {
             LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
@@ -96,7 +96,7 @@ public class ChunksmithNeoForge {
     }
 
     @SubscribeEvent
-    public void onServerStarting(final ServerStartingEvent event) {
+    public void onServerStarting(ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
         // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need -- it
         // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
@@ -113,7 +113,7 @@ public class ChunksmithNeoForge {
             try {
                 Files.move(legacyDir, baseDir);
                 LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
                 baseDir = legacyDir;
             }
@@ -129,7 +129,7 @@ public class ChunksmithNeoForge {
     }
 
     @SubscribeEvent
-    public void onRegisterCommands(final RegisterCommandsEvent event) {
+    public void onRegisterCommands(RegisterCommandsEvent event) {
         // Primary commands plus deprecated aliases (which emit a notice pointing to /cs).
         event.getDispatcher().register(buildCommand(CommandLiteral.CS));
         event.getDispatcher().register(buildCommand(CommandLiteral.CHUNKSMITH));
@@ -137,7 +137,7 @@ public class ChunksmithNeoForge {
         event.getDispatcher().register(buildCommand(CommandLiteral.CY));
     }
 
-    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(final String root) {
+    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(String root) {
         final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
                     final MinecraftServer server = serverCommandSource.getServer();
@@ -257,7 +257,7 @@ public class ChunksmithNeoForge {
     }
 
     @SafeVarargs
-    private <S> void registerArguments(final LiteralArgumentBuilder<S> command, final ArgumentBuilder<S, ?>... arguments) {
+    private <S> void registerArguments(LiteralArgumentBuilder<S> command, ArgumentBuilder<S, ?>... arguments) {
         for (int i = arguments.length - 1; i > 0; --i) {
             arguments[i - 1].then(arguments[i].executes(command.getCommand()));
         }
@@ -265,7 +265,7 @@ public class ChunksmithNeoForge {
     }
 
     @SubscribeEvent
-    public void onServerStopping(final ServerStoppingEvent event) {
+    public void onServerStopping(ServerStoppingEvent event) {
         if (chunky != null) {
             chunky.disable();
         }

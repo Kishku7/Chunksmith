@@ -195,12 +195,12 @@ public class CsLodBoundsTest {
 
     // ------------------------------------------------------------------ helpers
 
-    private static DataInputStream reader(final byte[] bytes) {
+    private static DataInputStream reader(byte[] bytes) {
         return new DataInputStream(new ByteArrayInputStream(bytes));
     }
 
     /** The body of an S2C_HELLO after the message-id byte, with {@code count} claimed and {@code writeEntries} present. */
-    private static byte[] helloBytes(final int count, final int writeEntries) throws IOException {
+    private static byte[] helloBytes(int count, int writeEntries) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeInt(CsLodProtocol.VERSION);
@@ -216,7 +216,7 @@ public class CsLodBoundsTest {
     }
 
     /** A Deflate-compressed CSLOD record whose block-palette varint claims {@code paletteSize}. */
-    private static byte[] recordWithBlockPaletteVarint(final int paletteSize) throws IOException {
+    private static byte[] recordWithBlockPaletteVarint(int paletteSize) throws IOException {
         final ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(new DeflaterOutputStream(raw))) {
             out.writeInt(CsLodCodec.MAGIC);
@@ -231,7 +231,7 @@ public class CsLodBoundsTest {
         return raw.toByteArray();
     }
 
-    private static void writeVarInt(final DataOutputStream out, final int value) throws IOException {
+    private static void writeVarInt(DataOutputStream out, int value) throws IOException {
         int remaining = value;
         while ((remaining & 0xFFFFFF80) != 0) {
             out.writeByte((remaining & 0x7F) | 0x80);
@@ -244,22 +244,22 @@ public class CsLodBoundsTest {
         void run() throws IOException;
     }
 
-    private static void assertThrowsIOException(final IoRunnable body) {
+    private static void assertThrowsIOException(IoRunnable body) {
         try {
             body.run();
             fail("expected an IOException from an out-of-range wire count");
-        } catch (final IOException expected) {
+        } catch (IOException expected) {
             assertTrue("empty guard message",
                     expected.getMessage() != null && !expected.getMessage().isEmpty());
         }
     }
 
-    private static void delete(final Path root) throws Exception {
+    private static void delete(Path root) throws Exception {
         try (var walk = Files.walk(root)) {
             walk.sorted(Comparator.reverseOrder()).forEach(path -> {
                 try {
                     Files.deleteIfExists(path);
-                } catch (final Exception ignored) {
+                } catch (Exception ignored) {
                     // Temp dir cleanup; a leftover is not worth failing a test over.
                 }
             });

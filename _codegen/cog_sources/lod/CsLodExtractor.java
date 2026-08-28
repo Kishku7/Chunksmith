@@ -45,7 +45,7 @@ public final class CsLodExtractor {
     }
 
     /** Extract, or null if the chunk carries nothing worth storing. */
-    public static CsLodChunk extract(final LevelChunk chunk) {
+    public static CsLodChunk extract(LevelChunk chunk) {
         final LevelChunkSection[] sections = chunk.getSections();
         if (sections.length == 0) {
             return null;
@@ -150,7 +150,7 @@ public final class CsLodExtractor {
                 sky.packed, sky.uniform, block.packed, block.uniform);
     }
 
-    private static Light extractLight(final LevelLightEngine engine, final LightLayer layer, final SectionPos pos) {
+    private static Light extractLight(LevelLightEngine engine, LightLayer layer, SectionPos pos) {
         final DataLayer data = engine.getLayerListener(layer).getDataLayerData(pos);
         if (data == null || data.isEmpty()) {
             // No stored data for this section: its light is uniform by construction. Sample one
@@ -191,7 +191,7 @@ public final class CsLodExtractor {
         private final byte[] packed;
         private final int uniform;
 
-        private Light(final byte[] packed, final int uniform) {
+        private Light(byte[] packed, int uniform) {
             this.packed = packed;
             this.uniform = uniform;
         }
@@ -202,7 +202,7 @@ public final class CsLodExtractor {
         private final Map<String, Integer> ids = new HashMap<>();
         private final List<String> order = new ArrayList<>();
 
-        private int id(final String value) {
+        private int id(String value) {
             final Integer existing = ids.get(value);
             if (existing != null) {
                 return existing;
@@ -219,7 +219,7 @@ public final class CsLodExtractor {
     }
 
     /** Convenience for callers that only have a BlockPos-shaped origin. */
-    static BlockPos origin(final SectionPos pos) {
+    static BlockPos origin(SectionPos pos) {
         return pos.origin();
     }
 }

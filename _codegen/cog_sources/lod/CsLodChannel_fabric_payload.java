@@ -14,19 +14,15 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * The in-band channel seam -- FABRIC, modern payload era (MC 1.20.5+).
- *
- * <p>Deliberately dumb. all the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in
- * shared_common, which know nothing about Minecraft -- so the Chunksmith server and Chunksmith-Client
- * (a different mod, in a different repo, possibly on a different loader) share one implementation of the
- * wire format instead of maintaining two that drift. The same bytes also travel over the HTTP
- * backchannel and sit on disk in the store: one format, three uses.
+ * Fabric's payload-era registration door for {@code chunksmith:lod} (MC 1.20.5+), and nothing more than
+ * that. All the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in shared_common, which
+ * know nothing about Minecraft -- so the Chunksmith server and Chunksmith-Client (a different mod, in a
+ * different repo, possibly on a different loader) share one implementation of the wire format instead of
+ * maintaining two that drift. The same bytes also travel over the HTTP backchannel and sit on disk in the
+ * store: one format, three uses.
  *
  * <p>The channel id ({@code chunksmith:lod}) and the payload shape (one raw byte block) are identical on
  * every loader and every MC version -- only the registration API differs, and that difference stops here.
- *
- * <p>Shared source -- canonical location: _codegen/cog_sources/lod. Edit only there; the per-cell
- * copy under gen/ is overwritten by cog-gen on every build.
  */
 public final class CsLodChannel {
 
@@ -55,7 +51,7 @@ public final class CsLodChannel {
     }
 
     /** Send raw protocol bytes to a player. */
-    public static void send(final ServerPlayer player, final byte[] data) {
+    public static void send(ServerPlayer player, byte[] data) {
         ServerPlayNetworking.send(player, new Payload(data));
     }
 
@@ -72,11 +68,11 @@ public final class CsLodChannel {
         public static final StreamCodec<RegistryFriendlyByteBuf, Payload> CODEC =
                 StreamCodec.of(Payload::write, Payload::read);
 
-        private static void write(final RegistryFriendlyByteBuf buf, final Payload payload) {
+        private static void write(RegistryFriendlyByteBuf buf, Payload payload) {
             buf.writeByteArray(payload.data());
         }
 
-        private static Payload read(final RegistryFriendlyByteBuf buf) {
+        private static Payload read(RegistryFriendlyByteBuf buf) {
             return new Payload(buf.readByteArray());
         }
 

@@ -6,7 +6,7 @@ import com.kishku7.chunksmith.platform.util.Vector2;
 import java.util.List;
 
 public abstract class AbstractPolygon extends AbstractShape {
-    protected AbstractPolygon(final Selection selection, final boolean chunkAligned) {
+    protected AbstractPolygon(Selection selection, boolean chunkAligned) {
         super(selection, chunkAligned);
     }
 

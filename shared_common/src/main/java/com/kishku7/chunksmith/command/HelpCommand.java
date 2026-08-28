@@ -35,14 +35,14 @@ public class HelpCommand implements ChunksmithCommand {
             CommandLiteral.RELOAD
     );
 
-    public HelpCommand(final Chunksmith chunky) {
+    public HelpCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final List<String> visibleCommands = new ArrayList<>();
-        for (final String command : helpCommands) {
+        for (String command : helpCommands) {
             if (chunky.getCommands().containsKey(command)) {
                 visibleCommands.add(command);
             }
@@ -70,7 +70,7 @@ public class HelpCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

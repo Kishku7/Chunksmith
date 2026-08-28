@@ -7,32 +7,32 @@ import java.io.IOException;
 public class DoubleTag extends Tag {
     private double value;
 
-    protected DoubleTag(final String name) {
+    protected DoubleTag(String name) {
         super(name);
     }
 
-    public DoubleTag(final String name, final double value) {
+    public DoubleTag(String name, double value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         this.value = input.readDouble();
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         input.skipBytes(8);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         output.writeDouble(value);
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -48,7 +48,7 @@ public class DoubleTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): %f".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, value);
     }
 
@@ -56,7 +56,7 @@ public class DoubleTag extends Tag {
         return value;
     }
 
-    public void value(final double value) {
+    public void value(double value) {
         this.value = value;
     }
 }

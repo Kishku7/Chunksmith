@@ -14,12 +14,12 @@ import static com.kishku7.chunksmith.util.Translator.translate;
 public class ShapeCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public ShapeCommand(final Chunksmith chunky) {
+    public ShapeCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<String> inputShape = arguments.next().flatMap(Input::tryShape);
         if (inputShape.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_SHAPE);
@@ -31,7 +31,7 @@ public class ShapeCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             return ShapeType.all();
         }

@@ -20,7 +20,7 @@ package com.kishku7.chunksmith.util;
  *
  * <p>All five are readable on every supported MC version with no drift: {@code toDrop} is
  * package-private, {@code unloadQueue} and {@code pendingUnloads} private but reachable by accessor,
- * and the names and types are identical from 1.20.1 through 26.3. Deliberately MC-free.
+ * and the names and types are identical from 1.20.1 through 26.3.
  */
 public final class UnloadDiagnostics {
 
@@ -82,11 +82,11 @@ public final class UnloadDiagnostics {
     }
 
     /** Publish vanilla's own ticket strings for chunks nothing of ours is holding. */
-    public static void reportTicketSample(final String sample) {
+    public static void reportTicketSample(String sample) {
         ticketSample = sample;
     }
 
-    public static void reportTicketTally(final String tally) {
+    public static void reportTicketTally(String tally) {
         ticketTally = tally;
     }
 

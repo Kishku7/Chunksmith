@@ -305,7 +305,7 @@ public final class CsLodClientNet {
         lastSyncMillis = now;
         try {
             send(CsLodMessages.requestSummary(activeDimension));
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: failed to ask the server for a LOD summary: {}", e.toString());
         }
     }
@@ -319,7 +319,7 @@ public final class CsLodClientNet {
      * recorded token no longer matches the advertised one. Runs off the game thread -- a stat per region
      * of the last index, and the game thread never waits on a disk.
      */
-    private static void summary(final CsLodMessages.RegionSummary summary) {
+    private static void summary(CsLodMessages.RegionSummary summary) {
         final String dimension = summary.dimension();
         if (!dimension.equals(activeDimension)) {
             // The answer to a question we asked from a dimension we have since left. Drop it.
@@ -473,7 +473,7 @@ public final class CsLodClientNet {
      * renewal -- and the server answers every one identically with its current hello, which is why none of
      * this needed a new packet id. An older server answers a repeat hello exactly as it answered the first.
      */
-    private static void sendHello(final boolean first) {
+    private static void sendHello(boolean first) {
         try {
             send(CsLodMessages.encode(new CsLodMessages.ClientHello(
                     CsLodProtocol.VERSION, capsVoxy, capsDh, capsRadius)));
@@ -481,12 +481,12 @@ public final class CsLodClientNet {
                 RETRY.started(System.currentTimeMillis());
                 helloSentMillis = System.currentTimeMillis();
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: failed to say hello: " + e);
         }
     }
 
-    private static void handle(final byte[] data) {
+    private static void handle(byte[] data) {
         if (data.length == 0) {
             return;
         }
@@ -506,7 +506,7 @@ public final class CsLodClientNet {
                     if (manifest != null) {
                         try {
                             manifest.save();
-                        } catch (final IOException e) {
+                        } catch (IOException e) {
                             LOGGER.warn("Chunksmith: could not write the region manifest ({}); these"
                                     + " regions will be re-fetched next session", e.toString());
                         }
@@ -519,12 +519,12 @@ public final class CsLodClientNet {
                 }
                 default -> LOGGER.debug("Chunksmith: unhandled LOD message " + id);
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: malformed LOD message: " + e);
         }
     }
 
-    private static void serverHello(final CsLodMessages.ServerHello hello) {
+    private static void serverHello(CsLodMessages.ServerHello hello) {
         helloAnswered = true;
         if (hello.protocolVersion() != CsLodProtocol.VERSION) {
             // A 3.1.0-beta-3 server speaks v1, where the hash field is a CRC32 of the region's contents --
@@ -612,7 +612,7 @@ public final class CsLodClientNet {
     }
 
     /** Ask what is in range right now, and remember where we asked from. */
-    private static void requestIndex(final String dimension) {
+    private static void requestIndex(String dimension) {
         if (!busy.compareAndSet(false, true)) {
             return;
         }
@@ -624,13 +624,13 @@ public final class CsLodClientNet {
         lastIndexMillis = System.currentTimeMillis();
         try {
             send(CsLodMessages.requestIndex(dimension));
-        } catch (final IOException e) {
+        } catch (IOException e) {
             busy.set(false);
             LOGGER.warn("Chunksmith: failed to request the region index: {}", e.toString());
         }
     }
 
-    private static void index(final CsLodMessages.RegionIndex index) {
+    private static void index(CsLodMessages.RegionIndex index) {
         final Path root = storeRoot();
         // The dimension is server-supplied and becomes a filesystem path in every transport below. Gate it
         // once at the top too, and free the busy latch we took to get here.
@@ -700,11 +700,11 @@ public final class CsLodClientNet {
     }
 
     /** Can we actually open a socket to the advertised backchannel? Two seconds, once, off the game thread. */
-    private static boolean reachable(final String address, final int port) {
+    private static boolean reachable(String address, int port) {
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(address, port), 2_000);
             return true;
-        } catch (final IOException e) {
+        } catch (IOException e) {
             return false;
         }
     }
@@ -714,7 +714,7 @@ public final class CsLodClientNet {
      * backchannel port, or advertised one we cannot reach. Asks only for what we are actually missing,
      * exactly as the fast path does -- the cache rule does not change just because the transport did.
      */
-    private static void inBand(final CsLodMessages.RegionIndex index, final Path root) {
+    private static void inBand(CsLodMessages.RegionIndex index, Path root) {
         inBandRoot = root;
         inBandDimension = index.dimension();
         inBandRegions = index.regions();
@@ -725,7 +725,7 @@ public final class CsLodClientNet {
         inBandManifest = manifest;
 
         final List<CsLodMessages.RegionEntry> wanted = new ArrayList<>();
-        for (final CsLodMessages.RegionEntry entry : index.regions()) {
+        for (CsLodMessages.RegionEntry entry : index.regions()) {
             if (!CsLodCache.have(root, index.dimension(), manifest, entry)) {
                 wanted.add(entry);
             }
@@ -739,7 +739,7 @@ public final class CsLodClientNet {
         }
         try {
             send(CsLodMessages.requestRegions(index.dimension(), wanted));
-        } catch (final IOException e) {
+        } catch (IOException e) {
             busy.set(false);
             LOGGER.warn("Chunksmith: failed to request in-band regions: {}", e.toString());
         }
@@ -750,7 +750,7 @@ public final class CsLodClientNet {
      * when the last slice lands, so a transfer cut off half way can never be mistaken for a cached region
      * on the next join.
      */
-    private static void slice(final CsLodMessages.RegionSlice slice) {
+    private static void slice(CsLodMessages.RegionSlice slice) {
         final Path root = inBandRoot;
         if (root == null) {
             return;
@@ -784,14 +784,14 @@ public final class CsLodClientNet {
             if (manifest != null && advertised != null) {
                 manifest.put(slice.regionX(), slice.regionZ(), advertised.hash(), Files.size(target));
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             LOGGER.warn("Chunksmith: failed to store in-band region {}: {}", key, e.toString());
         }
     }
 
     /** What the server told us about this region in the index that prompted the in-band fetch. */
-    private static CsLodMessages.RegionEntry advertised(final int regionX, final int regionZ) {
-        for (final CsLodMessages.RegionEntry entry : inBandRegions) {
+    private static CsLodMessages.RegionEntry advertised(int regionX, int regionZ) {
+        for (CsLodMessages.RegionEntry entry : inBandRegions) {
             if (entry.regionX() == regionX && entry.regionZ() == regionZ) {
                 return entry;
             }
@@ -874,7 +874,7 @@ public final class CsLodClientNet {
      * ClientPlatform hands every payload to the client executor before calling handle() -- so
      * Minecraft.getInstance() is safe here.
      */
-    private static void clientSetting(final CsLodMessages.ClientSetting request) {
+    private static void clientSetting(CsLodMessages.ClientSetting request) {
         final LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) {
             return;
@@ -882,7 +882,7 @@ public final class CsLodClientNet {
         if (request.action() == CsLodProtocol.SETTING_LIST) {
             say(player, Component.literal(
                     "[chunksmith] LOD client settings (config/" + CsLodClientConfig.FILE_NAME + "):"));
-            for (final CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
+            for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
                 say(player, Component.literal(
                         "  " + setting.name() + " = " + setting.read() + "  -- " + setting.help()));
             }
@@ -926,7 +926,7 @@ public final class CsLodClientNet {
      * {@code sendOverlayMessage}; the reasoning, the source citations and the two dodges that do not work
      * are in {@code compat.client_chat_statement}.
      */
-    private static void say(final LocalPlayer player, final Component line) {
+    private static void say(LocalPlayer player, Component line) {
         //[[[cog
         // import cog, compat
         // cog.outl(compat.client_chat_statement(mcver, "player", "line"))
@@ -934,7 +934,7 @@ public final class CsLodClientNet {
         //[[[end]]]
     }
 
-    private static void send(final byte[] data) {
+    private static void send(byte[] data) {
         ClientPlatform.sendToServer(data);
     }
 }

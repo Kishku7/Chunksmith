@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public record ChunkCoordinate(int x, int z) implements Comparable<ChunkCoordinate> {
-    public static Optional<ChunkCoordinate> fromRegionFile(final String regionFileName) {
+    public static Optional<ChunkCoordinate> fromRegionFile(String regionFileName) {
         if (!regionFileName.startsWith("r.")) {
             return Optional.empty();
         }
@@ -23,12 +23,12 @@ public record ChunkCoordinate(int x, int z) implements Comparable<ChunkCoordinat
     }
 
     @Override
-    public int compareTo(final ChunkCoordinate o) {
+    public int compareTo(ChunkCoordinate o) {
         return this.x == o.x ? Integer.compare(this.z, o.z) : Integer.compare(this.x, o.x);
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }

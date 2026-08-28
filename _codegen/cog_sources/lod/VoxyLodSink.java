@@ -5,21 +5,18 @@ import me.cortex.voxy.commonImpl.VoxyCommon;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
- * Feeds freshly generated chunks into voxy's ingest service. Compiled against voxy 0.2.16-beta.
- *
- * <p>Hard-references voxy types, so it MUST NOT be class-loaded unless voxy is present ({@link LodSupport}
- * gates that). Generated only where a voxy jar exists to compile against -- Fabric 1.21.11 and Fabric 26.x;
- * voxy is Fabric-only and upstream has never published a 1.20.1 or a 1.21.1 build, so on every other cell
- * this class does not exist at all, a compile-time-absent seam. Singleplayer / integrated server only:
- * voxy's instance factory is installed by VoxyClient, so on a dedicated server
- * {@code VoxyCommon.getInstance()} is null and the streaming path handles that case instead.
+ * Compiled against voxy 0.2.16-beta; feeds freshly generated chunks into its ingest service. Hard-references
+ * voxy types, so it MUST NOT be class-loaded unless voxy is present ({@link LodSupport} gates that).
+ * Generated only where a voxy jar exists to compile against -- Fabric 1.21.11 and Fabric 26.x; voxy is
+ * Fabric-only and upstream has never published a 1.20.1 or a 1.21.1 build, so on every other cell this class
+ * does not exist at all, a compile-time-absent seam. Singleplayer / integrated server only: voxy's instance
+ * factory is installed by VoxyClient, so on a dedicated server {@code VoxyCommon.getInstance()} is null and
+ * the streaming path handles that case instead.
  *
  * <p>voxy is forked constantly, and a fork that changed {@code tryAutoIngestChunk} would throw a
  * {@code NoSuchMethodError} -- an Error, straight through every {@code catch (Exception)} in the pregen
  * pipeline -- on the first chunk. So the sink absorbs a {@link LinkageError} once, says out loud what
  * happened, and stands down for the session: the pregen keeps running and still writes the CSLOD store.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
 public final class VoxyLodSink implements LodSink {
 
@@ -37,7 +34,7 @@ public final class VoxyLodSink implements LodSink {
      * already run and this holds.
      */
     @Override
-    public boolean offer(final Object chunk) {
+    public boolean offer(Object chunk) {
         if (broken) {
             // Accept and drop: the pregen must not stall on a renderer we have already ruled out.
             return true;
@@ -52,7 +49,7 @@ public final class VoxyLodSink implements LodSink {
                 return true;
             }
             return VoxelIngestService.tryAutoIngestChunk(levelChunk);
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             standDown(error);
             return true;
         }
@@ -69,13 +66,13 @@ public final class VoxyLodSink implements LodSink {
                 return 0;
             }
             return instance.getIngestService().getTaskCount();
-        } catch (final LinkageError error) {
+        } catch (LinkageError error) {
             standDown(error);
             return 0;
         }
     }
 
-    private void standDown(final LinkageError error) {
+    private void standDown(LinkageError error) {
         broken = true;
         LodWarnings.once(CAUSE_INCOMPATIBLE,
                 "voxy is installed, but this build of it does not match the voxy Chunksmith was built"

@@ -8,7 +8,7 @@ public final class Chunk {
     private Tag data;
     private long lastModified;
 
-    public Chunk(final int x, final int z, final Tag data, final long lastModified) {
+    public Chunk(int x, int z, Tag data, long lastModified) {
         this.x = x;
         this.z = z;
         this.data = data;
@@ -43,7 +43,7 @@ public final class Chunk {
         return lastModified;
     }
 
-    public void setLastModified(final long lastModified) {
+    public void setLastModified(long lastModified) {
         this.lastModified = lastModified;
     }
 }

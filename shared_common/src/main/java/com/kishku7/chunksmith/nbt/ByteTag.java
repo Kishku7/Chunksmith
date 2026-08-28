@@ -7,32 +7,32 @@ import java.io.IOException;
 public class ByteTag extends Tag {
     private byte value;
 
-    protected ByteTag(final String name) {
+    protected ByteTag(String name) {
         super(name);
     }
 
-    public ByteTag(final String name, final byte value) {
+    public ByteTag(String name, byte value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         this.value = input.readByte();
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         input.skipBytes(1);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         output.writeByte(value);
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -48,7 +48,7 @@ public class ByteTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): %d".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, value);
     }
 
@@ -56,7 +56,7 @@ public class ByteTag extends Tag {
         return value;
     }
 
-    public void value(final byte value) {
+    public void value(byte value) {
         this.value = value;
     }
 }

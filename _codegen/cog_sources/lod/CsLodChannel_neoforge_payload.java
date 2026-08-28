@@ -16,15 +16,12 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import java.util.function.Consumer;
 
 /**
- * The in-band channel seam -- NeoForge (MC 1.21+).
- *
- * <p>Same wire, different registration door: NeoForge hands out a {@link PayloadRegistrar} from a mod-bus
- * event rather than a static registry. The mod bus is reachable only from the {@code @Mod} constructor
- * (NeoForge injects it), and {@code @EventBusSubscriber(bus = MOD)} is deprecated for removal as of
- * NeoForge 21.1 -- so {@link #registerPayloads(IEventBus)} is called from {@code ChunksmithNeoForge}'s
- * constructor instead, and this class carries no bus annotation at all.
- *
- * <p>Shared source -- canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
+ * Registers the {@code chunksmith:lod} payload on NeoForge (MC 1.21+). Same wire as every other cell,
+ * different registration door: NeoForge hands out a {@link PayloadRegistrar} from a mod-bus event rather
+ * than a static registry. The mod bus is reachable only from the {@code @Mod} constructor (NeoForge
+ * injects it), and {@code @EventBusSubscriber(bus = MOD)} is deprecated for removal as of NeoForge 21.1 --
+ * so {@link #registerPayloads(IEventBus)} is called from {@code ChunksmithNeoForge}'s constructor instead,
+ * and this class carries no bus annotation at all.
  */
 public final class CsLodChannel {
 
@@ -40,11 +37,11 @@ public final class CsLodChannel {
     }
 
     /** Called by the {@code Dist.CLIENT} entrypoint only. */
-    public static void setClientSink(final Consumer<byte[]> sink) {
+    public static void setClientSink(Consumer<byte[]> sink) {
         clientSink = sink;
     }
 
-    private static void dispatchClient(final byte[] data) {
+    private static void dispatchClient(byte[] data) {
         final Consumer<byte[]> sink = clientSink;
         if (sink != null) {
             sink.accept(data);
@@ -60,11 +57,11 @@ public final class CsLodChannel {
     }
 
     /** Called from the {@code @Mod} constructor -- the only place the mod bus is handed out. */
-    public static void registerPayloads(final IEventBus modBus) {
+    public static void registerPayloads(IEventBus modBus) {
         modBus.addListener(CsLodChannel::onRegisterPayloads);
     }
 
-    private static void onRegisterPayloads(final RegisterPayloadHandlersEvent event) {
+    private static void onRegisterPayloads(RegisterPayloadHandlersEvent event) {
         // optional() is not decoration. Without it the channel is required, and NeoForge enforces that at
         // the handshake in both directions: a server would reject every client that does not have
         // Chunksmith and -- now that this jar is a client mod too -- a client would refuse any server that
@@ -96,7 +93,7 @@ public final class CsLodChannel {
         //[[[end]]]
     }
 
-    public static void send(final ServerPlayer player, final byte[] data) {
+    public static void send(ServerPlayer player, byte[] data) {
         PacketDistributor.sendToPlayer(player, new Payload(data));
     }
 
@@ -113,11 +110,11 @@ public final class CsLodChannel {
         public static final StreamCodec<RegistryFriendlyByteBuf, Payload> CODEC =
                 StreamCodec.of(Payload::write, Payload::read);
 
-        private static void write(final RegistryFriendlyByteBuf buf, final Payload payload) {
+        private static void write(RegistryFriendlyByteBuf buf, Payload payload) {
             buf.writeByteArray(payload.data());
         }
 
-        private static Payload read(final RegistryFriendlyByteBuf buf) {
+        private static Payload read(RegistryFriendlyByteBuf buf) {
             return new Payload(buf.readByteArray());
         }
 

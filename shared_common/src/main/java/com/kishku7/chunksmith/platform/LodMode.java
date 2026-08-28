@@ -7,7 +7,7 @@ public enum LodMode {
     ON,
     OFF;
 
-    public static LodMode parse(final String raw) {
+    public static LodMode parse(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
             return AUTO;
         }

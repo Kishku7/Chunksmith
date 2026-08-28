@@ -24,12 +24,12 @@ public final class EventBus {
 
     private final Map<Class<?>, Set<Consumer<?>>> subscribers = new HashMap<>();
 
-    public <T> void subscribe(final Class<T> eventClass, final Consumer<T> subscriber) {
+    public <T> void subscribe(Class<T> eventClass, Consumer<T> subscriber) {
         subscribers.computeIfAbsent(eventClass, x -> new HashSet<>());
         subscribers.get(eventClass).add(subscriber);
     }
 
-    public <T> void unsubscribe(final Class<T> eventClass, final Consumer<T> subscriber) {
+    public <T> void unsubscribe(Class<T> eventClass, Consumer<T> subscriber) {
         subscribers.computeIfAbsent(eventClass, x -> new HashSet<>());
         subscribers.get(eventClass).remove(subscriber);
     }
@@ -38,11 +38,11 @@ public final class EventBus {
         subscribers.clear();
     }
 
-    public void unsubscribeAll(final Class<?> eventClass) {
+    public void unsubscribeAll(Class<?> eventClass) {
         subscribers.remove(eventClass);
     }
 
-    public void call(final Object event) {
+    public void call(Object event) {
         final Class<?> eventClass = event.getClass();
         if (accept == null || !subscribers.containsKey(eventClass)) {
             return;

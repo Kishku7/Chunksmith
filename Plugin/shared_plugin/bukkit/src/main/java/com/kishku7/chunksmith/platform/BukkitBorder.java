@@ -7,7 +7,7 @@ import com.kishku7.chunksmith.shape.ShapeType;
 public class BukkitBorder implements Border {
     final WorldBorder worldBorder;
 
-    public BukkitBorder(final WorldBorder worldBorder) {
+    public BukkitBorder(WorldBorder worldBorder) {
         this.worldBorder = worldBorder;
     }
 

@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 public class ChunkSettleWindowCapTest {
 
     /** Offer a straight line of chunks. No chunk in a line ever gets all nine of its neighbours. */
-    private static List<Integer> offerLine(final ChunkSettleWindow window, final int count, final long cap) {
+    private static List<Integer> offerLine(ChunkSettleWindow window, int count, long cap) {
         final List<Integer> released = new ArrayList<>();
         for (int x = 0; x < count; x++) {
             final int captured = x;

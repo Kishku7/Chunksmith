@@ -27,11 +27,11 @@ public class ChunkSettleWindowTest {
     private static final class Recorder {
         private final List<String> released = new ArrayList<>();
 
-        Runnable of(final int x, final int z) {
+        Runnable of(int x, int z) {
             return () -> this.released.add(x + "," + z);
         }
 
-        boolean has(final int x, final int z) {
+        boolean has(int x, int z) {
             return this.released.contains(x + "," + z);
         }
 

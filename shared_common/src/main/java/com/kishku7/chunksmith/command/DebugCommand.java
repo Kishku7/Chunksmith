@@ -16,12 +16,12 @@ public class DebugCommand implements ChunksmithCommand {
     @SuppressWarnings("unused")
     private final Chunksmith chunky;
 
-    public DebugCommand(final Chunksmith chunky) {
+    public DebugCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<String> arg = arguments.next();
         if (arg.isPresent()) {
             final String value = arg.get().toLowerCase();
@@ -51,7 +51,7 @@ public class DebugCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return arguments.size() == 1 ? List.of("on", "off") : List.of();
     }
 }
