@@ -1,6 +1,7 @@
 package com.kishku7.chunksmith.lod.client.render;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 /**
  * <p><b>Why this exists.</b> {@code DhClientLevel.shouldProcessChunkUpdate} -- consulted by
@@ -33,7 +34,7 @@ public final class DhPushGuard {
     private DhPushGuard() {
     }
 
-    public static <T> T pushing(final java.util.function.Supplier<T> push) {
+    public static <T> T pushing(final Supplier<T> push) {
         PUSHING.set(Boolean.TRUE);
         try {
             return push.get();

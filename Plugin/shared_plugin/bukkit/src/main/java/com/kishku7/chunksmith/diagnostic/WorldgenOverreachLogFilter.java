@@ -9,6 +9,7 @@ import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.apache.logging.log4j.message.Message;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.WorldgenOverreachReporter;
+import org.apache.logging.log4j.Marker;
 
 /**
  * Best-effort plugin (Spigot/Paper/Folia) counterpart to the Fabric/NeoForge mixins. There is no
@@ -103,19 +104,19 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
     }
 
     @Override
-    public Result filter(final Logger logger, final Level level, final org.apache.logging.log4j.Marker marker,
+    public Result filter(final Logger logger, final Level level, final Marker marker,
                          final Message msg, final Throwable t) {
         return evaluate(level, msg == null ? null : msg.getFormattedMessage());
     }
 
     @Override
-    public Result filter(final Logger logger, final Level level, final org.apache.logging.log4j.Marker marker,
+    public Result filter(final Logger logger, final Level level, final Marker marker,
                          final Object msg, final Throwable t) {
         return evaluate(level, msg == null ? null : String.valueOf(msg));
     }
 
     @Override
-    public Result filter(final Logger logger, final Level level, final org.apache.logging.log4j.Marker marker,
+    public Result filter(final Logger logger, final Level level, final Marker marker,
                          final String msg, final Object... params) {
         return evaluate(level, msg);
     }

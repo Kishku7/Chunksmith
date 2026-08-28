@@ -314,7 +314,7 @@ what 3.4.1 got wrong by holding an uncapped settle frontier.
 ## [3.6.0] - 2026-08-20
 
 This is the release that actually fixes the unbounded chunk retention reported on 2026-08-19.
-Everything between 3.5.0 and 3.5.9 was built against theories that measurement later disproved.
+Everything between 3.5.0 and 3.5.5 was built against theories that measurement later disproved.
 Those entries are left in the changelog as written, because each one is a real if secondary
 improvement and because the wrong turns are worth reading.
 

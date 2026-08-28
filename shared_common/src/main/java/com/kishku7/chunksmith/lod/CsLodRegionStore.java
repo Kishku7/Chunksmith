@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * On-disk store for CSLOD chunk records.
@@ -115,8 +117,8 @@ public final class CsLodRegionStore {
             return 0;
         }
         int visited = 0;
-        try (java.util.stream.Stream<Path> walk = Files.walk(root)) {
-            final java.util.List<Path> regions = walk
+        try (Stream<Path> walk = Files.walk(root)) {
+            final List<Path> regions = walk
                     .filter(path -> path.getFileName().toString().endsWith(".cslod"))
                     .sorted()
                     .toList();

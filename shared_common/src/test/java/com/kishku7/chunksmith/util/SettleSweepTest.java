@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import java.util.HashSet;
 
 /**
  * Where the settle sweep is allowed to stop -- and, more importantly, where it is NOT.
@@ -72,7 +73,7 @@ public class SettleSweepTest {
         final List<String> stops = drain(sweep);
 
         assertEquals(sweep.stopCount(), stops.size());
-        assertEquals("no stop repeats", stops.size(), new java.util.HashSet<>(stops).size());
+        assertEquals("no stop repeats", stops.size(), new HashSet<>(stops).size());
         assertTrue(sweep.isComplete());
         assertNull("a completed sweep hands out nothing more", sweep.nextStop());
     }

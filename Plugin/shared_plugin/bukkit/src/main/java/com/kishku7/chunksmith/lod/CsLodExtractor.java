@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bukkit.Keyed;
 
 /**
  * Bukkit-native counterpart to the Fabric/Forge/NeoForge CsLodExtractor (canonical algorithm:
@@ -118,7 +119,7 @@ public final class CsLodExtractor {
                         // it, so dispatching getKey() through Keyed instead of Biome directly sidesteps
                         // the invokeinterface/invokevirtual mismatch regardless of which shape Biome is
                         // on this particular server build.
-                        final org.bukkit.Keyed biome = snap.getBiome(wx, wy, wz);
+                        final Keyed biome = snap.getBiome(wx, wy, wz);
                         final int id = biomes.id(biome.getKey().toString());
                         biomeIndices[b++] = id;
                         if (first < 0) {

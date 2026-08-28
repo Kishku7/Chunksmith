@@ -1,5 +1,8 @@
 package com.kishku7.chunksmith.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * How many chunks the server is holding in memory, and whether a pregen still owes the server a drain.
  *
@@ -31,7 +34,7 @@ public final class ChunkResidency {
     // slf4j, NOT java.util.logging. The loaders route slf4j into the game's own log; JUL output goes
     // nowhere anybody looks, which is why 3.5.3's drain lifecycle lines never appeared on the server
     // even though the code ran. (GsonConfig and TaskScheduler still use JUL and are equally invisible.)
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     /** How long a published reading stays usable. Beyond this the count is treated as unknown. */
     public static final long FRESH_MILLIS = 60_000L;

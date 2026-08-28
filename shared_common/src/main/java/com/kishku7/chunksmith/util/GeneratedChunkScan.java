@@ -9,6 +9,8 @@ import com.kishku7.chunksmith.nbt.util.RegionFile;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p><b>Why this exists.</b> {@link RegionCache.WorldState} is an in-memory bitmap and it starts COLD:
@@ -22,7 +24,7 @@ import java.util.Optional;
  */
 public final class GeneratedChunkScan {
 
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private GeneratedChunkScan() {
     }

@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * "Does this chunk already have a CSLOD record?" -- answered without decoding anything, so a pregen re-run
@@ -188,8 +190,8 @@ public final class CsLodPresenceIndex {
             return 0L;
         }
         long total = 0L;
-        try (java.util.stream.Stream<Path> walk = Files.walk(root)) {
-            final java.util.List<Path> regions = walk
+        try (Stream<Path> walk = Files.walk(root)) {
+            final List<Path> regions = walk
                     .filter(path -> path.getFileName().toString().endsWith(".cslod"))
                     .toList();
             for (final Path region : regions) {

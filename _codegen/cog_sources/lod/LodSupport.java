@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.kishku7.chunksmith.platform.Config;
+import com.kishku7.chunksmith.platform.LodMode;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Resolves the active {@link LodSink} per world, and drives the generation hook.
@@ -224,7 +227,7 @@ public final class LodSupport {
 
     /**
      * Mod ids that mean "something in this JVM can draw an LOD". Read out of the actual published jars /
-     * fork sources on 2026-07-12 (see {@code Memory\minecraft\lod-ecosystem.md}):
+     * fork sources on 2026-07-12:
      * <ul>
      *   <li>{@code distanthorizons} -- all loaders, every MC line we ship LOD on.</li>
      *   <li>{@code voxy} -- upstream voxy AND five of the six known forks (m3t4f1v3, j-shelfwood,
@@ -238,8 +241,8 @@ public final class LodSupport {
     private static volatile String renderer;
     private static volatile boolean rendererResolved;
 
-    private static final java.util.concurrent.atomic.AtomicBoolean ANNOUNCED =
-            new java.util.concurrent.atomic.AtomicBoolean();
+    private static final AtomicBoolean ANNOUNCED =
+            new AtomicBoolean();
 
     private static String detectRenderer() {
         if (!rendererResolved) {
@@ -277,7 +280,7 @@ public final class LodSupport {
      * 70 percent OF THAT -- a big slice of a small pie. Do not re-introduce a scary number here without
      * re-measuring it.
      */
-    public static boolean decide(final com.kishku7.chunksmith.platform.Config config,
+    public static boolean decide(final Config config,
                                  final MinecraftServer server) {
         if (config == null) {
             return false;
@@ -310,14 +313,14 @@ public final class LodSupport {
         if (!ChunksmithProvider.isLoaded()) {
             return;
         }
-        final com.kishku7.chunksmith.platform.Config config = ChunksmithProvider.get().getConfig();
-        final com.kishku7.chunksmith.platform.LodMode mode = config.getLodMode();
+        final Config config = ChunksmithProvider.get().getConfig();
+        final LodMode mode = config.getLodMode();
         final String found = detectRenderer();
         final boolean on = decide(config, server);
 
-        if (mode != com.kishku7.chunksmith.platform.LodMode.AUTO) {
+        if (mode != LodMode.AUTO) {
             LOGGER.info("Chunksmith: LOD generation {} (lodEnabled={} set explicitly in the config{})",
-                    on ? "ON" : "off", mode == com.kishku7.chunksmith.platform.LodMode.ON ? "true" : "false",
+                    on ? "ON" : "off", mode == LodMode.ON ? "true" : "false",
                     found == null ? "" : "; " + found + " is installed");
             return;
         }
@@ -343,7 +346,7 @@ public final class LodSupport {
         if (!ChunksmithProvider.isLoaded()) {
             return "lod: unknown (chunksmith not loaded)";
         }
-        final com.kishku7.chunksmith.platform.Config config = ChunksmithProvider.get().getConfig();
+        final Config config = ChunksmithProvider.get().getConfig();
         final String found = detectRenderer();
         final String why;
         switch (config.getLodMode()) {

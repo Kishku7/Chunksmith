@@ -28,6 +28,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.kishku7.chunksmith.lod.client.render.DhTarget;
+import com.kishku7.chunksmith.lod.client.render.LodInjector;
+import java.io.ByteArrayOutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.HashMap;
 
 /**
  * Client side of the Chunksmith LOD protocol.
@@ -77,11 +83,9 @@ public final class CsLodClientNet {
     private static volatile String host = "";
 
     /**
-     * The dimension we are currently pulling for. ALWAYS the one the player is actually in. The
-     * 3.1.0-beta-2 bug: it was set to {@code hello.dimensions().get(0)} -- the overworld on every normal
-     * server -- and never changed again, so after a Nether portal the client kept pulling the OVERWORLD's
-     * index and store and handing those records to the injector for the level the player was now in, while
-     * every counter reported success. Now re-derived from the LEVEL ({@link #dimensionTick}); a dimension
+     * The dimension we are currently pulling for. ALWAYS the one the player is actually in. This field held
+     * {@code hello.dimensions().get(0)} in 3.1.0-beta-2 and never changed again, which is the failure
+     * {@code CsLodDimension} documents. Now re-derived from the LEVEL ({@link #dimensionTick}); a dimension
      * change clears it and re-arms the exchange. Empty means "not pulling for anything".
      */
     private static volatile String activeDimension = "";
@@ -145,7 +149,7 @@ public final class CsLodClientNet {
     private static volatile String inBandDimension = "";
     private static volatile List<CsLodMessages.RegionEntry> inBandRegions = List.of();
     private static volatile CsLodManifest inBandManifest;
-    private static final Map<String, java.io.ByteArrayOutputStream> PARTIAL = new java.util.HashMap<>();
+    private static final Map<String, ByteArrayOutputStream> PARTIAL = new HashMap<>();
 
     private CsLodClientNet() {
     }
@@ -283,8 +287,8 @@ public final class CsLodClientNet {
      * bytes out, 34 bytes back, and ~86 server-side syscalls on a background thread with ZERO bytes of file
      * content -- one {@code openat} + ~3 {@code getdents64} + one {@code close} to list the 340 names, then
      * one {@code statx} per region actually in range (the name and radius tests both run before the stat).
-     * mtime and size come out of that stat, and they ARE the freshness token now. One INDEX in
-     * 3.1.0-beta-3 cost 366.9 MB read into the heap, every buffer G1-humongous, on the server main thread.
+     * mtime and size come out of that stat, and they ARE the freshness token now -- against the whole-file
+     * reads a 3.1.0-beta-3 index did on the server main thread; see {@code CsLodServerNet}.
      */
     private static void syncTick() {
         if (!CsLodClientConfig.isLoaded()) {
@@ -453,7 +457,7 @@ public final class CsLodClientNet {
         // distanthorizonsapi artifact and support a wide range of DH releases. DhTarget hard-references DH
         // types, so only touch it when DH is really present.
         if (dh) {
-            LOGGER.info("Chunksmith: feeding {}", com.kishku7.chunksmith.lod.client.render.DhTarget.version());
+            LOGGER.info("Chunksmith: feeding {}", DhTarget.version());
         }
         sendHello(true);
     }
@@ -677,7 +681,7 @@ public final class CsLodClientNet {
                 // that difference is what made the 3.3.0 stop-flag bug invisible: the mod_support #16 fix
                 // added an arm() to injectAsync, the IN-BAND FALLBACK, and this call site never got one.
                 // If a third injection call site is ever added it must go through injectRegions, nowhere else.
-                com.kishku7.chunksmith.lod.client.render.LodInjector.injectRegions(
+                LodInjector.injectRegions(
                         root, index.dimension(), index.regions(),
                         line -> LOGGER.info("Chunksmith: {}", line));
             } finally {
@@ -690,8 +694,8 @@ public final class CsLodClientNet {
 
     /** Can we actually open a socket to the advertised backchannel? Two seconds, once, off the game thread. */
     private static boolean reachable(final String address, final int port) {
-        try (java.net.Socket socket = new java.net.Socket()) {
-            socket.connect(new java.net.InetSocketAddress(address, port), 2_000);
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(address, port), 2_000);
             return true;
         } catch (final IOException e) {
             return false;
@@ -745,8 +749,8 @@ public final class CsLodClientNet {
             return;
         }
         final String key = slice.regionX() + "." + slice.regionZ();
-        final java.io.ByteArrayOutputStream buffer =
-                PARTIAL.computeIfAbsent(key, ignored -> new java.io.ByteArrayOutputStream());
+        final ByteArrayOutputStream buffer =
+                PARTIAL.computeIfAbsent(key, ignored -> new ByteArrayOutputStream());
         buffer.writeBytes(slice.data());
 
         if (!slice.last()) {
@@ -794,7 +798,7 @@ public final class CsLodClientNet {
         // Nothing to arm: the injector reads the CURRENT session generation when it starts (LodInjector.SESSION).
         final Thread worker = new Thread(() -> {
             try {
-                com.kishku7.chunksmith.lod.client.render.LodInjector.injectRegions(root, dimension, regions,
+                LodInjector.injectRegions(root, dimension, regions,
                         line -> LOGGER.info("Chunksmith: {}", line));
             } finally {
                 busy.set(false);
@@ -846,8 +850,8 @@ public final class CsLodClientNet {
         PARTIAL.clear();
         // Signal FIRST, then clear. A worker may be mid-store right now, and reset() only clears the
         // bookkeeping -- it does not reach the thread (mod_support #16).
-        com.kishku7.chunksmith.lod.client.render.LodInjector.stop();
-        com.kishku7.chunksmith.lod.client.render.LodInjector.reset();
+        LodInjector.stop();
+        LodInjector.reset();
     }
 
     /** The client's own store, keyed by server so two servers never mix: {@code chunksmith/lod/<server>}. */

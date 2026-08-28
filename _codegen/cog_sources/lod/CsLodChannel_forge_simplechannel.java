@@ -12,6 +12,8 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 import java.util.function.Supplier;
+import net.minecraft.network.Connection;
+import java.util.function.Consumer;
 
 /**
  * The in-band channel seam -- classic FORGE (MC 1.20.1 / Forge 47).
@@ -72,7 +74,7 @@ public final class CsLodChannel {
      * names NO client class. On a dedicated server nothing ever sets this, that branch is dead, and
      * {@code lod.client.*} is never class-loaded.
      */
-    private static volatile java.util.function.Consumer<byte[]> clientSink;
+    private static volatile Consumer<byte[]> clientSink;
 
     private CsLodChannel() {
     }
@@ -85,7 +87,7 @@ public final class CsLodChannel {
     }
 
     /** Called by the CLIENT bootstrap only (guarded on {@code FMLEnvironment.dist == Dist.CLIENT}). */
-    public static void setClientSink(final java.util.function.Consumer<byte[]> sink) {
+    public static void setClientSink(final Consumer<byte[]> sink) {
         clientSink = sink;
     }
 
@@ -94,7 +96,7 @@ public final class CsLodChannel {
     }
 
     /** Does the connected server speak our channel? Client-side use only. */
-    public static boolean isRemotePresent(final net.minecraft.network.Connection connection) {
+    public static boolean isRemotePresent(final Connection connection) {
         return CHANNEL.isRemotePresent(connection);
     }
 
@@ -130,7 +132,7 @@ public final class CsLodChannel {
                 }
                 // No sender: this came FROM a server, so we are the client. Drain into the sink the
                 // client half installed -- null on a dedicated server, where this branch cannot be reached.
-                final java.util.function.Consumer<byte[]> sink = clientSink;
+                final Consumer<byte[]> sink = clientSink;
                 if (sink != null) {
                     sink.accept(this.data);
                 }

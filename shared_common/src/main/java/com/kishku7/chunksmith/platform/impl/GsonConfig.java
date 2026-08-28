@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Locale;
 
 public final class GsonConfig implements Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -103,7 +104,7 @@ public final class GsonConfig implements Config {
      * operator who already tuned this on the command line is never silently overridden.
      */
     private static final long DISPATCH_MAX_CONCURRENT_DEFAULT =
-            com.kishku7.chunksmith.util.Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"))
+            Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"))
                     .map(Long::valueOf)
                     .orElseGet(() -> Math.min(400L,
                             Math.max(50L, Runtime.getRuntime().availableProcessors() * 25L)));
@@ -111,18 +112,15 @@ public final class GsonConfig implements Config {
     private static final long SETTLE_DELAY_MAX = 600L;
     private static final int SETTLE_RADIUS_DEFAULT = 7;
     private static final int SETTLE_RADIUS_MAX = 16;
-    // Hard ceiling on the settle frontier, counted in TICKETS -- but paid for in TICKETS x HALO.
+    // Hard ceiling on the settle frontier, counted in TICKETS -- but paid for in TICKETS x HALO. A ticket
+    // held at FULL level does not hold one chunk: vanilla's distance manager propagates the level outward
+    // a ring at a time, so roughly 25 resident chunks come with each held ticket at pre-gen clustering.
+    // ChunkSettleWindow carries that measurement.
     //
-    // A ticket at FULL level does not hold one chunk. Vanilla's distance manager propagates the level
-    // outward one ring at a time until it passes the maximum, so a single held ticket drags roughly
-    // eleven rings of neighbours into the "loaded" band with it. Measured on a live 1.21.11 pre-gen:
-    // 20 held tickets -> 3,507 resident chunks; ~400 held -> 10,167 resident. Call it 25 resident
-    // chunks per held ticket at pre-gen clustering.
-    //
-    // The 3.5.0 default of 8192 therefore authorised something like 200,000 resident chunks, and
-    // 3.4.1 -- which had no cap at all -- is how a live server reached 75,045 and died to the
-    // watchdog. 256 is about 6,000 resident chunks on that measurement, which an 8 GB heap carries
-    // comfortably. Raise it only with that arithmetic in mind.
+    // The 3.5.0 default of 8192 therefore authorised something like 200,000 resident chunks, and 3.4.1 --
+    // which had no cap at all -- is how a live server ran itself into the watchdog (see ChunkResidency).
+    // 256 is about 6,000 resident chunks on that measurement, which an 8 GB heap carries comfortably.
+    // Raise it only with that arithmetic in mind.
     private static final long SETTLE_MAX_HELD_MIN = 16L;
     private static final long SETTLE_MAX_HELD_MAX = 1_000_000L;
     private static final long SETTLE_MAX_HELD_DEFAULT = 256L;
@@ -575,7 +573,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public void setLodMode(final LodMode mode) {
-        configModel.lodEnabled = mode.name().toLowerCase(java.util.Locale.ROOT);
+        configModel.lodEnabled = mode.name().toLowerCase(Locale.ROOT);
         saveConfig();
     }
 

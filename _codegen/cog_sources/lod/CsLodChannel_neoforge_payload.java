@@ -13,6 +13,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import java.util.function.Consumer;
 
 /**
  * The in-band channel seam -- NEOFORGE (MC 1.21+).
@@ -33,18 +34,18 @@ public final class CsLodChannel {
      * be -- see the 4-arg note), but its body names NO client class. On a dedicated server nothing ever
      * sets this, the branch is dead, and {@code lod.client.*} is never class-loaded.
      */
-    private static volatile java.util.function.Consumer<byte[]> clientSink;
+    private static volatile Consumer<byte[]> clientSink;
 
     private CsLodChannel() {
     }
 
     /** Called by the {@code Dist.CLIENT} entrypoint only. */
-    public static void setClientSink(final java.util.function.Consumer<byte[]> sink) {
+    public static void setClientSink(final Consumer<byte[]> sink) {
         clientSink = sink;
     }
 
     private static void dispatchClient(final byte[] data) {
-        final java.util.function.Consumer<byte[]> sink = clientSink;
+        final Consumer<byte[]> sink = clientSink;
         if (sink != null) {
             sink.accept(data);
         }

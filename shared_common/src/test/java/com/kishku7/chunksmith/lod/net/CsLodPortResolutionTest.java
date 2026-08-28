@@ -10,6 +10,7 @@ import java.util.OptionalInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import java.lang.reflect.Proxy;
 
 /**
  * The backchannel port an operator actually gets (mod_support #19).
@@ -189,7 +190,7 @@ public class CsLodPortResolutionTest {
      * @param seen {@code [writeCount, lastPortWritten]}
      */
     private static Config recording(final int[] seen) {
-        return (Config) java.lang.reflect.Proxy.newProxyInstance(
+        return (Config) Proxy.newProxyInstance(
                 Config.class.getClassLoader(),
                 new Class<?>[]{Config.class},
                 (proxy, method, args) -> {

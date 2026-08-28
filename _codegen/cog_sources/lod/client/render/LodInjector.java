@@ -19,6 +19,10 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Walks the downloaded CSLOD store and hands every record to whichever renderer the player has.
@@ -65,10 +69,9 @@ public final class LodInjector {
     }
 
     /**
-     * Regions already injected THIS SESSION -- keyed by ({@code dimension}, x, z), never by x/z alone:
-     * region (0,0) is a different place in every dimension, and keying on coordinates alone meant the
-     * Nether's (0,0) was skipped forever the moment the overworld's (0,0) had been drawn. See
-     * {@link InjectedRegions}. Cleared on disconnect: the store is keyed by server, and so is this.
+     * Regions already injected THIS SESSION -- keyed by ({@code dimension}, x, z), never by x/z alone;
+     * {@link InjectedRegions} says what keying on coordinates alone cost. Cleared on disconnect: the store
+     * is keyed by server, and so is this.
      */
     private static final InjectedRegions INJECTED = new InjectedRegions();
 
@@ -81,8 +84,8 @@ public final class LodInjector {
      * and on a two-core machine the difference between playable and not (mod_support #15). So each
      * dimension's claims go to a {@code .injected} sidecar; this map is only a per-session handle cache.
      */
-    private static final java.util.Map<String, InjectedIndex> PERSISTED =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, InjectedIndex> PERSISTED =
+            new ConcurrentHashMap<>();
 
     /**
      * Inject specific regions of a downloaded store into every renderer that is present. Skips any region
@@ -99,7 +102,7 @@ public final class LodInjector {
      * @param regions   the regions to inject -- typically everything the server just told us is in range
      */
     public static void injectRegions(final Path storeRoot, final String dimension,
-                                     final java.util.List<CsLodMessages.RegionEntry> regions,
+                                     final List<CsLodMessages.RegionEntry> regions,
                                      final Consumer<String> progress) {
         // Captured TOGETHER with the level, and for the same reason: both are "the world this batch of
         // records belongs to", and both are re-checked per region below.
@@ -144,7 +147,7 @@ public final class LodInjector {
         // Claim by (dimension, region, TOKEN). An already-drawn region is skipped -- unless the server is
         // advertising a DIFFERENT version of it, which during a pregen is the NORMAL case under the
         // player's feet. Keying on coordinates alone threw a re-downloaded, grown region away.
-        final java.util.List<CsLodMessages.RegionEntry> fresh = new java.util.ArrayList<>();
+        final List<CsLodMessages.RegionEntry> fresh = new ArrayList<>();
         for (final CsLodMessages.RegionEntry region : regions) {
             if (INJECTED.claim(dimension, region.regionX(), region.regionZ(), region.hash())) {
                 fresh.add(region);

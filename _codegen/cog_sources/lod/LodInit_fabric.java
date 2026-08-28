@@ -4,6 +4,9 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import com.kishku7.chunksmith.lod.net.CsLodServerNet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Second Fabric entrypoint, owning everything LOD.
@@ -18,7 +21,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
  */
 public final class LodInit implements ModInitializer {
 
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     @Override
     public void onInitialize() {
@@ -27,23 +30,23 @@ public final class LodInit implements ModInitializer {
 
         // The LOD protocol: the channel is registered at init; the HTTP backchannel binds
         // once the server is up and its port is known, and unbinds when it stops.
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.register();
+        CsLodServerNet.register();
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // Say what the lodEnabled tristate resolved to, and why, BEFORE anything acts on it.
             LodSupport.announce(server);
             // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
             // instead of skipping every already-generated chunk (and so never building their LODs).
             LodSupport.install(server);
-            com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(server);
+            CsLodServerNet.onServerStarted(server);
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-            com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped();
+            CsLodServerNet.onServerStopped();
             // Flush the writer queue and close the region files -- otherwise a pregen that ends at
             // shutdown would lose whatever was still queued.
             LodSupport.shutdown();
         });
         // Drip-feed the in-band fallback. A few slices per tick, never a burst.
-        ServerTickEvents.END_SERVER_TICK.register(com.kishku7.chunksmith.lod.net.CsLodServerNet::tick);
+        ServerTickEvents.END_SERVER_TICK.register(CsLodServerNet::tick);
 
         //[[[cog
         // import cog, compat

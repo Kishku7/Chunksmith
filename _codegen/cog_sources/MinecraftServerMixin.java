@@ -30,6 +30,10 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
+import com.kishku7.chunksmith.Chunksmith;
+import com.kishku7.chunksmith.command.CommandArguments;
+import com.kishku7.chunksmith.command.CommandLiteral;
+import com.kishku7.chunksmith.util.TranslationKey;
 
 /**
  * KEEP-AWAKE + tick-health telemetry + chunk-system housekeeping for the pre-gen path.
@@ -71,8 +75,8 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * <p>3.2.0 fixed a 60-minute CPU pin by passing vanilla's own {@code haveTime} into the unload pass
      * instead of a hardcoded true. That was right, and it introduced the opposite failure: {@code
      * haveTime} is false for the whole tick once the server is behind, so a server that has fallen behind
-     * unloads NOTHING, its resident set grows, ticking it costs more, and it falls further behind. A live
-     * server reached 75,045 resident chunks that way (2026-08-19).
+     * unloads NOTHING, its resident set grows, ticking it costs more, and it falls further behind -- the
+     * runaway ChunkResidency was added to measure.
      *
      * <p>So the budget is "vanilla's allowance, OR this much, whichever is greater". A healthy server
      * behaves exactly as it did in 3.2.0 -- haveTime is true and this is never consulted. A starved one
@@ -124,8 +128,8 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      *
      * <p>That transition is when a stalled drain deserves another go: the unload floor jumps to the
      * idle budget, and whatever a player was doing to keep chunks resident has stopped. Without this a
-     * drain that gave up while somebody was online stays given-up for ever -- which is precisely how a
-     * server was left at 71.5 ms per tick with a full heap after its last player logged off.
+     * drain that gave up while somebody was online stays given-up for ever, and the server sits degraded
+     * until it is restarted -- see ChunkResidency#noteDrainBudget for the measurement.
      */
     @Unique
     private int chunksmith$lastPlayerCount = -1;
@@ -213,11 +217,10 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         }
         // Tick health is measured EVERY tick, generating or not. It used to be sampled only while a
         // run was active and reset to a nominal 50 ms otherwise, so a run had no idea what the server
-        // cost BEFORE it started and the throttle could only steer on ABSOLUTE tick time. On a server
-        // whose idle baseline already sits at the configured target that is fatal: the governor never
-        // sees a healthy tick, pins dispatch at 1 for ever, and blames itself for load it is not
-        // causing. Measured on a live server: 74.9 ms with the pre-gen PAUSED against a target of 75,
-        // and 85.2 ms with it running -- the run itself cost 10 ms and was throttled to 2 chunks/sec.
+        // cost BEFORE it started and the throttle could only steer on ABSOLUTE tick time. That is fatal
+        // on a server whose idle baseline already sits at the configured target -- the run that measured
+        // 85.2 ms while generating never showed the governor a healthy tick; see TickBudget for the
+        // paused reading beside it. Hence: sample unconditionally.
         final long now = System.nanoTime();
         final long prev = this.chunksmith$lastTickNanos;
         this.chunksmith$lastTickNanos = now;
@@ -305,13 +308,13 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         if (!ChunksmithProvider.isLoaded()) {
             return;
         }
-        final com.kishku7.chunksmith.Chunksmith chunky = ChunksmithProvider.get();
+        final Chunksmith chunky = ChunksmithProvider.get();
         chunky.getServer().getConsole().sendMessagePrefixed(
-                com.kishku7.chunksmith.util.TranslationKey.TASK_AUTO_RESUMED,
+                TranslationKey.TASK_AUTO_RESUMED,
                 AutoPause.graceMillis() / 1000L, world);
-        chunky.getCommands().get(com.kishku7.chunksmith.command.CommandLiteral.CONTINUE)
+        chunky.getCommands().get(CommandLiteral.CONTINUE)
                 .execute(chunky.getServer().getConsole(),
-                        com.kishku7.chunksmith.command.CommandArguments.empty());
+                        CommandArguments.empty());
     }
 
     @Override

@@ -61,9 +61,9 @@ public interface Config {
      * How many extra milliseconds per tick a pre-gen may ADD to what the server already costs. 0 falls back
      * to steering on {@link #getThrottleTargetMspt()} alone.
      *
-     * <p>An absolute target cannot work on a busy server. Measured live: the tick cost 74.9 ms with the
-     * pre-gen PAUSED against a configured target of 75, so the governor never saw a healthy tick, pinned
-     * dispatch at its floor, and throttled the run to 2 chunks/sec while the run itself cost 10 ms. The
+     * <p>An absolute target cannot work on a busy server: one whose idle tick cost already sits at the
+     * configured target never shows the governor a healthy tick, so dispatch pins at its floor for ever and
+     * the run crawls while costing almost nothing -- {@code TickBudget} has the live measurement. The
      * effective target is therefore {@code max(throttleTargetMspt, baseline + this)}, the baseline being the
      * tick cost with nothing in flight -- what Chunksmith COSTS, not whether the server is healthy.
      */
@@ -78,11 +78,10 @@ public interface Config {
 
     /**
      * Absolute tick cost the run will never steer past, whatever the measured baseline says. 0 disables.
-     * Every other bound here is RELATIVE, and relative bounds move with the thing they protect against:
-     * observed live, a 163.9 ms baseline produced a 238.9 ms target, steering toward about 4 TPS with
-     * nothing objecting, because the heap gate was under its threshold and auto-pause compares against this
-     * very target. Past this figure the server is not playable whoever is to blame, so the run yields. This
-     * is the one bound that must not be relative.
+     * Every other bound here is relative, so without this one the target can wander to a figure at which
+     * nothing else objects -- the heap gate sits under its threshold and auto-pause compares against this
+     * very target. {@code TickBudget#effectiveTarget} has the measurement. Past this figure the server is
+     * not playable whoever is to blame, so the run yields.
      */
     long getThrottleCeilingMillis();
 

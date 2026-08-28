@@ -8,6 +8,9 @@ import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import com.kishku7.chunksmith.lod.net.CsLodServerNet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The NeoForge LOD entrypoint -- everything LOD, and nothing else.
@@ -22,7 +25,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 @EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {
 
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private LodInit() {
     }
@@ -68,12 +71,12 @@ public final class LodInit {
         // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
         // instead of skipping every already-generated chunk (and so never building their LODs).
         LodSupport.install(event.getServer());
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(event.getServer());
+        CsLodServerNet.onServerStarted(event.getServer());
     }
 
     @SubscribeEvent
     public static void onServerStopped(final ServerStoppedEvent event) {
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped();
+        CsLodServerNet.onServerStopped();
         // Flush the writer queue and close the region files, or a pregen that ends at shutdown loses
         // whatever was still queued.
         LodSupport.shutdown();
@@ -81,12 +84,12 @@ public final class LodInit {
 
     @SubscribeEvent
     public static void onServerTick(final ServerTickEvent.Post event) {
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.tick(event.getServer());
+        CsLodServerNet.tick(event.getServer());
     }
 
     /** A token must never outlive the session that earned it. */
     @SubscribeEvent
     public static void onLoggedOut(final PlayerEvent.PlayerLoggedOutEvent event) {
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.onDisconnect(event.getEntity().getUUID());
+        CsLodServerNet.onDisconnect(event.getEntity().getUUID());
     }
 }

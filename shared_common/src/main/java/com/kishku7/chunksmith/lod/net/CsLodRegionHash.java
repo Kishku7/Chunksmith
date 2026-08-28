@@ -5,11 +5,10 @@ package com.kishku7.chunksmith.lod.net;
  *
  * <p><b>This class exists because reading the contents was a server-killing bug.</b> Until 3.1.0-beta-4 the
  * server answered every index request with {@code crc.update(Files.readAllBytes(file))} over every region in
- * the client's radius, on the SERVER MAIN THREAD: 366.9 MB read per request on a 340-region / 1567 MB store,
- * each multi-MB byte[] a G1 HUMONGOUS allocation straight into old gen. A client re-asks every 5 seconds
- * while it travels, so ONE connected LOD client sustained ~73 MB/s of humongous garbage on the tick thread;
- * the heap pegged at 100% and even {@code saveAllChunks} could not allocate, which is how a "Saving worlds"
- * hung for 67 minutes.
+ * the client's radius, on the SERVER MAIN THREAD -- and a travelling client re-asks every 5 seconds, so the
+ * heap pegged at 100% and the server hung. Deriving the token from (mtime, size) is what removes the READ:
+ * one {@code statx} per region, no file contents at all. {@code CsLodServerNet} carries the measurements
+ * and the other two changes that had to land with this one.
  *
  * <p>A cache-freshness check, not a security boundary (the handshake token is that). Any rewrite moves mtime
  * -- the store appends records and rewrites header slots, and even an in-place rewrite of identical length

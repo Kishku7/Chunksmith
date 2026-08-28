@@ -11,6 +11,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.function.BooleanSupplier;
+import net.minecraft.server.level.ChunkLevel;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.DistanceManager;
+import net.minecraft.server.level.Ticket;
+import net.minecraft.world.level.TicketStorage;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Ticket-level diagnostics -- PRESENCE-GATED to versions that actually have a TicketStorage.
@@ -78,14 +86,14 @@ public abstract class MinecraftServerTicketsMixin {
         int sampled = 0;
         // Tally every ticket on every resident chunk BY TYPE. Six sampled strings named the suspect;
         // this counts it. "How many" is the difference between a clue and a cause.
-        final java.util.Map<String, Integer> byType = new java.util.HashMap<>();
+        final Map<String, Integer> byType = new HashMap<>();
         for (ServerLevel level : this.getAllLevels()) {
-            final net.minecraft.server.level.ChunkMap map = level.getChunkSource().chunkMap;
-            final net.minecraft.server.level.DistanceManager distance = map.getDistanceManager();
-            final net.minecraft.world.level.TicketStorage store =
+            final ChunkMap map = level.getChunkSource().chunkMap;
+            final DistanceManager distance = map.getDistanceManager();
+            final TicketStorage store =
                     ((DistanceManagerMixin) distance).getTicketStorage();
             for (final long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
-                for (final net.minecraft.server.level.Ticket ticket : store.getTickets(pos)) {
+                for (final Ticket ticket : store.getTickets(pos)) {
                     byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
                 }
                 // Buckets taken from ChunkLevel itself, NOT from hand-written numbers. The first
@@ -94,8 +102,8 @@ public abstract class MinecraftServerTicketsMixin {
                 // chunks were being counted as loaded. Reading the constant also makes the buckets
                 // correct on every MC version instead of just the one they were guessed for.
                 final int chunkLevel = distance.getChunkLevel(pos, false);
-                if (chunkLevel <= net.minecraft.server.level.ChunkLevel.byStatus(
-                        net.minecraft.world.level.chunk.status.ChunkStatus.FULL)) {
+                if (chunkLevel <= ChunkLevel.byStatus(
+                        ChunkStatus.FULL)) {
                     ticking++;
                     // Read the ticket rather than guess at it. A handful is enough to name a type.
                     if (sampled < 6) {
@@ -114,7 +122,7 @@ public abstract class MinecraftServerTicketsMixin {
                                 .append(" load=").append(store.getTicketDebugString(pos, false))
                                 .append(" sim=").append(store.getTicketDebugString(pos, true));
                     }
-                } else if (net.minecraft.server.level.ChunkLevel.isLoaded(chunkLevel)) {
+                } else if (ChunkLevel.isLoaded(chunkLevel)) {
                     // 34..MAX_LEVEL: not accessible, but still held as worldgen CONTEXT for a FULL
                     // chunk nearby. A pre-gen inherently keeps this ring around its whole frontier.
                     loadedLevel++;

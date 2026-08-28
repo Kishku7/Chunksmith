@@ -35,9 +35,10 @@ import java.util.Map;
  * while every position in it eventually gets all nine. A chunk the run SKIPS -- already generated with
  * its LOD present, or outside the shape -- is never offered, so the chunks beside it are held for the
  * whole run: a resumed or partly pregenerated world leaks steadily, and that is the common case. And a
- * genuinely huge selection has a genuinely huge perimeter. Both were live on a server that reached
- * 75,045 resident chunk holders during a pregen (2026-08-19), so past {@code maxHeld} the OLDEST held
- * chunk is released -- age is exactly the evidence that a chunk's neighbourhood is not coming.
+ * genuinely huge selection has a genuinely huge perimeter. Both were live on the pregen that left a
+ * server holding far more chunks than the run could ever need (see {@link ChunkResidency}), so past
+ * {@code maxHeld} the OLDEST held chunk is released -- age is exactly the evidence that a chunk's
+ * neighbourhood is not coming.
  *
  * <p><b>What a held chunk actually costs.</b> Not one chunk. The ticket is at FULL level and the
  * distance manager propagates that level outward a ring at a time, so each held ticket keeps about 25

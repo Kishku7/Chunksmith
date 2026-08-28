@@ -5,13 +5,12 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * How many chunk tickets Chunksmith has added and not yet given back.
  *
- * <p><b>Why this exists, and why it is the LAST instrument this problem needed.</b> A pregen on a
- * 1.21.11 server accumulated chunks without bound -- 75,045 in the original report, and still climbing
- * past 17,000 with every plausible culprit ruled out one at a time: the settle window (disabled
- * entirely, retention continued), its cap, player tickets (nobody online), and heap pressure (40 pct
- * at the time). Reading vanilla's {@code ChunkMap.processUnloads} ruled out a starved unload budget
- * too -- its {@code toDrop} loop consults no budget and its {@code unloadQueue} drain runs down to
- * 2000 entries regardless.
+ * <p><b>Why this exists, and why it is the LAST instrument this problem needed.</b> A pregen accumulated
+ * chunk holders without bound -- the runaway {@link ChunkResidency} was built to measure -- and was still
+ * climbing past 17,000 with every plausible culprit ruled out one at a time: the settle window (disabled
+ * entirely, retention continued), its cap, player tickets (nobody online), and heap pressure (40 pct at
+ * the time). A starved unload budget was ruled out too; see {@link UnloadDiagnostics} for what vanilla's
+ * {@code ChunkMap.processUnloads} does and does not budget.
  *
  * <p>The obvious next question -- "are OUR tickets still on those chunks?" -- was asked three times
  * and answered by inference each time, badly. An attempt to read the chunk system's own

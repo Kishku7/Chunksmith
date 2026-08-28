@@ -15,10 +15,10 @@ import static org.junit.Assert.assertTrue;
  * a caller that mistakes -1 for 0 opens the taps on exactly the server that could not say how loaded
  * it was.
  *
- * <p>And a finished run must keep owing its drain until the chunks are actually gone. 3.5.0 stopped
- * driving the unload pass the moment a task ended, which left 39,064 chunks resident on an idle server
- * until it was restarted. The drain state machine is what stops that, so every one of its exits is
- * tested against an injected clock rather than a real one.
+ * <p>And a finished run must keep owing its drain until the chunks are actually gone: 3.5.0 stopped
+ * driving the unload pass the moment a task ended and left an idle server holding the backlog until it
+ * was restarted (see {@link ChunkResidency}). The drain state machine is what stops that, so every one
+ * of its exits is tested against an injected clock rather than a real one.
  */
 public class ChunkResidencyTest {
 

@@ -10,6 +10,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import java.util.Locale;
 
 /**
  * The guard that keeps the house rule true over time.
@@ -99,7 +100,7 @@ public class ConfigSettingsCoverageTest {
     public void namesAreUniqueSoLookupIsUnambiguous() {
         final List<String> seen = new ArrayList<>();
         for (final ConfigSetting setting : ConfigSettings.all()) {
-            final String lower = setting.name().toLowerCase(java.util.Locale.ROOT);
+            final String lower = setting.name().toLowerCase(Locale.ROOT);
             if (seen.contains(lower)) {
                 fail("duplicate setting name: " + setting.name());
             }

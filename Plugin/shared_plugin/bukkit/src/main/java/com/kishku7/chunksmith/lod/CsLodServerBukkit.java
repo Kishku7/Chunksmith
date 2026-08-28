@@ -31,6 +31,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import com.kishku7.chunksmith.ChunksmithProvider;
+import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
@@ -189,7 +192,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             http.stop();
             http = null;
         }
-        final Config config = com.kishku7.chunksmith.ChunksmithProvider.get().getConfig();
+        final Config config = ChunksmithProvider.get().getConfig();
         if (!LodSupport.lodEnabled(config)) {
             return 0;
         }
@@ -486,7 +489,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             value |= (b & 0x7F) << shift;
             if ((b & 0x80) == 0) {
                 return (value == message.length - index)
-                        ? java.util.Arrays.copyOfRange(message, index, message.length)
+                        ? Arrays.copyOfRange(message, index, message.length)
                         : message;
             }
             shift += 7;
@@ -496,7 +499,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     /** Put the prefix back, so the client's readByteArray() finds what it expects. */
     private static byte[] withLengthPrefix(final byte[] body) {
-        final java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
         int value = body.length;
         while ((value & 0xFFFFFF80) != 0) {
             out.write((value & 0x7F) | 0x80);

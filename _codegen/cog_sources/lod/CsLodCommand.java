@@ -23,6 +23,8 @@ import com.kishku7.chunksmith.lod.net.CsLodServerNet;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import net.minecraft.commands.arguments.EntityArgument;
+import java.io.IOException;
 
 /**
  * {@code /cslod} -- operator commands for the CSLOD store.
@@ -78,7 +80,7 @@ public final class CsLodCommand {
             long records;
             try {
                 records = CsLodPresenceIndex.countRecords(store);
-            } catch (final java.io.IOException e) {
+            } catch (final IOException e) {
                 records = -1L;
             }
             final long recordCount = records;
@@ -90,7 +92,7 @@ public final class CsLodCommand {
                             + " | records: " + (recordCount < 0 ? "unreadable" : Long.toString(recordCount))
                             + " | size: " + (bytes / 1024) + " KB"
                             + renderers()
-                            + " | " + com.kishku7.chunksmith.lod.net.CsLodServerNet.describe()), false);
+                            + " | " + CsLodServerNet.describe()), false);
             return 1;
         }));
 
@@ -177,11 +179,11 @@ public final class CsLodCommand {
         //[[[end]]]
 
         root.then(Commands.literal("token").requires(operatorOnly)
-                .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
-                            final net.minecraft.server.level.ServerPlayer target =
-                                    net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
-                            final String token = com.kishku7.chunksmith.lod.net.CsLodServerNet.issueFor(target);
+                            final ServerPlayer target =
+                                    EntityArgument.getPlayer(context, "player");
+                            final String token = CsLodServerNet.issueFor(target);
                             if (token == null) {
                                 context.getSource().sendFailure(Component.literal(
                                         "[chunksmith] the LOD backchannel is not running"));

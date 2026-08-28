@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import java.util.Random;
 
 /**
  * The summary fold -- the thing that makes an idle sync poll cost nothing.
@@ -52,7 +53,7 @@ public class CsLodSummaryTest {
         final List<R> b = new ArrayList<>(a);
         Collections.reverse(b);
         final List<R> c = new ArrayList<>(a);
-        Collections.shuffle(c, new java.util.Random(42));
+        Collections.shuffle(c, new Random(42));
 
         assertEquals("reversed", fold(a), fold(b));
         assertEquals("shuffled", fold(a), fold(c));

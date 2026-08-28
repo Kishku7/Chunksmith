@@ -8,6 +8,8 @@ import com.kishku7.chunksmith.util.Input;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.function.Function;
 
 public final class ConfigSettings {
 
@@ -81,7 +83,7 @@ public final class ConfigSettings {
                         // that kills the backchannel, answer "done", and keep it dead across every
                         // restart until somebody thought to look. Found by driving this on a live
                         // server, not by reading it.
-                        final java.util.OptionalInt game = CsLodControl.gamePort();
+                        final OptionalInt game = CsLodControl.gamePort();
                         if (asked != 0 && game.isPresent() && asked == game.getAsInt()) {
                             return false;
                         }
@@ -138,7 +140,7 @@ public final class ConfigSettings {
 
     private static ConfigSetting port(final String name,
                                       final ConfigSetting.Kind kind,
-                                      final java.util.function.Function<Config, String> reader,
+                                      final Function<Config, String> reader,
                                       final ConfigSetting.Writer writer) {
         return new ConfigSetting(name, kind, reader, writer, config -> true,
                 (config, raw) -> {
@@ -147,7 +149,7 @@ public final class ConfigSettings {
                         return null;   // a word where a number goes: the generic message is right
                     }
                     final long value = asked.get();
-                    final java.util.OptionalInt game = CsLodControl.gamePort();
+                    final OptionalInt game = CsLodControl.gamePort();
                     if (value != 0 && game.isPresent() && value == game.getAsInt()) {
                         return "that is the port the game itself is listening on. Pick another"
                                 + " port, or use 0 to derive it (" + (game.getAsInt() + 1) + ").";
@@ -158,7 +160,7 @@ public final class ConfigSettings {
 
     private static ConfigSetting of(final String name,
                                     final ConfigSetting.Kind kind,
-                                    final java.util.function.Function<Config, String> reader,
+                                    final Function<Config, String> reader,
                                     final ConfigSetting.Writer writer) {
         return new ConfigSetting(name, kind, reader, writer, config -> true);
     }

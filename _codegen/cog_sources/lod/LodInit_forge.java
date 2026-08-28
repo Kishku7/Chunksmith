@@ -8,6 +8,9 @@ import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.kishku7.chunksmith.lod.net.CsLodServerNet;
+import net.minecraftforge.fml.ModList;
+import org.slf4j.LoggerFactory;
 
 /**
  * The classic-Forge LOD entrypoint (MC 1.20.1 / Forge 47) -- everything LOD, and nothing else.
@@ -74,7 +77,7 @@ public final class LodInit {
         // Make the CSLOD store visible to the pregen's skip decision, so a re-run fills LOD holes
         // instead of skipping every already-generated chunk (and so never building their LODs).
         LodSupport.install(event.getServer());
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStarted(event.getServer());
+        CsLodServerNet.onServerStarted(event.getServer());
     }
 
     /**
@@ -85,8 +88,8 @@ public final class LodInit {
      */
     private static void warnOnConflicts() {
         for (final String other : new String[] {"lss", "voxyserver", "lodserver"}) {
-            if (net.minecraftforge.fml.ModList.get().isLoaded(other)) {
-                org.slf4j.LoggerFactory.getLogger("Chunksmith").error(
+            if (ModList.get().isLoaded(other)) {
+                LoggerFactory.getLogger("Chunksmith").error(
                         "The mod '" + other + "' also streams LOD data to clients. Running it alongside "
                                 + "Chunksmith's LOD feature means two uncoordinated writers into one LOD "
                                 + "database: duplicated downloads and corrupted renderer state. Remove one.");
@@ -94,8 +97,8 @@ public final class LodInit {
         }
         // The standalone Chunksmith-Client, DISCONTINUED at 3.1.0 -- its multiplayer LOD half IS this jar
         // now. Both register the chunksmith:lod channel, so having both is a duplicate registration.
-        if (net.minecraftforge.fml.ModList.get().isLoaded("chunksmithclient")) {
-            org.slf4j.LoggerFactory.getLogger("Chunksmith").error(
+        if (ModList.get().isLoaded("chunksmithclient")) {
+            LoggerFactory.getLogger("Chunksmith").error(
                     "Chunksmith-Client is installed alongside Chunksmith 3.1.0+. It is DISCONTINUED: its "
                             + "multiplayer LOD feature is now built into Chunksmith itself, and running both "
                             + "means two mods registering the same 'chunksmith:lod' channel. Remove the "
@@ -106,7 +109,7 @@ public final class LodInit {
     @SubscribeEvent
     public static void onServerStopped(final ServerStoppedEvent event) {
         server = null;
-        com.kishku7.chunksmith.lod.net.CsLodServerNet.onServerStopped();
+        CsLodServerNet.onServerStopped();
         // Flush the writer queue and close the region files, or a pregen that ends at shutdown loses
         // whatever was still queued.
         LodSupport.shutdown();
@@ -119,7 +122,7 @@ public final class LodInit {
         }
         final MinecraftServer current = server;
         if (current != null) {
-            com.kishku7.chunksmith.lod.net.CsLodServerNet.tick(current);
+            CsLodServerNet.tick(current);
         }
     }
 }

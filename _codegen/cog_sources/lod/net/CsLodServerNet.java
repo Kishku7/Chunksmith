@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Server side of the Chunksmith LOD protocol.
@@ -70,7 +72,7 @@ public final class CsLodServerNet {
     private static final Pattern DIM_DIR = Pattern.compile("[a-z0-9_.-]{1,64}");
 
     /** The radius each client's renderer is actually configured to draw, in blocks. */
-    private static final Map<UUID, Integer> RADIUS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> RADIUS = new ConcurrentHashMap<>();
 
     /**
      * Players who asked, can draw, and were told we had nothing -- yet. A player who joins before the
@@ -80,14 +82,14 @@ public final class CsLodServerNet {
      * ARMED for a dimension, and a player who joined before there was anything to index has no index. This
      * is the path that gets them their first one, in five seconds rather than five minutes.
      */
-    private static final java.util.Set<UUID> WAITING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> WAITING = ConcurrentHashMap.newKeySet();
 
     /** Dimensions each player has already been told about. Nobody is ever notified about the same one twice. */
-    private static final Map<UUID, java.util.Set<String>> ANNOUNCED =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, Set<String>> ANNOUNCED =
+            new ConcurrentHashMap<>();
 
     /** Players whose hello we have already narrated. The retries and token renewals are not news. */
-    private static final java.util.Set<UUID> GREETED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> GREETED = ConcurrentHashMap.newKeySet();
 
     /**
      * Players with a scan already running. The tick thread no longer rate-limits the scan, so a client that
@@ -96,7 +98,7 @@ public final class CsLodServerNet {
      * the answer being computed is the answer to the new one too, and an honest client only ever has one in
      * flight (it holds a busy latch). Bounds the queue at "one per online player", forever.
      */
-    private static final java.util.Set<UUID> SCANNING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> SCANNING = ConcurrentHashMap.newKeySet();
 
     /**
      * How often the store watch looks at the disk -- and it looks ONLY while somebody is waiting on it.
@@ -378,7 +380,7 @@ public final class CsLodServerNet {
         if (available) {
             WAITING.remove(player.getUUID());
             ANNOUNCED.computeIfAbsent(player.getUUID(),
-                    ignored -> java.util.concurrent.ConcurrentHashMap.newKeySet()).addAll(dims);
+                    ignored -> ConcurrentHashMap.newKeySet()).addAll(dims);
         } else {
             // Nothing for them yet. REMEMBER them: the store usually fills up later in this very session.
             WAITING.add(player.getUUID());
@@ -477,8 +479,8 @@ public final class CsLodServerNet {
                 WAITING.remove(uuid);
                 continue;
             }
-            final java.util.Set<String> told = ANNOUNCED.computeIfAbsent(uuid,
-                    ignored -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+            final Set<String> told = ANNOUNCED.computeIfAbsent(uuid,
+                    ignored -> ConcurrentHashMap.newKeySet());
             if (!told.addAll(dims)) {
                 // They already know about every dimension we can serve. Never say it twice.
                 WAITING.remove(uuid);
@@ -530,7 +532,7 @@ public final class CsLodServerNet {
         try {
             send(player, CsLodMessages.encode(new CsLodMessages.ClientSetting(action, name, value)));
             return true;
-        } catch (final java.io.IOException e) {
+        } catch (final IOException e) {
             LOGGER.warn("Chunksmith: could not encode a client-setting message: {}", e.toString());
             return false;
         }

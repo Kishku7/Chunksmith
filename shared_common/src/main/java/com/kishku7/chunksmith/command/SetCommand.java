@@ -8,6 +8,7 @@ import com.kishku7.chunksmith.util.TranslationKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 public class SetCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
@@ -83,7 +84,7 @@ public class SetCommand implements ChunksmithCommand {
         if (!completions.isEmpty()) {
             return String.join("/", completions);
         }
-        return setting.kind().name().toLowerCase(java.util.Locale.ROOT);
+        return setting.kind().name().toLowerCase(Locale.ROOT);
     }
 
     @Override

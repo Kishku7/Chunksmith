@@ -9,6 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public final class BukkitConfig implements Config {
     private static final List<String> HEADER = Arrays.asList("Chunksmith Configuration", "https://github.com/pop4959/Chunksmith/wiki/Configuration");
@@ -321,7 +322,7 @@ public final class BukkitConfig implements Config {
 
     @Override
     public void setLodMode(final LodMode mode) {
-        plugin.getConfig().set("lod-enabled", mode.name().toLowerCase(java.util.Locale.ROOT));
+        plugin.getConfig().set("lod-enabled", mode.name().toLowerCase(Locale.ROOT));
         plugin.saveConfig();
     }
 

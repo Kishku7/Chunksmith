@@ -33,11 +33,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import com.kishku7.chunksmith.util.ChunkSettleSupport;
+import com.kishku7.chunksmith.util.SettleSweep;
+import com.kishku7.chunksmith.util.TicketLedger;
+import java.nio.file.Path;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GenerationTask implements Runnable {
     // slf4j, not JUL: JUL does not reach the game log on any loader, which is how a
     // diagnostic can run and be invisible (same trap the config layer hit).
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
     /**
      * Fallback width when the config cannot answer. The system property is retained so an operator who
      * already set {@code -Dchunksmith.maxWorkingCount} on the command line keeps that value as their
@@ -159,7 +166,7 @@ public class GenerationTask implements Runnable {
      * rather than from a tick, because that is the clock this class already has; at typical pregen rates
      * the hold below works out at roughly a second.
      */
-    private final com.kishku7.chunksmith.util.SettleSweep settleSweep;
+    private final SettleSweep settleSweep;
     private int[] settleStop;
     private int settleHeldFor;
 
@@ -200,13 +207,13 @@ public class GenerationTask implements Runnable {
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
         // exist" means anything -- see ChunkSettleWindow (mod_support #14).
-        com.kishku7.chunksmith.util.ChunkSettleSupport.configure(
+        ChunkSettleSupport.configure(
                 chunky.getConfig().isPregenSettleEnabled(),
                 chunky.getConfig().getPregenSettleDelayTicks(),
                 chunky.getConfig().getPregenSettleMaxHeld());
         if (chunky.getConfig().isPregenSettleEnabled()) {
             final int radius = chunky.getConfig().getPregenSettleRadius();
-            this.settleSweep = new com.kishku7.chunksmith.util.SettleSweep(
+            this.settleSweep = new SettleSweep(
                     selection.centerChunkX() - selection.radiusChunksX(),
                     selection.centerChunkZ() - selection.radiusChunksZ(),
                     selection.diameterChunksX(), selection.diameterChunksZ(), radius);
@@ -237,7 +244,7 @@ public class GenerationTask implements Runnable {
         if (forceLoadExistingChunks) {
             return;
         }
-        final java.util.Optional<java.nio.file.Path> regionDirectory =
+        final Optional<Path> regionDirectory =
                 selection.world().getRegionDirectory();
         if (regionDirectory.isEmpty()) {
             return;
@@ -377,12 +384,10 @@ public class GenerationTask implements Runnable {
     /**
      * What tick cost this run should steer to.
      *
-     * <p>An ABSOLUTE target cannot work on a busy server, and this was not theoretical: measured on a
-     * live server, the tick cost 74.9 ms with the pre-gen PAUSED against a configured target of 75.
-     * The governor could therefore never observe a healthy tick -- it backs off above target+band and
-     * only ramps below target-band, and the server never got below target-band even doing nothing --
-     * so it pinned dispatch at 1 permanently and throttled the run to 2 chunks/sec while the run
-     * itself was costing 10 ms.
+     * <p>An ABSOLUTE target cannot work on a busy server, and this was not theoretical -- see
+     * {@link TickBudget} for the server it was measured on. The governor backs off above target+band and
+     * only ramps below target-band, so where the server's own idle cost already sits at the target it never
+     * observes a healthy tick: dispatch pins at 1 permanently, however little the run is actually costing.
      *
      * <p>So the target is whichever is HIGHER: the operator's absolute figure, or what the server
      * already costs plus the budget this run is allowed to add. That bounds what Chunksmith COSTS
@@ -544,9 +549,9 @@ public class GenerationTask implements Runnable {
      * Chunk-residency backpressure -- the bound on what is already IN memory.
      *
      * <p>Every other signal here measures the rate work arrives: tick time, per-chunk latency, the
-     * write queue, the LOD sink. None of them can see the resident chunk set, and on a real server
-     * (2026-08-19) that set reached 75,045 holders -- about ten times the sweep frontier the run needed
-     * -- while every one of those signals read "slow down", which is precisely what stopped it draining.
+     * write queue, the LOD sink. None of them can see the resident chunk set, and on the run that
+     * {@link ChunkResidency} documents every one of those signals read "slow down" while the set grew
+     * to many times the sweep frontier -- which is precisely what stopped it draining.
      *
      * <p>The loop is the problem, not the number: vanilla's unload pass is budgeted by the server's own
      * per-tick time allowance, so a server that has fallen behind unloads almost nothing; a bigger
@@ -688,7 +693,7 @@ public class GenerationTask implements Runnable {
         ChunkResidency.noteTaskStart();
         HeapPressure.reset();
         TickBudget.reset();
-        com.kishku7.chunksmith.util.TicketLedger.reset();
+        TicketLedger.reset();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunk = chunkIterator.next();
@@ -777,13 +782,10 @@ public class GenerationTask implements Runnable {
                     heldNotified = gated;
                     ChunkResidency.noteGenerationHeld(gated);
                     // NO ticket work here. This loop runs on the Chunksmith WORKER thread, and the
-                    // server thread is the only one allowed to touch a chunk ticket -- ChunkSettleWindow
-                    // says so in its own javadoc, and mod_support #16 is that rule being broken. The
-                    // flush that used to live here called removeTicketWithRadius straight from this
-                    // thread; it corrupted the fastutil ticket graph and took a live server down with
-                    // ArrayIndexOutOfBoundsException in Long2ByteOpenHashMap.rehash, then a 60-second
-                    // tick and a watchdog kill. The frontier is capped at pregenSettleMaxHeld and is
-                    // released through the tick pump on the server thread, which is enough.
+                    // server thread is the only one allowed to touch a chunk ticket (mod_support #16).
+                    // The flush that used to live here is gone; ChunkSettleSupport records what it cost.
+                    // The frontier is capped at pregenSettleMaxHeld and released through the tick pump
+                    // on the server thread, which is enough.
                 }
                 if (!gated && !probing && inFlight.get() < Math.max(1, dispatchLimit.get())) {
                     break;
@@ -884,11 +886,10 @@ public class GenerationTask implements Runnable {
         finishSettleSweep();
         selection.world().settleDrain();
         // Ending a task is NOT the same as finishing the work. The tickets come back now; the chunks do
-        // not go away until the distance manager has propagated that and the unload pass has run. 3.5.0
-        // stopped driving the unload pass the moment a task ended, which orphaned the backlog -- 39,064
-        // chunks were still resident nineteen minutes after a pregen stopped, with the server idle and
-        // no players on, and it stayed that way until a restart. Declare the debt here; the platform's
-        // tick hook keeps paying it until residency is actually back down.
+        // not go away until the distance manager has propagated that and the unload pass has run.
+        // 3.5.0 stopped driving the unload pass the moment a task ended, which orphaned the backlog
+        // until the next restart -- ChunkResidency has the measurement. Declare the debt here; the
+        // platform's tick hook keeps paying it until residency is actually back down.
         ChunkResidency.noteTaskEnd();
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
         chunky.getEventBus().call(new GenerationCompleteEvent(selection.world().getName()));

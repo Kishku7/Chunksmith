@@ -3,6 +3,9 @@ package com.kishku7.chunksmith.lod.client;
 import com.kishku7.chunksmith.lod.LodWarnings;
 import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
+import com.kishku7.chunksmith.lod.client.render.DhRadius;
+import com.kishku7.chunksmith.lod.client.render.VoxyRadius;
+import com.kishku7.chunksmith.lod.client.render.VoxyTarget;
 
 /**
  * Which LOD renderer(s) the player actually has, and how far they are set to draw.
@@ -36,7 +39,7 @@ public final class Renderers {
     public static boolean hasVoxy() {
         // Order matters: isModLoaded() short-circuits, so VoxyTarget (which hard-references voxy classes on
         // Fabric) is only ever class-loaded on a client that actually has voxy.
-        return ClientPlatform.isModLoaded("voxy") && com.kishku7.chunksmith.lod.client.render.VoxyTarget.supported();
+        return ClientPlatform.isModLoaded("voxy") && VoxyTarget.supported();
     }
 
     public static boolean hasDh() {
@@ -66,7 +69,7 @@ public final class Renderers {
         int blocks = 0;
         if (hasDh()) {
             try {
-                blocks = Math.max(blocks, com.kishku7.chunksmith.lod.client.render.DhRadius.blocks());
+                blocks = Math.max(blocks, DhRadius.blocks());
             } catch (final LinkageError error) {
                 // Not "DH is incompatible" -- DhRadius already reports that itself. This is OUR class
                 // failing to load, which should be impossible. Never silent.
@@ -78,7 +81,7 @@ public final class Renderers {
         }
         if (hasVoxy()) {
             try {
-                blocks = Math.max(blocks, com.kishku7.chunksmith.lod.client.render.VoxyRadius.blocks());
+                blocks = Math.max(blocks, VoxyRadius.blocks());
             } catch (final LinkageError error) {
                 LodWarnings.once(CAUSE_VOXY_SEAM,
                         "voxy is installed but Chunksmith could not load its own voxy radius reader ("

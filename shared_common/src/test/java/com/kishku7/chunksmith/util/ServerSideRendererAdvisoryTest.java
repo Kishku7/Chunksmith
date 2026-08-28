@@ -8,6 +8,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import java.util.List;
 
 /**
  * The advisory has exactly one job and one way to get it badly wrong: firing on a CLIENT.
@@ -58,7 +59,7 @@ public class ServerSideRendererAdvisoryTest {
 
     @Test
     public void onlyAdvisesAboutRenderersItCanActuallyFeed() {
-        assertEquals(java.util.List.of("distanthorizons", "voxy"),
+        assertEquals(List.of("distanthorizons", "voxy"),
                 ServerSideRendererAdvisory.rendererIds());
         assertFalse("somebody else's mod is none of our business",
                 ServerSideRendererAdvisory.message(true, "some_other_mod"::equals).isPresent());

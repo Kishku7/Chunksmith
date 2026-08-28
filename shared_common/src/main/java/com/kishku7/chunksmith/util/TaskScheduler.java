@@ -7,10 +7,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskScheduler {
     /** slf4j: JUL does not reach the game log on any loader, so this used to vanish. */
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Chunksmith");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private final ExecutorService executor;
     private final Set<Future<?>> futures = ConcurrentHashMap.newKeySet();

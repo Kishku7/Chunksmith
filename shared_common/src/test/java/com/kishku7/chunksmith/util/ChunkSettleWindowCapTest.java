@@ -13,8 +13,8 @@ import static org.junit.Assert.assertTrue;
  *
  * <p>{@link ChunkSettleWindowTest} proves the rule itself. These prove what happens when the rule's
  * assumption is false: chunks whose neighbourhood never closes, because the run skipped the ground next
- * to them. Without a cap those are held for the whole run, which is how a live server reached 75,045
- * resident chunks (2026-08-19).
+ * to them. Without a cap those are held for the whole run -- the leak behind the residency runaway
+ * {@link ChunkResidency} documents.
  */
 public class ChunkSettleWindowCapTest {
 

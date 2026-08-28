@@ -102,8 +102,8 @@ public class TickBudgetTest {
     @Test
     public void theAllowanceCannotRUNAWAY() {
         // Live failure: the allowance is twice our cost, and a pre-gen pushes until it reaches its
-        // allowance -- so cost chased allowance chased cost. ourCost went 16.5ms -> 154ms and the
-        // allowance 32.9ms -> 308ms in ten minutes, for a 358ms target at ~2.8 TPS.
+        // allowance -- so cost chased allowance chased cost. TickBudget#MAX_ALLOWANCE_FACTOR has the
+        // numbers; this is the clamp that stops it.
         settle(50.0D, false, 0, 60);
         settle(500.0D, true, 0, 400);   // a preposterous measured cost
         assertTrue("must be clamped, not doubled forever", TickBudget.allowance() <= 75.0D + 0.001D);
@@ -185,11 +185,10 @@ public class TickBudgetTest {
 
     @Test
     public void aMOMENTARYgapBetweenChunksIsNotABaselineReading() {
-        // Live failure 2026-08-20: the baseline read 49ms, then 116.8ms minutes later with no change
-        // in load, no keep-up warnings, and the box at 225 percent of 800 available. "Nothing in
-        // flight" is true for a tick or two between one chunk landing and the next dispatching, and
-        // that tick is still paying for the chunk that just landed -- its save, its unload, the GC of
-        // what it allocated. Sampled, it teaches the baseline our own aftermath and bills the server.
+        // The failure TickBudget#IDLE_TICKS_BEFORE_TRUSTED exists for. "Nothing in flight" is true for
+        // a tick or two between one chunk landing and the next dispatching, and that tick is still
+        // paying for the chunk that just landed -- its save, its unload, the GC of what it allocated.
+        // Sampled, it teaches the baseline our own aftermath and bills the server for it.
         settle(50.0D, false, 0, 60);
         assertEquals(50.0D, TickBudget.baseline(), 0.5D);
 
@@ -215,10 +214,9 @@ public class TickBudgetTest {
 
     @Test
     public void anAbsoluteCeilingStopsTheTargetWanderingIntoUnplayableTerritory() {
-        // Live failure: a 163.9ms baseline produced a 238.9ms target -- steering toward ~4 TPS with
-        // nothing objecting, because the heap gate was under threshold and auto-pause compares
-        // against this very target. Every OTHER bound here is relative, and a relative bound moves
-        // with the thing it is supposed to protect against.
+        // The absolute ceiling from TickBudget#effectiveTarget. Without it the adaptive target wanders
+        // into territory nothing else objects to, because the heap gate is under its threshold and
+        // auto-pause compares against this very target.
         TickBudget.configure(25L, 0L, 150L);
         settle(163.9D, false, 0, 60);
         settle(200.0D, true, 0, 200);

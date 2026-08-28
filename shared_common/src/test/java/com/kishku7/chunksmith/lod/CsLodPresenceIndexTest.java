@@ -11,6 +11,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import java.util.stream.Stream;
 
 /**
  * Tests for the CSLOD presence bitmap -- the thing that decides, per chunk, whether a pregen re-run
@@ -212,7 +213,7 @@ public class CsLodPresenceIndexTest {
         if (!Files.exists(root)) {
             return;
         }
-        try (java.util.stream.Stream<Path> walk = Files.walk(root)) {
+        try (Stream<Path> walk = Files.walk(root)) {
             for (final Path path : walk.sorted(Comparator.reverseOrder()).toList()) {
                 Files.deleteIfExists(path);
             }

@@ -8,6 +8,8 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The two new v2 messages, ON THE WIRE -- including the sentence the whole design rests on: <b>one idle
@@ -41,12 +43,12 @@ public class CsLodSummaryWireTest {
 
     /**
      * And for scale: the INDEX the poll exists to avoid, for the same 81 regions, is ~1.7 KB on the wire --
-     * and used to cost the server 366.9 MB of humongous heap to produce. The poll is ~50x smaller on the
-     * wire and unboundedly cheaper to compute.
+     * and used to cost the server hundreds of megabytes of humongous heap to produce (see
+     * {@code CsLodServerNet}). The poll is ~50x smaller on the wire and unboundedly cheaper to compute.
      */
     @Test
     public void anIndexIsMuchBiggerThanASummary() throws IOException {
-        final java.util.List<CsLodMessages.RegionEntry> regions = new java.util.ArrayList<>();
+        final List<CsLodMessages.RegionEntry> regions = new ArrayList<>();
         for (int i = 0; i < 81; i++) {
             regions.add(new CsLodMessages.RegionEntry(i % 9, i / 9, 0x1234_5678L + i, 4_800_000L));
         }

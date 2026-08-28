@@ -58,6 +58,7 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 import static net.minecraft.commands.arguments.EntityArgument.player;
+import org.slf4j.LoggerFactory;
 
 @Mod(ChunksmithNeoForge.MOD_ID)
 public class ChunksmithNeoForge {
@@ -81,7 +82,7 @@ public class ChunksmithNeoForge {
     @SuppressWarnings("this-escape")
     public ChunksmithNeoForge(final IEventBus modBus) {
         if (ModList.get().isLoaded("chunky")) {
-            org.slf4j.LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
+            LoggerFactory.getLogger("Chunksmith").error("The original Chunky mod is installed alongside Chunksmith. They share internal classes and will conflict - remove the Chunky jar and keep only Chunksmith.");
         }
         NeoForge.EVENT_BUS.register(this);
         //[[[cog
@@ -101,7 +102,7 @@ public class ChunksmithNeoForge {
         // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
         // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
         ServerSideRendererAdvisory.message(server.isDedicatedServer(), id -> ModList.get().isLoaded(id))
-                .ifPresent(message -> org.slf4j.LoggerFactory.getLogger("Chunksmith").warn(message));
+                .ifPresent(message -> LoggerFactory.getLogger("Chunksmith").warn(message));
         final Path configDir = FMLPaths.CONFIGDIR.get();
         Path baseDir = configDir.resolve("chunksmith");
         final Path legacyDir = configDir.resolve("chunky");
@@ -111,9 +112,9 @@ public class ChunksmithNeoForge {
         if (!Files.exists(baseDir) && Files.exists(legacyDir)) {
             try {
                 Files.move(legacyDir, baseDir);
-                org.slf4j.LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
+                LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
             } catch (final IOException e) {
-                org.slf4j.LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
+                LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
                 baseDir = legacyDir;
             }
         }

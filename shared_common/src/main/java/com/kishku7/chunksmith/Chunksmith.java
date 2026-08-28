@@ -48,6 +48,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import com.kishku7.chunksmith.util.AutoPause;
+import com.kishku7.chunksmith.util.ChunkResidency;
+import com.kishku7.chunksmith.util.ChunkSettleSupport;
 
 public final class Chunksmith {
     private final Server server;
@@ -85,9 +88,9 @@ public final class Chunksmith {
         // Static state must not outlive its server. A residency reading or a registered settle window
         // left behind here would be read by the NEXT server in this JVM -- an integrated server opened
         // after leaving a world -- and would be about a world that no longer exists.
-        com.kishku7.chunksmith.util.AutoPause.clear();
-        com.kishku7.chunksmith.util.ChunkResidency.clear();
-        com.kishku7.chunksmith.util.ChunkSettleSupport.forget();
+        AutoPause.clear();
+        ChunkResidency.clear();
+        ChunkSettleSupport.forget();
         ChunksmithProvider.unregister();
     }
 

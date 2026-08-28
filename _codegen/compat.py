@@ -19,7 +19,7 @@ The four eras (Axis A = IOWorker executor primitive, Axis B = storage layering):
   3. modern_pre11  1.21.4, 1.21.8, 1.21.10 (SRS + executor + ChunkResult + ChunkStorage + net.minecraft.util? NO: net.minecraft.Util)
   4. modern_11plus 1.21.11, 26             (SRS + executor + ChunkResult + SimpleRegionStorage(ChunkMap) + net.minecraft.util.Util)
 
-For the current task only modern_pre11 (1.21.8) and modern_11plus (26) are fully
+Only modern_pre11 (1.21.8) and modern_11plus (26) are fully
 implemented; ancient/transitional are STUBBED (raise NotImplementedError) so the
 structure is ready to slot in later without reshaping the callers.
 """
@@ -82,7 +82,7 @@ def era(mcver):
 def _stub(name, mcver):
     raise NotImplementedError(
         "compat.%s not implemented for era '%s' (mcver=%s); "
-        "only modern_pre11 (1.21.8) and modern_11plus (26) are wired for this task."
+        "only modern_pre11 (1.21.8) and modern_11plus (26) are wired."
         % (name, era(mcver), mcver)
     )
 
@@ -677,7 +677,7 @@ def forge_new_eventbus(mcver):
 #
 # The server-side LOD feature (CSLOD store + codec + region store + the HTTP backchannel + tokens +
 # the in-band channel + /cslod + the worldgen LodSink hook) is ported to exactly the cells that have
-# a REAL client-side renderer to serve. Bounds come from Temp\lod-load\lod-ecosystem.md (Modrinth
+# a REAL client-side renderer to serve. Bounds come off the Modrinth
 # API + jar manifests, 2026-07-12):
 #   Distant Horizons 3.2.0-b : 1.20.1 (fabric + FORGE, no neoforge), 1.21.1 (fabric + neoforge),
 #                              1.21.11 (fabric + neoforge), 26.1.2 / 26.2 (fabric + neoforge)
@@ -734,7 +734,7 @@ def has_lod(mcver, loader):
 # In singleplayer the integrated server runs INSIDE the client JVM, so Chunksmith can hand LODs to the
 # renderer DIRECTLY -- no Chunksmith-Client, no network. That path needs classes that compile against
 # the third-party jar, so a cell can only carry an adapter where that jar EXISTS for its (loader, MC).
-# Bounds are read off Memory\minecraft\lod-ecosystem.md (Modrinth API + jar manifests, 2026-07-12):
+# Bounds are read off the Modrinth API + jar manifests (2026-07-12):
 #
 #   Distant Horizons 3.2.0-b : EVERY LOD cell. 1.20.1 (fabric + FORGE), 1.21.1 / 1.21.11 / 26.x
 #                              (fabric + neoforge). So has_dh == has_lod, and the DH sink/override/push

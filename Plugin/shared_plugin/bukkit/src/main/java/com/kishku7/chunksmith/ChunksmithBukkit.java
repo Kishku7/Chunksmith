@@ -45,6 +45,9 @@ import java.util.Optional;
 import java.util.Properties;
 
 import static com.kishku7.chunksmith.util.Translator.translate;
+import org.bukkit.event.player.PlayerQuitEvent;
+import com.kishku7.chunksmith.lod.CsLodServerBukkit;
+import com.kishku7.chunksmith.lod.LodSupport;
 
 public final class ChunksmithBukkit extends JavaPlugin implements Listener {
     private static final String COMMAND_PERMISSION_KEY = "chunksmith.command.";
@@ -96,10 +99,10 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
             disablePauseWhenEmptySeconds();
         }
         installOverreachDiagnostic();
-        com.kishku7.chunksmith.lod.LodSupport.announce(chunky.getConfig());
+        LodSupport.announce(chunky.getConfig());
         // Connect the LOD serving path. Everything it needs has shipped in this jar since
         // 3.2.0; nothing ever started it (mod_support #18).
-        com.kishku7.chunksmith.lod.CsLodServerBukkit.enable(this, chunky.getConfig());
+        CsLodServerBukkit.enable(this, chunky.getConfig());
     }
 
     @Override
@@ -110,8 +113,8 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
             overreachFilter = null;
         }
         if (chunky != null) {
-            com.kishku7.chunksmith.lod.CsLodServerBukkit.disable();
-        com.kishku7.chunksmith.lod.LodSupport.shutdown();
+            CsLodServerBukkit.disable();
+        LodSupport.shutdown();
             chunky.disable();
         }
     }
@@ -193,9 +196,9 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onPlayerQuit(final org.bukkit.event.player.PlayerQuitEvent event) {
+    public void onPlayerQuit(final PlayerQuitEvent event) {
         // A LOD download token is bound to one session. It must not outlive it.
-        com.kishku7.chunksmith.lod.CsLodServerBukkit.onQuit(event.getPlayer().getUniqueId());
+        CsLodServerBukkit.onQuit(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
