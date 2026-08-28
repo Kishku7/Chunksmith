@@ -19,23 +19,23 @@ public class SetCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Config config = chunky.getConfig();
-        final Optional<String> key = arguments.next();
+        Config config = chunky.getConfig();
+        Optional<String> key = arguments.next();
 
         if (key.isEmpty()) {
             listAll(sender, config);
             return;
         }
 
-        final Optional<ConfigSetting> found = ConfigSettings.find(key.get());
+        Optional<ConfigSetting> found = ConfigSettings.find(key.get());
         if (found.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.ERROR_SET_UNKNOWN, key.get());
             sender.sendMessage(TranslationKey.FORMAT_SET_KEYS, String.join(", ", ConfigSettings.names()));
             return;
         }
-        final ConfigSetting setting = found.get();
+        ConfigSetting setting = found.get();
 
-        final Optional<String> value = arguments.next();
+        Optional<String> value = arguments.next();
         if (value.isEmpty()) {
             sendOne(sender, config, setting);
             return;
@@ -47,7 +47,7 @@ public class SetCommand implements ChunksmithCommand {
         }
 
         if (!setting.write(config, value.get())) {
-            final String why = setting.explainRefusal(config, value.get());
+            String why = setting.explainRefusal(config, value.get());
             if (why != null) {
                 sender.sendMessagePrefixed(TranslationKey.ERROR_SET_REFUSED, setting.name(), why);
             } else {
@@ -61,7 +61,7 @@ public class SetCommand implements ChunksmithCommand {
     }
 
     private void listAll(Sender sender, Config config) {
-        final StringBuilder list = new StringBuilder();
+        StringBuilder list = new StringBuilder();
         for (ConfigSetting setting : ConfigSettings.all()) {
             list.append('\n').append(setting.name()).append(": ").append(setting.read(config));
             if (!setting.isSupported(config)) {
@@ -80,7 +80,7 @@ public class SetCommand implements ChunksmithCommand {
     }
 
     private String expected(ConfigSetting setting) {
-        final List<String> completions = setting.kind().completions();
+        List<String> completions = setting.kind().completions();
         if (!completions.isEmpty()) {
             return String.join("/", completions);
         }

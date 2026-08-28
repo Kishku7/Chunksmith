@@ -26,7 +26,7 @@ public class StartCommand implements ChunksmithCommand {
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
         if (arguments.size() > 0) {
-            final Optional<World> world = arguments.next().flatMap(arg -> Input.tryWorld(chunky, arg));
+            Optional<World> world = arguments.next().flatMap(arg -> Input.tryWorld(chunky, arg));
             if (world.isPresent()) {
                 chunky.getSelection().world(world.get());
             } else {
@@ -35,7 +35,7 @@ public class StartCommand implements ChunksmithCommand {
             }
         }
         if (arguments.size() > 1) {
-            final Optional<String> shape = arguments.next().flatMap(Input::tryShape);
+            Optional<String> shape = arguments.next().flatMap(Input::tryShape);
             if (shape.isPresent()) {
                 chunky.getSelection().shape(shape.get());
             } else {
@@ -44,8 +44,8 @@ public class StartCommand implements ChunksmithCommand {
             }
         }
         if (arguments.size() > 2) {
-            final Optional<Double> centerX = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(c -> !Input.isPastWorldLimit(c));
-            final Optional<Double> centerZ = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(c -> !Input.isPastWorldLimit(c));
+            Optional<Double> centerX = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(c -> !Input.isPastWorldLimit(c));
+            Optional<Double> centerZ = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(c -> !Input.isPastWorldLimit(c));
             if (centerX.isPresent() && centerZ.isPresent()) {
                 chunky.getSelection().center(centerX.get(), centerZ.get());
             } else {
@@ -54,7 +54,7 @@ public class StartCommand implements ChunksmithCommand {
             }
         }
         if (arguments.size() > 4) {
-            final Optional<Double> radiusX = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(r -> r >= 0 && !Input.isPastWorldLimit(r));
+            Optional<Double> radiusX = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(r -> r >= 0 && !Input.isPastWorldLimit(r));
             if (radiusX.isPresent()) {
                 chunky.getSelection().radius(radiusX.get());
             } else {
@@ -63,7 +63,7 @@ public class StartCommand implements ChunksmithCommand {
             }
         }
         if (arguments.size() > 5) {
-            final Optional<Double> radiusZ = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(r -> r >= 0 && !Input.isPastWorldLimit(r));
+            Optional<Double> radiusZ = arguments.next().flatMap(Input::tryDoubleSuffixed).filter(r -> r >= 0 && !Input.isPastWorldLimit(r));
             if (radiusZ.isPresent()) {
                 chunky.getSelection().radiusZ(radiusZ.get());
             } else {
@@ -71,7 +71,7 @@ public class StartCommand implements ChunksmithCommand {
                 return;
             }
         }
-        final Selection current = chunky.getSelection().build();
+        Selection current = chunky.getSelection().build();
         if (chunky.getGenerationTasks().containsKey(current.world().getName())) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_STARTED_ALREADY, current.world().getName());
             return;
@@ -80,8 +80,8 @@ public class StartCommand implements ChunksmithCommand {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_START_LIMIT, Formatting.number(chunky.getLimit()));
             return;
         }
-        final Runnable startAction = () -> {
-            final GenerationTask generationTask = new GenerationTask(chunky, current);
+        Runnable startAction = () -> {
+            GenerationTask generationTask = new GenerationTask(chunky, current);
             chunky.getGenerationTasks().put(current.world().getName(), generationTask);
             chunky.getScheduler().runTask(generationTask);
             sender.sendMessagePrefixed(TranslationKey.FORMAT_START, current.world().getName(), translate("shape_" + current.shape()), Formatting.number(current.centerX()), Formatting.number(current.centerZ()), Formatting.radius(current));
@@ -97,7 +97,7 @@ public class StartCommand implements ChunksmithCommand {
     @Override
     public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
-            final List<String> suggestions = new ArrayList<>();
+            List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
             return suggestions;
         } else if (arguments.size() == 2) {

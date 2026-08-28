@@ -121,13 +121,13 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         owner.getServer().getMessenger().registerIncomingPluginChannel(owner, CHANNEL, listener);
 
         scanPool = Executors.newSingleThreadExecutor(task -> {
-            final Thread thread = new Thread(task, "chunksmith-lod-scan");
+            Thread thread = new Thread(task, "chunksmith-lod-scan");
             thread.setDaemon(true);
             return thread;
         });
 
         http = new CsLodHttpServer(CsLodServerBukkit::rootFor, TOKENS, CsLodServerBukkit::isOnline);
-        final int bound = http.start(bindAddress(owner), owner.getServer().getPort(),
+        int bound = http.start(bindAddress(owner), owner.getServer().getPort(),
                 config.getLodBackchannelPort());
 
         if (bound == 0) {
@@ -152,7 +152,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             plugin.getServer().getMessenger().unregisterOutgoingPluginChannel(plugin, CHANNEL);
             listener = null;
         }
-        final ExecutorService pool = scanPool;
+        ExecutorService pool = scanPool;
         scanPool = null;
         if (pool != null) {
             pool.shutdownNow();
@@ -189,12 +189,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             http.stop();
             http = null;
         }
-        final Config config = ChunksmithProvider.get().getConfig();
+        Config config = ChunksmithProvider.get().getConfig();
         if (!LodSupport.lodEnabled(config)) {
             return 0;
         }
         http = new CsLodHttpServer(CsLodServerBukkit::rootFor, TOKENS, CsLodServerBukkit::isOnline);
-        final int bound = http.start(bindAddress(plugin), plugin.getServer().getPort(),
+        int bound = http.start(bindAddress(plugin), plugin.getServer().getPort(),
                 config.getLodBackchannelPort());
         readvertise(bound);
         return bound;
@@ -209,14 +209,14 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         // VarInt length followed by the bytes; the mod's receiver calls readByteArray() and never
         // sees it. Bukkit hands us the packet payload raw, so the prefix is still on the front and
         // the first byte is a length, not a message id.
-        final byte[] body = stripLengthPrefix(message);
+        byte[] body = stripLengthPrefix(message);
         if (body.length == 0) {
             return;
         }
         try (final DataInputStream in = CsLodMessages.reader(body)) {
             switch (in.readByte()) {
                 case CsLodProtocol.C2S_HELLO -> {
-                    final CsLodMessages.ClientHello greeting = CsLodMessages.decodeClientHello(in);
+                    CsLodMessages.ClientHello greeting = CsLodMessages.decodeClientHello(in);
                     RADIUS.put(player.getUniqueId(), clampRadius(greeting.radiusBlocks()));
                     SPOKEN.add(player.getUniqueId());
                     hello(player);
@@ -237,15 +237,15 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     // TODO: no in-band path here yet; a blocked port just means no LOD
     private static void hello(Player player) {
-        final List<String> dims = dimensions();
+        List<String> dims = dimensions();
         LOGGER.info("Chunksmith: LOD hello from " + player.getName()
                 + ": " + dims.size() + " dimension(s) to offer");
         ensureChannel(player);
-        final boolean available = !dims.isEmpty();
-        final int port = http == null ? 0 : http.getPort();
+        boolean available = !dims.isEmpty();
+        int port = http == null ? 0 : http.getPort();
         // No data or no port means no credential. A token that can fetch nothing is how an operator
         // ends up reading "1 live token, 0 files" and rightly wondering what it means.
-        final String token = (available && port != 0)
+        String token = (available && port != 0)
                 ? TOKENS.issue(player.getUniqueId(), addressOf(player))
                 : "";
         try {
@@ -272,8 +272,8 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * mods folder.
      */
     private static void dispatch(Player player, String requested, boolean summaryOnly) {
-        final String dimension = LodSupport.dimensionKey(player.getWorld());
-        final Path dir = rootFor(dimension);
+        String dimension = LodSupport.dimensionKey(player.getWorld());
+        Path dir = rootFor(dimension);
         if (dir == null) {
             return;
         }
@@ -281,16 +281,16 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             LOGGER.info("Chunksmith: " + player.getName() + " asked for the LOD index of " + requested
                     + " while standing in " + dimension + ", serving " + dimension + " instead.");
         }
-        final UUID uuid = player.getUniqueId();
+        UUID uuid = player.getUniqueId();
         if (!SCANNING.add(uuid)) {
             return;
         }
-        final int px = player.getLocation().getBlockX();
-        final int pz = player.getLocation().getBlockZ();
-        final int radius = RADIUS.getOrDefault(uuid, CsLodProtocol.DEFAULT_RADIUS_BLOCKS);
-        final String name = player.getName();
+        int px = player.getLocation().getBlockX();
+        int pz = player.getLocation().getBlockZ();
+        int radius = RADIUS.getOrDefault(uuid, CsLodProtocol.DEFAULT_RADIUS_BLOCKS);
+        String name = player.getName();
 
-        final ExecutorService pool = scanPool;
+        ExecutorService pool = scanPool;
         if (pool == null) {
             SCANNING.remove(uuid);
             return;
@@ -315,7 +315,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                              final Path dir, final int px, final int pz, final int radius,
                              final boolean summaryOnly) {
         try {
-            final CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
+            CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
                     new CsLodIndexScan.Request(dimension, px, pz, radius), System.currentTimeMillis());
             if (scanned.capped()) {
                 LOGGER.warning("Chunksmith: LOD index for " + name + " capped at "
@@ -325,12 +325,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                         + "). The client re-requests as the player moves, so it gets the rest as it"
                         + " travels; nearest regions first.");
             }
-            final byte[] message = summaryOnly
+            byte[] message = summaryOnly
                     ? CsLodMessages.encode(new CsLodMessages.RegionSummary(dimension,
                             scanned.regions().size(), CsLodIndexScan.aggregate(scanned.regions())))
                     : CsLodMessages.encode(new CsLodMessages.RegionIndex(dimension, scanned.regions()));
 
-            final Player online = Bukkit.getPlayer(uuid);
+            Player online = Bukkit.getPlayer(uuid);
             if (online != null && online.isOnline()) {
                 online.sendPluginMessage(plugin, CHANNEL, withLengthPrefix(message));
             }
@@ -447,7 +447,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     /** Dimensions that actually have something to serve, by the same rule the mod uses. */
     private static List<String> dimensions() {
-        final List<Path> dirs = new ArrayList<>();
+        List<Path> dirs = new ArrayList<>();
         for (World world : Bukkit.getWorlds()) {
             dirs.add(LodSupport.storeRoot(world));
         }
@@ -483,7 +483,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         int shift = 0;
         int index = 0;
         while (index < message.length && shift <= 35) {
-            final byte b = message[index++];
+            byte b = message[index++];
             value |= (b & 0x7F) << shift;
             if ((b & 0x80) == 0) {
                 return (value == message.length - index)
@@ -497,7 +497,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     /** Put the prefix back, so the client's readByteArray() finds what it expects. */
     private static byte[] withLengthPrefix(byte[] body) {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         int value = body.length;
         while ((value & 0xFFFFFF80) != 0) {
             out.write((value & 0x7F) | 0x80);
@@ -509,12 +509,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     }
 
     private static boolean isOnline(UUID player) {
-        final Player found = Bukkit.getPlayer(player);
+        Player found = Bukkit.getPlayer(player);
         return found != null && found.isOnline();
     }
 
     private static String addressOf(Player player) {
-        final InetSocketAddress address = player.getAddress();
+        InetSocketAddress address = player.getAddress();
         return (address != null && address.getAddress() != null)
                 ? address.getAddress().getHostAddress()
                 : "";
@@ -522,7 +522,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     /** Empty means every interface, exactly as the game's own server.properties ip= does. */
     private static String bindAddress(Plugin owner) {
-        final String ip = owner.getServer().getIp();
+        String ip = owner.getServer().getIp();
         return ip == null ? "" : ip;
     }
 }

@@ -43,8 +43,8 @@ public class ChunkSettleWindowTest {
     /** The bug. A lone chunk has no neighbours yet, so it must still be held. */
     @Test
     public void aChunkWithAnOpenNeighbourhoodIsNotReleased() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        Recorder rec = new Recorder();
 
         window.offer(0, 0, 0L, rec.of(0, 0));
 
@@ -55,8 +55,8 @@ public class ChunkSettleWindowTest {
 
     @Test
     public void releasedWhenTheNeighbourhoodCloses() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        Recorder rec = new Recorder();
 
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
@@ -72,8 +72,8 @@ public class ChunkSettleWindowTest {
 
     @Test
     public void theDelayHoldsPastCompletion() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(40L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(40L);
+        Recorder rec = new Recorder();
 
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
@@ -93,8 +93,8 @@ public class ChunkSettleWindowTest {
 
     @Test
     public void onlyTheFrontierIsHeld() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        Recorder rec = new Recorder();
 
         // Three rows tall, sweeping east. After column x, every chunk in column x-1 is fully surrounded.
         for (int x = 0; x <= 6; x++) {
@@ -113,8 +113,8 @@ public class ChunkSettleWindowTest {
 
     @Test
     public void drainReleasesAll() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(1000L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(1000L);
+        Recorder rec = new Recorder();
 
         for (int x = 0; x < 5; x++) {
             window.offer(x, 0, 0L, rec.of(x, 0));
@@ -130,8 +130,8 @@ public class ChunkSettleWindowTest {
 
     @Test
     public void offeredTwiceReleasesOnce() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        Recorder rec = new Recorder();
 
         window.offer(3, 3, 0L, rec.of(3, 3));
         window.offer(3, 3, 0L, rec.of(3, 3));
@@ -146,8 +146,8 @@ public class ChunkSettleWindowTest {
         assertFalse(ChunkSettleWindow.key(-1, 0) == ChunkSettleWindow.key(0, -1));
         assertFalse(ChunkSettleWindow.key(-1, -1) == ChunkSettleWindow.key(1, 1));
 
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
-        final Recorder rec = new Recorder();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        Recorder rec = new Recorder();
         for (int x = -5; x <= -3; x++) {
             for (int z = -5; z <= -3; z++) {
                 window.offer(x, z, 0L, rec.of(x, z));
@@ -158,7 +158,7 @@ public class ChunkSettleWindowTest {
 
     @Test
     public void emptyDrain() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(20L);
+        ChunkSettleWindow window = new ChunkSettleWindow(20L);
         window.drain();
         assertEquals(0, window.heldCount());
         assertEquals(0L, window.releasedCount());

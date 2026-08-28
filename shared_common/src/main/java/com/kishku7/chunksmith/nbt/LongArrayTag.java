@@ -19,7 +19,7 @@ public class LongArrayTag extends Tag {
 
     @Override
     public void read(DataInput input) throws IOException {
-        final int size = input.readInt();
+        int size = input.readInt();
         this.value = new long[size];
         for (int i = 0; i < size; ++i) {
             value[i] = input.readLong();
@@ -28,13 +28,13 @@ public class LongArrayTag extends Tag {
 
     @Override
     public void skip(DataInput input) throws IOException {
-        final int size = input.readInt();
+        int size = input.readInt();
         input.skipBytes(8 * size);
     }
 
     @Override
     public void write(DataOutput output) throws IOException {
-        final int size = value.length;
+        int size = value.length;
         output.writeLong(size);
         for (long i : value) {
             output.writeLong(i);

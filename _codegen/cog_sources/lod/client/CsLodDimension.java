@@ -31,7 +31,7 @@ public final class CsLodDimension {
      * "ask me again next tick", never as a dimension).
      */
     public static String current() {
-        final Level level = Minecraft.getInstance().level;
+        Level level = Minecraft.getInstance().level;
         return level == null ? "" : of(level);
     }
 

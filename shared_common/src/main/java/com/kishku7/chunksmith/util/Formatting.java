@@ -13,7 +13,7 @@ public final class Formatting {
     }
 
     public static String bytes(long bytes) {
-        final long value = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
+        long value = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
         if (value < 1024) {
             return String.format("%d B", bytes);
         }

@@ -59,13 +59,13 @@ public final class CsLodPresenceIndex {
 
         private final int max;
 
-        RegionLru(final int max) {
+        RegionLru(int max) {
             super(64, 0.75f, true);
             this.max = max;
         }
 
         @Override
-        protected boolean removeEldestEntry(final Map.Entry<Long, long[]> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<Long, long[]> eldest) {
             return size() > max;
         }
     }
@@ -80,7 +80,7 @@ public final class CsLodPresenceIndex {
      * @param root the per-dimension CSLOD directory, e.g.
      *             {@code <world>/chunksmith/lod/minecraft_overworld}
      */
-    public CsLodPresenceIndex(final Path root) {
+    public CsLodPresenceIndex(Path root) {
         this.root = root;
     }
 
@@ -94,7 +94,7 @@ public final class CsLodPresenceIndex {
      * <p>False on any I/O problem: an unreadable header is "no LOD here", so a broken or truncated region
      * file can only make us rebuild LODs we had, never make us skip a chunk that has none.
      */
-    public synchronized boolean hasLod(final int chunkX, final int chunkZ) {
+    public synchronized boolean hasLod(int chunkX, int chunkZ) {
         queries.incrementAndGet();
         final long[] bitmap = bitmapFor(regionX(chunkX), regionZ(chunkZ));
         final int slot = slotIndex(chunkX, chunkZ);
@@ -105,16 +105,16 @@ public final class CsLodPresenceIndex {
      * Record that this chunk is now (or is about to be) backed by a CSLOD record. Called at dispatch, not
      * at write-completion. See the class doc.
      */
-    public synchronized void markLod(final int chunkX, final int chunkZ) {
+    public synchronized void markLod(int chunkX, int chunkZ) {
         final long[] bitmap = bitmapFor(regionX(chunkX), regionZ(chunkZ));
         final int slot = slotIndex(chunkX, chunkZ);
         bitmap[slot >>> 6] |= 1L << (slot & 63);
     }
 
     /** How many chunks in this region currently read as present. Test/diagnostic helper. */
-    public synchronized int countInRegion(final int regionX, final int regionZ) {
+    public synchronized int countInRegion(int regionX, int regionZ) {
         int count = 0;
-        for (final long word : bitmapFor(regionX, regionZ)) {
+        for (long word : bitmapFor(regionX, regionZ)) {
             count += Long.bitCount(word);
         }
         return count;
@@ -169,7 +169,7 @@ public final class CsLodPresenceIndex {
      * One line: the real, measured cost of the presence check since {@code before} (this run, not the
      * server's lifetime).
      */
-    public String describeCostSince(final Cost before) {
+    public String describeCostSince(Cost before) {
         final long asked = queries.get() - before.queries;
         final long loaded = regionsLoaded.get() - before.regionsLoaded;
         final long bytes = headerBytesRead.get() - before.headerBytesRead;
@@ -185,7 +185,7 @@ public final class CsLodPresenceIndex {
      * {@code /cslod status}. Reads 8 KB per region file and decodes no records. Static and stateless like
      * {@link CsLodRegionStore#forEachChunk}, so a second process can call it.
      */
-    public static long countRecords(final Path root) throws IOException {
+    public static long countRecords(Path root) throws IOException {
         if (!Files.isDirectory(root)) {
             return 0L;
         }
@@ -194,14 +194,14 @@ public final class CsLodPresenceIndex {
             final List<Path> regions = walk
                     .filter(path -> path.getFileName().toString().endsWith(".cslod"))
                     .toList();
-            for (final Path region : regions) {
+            for (Path region : regions) {
                 total += countIn(region);
             }
         }
         return total;
     }
 
-    private static long countIn(final Path region) throws IOException {
+    private static long countIn(Path region) throws IOException {
         final byte[] header = new byte[HEADER_BYTES];
         int read = 0;
         try (RandomAccessFile file = new RandomAccessFile(region.toFile(), "r")) {
@@ -223,7 +223,7 @@ public final class CsLodPresenceIndex {
     }
 
     /** The region's bitmap, read from its header on first use and cached thereafter. */
-    private long[] bitmapFor(final int regionX, final int regionZ) {
+    private long[] bitmapFor(int regionX, int regionZ) {
         final long key = regionKey(regionX, regionZ);
         long[] bitmap = bitmaps.get(key);
         if (bitmap == null) {
@@ -237,7 +237,7 @@ public final class CsLodPresenceIndex {
      * Read one region file's 8 KB header and fold it into a 1024-bit presence bitmap. A missing region file
      * is not an error; it is the common case on a world that has never had LODs built.
      */
-    private long[] readHeader(final int regionX, final int regionZ) {
+    private long[] readHeader(int regionX, int regionZ) {
         final long[] bitmap = new long[BITMAP_LONGS];
         final Path path = root.resolve("r." + regionX + "." + regionZ + ".cslod");
         if (!Files.isRegularFile(path)) {
@@ -255,7 +255,7 @@ public final class CsLodPresenceIndex {
                 file.readFully(header, 0, available);
                 read = available;
             }
-        } catch (final IOException e) {
+        } catch (IOException e) {
             // Unreadable header -> report every chunk absent -> we rebuild rather than silently skip.
             return bitmap;
         } finally {
@@ -279,26 +279,26 @@ public final class CsLodPresenceIndex {
     }
 
     /** Big-endian i32, matching {@link RandomAccessFile#writeInt}. */
-    private static int readInt(final byte[] buffer, final int index) {
+    private static int readInt(byte[] buffer, int index) {
         return ((buffer[index] & 0xFF) << 24)
                 | ((buffer[index + 1] & 0xFF) << 16)
                 | ((buffer[index + 2] & 0xFF) << 8)
                 | (buffer[index + 3] & 0xFF);
     }
 
-    private static int regionX(final int chunkX) {
+    private static int regionX(int chunkX) {
         return Math.floorDiv(chunkX, REGION_CHUNKS);
     }
 
-    private static int regionZ(final int chunkZ) {
+    private static int regionZ(int chunkZ) {
         return Math.floorDiv(chunkZ, REGION_CHUNKS);
     }
 
-    private static long regionKey(final int regionX, final int regionZ) {
+    private static long regionKey(int regionX, int regionZ) {
         return ((long) regionX << 32) ^ (regionZ & 0xFFFFFFFFL);
     }
 
-    private static int slotIndex(final int chunkX, final int chunkZ) {
+    private static int slotIndex(int chunkX, int chunkZ) {
         final int localX = Math.floorMod(chunkX, REGION_CHUNKS);
         final int localZ = Math.floorMod(chunkZ, REGION_CHUNKS);
         return localZ * REGION_CHUNKS + localX;

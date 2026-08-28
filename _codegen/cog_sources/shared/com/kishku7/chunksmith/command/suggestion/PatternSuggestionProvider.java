@@ -14,7 +14,7 @@ public class PatternSuggestionProvider implements SuggestionProvider<CommandSour
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
         try {
-            final String input = context.getArgument(CommandLiteral.PATTERN, String.class);
+            String input = context.getArgument(CommandLiteral.PATTERN, String.class);
             PatternType.ALL.forEach(pattern -> {
                 if (pattern.contains(input.toLowerCase())) {
                     builder.suggest(pattern);

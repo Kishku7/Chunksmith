@@ -124,7 +124,7 @@ public final class TickBudget {
         if (baselineMspt < 0.0D) {
             return;
         }
-        final double cost = Math.max(0.0D, mspt - baselineMspt);
+        double cost = Math.max(0.0D, mspt - baselineMspt);
         ourCostMspt = ourCostMspt < 0.0D ? cost : (ourCostMspt * (1.0D - ALPHA)) + (cost * ALPHA);
     }
 
@@ -140,12 +140,12 @@ public final class TickBudget {
 
     /** How much tick time we may add: twice our measured cost, less what is reserved for players. */
     public static double allowance() {
-        final double doubled = ourCostMspt < 0.0D ? minAllowanceMillis : ourCostMspt * 2.0D;
-        final double ceiling = Math.max(minAllowanceMillis, 1.0D) * MAX_ALLOWANCE_FACTOR;
+        double doubled = ourCostMspt < 0.0D ? minAllowanceMillis : ourCostMspt * 2.0D;
+        double ceiling = Math.max(minAllowanceMillis, 1.0D) * MAX_ALLOWANCE_FACTOR;
         // Clamp before the player reserve, so the ceiling bounds what we ask for and the reserve
         // still takes its cut out of whatever we were granted.
-        final double granted = Math.min(ceiling, Math.max(doubled, minAllowanceMillis));
-        final double reserved = (double) lastPlayerCount * playerReserveMillis;
+        double granted = Math.min(ceiling, Math.max(doubled, minAllowanceMillis));
+        double reserved = (double) lastPlayerCount * playerReserveMillis;
         return Math.max(MIN_ALLOWANCE_MS, granted - Math.max(0.0D, reserved));
     }
 
@@ -157,7 +157,7 @@ public final class TickBudget {
         if (baselineMspt < 0.0D) {
             return -1.0D;
         }
-        final double adaptive = baselineMspt + allowance();
+        double adaptive = baselineMspt + allowance();
         if (ceilingMillis <= 0L) {
             return adaptive;
         }

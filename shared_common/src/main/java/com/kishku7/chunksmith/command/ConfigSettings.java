@@ -38,7 +38,7 @@ public final class ConfigSettings {
             of("throttleTargetMspt", ConfigSetting.Kind.DECIMAL,
                     config -> String.valueOf(config.getThrottleTargetMspt()),
                     (config, raw) -> {
-                        final Optional<Double> value = Input.tryDouble(raw);
+                        Optional<Double> value = Input.tryDouble(raw);
                         value.ifPresent(config::setThrottleTargetMspt);
                         return value.isPresent();
                     }),
@@ -57,7 +57,7 @@ public final class ConfigSettings {
             of("lodEnabled", ConfigSetting.Kind.TRISTATE,
                     config -> config.getLodMode().name().toLowerCase(Locale.ROOT),
                     (config, raw) -> {
-                        final LodMode mode = LodMode.parse(raw);
+                        LodMode mode = LodMode.parse(raw);
                         if (mode == null) {
                             return false;
                         }
@@ -68,11 +68,11 @@ public final class ConfigSettings {
             port("lodBackchannelPort", ConfigSetting.Kind.INTEGER,
                     config -> String.valueOf(config.getLodBackchannelPort()),
                     (config, raw) -> {
-                        final Optional<Long> value = Input.tryLong(raw);
+                        Optional<Long> value = Input.tryLong(raw);
                         if (value.isEmpty()) {
                             return false;
                         }
-                        final long asked = value.get();
+                        long asked = value.get();
                         // Out of INT range at all is a typo, not a port. Casting it would wrap and
                         // store something nobody asked for.
                         if (asked < Integer.MIN_VALUE || asked > Integer.MAX_VALUE) {
@@ -83,7 +83,7 @@ public final class ConfigSettings {
                         // that kills the backchannel, answer "done", and keep it dead across every
                         // restart until somebody thought to look. Found by driving this on a live
                         // server, not by reading it.
-                        final OptionalInt game = CsLodControl.gamePort();
+                        OptionalInt game = CsLodControl.gamePort();
                         if (asked != 0 && game.isPresent() && asked == game.getAsInt()) {
                             return false;
                         }
@@ -143,12 +143,12 @@ public final class ConfigSettings {
                                       final ConfigSetting.Writer writer) {
         return new ConfigSetting(name, kind, reader, writer, config -> true,
                 (config, raw) -> {
-                    final Optional<Long> asked = Input.tryLong(raw);
+                    Optional<Long> asked = Input.tryLong(raw);
                     if (asked.isEmpty()) {
                         return null;   // a word where a number goes: the generic message is right
                     }
-                    final long value = asked.get();
-                    final OptionalInt game = CsLodControl.gamePort();
+                    long value = asked.get();
+                    OptionalInt game = CsLodControl.gamePort();
                     if (value != 0 && game.isPresent() && value == game.getAsInt()) {
                         return "that is the port the game itself is listening on. Pick another"
                                 + " port, or use 0 to derive it (" + (game.getAsInt() + 1) + ").";
@@ -168,7 +168,7 @@ public final class ConfigSettings {
         return new ConfigSetting(name, ConfigSetting.Kind.BOOLEAN,
                 config -> String.valueOf(getter.get(config)),
                 (config, raw) -> {
-                    final Optional<Boolean> value = Input.tryBoolean(raw);
+                    Optional<Boolean> value = Input.tryBoolean(raw);
                     value.ifPresent(v -> setter.set(config, v));
                     return value.isPresent();
                 },
@@ -179,7 +179,7 @@ public final class ConfigSettings {
         return new ConfigSetting(name, ConfigSetting.Kind.INTEGER,
                 config -> String.valueOf(getter.get(config)),
                 (config, raw) -> {
-                    final Optional<Long> value = Input.tryLong(raw);
+                    Optional<Long> value = Input.tryLong(raw);
                     value.ifPresent(v -> setter.set(config, v));
                     return value.isPresent();
                 },

@@ -42,7 +42,7 @@ public final class CsLodChannel {
     }
 
     private static void dispatchClient(byte[] data) {
-        final Consumer<byte[]> sink = clientSink;
+        Consumer<byte[]> sink = clientSink;
         if (sink != null) {
             sink.accept(data);
         }
@@ -66,7 +66,7 @@ public final class CsLodChannel {
         // the handshake in both directions: a server would reject every client that does not have
         // Chunksmith and (now that this jar is a client mod too) a client would refuse any server that
         // does not. Chunksmith is client-optional and server-optional by design.
-        final PayloadRegistrar registrar = event.registrar("1").optional();
+        PayloadRegistrar registrar = event.registrar("1").optional();
 
         // Registering chunksmith:lod twice is a hard failure at load. NeoForge keys its payload registry on
         // the payload id, so the second registration throws ("UnsupportedOperationException: Cannot register

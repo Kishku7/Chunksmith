@@ -41,12 +41,12 @@ public class Hexagon extends AbstractPolygon {
 
     @Override
     public boolean isBounding(double x, double z) {
-        final boolean inside12 = insideLine(p1x, p1z, p2x, p2z, x, z);
-        final boolean inside23 = insideLine(p2x, p2z, p3x, p3z, x, z);
-        final boolean inside34 = insideLine(p3x, p3z, p4x, p4z, x, z);
-        final boolean inside45 = insideLine(p4x, p4z, p5x, p5z, x, z);
-        final boolean inside56 = insideLine(p5x, p5z, p6x, p6z, x, z);
-        final boolean inside61 = insideLine(p6x, p6z, p1x, p1z, x, z);
+        boolean inside12 = insideLine(p1x, p1z, p2x, p2z, x, z);
+        boolean inside23 = insideLine(p2x, p2z, p3x, p3z, x, z);
+        boolean inside34 = insideLine(p3x, p3z, p4x, p4z, x, z);
+        boolean inside45 = insideLine(p4x, p4z, p5x, p5z, x, z);
+        boolean inside56 = insideLine(p5x, p5z, p6x, p6z, x, z);
+        boolean inside61 = insideLine(p6x, p6z, p1x, p1z, x, z);
         return inside12 && inside23 && inside34 && inside45 && inside56 && inside61;
     }
 

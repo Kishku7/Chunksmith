@@ -21,17 +21,17 @@ public class CancelCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
-        final Map<String, TrimCommand.Task> trimTasks = chunky.getTrimTasks();
+        Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
+        Map<String, TrimCommand.Task> trimTasks = chunky.getTrimTasks();
         if (generationTasks.isEmpty()
                 && chunky.getTaskLoader().loadTasks().stream().allMatch(GenerationTask::isCancelled)
                 && trimTasks.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_CANCEL_NO_TASKS);
             return;
         }
-        final Runnable cancelAction;
+        Runnable cancelAction;
         if (arguments.size() > 0) {
-            final Optional<World> world = Input.tryWorld(chunky, arguments.joined());
+            Optional<World> world = Input.tryWorld(chunky, arguments.joined());
             if (world.isEmpty()) {
                 sender.sendMessage(TranslationKey.HELP_CANCEL);
                 return;
@@ -64,7 +64,7 @@ public class CancelCommand implements ChunksmithCommand {
     @Override
     public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
-            final List<String> suggestions = new ArrayList<>();
+            List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
             return suggestions;
         }

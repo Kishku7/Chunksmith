@@ -50,17 +50,17 @@ public class InjectedIndexTest {
     /** The bug. What one session injected, the next session must already know about. */
     @Test
     public void lastSessionsInjectionsAreRemembered() throws IOException {
-        final InjectedIndex first = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex first = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         first.put(0, 0, V1);
         first.put(-3, 7, V1);
         first.save();
 
-        final InjectedIndex second = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex second = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         assertEquals(2, second.size());
 
         // And seeding the session set from it means those regions are not claimed again, which is the
         // entire point: no re-decode, no re-push, no CPU spent redrawing what is already on screen.
-        final InjectedRegions session = new InjectedRegions();
+        InjectedRegions session = new InjectedRegions();
         for (long[] entry : second.entries()) {
             session.seed(OVERWORLD, (int) entry[0], (int) entry[1], entry[2]);
         }
@@ -70,11 +70,11 @@ public class InjectedIndexTest {
 
     @Test
     public void aMovedTokenIsInjectedAgain() throws IOException {
-        final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(2, 2, V1);
         index.save();
 
-        final InjectedRegions session = new InjectedRegions();
+        InjectedRegions session = new InjectedRegions();
         for (long[] entry : InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).entries()) {
             session.seed(OVERWORLD, (int) entry[0], (int) entry[1], entry[2]);
         }
@@ -83,7 +83,7 @@ public class InjectedIndexTest {
 
     @Test
     public void addingARendererDiscardsTheRecord() throws IOException {
-        final InjectedIndex voxyOnly = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex voxyOnly = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         voxyOnly.put(0, 0, V1);
         voxyOnly.put(1, 1, V1);
         voxyOnly.save();
@@ -96,7 +96,7 @@ public class InjectedIndexTest {
 
     @Test
     public void reinjectOnJoinIgnoresTheRecord() throws IOException {
-        final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(4, 4, V1);
         index.save();
 
@@ -105,7 +105,7 @@ public class InjectedIndexTest {
 
     @Test
     public void dimensionsDoNotShare() throws IOException {
-        final InjectedIndex overworld = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex overworld = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         overworld.put(0, 0, V1);
         overworld.save();
 
@@ -114,9 +114,9 @@ public class InjectedIndexTest {
 
     @Test
     public void malformedLinesAreSkippedAndTheRestSurvives() throws IOException {
-        final Path dir = root().resolve(OVERWORLD);
+        Path dir = root().resolve(OVERWORLD);
         Files.createDirectories(dir);
-        final List<String> lines = Arrays.asList(
+        List<String> lines = Arrays.asList(
                 "#epoch=" + EPOCH_VOXY,
                 "0,0=" + V1,
                 "not a line at all",
@@ -125,13 +125,13 @@ public class InjectedIndexTest {
                 "3,3=" + V2);
         Files.write(dir.resolve(".injected"), lines, StandardCharsets.US_ASCII);
 
-        final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         assertEquals("only the two readable lines count", 2, index.size());
     }
 
     @Test
     public void noEpochIsDiscarded() throws IOException {
-        final Path dir = root().resolve(OVERWORLD);
+        Path dir = root().resolve(OVERWORLD);
         Files.createDirectories(dir);
         Files.write(dir.resolve(".injected"), Arrays.asList("0,0=" + V1), StandardCharsets.US_ASCII);
 
@@ -145,7 +145,7 @@ public class InjectedIndexTest {
 
     @Test
     public void removalIsRetried() throws IOException {
-        final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(5, 5, V1);
         index.remove(5, 5);
         index.save();
@@ -155,11 +155,11 @@ public class InjectedIndexTest {
 
     @Test
     public void noPartFileIsLeft() throws IOException {
-        final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(0, 0, V1);
         index.save();
 
-        final Path dir = root().resolve(OVERWORLD);
+        Path dir = root().resolve(OVERWORLD);
         assertTrue(Files.isRegularFile(dir.resolve(".injected")));
         assertFalse(Files.exists(dir.resolve(".injected.part")));
     }
@@ -173,11 +173,11 @@ public class InjectedIndexTest {
 
     @Test
     public void negativeCoordinatesRoundTrip() throws IOException {
-        final InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
+        InjectedIndex index = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false);
         index.put(-12, -34, V1);
         index.save();
 
-        final List<long[]> entries = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).entries();
+        List<long[]> entries = InjectedIndex.open(root(), OVERWORLD, EPOCH_VOXY, false).entries();
         assertEquals(1, entries.size());
         assertEquals(-12, entries.get(0)[0]);
         assertEquals(-34, entries.get(0)[1]);

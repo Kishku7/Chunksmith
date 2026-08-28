@@ -19,12 +19,12 @@ public class CenterCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<Double> newX = arguments.next().flatMap(Input::tryDoubleSuffixed);
-        final Optional<Double> newZ = arguments.next().flatMap(Input::tryDoubleSuffixed);
-        final double centerX;
-        final double centerZ;
+        Optional<Double> newX = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        Optional<Double> newZ = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        double centerX;
+        double centerZ;
         if (newX.isEmpty() && newZ.isEmpty()) {
-            final Location coordinate = sender.getLocation();
+            Location coordinate = sender.getLocation();
             centerX = coordinate.getX();
             centerZ = coordinate.getZ();
         } else if (newX.isPresent() && newZ.isPresent()) {

@@ -83,7 +83,7 @@ public final class ChunkSettleWindow {
      *                   as the neighbourhood is complete, which suffices for a mod acting on the same
      *                   tick; a small positive value covers one that acts a tick or two later.
      */
-    public ChunkSettleWindow(final long delayTicks) {
+    public ChunkSettleWindow(long delayTicks) {
         this(delayTicks, 0L);
     }
 
@@ -93,7 +93,7 @@ public final class ChunkSettleWindow {
      *                   early. Zero means unbounded, which is only safe when every offered chunk is
      *                   guaranteed to have its neighbourhood closed. See the class javadoc.
      */
-    public ChunkSettleWindow(final long delayTicks, final long maxHeld) {
+    public ChunkSettleWindow(long delayTicks, long maxHeld) {
         this.delayTicks = Math.max(0L, delayTicks);
         this.maxHeld = Math.max(0L, maxHeld);
     }
@@ -106,7 +106,7 @@ public final class ChunkSettleWindow {
      *
      * @param now the current game tick, used only to time the delay
      */
-    public void offer(final int chunkX, final int chunkZ, final long now, final Runnable release) {
+    public void offer(int chunkX, int chunkZ, long now, Runnable release) {
         final long key = key(chunkX, chunkZ);
         if (this.held.putIfAbsent(key, release) != null) {
             // Already holding this chunk (a re-run over ground covered earlier in the same session). The
@@ -123,12 +123,12 @@ public final class ChunkSettleWindow {
     }
 
     /** Release everything whose delay has elapsed. Safe to call every tick; cheap when nothing is due. */
-    public void releaseDue(final long now) {
+    public void releaseDue(long now) {
         if (this.due.isEmpty()) {
             return;
         }
         List<Long> ready = null;
-        for (final Map.Entry<Long, Long> entry : this.due.entrySet()) {
+        for (Map.Entry<Long, Long> entry : this.due.entrySet()) {
             if (entry.getValue() <= now) {
                 if (ready == null) {
                     ready = new ArrayList<>();
@@ -139,7 +139,7 @@ public final class ChunkSettleWindow {
         if (ready == null) {
             return;
         }
-        for (final Long key : ready) {
+        for (Long key : ready) {
             this.due.remove(key);
             run(key);
         }
@@ -155,7 +155,7 @@ public final class ChunkSettleWindow {
      */
     public void releaseAllHeld() {
         final List<Long> keys = new ArrayList<>(this.held.keySet());
-        for (final Long key : keys) {
+        for (Long key : keys) {
             this.due.remove(key);
             run(key);
         }
@@ -169,7 +169,7 @@ public final class ChunkSettleWindow {
     public void drain() {
         this.drained = true;
         final List<Long> keys = new ArrayList<>(this.held.keySet());
-        for (final Long key : keys) {
+        for (Long key : keys) {
             this.due.remove(key);
             run(key);
         }
@@ -224,12 +224,12 @@ public final class ChunkSettleWindow {
     }
 
     /** Has this position seen all nine of its neighbourhood? Package-visible so the test asserts the rule. */
-    boolean neighbourhoodComplete(final int chunkX, final int chunkZ) {
+    boolean neighbourhoodComplete(int chunkX, int chunkZ) {
         final Integer count = this.arrived.get(key(chunkX, chunkZ));
         return count != null && count >= COMPLETE;
     }
 
-    private void bumpAndTest(final int chunkX, final int chunkZ, final long now) {
+    private void bumpAndTest(int chunkX, int chunkZ, long now) {
         final long key = key(chunkX, chunkZ);
         final int count = this.arrived.merge(key, 1, Integer::sum);
         if (count < COMPLETE) {
@@ -244,7 +244,7 @@ public final class ChunkSettleWindow {
         }
     }
 
-    private void run(final Long key) {
+    private void run(Long key) {
         final Runnable release = this.held.remove(key);
         if (release != null) {
             this.releasedCount++;
@@ -271,7 +271,7 @@ public final class ChunkSettleWindow {
         }
     }
 
-    static long key(final int chunkX, final int chunkZ) {
+    static long key(int chunkX, int chunkZ) {
         return ((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL);
     }
 }

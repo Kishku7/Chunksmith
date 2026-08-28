@@ -39,25 +39,25 @@ public final class CsLodExtractor {
 
     /** Extract, or null if the world has no vertical extent worth storing (should not happen). */
     public static CsLodChunk extract(World world, Chunk chunk) {
-        final ChunkSnapshot snap = chunk.getChunkSnapshot(true, true, false);
-        final int minY = world.getMinHeight();
-        final int maxY = world.getMaxHeight();
-        final int minSectionY = Math.floorDiv(minY, 16);
-        final int sectionCount = (maxY - minY) / 16;
+        ChunkSnapshot snap = chunk.getChunkSnapshot(true, true, false);
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
+        int minSectionY = Math.floorDiv(minY, 16);
+        int sectionCount = (maxY - minY) / 16;
         if (sectionCount <= 0) {
             return null;
         }
 
-        final String dimension = world.getKey().toString();
-        final int chunkX = chunk.getX();
-        final int chunkZ = chunk.getZ();
+        String dimension = world.getKey().toString();
+        int chunkX = chunk.getX();
+        int chunkZ = chunk.getZ();
 
-        final Palette blocks = new Palette();
-        final Palette biomes = new Palette();
-        final List<CsLodChunk.Section> out = new ArrayList<>(sectionCount);
+        Palette blocks = new Palette();
+        Palette biomes = new Palette();
+        List<CsLodChunk.Section> out = new ArrayList<>(sectionCount);
 
         for (int s = 0; s < sectionCount; s++) {
-            final int sectionBaseY = minY + s * 16;
+            int sectionBaseY = minY + s * 16;
             out.add(extractSection(snap, sectionBaseY, blocks, biomes));
         }
 
@@ -75,11 +75,11 @@ public final class CsLodExtractor {
             boolean uniform = true;
             int n = 0;
             for (int y = 0; y < 16; y++) {
-                final int wy = baseY + y;
+                int wy = baseY + y;
                 for (int z = 0; z < 16; z++) {
                     for (int x = 0; x < 16; x++) {
-                        final BlockData data = snap.getBlockData(x, wy, z);
-                        final int id = blocks.id(data.getAsString());
+                        BlockData data = snap.getBlockData(x, wy, z);
+                        int id = blocks.id(data.getAsString());
                         blockIndices[n++] = id;
                         if (first < 0) {
                             first = id;
@@ -103,11 +103,11 @@ public final class CsLodExtractor {
             boolean uniform = true;
             int b = 0;
             for (int y = 0; y < 4; y++) {
-                final int wy = baseY + y * 4 + 2;
+                int wy = baseY + y * 4 + 2;
                 for (int z = 0; z < 4; z++) {
-                    final int wz = z * 4 + 2;
+                    int wz = z * 4 + 2;
                     for (int x = 0; x < 4; x++) {
-                        final int wx = x * 4 + 2;
+                        int wx = x * 4 + 2;
                         // Biome went from a plain class to an interface between Paper API generations
                         // inside the same 1.21.x compile line, so a jar built against one shape throws
                         // IncompatibleClassChangeError on a server running the other (mod_support
@@ -116,8 +116,8 @@ public final class CsLodExtractor {
                         // a stable interface across every generation and Biome has always implemented it,
                         // so dispatching getKey() through Keyed sidesteps the mismatch whichever shape
                         // Biome has on a given server build.
-                        final Keyed biome = snap.getBiome(wx, wy, wz);
-                        final int id = biomes.id(biome.getKey().toString());
+                        Keyed biome = snap.getBiome(wx, wy, wz);
+                        int id = biomes.id(biome.getKey().toString());
                         biomeIndices[b++] = id;
                         if (first < 0) {
                             first = id;
@@ -134,24 +134,24 @@ public final class CsLodExtractor {
         }
 
         // ---- light: sky and block, separate, present even for pure-air sections above terrain ----
-        final Light sky = extractLight(snap, baseY, true);
-        final Light block = extractLight(snap, baseY, false);
+        Light sky = extractLight(snap, baseY, true);
+        Light block = extractLight(snap, baseY, false);
 
         return new CsLodChunk.Section(blockIndices, uniformBlock, biomeIndices, uniformBiome,
                 sky.packed, sky.uniform, block.packed, block.uniform);
     }
 
     private static Light extractLight(ChunkSnapshot snap, int baseY, boolean sky) {
-        final byte[] packed = new byte[CsLodChunk.LIGHT_BYTES];
+        byte[] packed = new byte[CsLodChunk.LIGHT_BYTES];
         int first = -1;
         boolean uniform = true;
         int n = 0;
         for (int y = 0; y < 16; y++) {
-            final int wy = baseY + y;
+            int wy = baseY + y;
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
-                    final int raw = sky ? snap.getBlockSkyLight(x, wy, z) : snap.getBlockEmittedLight(x, wy, z);
-                    final int value = Math.max(0, Math.min(15, raw));
+                    int raw = sky ? snap.getBlockSkyLight(x, wy, z) : snap.getBlockEmittedLight(x, wy, z);
+                    int value = Math.max(0, Math.min(15, raw));
                     if (first < 0) {
                         first = value;
                     } else if (value != first) {
@@ -186,11 +186,11 @@ public final class CsLodExtractor {
         private final List<String> order = new ArrayList<>();
 
         private int id(String value) {
-            final Integer existing = ids.get(value);
+            Integer existing = ids.get(value);
             if (existing != null) {
                 return existing;
             }
-            final int newId = order.size();
+            int newId = order.size();
             ids.put(value, newId);
             order.add(value);
             return newId;

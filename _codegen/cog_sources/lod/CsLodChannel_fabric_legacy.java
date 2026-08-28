@@ -32,7 +32,7 @@ public final class CsLodChannel {
             // Read on the NETTY thread. The buffer is released the instant this handler returns, so the
             // bytes MUST be copied out before hopping to the main thread. Reading it inside the
             // server.execute lambda would race the release and hand us garbage (or throw).
-            final byte[] data = buf.readByteArray();
+            byte[] data = buf.readByteArray();
             server.execute(() -> CsLodServerNet.receive(player, data));
         });
 
@@ -42,7 +42,7 @@ public final class CsLodChannel {
     }
 
     public static void send(ServerPlayer player, byte[] data) {
-        final FriendlyByteBuf buf = PacketByteBufs.create();
+        FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeByteArray(data);
         ServerPlayNetworking.send(player, ID, buf);
     }

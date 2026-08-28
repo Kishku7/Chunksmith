@@ -117,18 +117,18 @@ public final class CsLodDhSupport {
     }
 
     private static void bind() {
-        final boolean override = enabled();
+        boolean override = enabled();
 
         DhApi.events.bind(DhApiLevelLoadEvent.class, new DhApiLevelLoadEvent() {
             @Override
             public void onLevelLoad(DhApiEventParam<DhApiLevelLoadEvent.EventParam> event) {
-                final IDhApiLevelWrapper level = event.value.levelWrapper;
+                IDhApiLevelWrapper level = event.value.levelWrapper;
                 lastWrapper = level;
-                final Object raw = level.getWrappedMcObject();
+                Object raw = level.getWrappedMcObject();
                 if (raw != null) {
                     WRAPPERS.put(raw, level);
                 }
-                final Path store = storeFor(level);
+                Path store = storeFor(level);
                 if (!override) {
                     return;
                 }
@@ -136,7 +136,7 @@ public final class CsLodDhSupport {
                     LOGGER.info("Chunksmith: DH loaded a level with no CSLOD store; not overriding its generator");
                     return;
                 }
-                final CsLodDhGenerator generator = new CsLodDhGenerator(level, store);
+                CsLodDhGenerator generator = new CsLodDhGenerator(level, store);
                 lastGenerator = generator;
                 DhApi.worldGenOverrides.registerWorldGeneratorOverride(level, generator);
                 LOGGER.info("Chunksmith: serving Distant Horizons from the CSLOD store -> {}", store);
@@ -151,13 +151,13 @@ public final class CsLodDhSupport {
     }
 
     private static Path storeFor(IDhApiLevelWrapper level) {
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         if (current == null) {
             return null;
         }
         // DH's wrapper exposes the underlying level object; match it against the server's levels rather
         // than trying to reconstruct a dimension id from a display name.
-        final Object raw = level.getWrappedMcObject();
+        Object raw = level.getWrappedMcObject();
         for (ServerLevel candidate : current.getAllLevels()) {
             if (candidate == raw) {
                 return LodSupport.storeRoot(candidate);
@@ -174,7 +174,7 @@ public final class CsLodDhSupport {
         if (!dhPresent()) {
             return false;
         }
-        final Config config = config();
+        Config config = config();
         // DH is installed (dhPresent() above), so lodEnabled=auto resolves to on here by definition;
         // an explicit lodEnabled=false still wins, which is the whole point of the tristate.
         return config != null && LodSupport.decide(config, server) && config.isLodDhOverrideEnabled();
@@ -188,7 +188,7 @@ public final class CsLodDhSupport {
         if (ChunksmithProvider.isLoaded()) {
             return ChunksmithProvider.get().getConfig();
         }
-        final Path configDir = LodPlatform.configDir();
+        Path configDir = LodPlatform.configDir();
         Path path = configDir.resolve("chunksmith").resolve("config.json");
         if (!Files.isRegularFile(path)) {
             // Same legacy fallback the loader entrypoints apply when they build their config.
@@ -222,7 +222,7 @@ public final class CsLodDhSupport {
      * these counters: an override that never armed, and a null return that killed DH's queue.
      */
     public static String describe() {
-        final CsLodDhGenerator generator = lastGenerator;
+        CsLodDhGenerator generator = lastGenerator;
         if (generator == null) {
             return "not serving DH (levels known: " + WRAPPERS.size() + ")";
         }

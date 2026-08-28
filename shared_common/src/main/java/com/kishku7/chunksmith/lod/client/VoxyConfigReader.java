@@ -63,7 +63,7 @@ public final class VoxyConfigReader {
             return 0;
         }
 
-        final OptionalDouble sections = number(config, RENDER_DISTANCE_FIELD);
+        OptionalDouble sections = number(config, RENDER_DISTANCE_FIELD);
         if (sections.isEmpty()) {
             LodWarnings.once(CAUSE_FIELD,
                     "this voxy (" + config.getClass().getName() + ") has no readable '"
@@ -74,11 +74,11 @@ public final class VoxyConfigReader {
             return 0;
         }
 
-        final double value = sections.getAsDouble();
+        double value = sections.getAsDouble();
         if (value <= 0.0) {
             return 0;
         }
-        final double blocks = value * SECTION_BLOCKS;
+        double blocks = value * SECTION_BLOCKS;
         if (blocks >= Integer.MAX_VALUE) {
             return Integer.MAX_VALUE;
         }
@@ -91,12 +91,12 @@ public final class VoxyConfigReader {
      * @return its value widened to a double, or empty when it does not exist or is not a number
      */
     public static OptionalDouble number(Object instance, String name) {
-        final Field field = field(instance, name);
+        Field field = field(instance, name);
         if (field == null) {
             return OptionalDouble.empty();
         }
         try {
-            final Object value = field.get(instance);
+            Object value = field.get(instance);
             if (value instanceof Number) {
                 // Covers float, int, double, long, short, byte and their boxed forms. Character and
                 // boolean are not Numbers and fall through.
@@ -115,12 +115,12 @@ public final class VoxyConfigReader {
      *     "false": a fork that removed a toggle has not turned the feature off
      */
     public static boolean flag(Object instance, String name, boolean fallback) {
-        final Field field = field(instance, name);
+        Field field = field(instance, name);
         if (field == null) {
             return fallback;
         }
         try {
-            final Object value = field.get(instance);
+            Object value = field.get(instance);
             return value instanceof Boolean ? (Boolean) value : fallback;
         } catch (IllegalAccessException | RuntimeException e) {
             return fallback;
@@ -134,7 +134,7 @@ public final class VoxyConfigReader {
      */
     public static Object staticField(Class<?> owner, String name) {
         try {
-            final Field field = owner.getField(name);
+            Field field = owner.getField(name);
             if (!Modifier.isStatic(field.getModifiers())) {
                 return null;
             }
@@ -156,7 +156,7 @@ public final class VoxyConfigReader {
         }
         for (Class<?> type = instance.getClass(); type != null; type = type.getSuperclass()) {
             try {
-                final Field declared = type.getDeclaredField(name);
+                Field declared = type.getDeclaredField(name);
                 declared.setAccessible(true);
                 return declared;
             } catch (NoSuchFieldException ignored) {

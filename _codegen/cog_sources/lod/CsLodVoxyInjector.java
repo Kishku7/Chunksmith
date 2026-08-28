@@ -75,12 +75,12 @@ public final class CsLodVoxyInjector {
      */
     public static int inject(ServerLevel level, Path storeRoot, Consumer<String> progress)
             throws IOException {
-        final WorldIdentifier world = WorldIdentifier.of(level);
+        WorldIdentifier world = WorldIdentifier.of(level);
 
-        final int[] chunks = {0};
-        final int[] sections = {0};
+        int[] chunks = {0};
+        int[] sections = {0};
 
-        final int visited;
+        int visited;
         try {
             visited = CsLodRegionStore.forEachChunk(storeRoot, record -> {
                 awaitVoxyCapacity();
@@ -108,13 +108,13 @@ public final class CsLodVoxyInjector {
                                    final WorldIdentifier world,
                                    final CsLodChunk record) {
         int injected = 0;
-        final List<CsLodChunk.Section> sections = record.getSections();
+        List<CsLodChunk.Section> sections = record.getSections();
         for (int i = 0; i < sections.size(); i++) {
-            final CsLodChunk.Section section = sections.get(i);
+            CsLodChunk.Section section = sections.get(i);
             // The reconstruction (and every MC-version drift in it) lives in one place.
-            final LevelChunkSection rebuilt = CsLodSectionBuilder.rebuild(level, record, section);
-            final DataLayer sky = light(section.getSkyLight(), section.getUniformSky());
-            final DataLayer block = light(section.getBlockLight(), section.getUniformBlockLight());
+            LevelChunkSection rebuilt = CsLodSectionBuilder.rebuild(level, record, section);
+            DataLayer sky = light(section.getSkyLight(), section.getUniformSky());
+            DataLayer block = light(section.getBlockLight(), section.getUniformBlockLight());
 
             VoxelIngestService.rawIngest(world, rebuilt,
                     record.getChunkX(), record.getMinSectionY() + i, record.getChunkZ(),

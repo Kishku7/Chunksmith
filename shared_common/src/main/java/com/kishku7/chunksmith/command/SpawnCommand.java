@@ -11,19 +11,19 @@ import java.util.List;
 public class SpawnCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public SpawnCommand(final Chunksmith chunky) {
+    public SpawnCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         chunky.getSelection().spawn();
         final Selection current = chunky.getSelection().build();
         sender.sendMessagePrefixed(TranslationKey.FORMAT_CENTER, Formatting.number(current.centerX()), Formatting.number(current.centerZ()));
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

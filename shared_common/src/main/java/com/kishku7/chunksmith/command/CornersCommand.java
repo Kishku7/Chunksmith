@@ -19,10 +19,10 @@ public class CornersCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<Double> x1 = arguments.next().flatMap(Input::tryDoubleSuffixed);
-        final Optional<Double> z1 = arguments.next().flatMap(Input::tryDoubleSuffixed);
-        final Optional<Double> x2 = arguments.next().flatMap(Input::tryDoubleSuffixed);
-        final Optional<Double> z2 = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        Optional<Double> x1 = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        Optional<Double> z1 = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        Optional<Double> x2 = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        Optional<Double> z2 = arguments.next().flatMap(Input::tryDoubleSuffixed);
         if (x1.isEmpty() || z1.isEmpty() || x2.isEmpty() || z2.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_CORNERS);
             return;
@@ -31,13 +31,13 @@ public class CornersCommand implements ChunksmithCommand {
             sender.sendMessage(TranslationKey.HELP_CORNERS);
             return;
         }
-        final double centerX = (x1.get() + x2.get()) / 2d;
-        final double centerZ = (z1.get() + z2.get()) / 2d;
-        final double radiusX = Math.abs(x1.get() - x2.get()) / 2d;
-        final double radiusZ = Math.abs(z1.get() - z2.get()) / 2d;
+        double centerX = (x1.get() + x2.get()) / 2d;
+        double centerZ = (z1.get() + z2.get()) / 2d;
+        double radiusX = Math.abs(x1.get() - x2.get()) / 2d;
+        double radiusZ = Math.abs(z1.get() - z2.get()) / 2d;
         chunky.getSelection().center(centerX, centerZ).radiusX(radiusX).radiusZ(radiusZ);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_CENTER, Formatting.number(centerX), Formatting.number(centerZ));
-        final String shape;
+        String shape;
         if (radiusX == radiusZ) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_RADIUS, Formatting.number(radiusX));
             shape = ShapeType.SQUARE;

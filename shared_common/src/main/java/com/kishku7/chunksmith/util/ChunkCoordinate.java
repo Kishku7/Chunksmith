@@ -8,14 +8,14 @@ public record ChunkCoordinate(int x, int z) implements Comparable<ChunkCoordinat
         if (!regionFileName.startsWith("r.")) {
             return Optional.empty();
         }
-        final int extension = regionFileName.indexOf(".mca");
+        int extension = regionFileName.indexOf(".mca");
         if (extension < 2) {
             return Optional.empty();
         }
-        final String regionCoordinates = regionFileName.substring(2, extension);
-        final int separator = regionCoordinates.indexOf('.');
-        final Optional<Integer> regionX = Input.tryInteger(regionCoordinates.substring(0, separator));
-        final Optional<Integer> regionZ = Input.tryInteger(regionCoordinates.substring(separator + 1));
+        String regionCoordinates = regionFileName.substring(2, extension);
+        int separator = regionCoordinates.indexOf('.');
+        Optional<Integer> regionX = Input.tryInteger(regionCoordinates.substring(0, separator));
+        Optional<Integer> regionZ = Input.tryInteger(regionCoordinates.substring(separator + 1));
         if (regionX.isPresent() && regionZ.isPresent()) {
             return Optional.of(new ChunkCoordinate(regionX.get(), regionZ.get()));
         }
@@ -35,7 +35,7 @@ public record ChunkCoordinate(int x, int z) implements Comparable<ChunkCoordinat
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ChunkCoordinate that = (ChunkCoordinate) o;
+        ChunkCoordinate that = (ChunkCoordinate) o;
         return x == that.x && z == that.z;
     }
 

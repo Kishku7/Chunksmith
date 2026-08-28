@@ -66,12 +66,12 @@ public final class CsLodCommand {
         // so a gamemaster gate on the root would stop an ordinary player changing their own config. Every
         // operator subcommand carries the gate itself instead, and brigadier hides a node whose requires()
         // fails, so a normal player sees /cslod set and nothing else.
-        final LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("cslod");
+        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("cslod");
 
         root.then(Commands.literal("status").requires(operatorOnly).executes(context -> {
-            final ServerLevel level = context.getSource().getLevel();
-            final Path store = LodSupport.storeRoot(level);
-            final long bytes = sizeOf(store);
+            ServerLevel level = context.getSource().getLevel();
+            Path store = LodSupport.storeRoot(level);
+            long bytes = sizeOf(store);
             // The record count, not just the byte size: the number an operator compares against their
             // chunk count to answer "does my store actually cover my world?". Header reads only (8 KB per
             // region, no record decode), so it is safe to run from a command.
@@ -81,7 +81,7 @@ public final class CsLodCommand {
             } catch (IOException e) {
                 records = -1L;
             }
-            final long recordCount = records;
+            long recordCount = records;
             // One line: chat renders a literal \n rather than breaking the line.
             context.getSource().sendSuccess(() -> Component.literal(
                     "[chunksmith] " + LodSupport.describeDecision(level.getServer())
@@ -179,9 +179,9 @@ public final class CsLodCommand {
         root.then(Commands.literal("token").requires(operatorOnly)
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
-                            final ServerPlayer target =
+                            ServerPlayer target =
                                     EntityArgument.getPlayer(context, "player");
-                            final String token = CsLodServerNet.issueFor(target);
+                            String token = CsLodServerNet.issueFor(target);
                             if (token == null) {
                                 context.getSource().sendFailure(Component.literal(
                                         "[chunksmith] the LOD backchannel is not running"));
@@ -218,7 +218,7 @@ public final class CsLodCommand {
                         .then(Commands.argument("value", StringArgumentType.word())
                                 .suggests((context, builder) -> {
                                     // Completions come from the setting, so they cannot drift from it.
-                                    final var setting = CsLodClientSettings.find(
+                                    var setting = CsLodClientSettings.find(
                                             StringArgumentType.getString(context, "name"));
                                     if (setting.isPresent()) {
                                         for (String option : setting.get().kind().completions()) {
@@ -247,7 +247,7 @@ public final class CsLodCommand {
                                      final byte action,
                                      final String name,
                                      final String value) throws CommandSyntaxException {
-        final ServerPlayer player = source.getPlayerOrException();
+        ServerPlayer player = source.getPlayerOrException();
         if (!CsLodServerNet.hasLodClient(player)) {
             // The "no renderer" half of this message is gone (3.4.0): the client now introduces itself
             // whether or not it has voxy or Distant Horizons, precisely so these settings stay reachable,

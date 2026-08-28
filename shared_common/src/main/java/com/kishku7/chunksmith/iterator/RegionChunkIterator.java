@@ -41,19 +41,19 @@ public class RegionChunkIterator implements ChunkIterator {
         this.hasNextRegion = true;
         this.hasNext = true;
         long countRemainingChunks = count;
-        final long estimatedRegionCount = count / 1024;
+        long estimatedRegionCount = count / 1024;
         int estimatedDiameterRegions = (int) Math.floor(Math.sqrt(estimatedRegionCount));
         if (estimatedDiameterRegions % 2 == 0) {
             --estimatedDiameterRegions;
         }
         if (estimatedDiameterRegions > 2) {
-            final int skipDiameterRegions = estimatedDiameterRegions - 2;
+            int skipDiameterRegions = estimatedDiameterRegions - 2;
             this.annulusRegions = skipDiameterRegions / 2 + 1;
             this.regionX += annulusRegions;
             this.regionZ += annulusRegions - 1;
             this.spanRegions = 2 * annulusRegions;
             ++this.downRegions;
-            final long skipChunks = ((long) skipDiameterRegions * skipDiameterRegions) * 1024;
+            long skipChunks = ((long) skipDiameterRegions * skipDiameterRegions) * 1024;
             countRemainingChunks -= skipChunks;
         }
         currentRegionProgress = nextRegionChunkProgress(countRemainingChunks);
@@ -71,16 +71,16 @@ public class RegionChunkIterator implements ChunkIterator {
         this.centerRegionX = selection.centerRegionX();
         this.centerRegionZ = selection.centerRegionZ();
         this.radiusRegions = selection.radiusRegionsX();
-        final int centerChunkX = selection.centerChunkX();
-        final int centerChunkZ = selection.centerChunkZ();
-        final int radiusChunks = selection.radiusChunksX();
+        int centerChunkX = selection.centerChunkX();
+        int centerChunkZ = selection.centerChunkZ();
+        int radiusChunks = selection.radiusChunksX();
         this.minChunkX = centerChunkX - radiusChunks;
         this.minChunkZ = centerChunkZ - radiusChunks;
         this.maxChunkX = centerChunkX + radiusChunks;
         this.maxChunkZ = centerChunkZ + radiusChunks;
         this.regionX = centerRegionX;
         this.regionZ = centerRegionZ;
-        final long diameterChunks = selection.diameterChunksX();
+        long diameterChunks = selection.diameterChunksX();
         this.totalChunks = diameterChunks * diameterChunks;
         this.currentRegionProgress = nextRegionChunkProgress();
     }
@@ -95,7 +95,7 @@ public class RegionChunkIterator implements ChunkIterator {
         if (!hasNext) {
             throw new NoSuchElementException();
         }
-        final ChunkCoordinate chunkCoord = currentRegionProgress.next();
+        ChunkCoordinate chunkCoord = currentRegionProgress.next();
         while (currentRegionProgress != null && !currentRegionProgress.hasNext()) {
             currentRegionProgress = nextRegionChunkProgress();
         }
@@ -113,7 +113,7 @@ public class RegionChunkIterator implements ChunkIterator {
         if (!hasNextRegion) {
             return null;
         }
-        final RegionChunkProgress regionChunkProgress = new RegionChunkProgress(regionX, regionZ, count);
+        RegionChunkProgress regionChunkProgress = new RegionChunkProgress(regionX, regionZ, count);
         if (regionX == centerRegionX + annulusRegions && regionZ == centerRegionZ + annulusRegions) {
             ++annulusRegions;
             ++regionX;
@@ -178,15 +178,15 @@ public class RegionChunkIterator implements ChunkIterator {
         }
 
         public RegionChunkProgress(int x, int z) {
-            final int lowEdgeX = x << 5;
-            final int lowEdgeZ = z << 5;
-            final int highEdgeX = lowEdgeX + 31;
-            final int highEdgeZ = lowEdgeZ + 31;
+            int lowEdgeX = x << 5;
+            int lowEdgeZ = z << 5;
+            int highEdgeX = lowEdgeX + 31;
+            int highEdgeZ = lowEdgeZ + 31;
             this.minX = Math.max(lowEdgeX, minChunkX);
             this.minZ = Math.max(lowEdgeZ, minChunkZ);
-            final int maxX = Math.min(highEdgeX, maxChunkX);
-            final int maxZ = Math.min(highEdgeZ, maxChunkZ);
-            final int sizeX = maxX - minX + 1;
+            int maxX = Math.min(highEdgeX, maxChunkX);
+            int maxZ = Math.min(highEdgeZ, maxChunkZ);
+            int sizeX = maxX - minX + 1;
             if (minX > highEdgeX || minZ > highEdgeZ || maxX < lowEdgeX || maxZ < lowEdgeZ) {
                 this.sizeZ = 0;
                 this.total = 0;
@@ -210,9 +210,9 @@ public class RegionChunkIterator implements ChunkIterator {
             if (!hasNext) {
                 throw new NoSuchElementException();
             }
-            final ChunkCoordinate chunkCoord;
+            ChunkCoordinate chunkCoord;
             if (full) {
-                final ChunkCoordinate offset = Hilbert.regionDistanceToChunkCoordinateOffset(current);
+                ChunkCoordinate offset = Hilbert.regionDistanceToChunkCoordinateOffset(current);
                 chunkCoord = new ChunkCoordinate(minX + offset.x(), minZ + offset.z());
             } else {
                 chunkCoord = new ChunkCoordinate(minX + offsetX, minZ + offsetZ);

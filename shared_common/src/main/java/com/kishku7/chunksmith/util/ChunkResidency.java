@@ -105,7 +105,7 @@ public final class ChunkResidency {
     }
 
     static long loadedChunksAt(long now) {
-        final long value = loadedChunks;
+        long value = loadedChunks;
         if (value < 0L) {
             return -1L;
         }
@@ -129,8 +129,8 @@ public final class ChunkResidency {
 
     /** How many chunks this run has added, or -1 when either end of the subtraction is unknown. */
     public static long addedChunks() {
-        final long now = loadedChunks();
-        final long base = baseline;
+        long now = loadedChunks();
+        long base = baseline;
         if (now < 0L || base < 0L) {
             return -1L;
         }
@@ -160,7 +160,7 @@ public final class ChunkResidency {
         draining = true;
         drainStartedMillis = now;
         drainProgressMillis = now;
-        final long current = loadedChunksAt(now);
+        long current = loadedChunksAt(now);
         drainBestSeen = current < 0L ? Long.MAX_VALUE : current;
         drainStartedAt = current;
         // Say what is happening, once at each end. 3.5.1 was correct and silent, which made a drain
@@ -201,8 +201,8 @@ public final class ChunkResidency {
         if (draining) {
             return;
         }
-        final long base = baseline;
-        final long loaded = loadedChunksAt(now);
+        long base = baseline;
+        long loaded = loadedChunksAt(now);
         if (base < 0L || loaded < 0L || loaded <= base + DRAIN_MARGIN) {
             return;
         }
@@ -257,7 +257,7 @@ public final class ChunkResidency {
      * spawn chunks, another mod's tickets. The ceiling backstops a world that trickles down for ever.
      */
     private static void evaluateDrain(long loaded, long now) {
-        final long base = baseline;
+        long base = baseline;
         if (base >= 0L && loaded <= base + DRAIN_MARGIN) {
             finishDrain(loaded, now, "back to where the run started");
             return;
@@ -280,12 +280,12 @@ public final class ChunkResidency {
 
     private static void finishDrain(long loaded, long now, String reason) {
         draining = false;
-        final long seconds = Math.max(0L, (now - drainStartedMillis) / 1000L);
-        final long freed = drainStartedAt < 0L ? -1L : Math.max(0L, drainStartedAt - loaded);
+        long seconds = Math.max(0L, (now - drainStartedMillis) / 1000L);
+        long freed = drainStartedAt < 0L ? -1L : Math.max(0L, drainStartedAt - loaded);
         lastDrainOutcome = String.format("%s (%d resident, %d freed, %ds)", reason, loaded, freed, seconds);
         // WARN rather than INFO when chunks are left behind: that is the case an operator needs to see,
         // and it is exactly the case 3.5.1 could not distinguish from success.
-        final String message = String.format(
+        String message = String.format(
                 "Chunksmith: drain finished (%s). %d chunks resident, %d freed, %d above where the run started, took %ds. %s",
                 reason, loaded, freed, baseline < 0L ? -1L : Math.max(0L, loaded - baseline), seconds,
                 UnloadDiagnostics.describe() + " | our tickets: " + TicketLedger.describe());
@@ -302,9 +302,9 @@ public final class ChunkResidency {
      * {@code String.format}, so a stray sign throws -- which shipped in 3.5.2 and broke the command.
      */
     public static String describe() {
-        final long now = loadedChunks();
-        final long base = baseline;
-        final long added = addedChunks();
+        long now = loadedChunks();
+        long base = baseline;
+        long added = addedChunks();
         return String.format("resident=%s baseline=%s added=%s draining=%s heap=%dMB of %dMB (%.0f pct) lastDrain=[%s]",
                 now < 0L ? "unknown" : Long.toString(now),
                 base < 0L ? "unset" : Long.toString(base),

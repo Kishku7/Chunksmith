@@ -22,7 +22,7 @@ public final class Input {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        final String inputLower = input.toLowerCase();
+        String inputLower = input.toLowerCase();
         if (PatternType.ALL.contains(inputLower)) {
             return Optional.of(inputLower);
         }
@@ -33,7 +33,7 @@ public final class Input {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        final String inputLower = input.toLowerCase();
+        String inputLower = input.toLowerCase();
         if (ShapeType.all().contains(inputLower)) {
             return Optional.of(inputLower);
         }
@@ -57,7 +57,7 @@ public final class Input {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        final String value = input.trim();
+        String value = input.trim();
         if (value.equalsIgnoreCase("true")) {
             return Optional.of(Boolean.TRUE);
         }
@@ -82,7 +82,7 @@ public final class Input {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        final int last = input.length() - 1;
+        int last = input.length() - 1;
         return suffixValue(input.charAt(last))
                 .map(suffixValue -> tryInteger(input.substring(0, last)).map(i -> i * suffixValue))
                 .orElse(tryInteger(input));
@@ -103,7 +103,7 @@ public final class Input {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        final int last = input.length() - 1;
+        int last = input.length() - 1;
         return suffixValue(input.charAt(last))
                 .map(suffixValue -> tryDouble(input.substring(0, last)).map(d -> d * suffixValue))
                 .orElse(tryDouble(input));
@@ -124,7 +124,7 @@ public final class Input {
         if (input == null || input.isEmpty()) {
             return Optional.empty();
         }
-        final char sign = input.charAt(0);
+        char sign = input.charAt(0);
         return switch (sign) {
             case '-' -> Optional.of(-1);
             case '+' -> Optional.of(1);

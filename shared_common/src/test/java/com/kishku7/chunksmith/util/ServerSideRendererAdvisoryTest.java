@@ -34,7 +34,7 @@ public class ServerSideRendererAdvisoryTest {
 
     @Test
     public void namesTheRendererItFound() {
-        final Optional<String> message =
+        Optional<String> message =
                 ServerSideRendererAdvisory.message(true, "distanthorizons"::equals);
         assertTrue(message.isPresent());
         assertTrue(message.get().startsWith("distanthorizons is installed on this DEDICATED SERVER"));
@@ -43,14 +43,14 @@ public class ServerSideRendererAdvisoryTest {
 
     @Test
     public void namesBothRenderers() {
-        final String message = ServerSideRendererAdvisory.message(true, BOTH::contains).orElseThrow();
+        String message = ServerSideRendererAdvisory.message(true, BOTH::contains).orElseThrow();
         assertTrue(message.contains("distanthorizons and voxy are installed"));
         assertTrue(message.contains("does not need them"));
     }
 
     @Test
     public void saysWhyNotJustWhat() {
-        final String message = ServerSideRendererAdvisory.message(true, BOTH::contains).orElseThrow();
+        String message = ServerSideRendererAdvisory.message(true, BOTH::contains).orElseThrow();
         // A warning an operator cannot act on is noise. It has to say what to do and when NOT to.
         assertTrue("must say what to do", message.contains("Removing it is the recommended setup"));
         assertTrue("must say when keeping it is right",

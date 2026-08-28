@@ -39,7 +39,7 @@ public class CsLodClientSettingsCoverageTest {
 
     /** Every config KEY the client config declares, read off its {@code KEY_*} constants. */
     private static List<String> declaredKeys() throws IllegalAccessException {
-        final List<String> keys = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
         for (Field field : CsLodClientConfig.class.getDeclaredFields()) {
             if (!field.getName().startsWith("KEY_")) {
                 continue;
@@ -54,10 +54,10 @@ public class CsLodClientSettingsCoverageTest {
 
     @Test
     public void everyClientConfigKeyHasACommand() throws IllegalAccessException {
-        final List<String> declared = declaredKeys();
+        List<String> declared = declaredKeys();
         assertFalse("no KEY_* constants found", declared.isEmpty());
 
-        final List<String> missing = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
         for (String key : declared) {
             if (NOT_SETTINGS.contains(key)) {
                 continue;
@@ -75,8 +75,8 @@ public class CsLodClientSettingsCoverageTest {
     /** The mirror of the above: a setting that names a key the config does not have is a typo. */
     @Test
     public void everySettingNamesARealKey() throws IllegalAccessException {
-        final List<String> declared = declaredKeys();
-        final List<String> unknown = new ArrayList<>();
+        List<String> declared = declaredKeys();
+        List<String> unknown = new ArrayList<>();
         for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
             if (!declared.contains(setting.name())) {
                 unknown.add(setting.name());
@@ -95,9 +95,9 @@ public class CsLodClientSettingsCoverageTest {
 
     @Test
     public void namesAreUnique() {
-        final List<String> seen = new ArrayList<>();
+        List<String> seen = new ArrayList<>();
         for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
-            final String lower = setting.name().toLowerCase(Locale.ROOT);
+            String lower = setting.name().toLowerCase(Locale.ROOT);
             if (seen.contains(lower)) {
                 fail("duplicate setting name: " + setting.name());
             }
@@ -107,7 +107,7 @@ public class CsLodClientSettingsCoverageTest {
 
     @Test
     public void booleanSettingsOfferCompletions() {
-        final CsLodClientSettings.Setting reinject =
+        CsLodClientSettings.Setting reinject =
                 CsLodClientSettings.find(CsLodClientConfig.KEY_REINJECT).orElseThrow();
         assertTrue(reinject.kind().completions().contains("true"));
         assertTrue(reinject.kind().completions().contains("false"));
@@ -115,7 +115,7 @@ public class CsLodClientSettingsCoverageTest {
 
     @Test
     public void clampedOnWriteNotJustOnRead() {
-        final CsLodClientSettings.Setting sync =
+        CsLodClientSettings.Setting sync =
                 CsLodClientSettings.find(CsLodClientConfig.KEY_SYNC_SECONDS).orElseThrow();
         assertTrue(sync.write("1"));
         assertEquals("not stored as the floor",
@@ -127,7 +127,7 @@ public class CsLodClientSettingsCoverageTest {
 
     @Test
     public void aBadValueIsRefusedNotDefaulted() {
-        final CsLodClientSettings.Setting sync =
+        CsLodClientSettings.Setting sync =
                 CsLodClientSettings.find(CsLodClientConfig.KEY_SYNC_SECONDS).orElseThrow();
         assertTrue(sync.write("120"));
         assertFalse(sync.write("soon"));
@@ -137,7 +137,7 @@ public class CsLodClientSettingsCoverageTest {
         assertFalse(sync.write("4000000000"));
         assertEquals("120", sync.read());
 
-        final CsLodClientSettings.Setting reinject =
+        CsLodClientSettings.Setting reinject =
                 CsLodClientSettings.find(CsLodClientConfig.KEY_REINJECT).orElseThrow();
         assertTrue(reinject.write("true"));
         assertEquals("true", reinject.read());

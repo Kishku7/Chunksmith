@@ -75,7 +75,7 @@ public final class CsLodSectionBuilder {
         //[[[end]]]
 
         if (section.getUniformBlock() >= 0) {
-            final BlockState state = blockState(level, record.getBlockPalette().get(section.getUniformBlock()));
+            BlockState state = blockState(level, record.getBlockPalette().get(section.getUniformBlock()));
             for (int y = 0; y < 16; y++) {
                 for (int z = 0; z < 16; z++) {
                     for (int x = 0; x < 16; x++) {
@@ -84,7 +84,7 @@ public final class CsLodSectionBuilder {
                 }
             }
         } else {
-            final int[] indices = section.getBlocks();
+            int[] indices = section.getBlocks();
             int n = 0;
             for (int y = 0; y < 16; y++) {
                 for (int z = 0; z < 16; z++) {
@@ -96,7 +96,7 @@ public final class CsLodSectionBuilder {
         }
 
         if (section.getUniformBiome() >= 0) {
-            final Holder<Biome> biome = biome(level, record.getBiomePalette().get(section.getUniformBiome()));
+            Holder<Biome> biome = biome(level, record.getBiomePalette().get(section.getUniformBiome()));
             for (int y = 0; y < 4; y++) {
                 for (int z = 0; z < 4; z++) {
                     for (int x = 0; x < 4; x++) {
@@ -105,7 +105,7 @@ public final class CsLodSectionBuilder {
                 }
             }
         } else {
-            final int[] indices = section.getBiomes();
+            int[] indices = section.getBiomes();
             int n = 0;
             for (int y = 0; y < 4; y++) {
                 for (int z = 0; z < 4; z++) {

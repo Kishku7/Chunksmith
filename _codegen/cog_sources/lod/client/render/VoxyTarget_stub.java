@@ -28,7 +28,7 @@ public final class VoxyTarget {
         return false;
     }
 
-    public static int inject(final Level level, final CsLodChunk record) {
+    public static int inject(Level level, CsLodChunk record) {
         return 0;
     }
 }

@@ -37,7 +37,7 @@ public class CsLodSummaryTest {
     }
 
     private static List<R> store() {
-        final List<R> regions = new ArrayList<>();
+        List<R> regions = new ArrayList<>();
         regions.add(new R(0, 0, 0x1111L));
         regions.add(new R(0, 1, 0x2222L));
         regions.add(new R(1, 0, 0x3333L));
@@ -49,10 +49,10 @@ public class CsLodSummaryTest {
     /** THE property. The server's readdir order is not the client's index order. */
     @Test
     public void theFoldIsOrderIndependent() {
-        final List<R> a = store();
-        final List<R> b = new ArrayList<>(a);
+        List<R> a = store();
+        List<R> b = new ArrayList<>(a);
         Collections.reverse(b);
-        final List<R> c = new ArrayList<>(a);
+        List<R> c = new ArrayList<>(a);
         Collections.shuffle(c, new Random(42));
 
         assertEquals("reversed", fold(a), fold(b));
@@ -68,35 +68,35 @@ public class CsLodSummaryTest {
 
     @Test
     public void anAddedRegionMovesTheAggregate() {
-        final List<R> grown = store();
+        List<R> grown = store();
         grown.add(new R(4, 4, 0x6666L));
         assertNotEquals(fold(store()), fold(grown));
     }
 
     @Test
     public void aRemovedRegionMovesTheAggregate() {
-        final List<R> lost = store();
+        List<R> lost = store();
         lost.remove(2);
         assertNotEquals(fold(store()), fold(lost));
     }
 
     @Test
     public void aChangedRegionMovesTheAggregate() {
-        final List<R> changed = store();
+        List<R> changed = store();
         changed.set(1, new R(0, 1, 0x9999L));
         assertNotEquals(fold(store()), fold(changed));
     }
 
     @Test
     public void aMovedRegionMovesTheAggregate() {
-        final List<R> moved = store();
+        List<R> moved = store();
         moved.set(0, new R(9, 9, 0x1111L));   // same token, somewhere else
         assertNotEquals(fold(store()), fold(moved));
     }
 
     @Test
     public void duplicateTokensDoNotCancel() {
-        final List<R> twins = List.of(new R(0, 0, 0x1234L), new R(5, 5, 0x1234L));
+        List<R> twins = List.of(new R(0, 0, 0x1234L), new R(5, 5, 0x1234L));
         assertNotEquals("twin tokens", 0L, fold(twins));
     }
 

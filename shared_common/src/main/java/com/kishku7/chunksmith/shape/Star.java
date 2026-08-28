@@ -25,11 +25,11 @@ public class Star extends AbstractPolygon {
         this.p4z = centerZ + radiusX * Math.sin(Math.toRadians(270));
         this.p5x = centerX + radiusX * Math.cos(Math.toRadians(342));
         this.p5z = centerZ + radiusX * Math.sin(Math.toRadians(342));
-        final Vector2 i1 = intersection(p1x, p1z, p3x, p3z, p2x, p2z, p5x, p5z).orElse(Vector2.of(p1x, p1z));
-        final Vector2 i2 = intersection(p1x, p1z, p3x, p3z, p2x, p2z, p4x, p4z).orElse(Vector2.of(p2x, p2z));
-        final Vector2 i3 = intersection(p2x, p2z, p4x, p4z, p3x, p3z, p5x, p5z).orElse(Vector2.of(p3x, p3z));
-        final Vector2 i4 = intersection(p3x, p3z, p5x, p5z, p1x, p1z, p4x, p4z).orElse(Vector2.of(p4x, p4z));
-        final Vector2 i5 = intersection(p1x, p1z, p4x, p4z, p2x, p2z, p5x, p5z).orElse(Vector2.of(p5x, p5z));
+        Vector2 i1 = intersection(p1x, p1z, p3x, p3z, p2x, p2z, p5x, p5z).orElse(Vector2.of(p1x, p1z));
+        Vector2 i2 = intersection(p1x, p1z, p3x, p3z, p2x, p2z, p4x, p4z).orElse(Vector2.of(p2x, p2z));
+        Vector2 i3 = intersection(p2x, p2z, p4x, p4z, p3x, p3z, p5x, p5z).orElse(Vector2.of(p3x, p3z));
+        Vector2 i4 = intersection(p3x, p3z, p5x, p5z, p1x, p1z, p4x, p4z).orElse(Vector2.of(p4x, p4z));
+        Vector2 i5 = intersection(p1x, p1z, p4x, p4z, p2x, p2z, p5x, p5z).orElse(Vector2.of(p5x, p5z));
         this.i1x = i1.getX();
         this.i1z = i1.getZ();
         this.i2x = i2.getX();
@@ -60,14 +60,14 @@ public class Star extends AbstractPolygon {
 
     @Override
     public boolean isBounding(double x, double z) {
-        final boolean inside13 = insideLine(p1x, p1z, p3x, p3z, x, z);
-        final boolean inside24 = insideLine(p2x, p2z, p4x, p4z, x, z);
-        final boolean inside35 = insideLine(p3x, p3z, p5x, p5z, x, z);
-        final boolean inside41 = insideLine(p4x, p4z, p1x, p1z, x, z);
+        boolean inside13 = insideLine(p1x, p1z, p3x, p3z, x, z);
+        boolean inside24 = insideLine(p2x, p2z, p4x, p4z, x, z);
+        boolean inside35 = insideLine(p3x, p3z, p5x, p5z, x, z);
+        boolean inside41 = insideLine(p4x, p4z, p1x, p1z, x, z);
         if (inside13 && inside24 && inside35 && inside41) {
             return true;
         }
-        final boolean inside52 = insideLine(p5x, p5z, p2x, p2z, x, z);
+        boolean inside52 = insideLine(p5x, p5z, p2x, p2z, x, z);
         if (inside24 && inside35 && inside41 && inside52) {
             return true;
         }

@@ -17,12 +17,12 @@ public class QuietCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<Integer> newQuiet = arguments.next().flatMap(Input::tryInteger);
+        Optional<Integer> newQuiet = arguments.next().flatMap(Input::tryInteger);
         if (newQuiet.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_QUIET);
             return;
         }
-        final int quietInterval = Math.max(0, newQuiet.get());
+        int quietInterval = Math.max(0, newQuiet.get());
         chunky.getConfig().setUpdateInterval(quietInterval);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_QUIET, quietInterval);
     }

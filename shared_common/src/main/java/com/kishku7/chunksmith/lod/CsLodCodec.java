@@ -27,7 +27,7 @@ public final class CsLodCodec {
     }
 
     public static byte[] encode(CsLodChunk chunk) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream(8192);
+        ByteArrayOutputStream raw = new ByteArrayOutputStream(8192);
         try (DataOutputStream out = new DataOutputStream(new DeflaterOutputStream(raw))) {
             out.writeInt(MAGIC);
             out.writeShort(VERSION);
@@ -40,8 +40,8 @@ public final class CsLodCodec {
             writePalette(out, chunk.getBlockPalette());
             writePalette(out, chunk.getBiomePalette());
 
-            final int blockWidth = indexWidth(chunk.getBlockPalette().size());
-            final int biomeWidth = indexWidth(chunk.getBiomePalette().size());
+            int blockWidth = indexWidth(chunk.getBlockPalette().size());
+            int biomeWidth = indexWidth(chunk.getBiomePalette().size());
 
             for (CsLodChunk.Section section : chunk.getSections()) {
                 int flags = 0;
@@ -87,33 +87,33 @@ public final class CsLodCodec {
     public static CsLodChunk decode(byte[] compressed) throws IOException {
         try (DataInputStream in = new DataInputStream(
                 new InflaterInputStream(new ByteArrayInputStream(compressed)))) {
-            final int magic = in.readInt();
+            int magic = in.readInt();
             if (magic != MAGIC) {
                 throw new IOException("Not a CSLOD record (magic " + Integer.toHexString(magic) + ")");
             }
-            final int version = in.readUnsignedShort();
+            int version = in.readUnsignedShort();
             if (version != VERSION) {
                 throw new IOException("Unsupported CSLOD version " + version + " (this build reads " + VERSION + ")");
             }
-            final String dimension = in.readUTF();
-            final int chunkX = in.readInt();
-            final int chunkZ = in.readInt();
-            final int minSectionY = in.readInt();
-            final int sectionCount = in.readUnsignedByte();
+            String dimension = in.readUTF();
+            int chunkX = in.readInt();
+            int chunkZ = in.readInt();
+            int minSectionY = in.readInt();
+            int sectionCount = in.readUnsignedByte();
             if (sectionCount > CsLodProtocol.MAX_SECTIONS) {
                 throw new IOException("CSLOD record: section count " + sectionCount + " exceeds "
                         + CsLodProtocol.MAX_SECTIONS);
             }
 
-            final List<String> blockPalette = readPalette(in);
-            final List<String> biomePalette = readPalette(in);
+            List<String> blockPalette = readPalette(in);
+            List<String> biomePalette = readPalette(in);
 
-            final int blockWidth = indexWidth(blockPalette.size());
-            final int biomeWidth = indexWidth(biomePalette.size());
+            int blockWidth = indexWidth(blockPalette.size());
+            int biomeWidth = indexWidth(biomePalette.size());
 
-            final List<CsLodChunk.Section> sections = new ArrayList<>(sectionCount);
+            List<CsLodChunk.Section> sections = new ArrayList<>(sectionCount);
             for (int i = 0; i < sectionCount; i++) {
-                final int flags = in.readUnsignedByte();
+                int flags = in.readUnsignedByte();
 
                 int uniformBlock = -1;
                 int[] blocks = null;
@@ -175,7 +175,7 @@ public final class CsLodCodec {
 
     private static int[] readIndices(DataInputStream in, int count, int width)
             throws IOException {
-        final int[] indices = new int[count];
+        int[] indices = new int[count];
         for (int i = 0; i < count; i++) {
             indices[i] = width == 1 ? in.readUnsignedByte() : in.readUnsignedShort();
         }
@@ -190,7 +190,7 @@ public final class CsLodCodec {
     }
 
     private static List<String> readPalette(DataInputStream in) throws IOException {
-        final int size = readVarInt(in);
+        int size = readVarInt(in);
         // Bound before allocating: size is off the wire/disk. At most 65536 entries are ever addressable
         // (indices are 1 or 2 bytes wide), so a larger count is malformed, not merely large.
         if (size < 0 || size > CsLodProtocol.MAX_PALETTE_SIZE) {
@@ -199,7 +199,7 @@ public final class CsLodCodec {
         }
         // Do not presize from the count: each entry is a further readUTF that hits EOF if the record is
         // short, so a lie is caught without pre-allocating.
-        final List<String> palette = new ArrayList<>();
+        List<String> palette = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             palette.add(in.readUTF());
         }
@@ -219,7 +219,7 @@ public final class CsLodCodec {
         int result = 0;
         int shift = 0;
         while (true) {
-            final int b = in.readUnsignedByte();
+            int b = in.readUnsignedByte();
             result |= (b & 0x7F) << shift;
             if ((b & 0x80) == 0) {
                 return result;

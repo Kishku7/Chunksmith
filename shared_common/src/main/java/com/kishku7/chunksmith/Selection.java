@@ -204,15 +204,15 @@ public final class Selection {
         }
 
         public Builder spawn() {
-            final Location spawn = world.getSpawn();
+            Location spawn = world.getSpawn();
             this.centerX = spawn.getX();
             this.centerZ = spawn.getZ();
             return this;
         }
 
         public Builder worldborder() {
-            final Border border = world.getWorldBorder();
-            final Vector2 center = border.getCenter();
+            Border border = world.getWorldBorder();
+            Vector2 center = border.getCenter();
             this.centerX = center.getX();
             this.centerZ = center.getZ();
             this.radiusX = border.getRadiusX();

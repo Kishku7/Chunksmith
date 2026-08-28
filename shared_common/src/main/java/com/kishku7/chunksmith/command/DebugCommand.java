@@ -22,9 +22,9 @@ public class DebugCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<String> arg = arguments.next();
+        Optional<String> arg = arguments.next();
         if (arg.isPresent()) {
-            final String value = arg.get().toLowerCase();
+            String value = arg.get().toLowerCase();
             if ("on".equals(value) || "true".equals(value) || "enable".equals(value)) {
                 Debug.ENABLED = true;
             } else if ("off".equals(value) || "false".equals(value) || "disable".equals(value)) {

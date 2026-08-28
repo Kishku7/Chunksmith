@@ -33,7 +33,7 @@ public class GsonConfigSettleTest {
 
     @Test
     public void settleDefaults() throws IOException {
-        final GsonConfig config = new GsonConfig(configPath());
+        GsonConfig config = new GsonConfig(configPath());
         assertTrue("settle is ON by default",
                 config.isPregenSettleEnabled());
         assertEquals(40L, config.getPregenSettleDelayTicks());
@@ -43,9 +43,9 @@ public class GsonConfigSettleTest {
 
     @Test
     public void freshConfigHasSettleKeys() throws IOException {
-        final Path path = configPath();
+        Path path = configPath();
         new GsonConfig(path);
-        final String written = Files.readString(path);
+        String written = Files.readString(path);
         assertTrue("pregenSettle missing from a freshly written config", written.contains("pregenSettle"));
         assertTrue(written.contains("pregenSettleDelayTicks"));
         assertTrue(written.contains("pregenSettleRadius"));
@@ -53,13 +53,13 @@ public class GsonConfigSettleTest {
 
     @Test
     public void settingsSurviveAReload() throws IOException {
-        final Path path = configPath();
-        final GsonConfig first = new GsonConfig(path);
+        Path path = configPath();
+        GsonConfig first = new GsonConfig(path);
         first.setPregenSettleEnabled(false);
         first.setPregenSettleDelayTicks(120L);
         first.setPregenSettleRadius(11);
 
-        final GsonConfig reloaded = new GsonConfig(path);
+        GsonConfig reloaded = new GsonConfig(path);
         assertFalse(reloaded.isPregenSettleEnabled());
         assertEquals(120L, reloaded.getPregenSettleDelayTicks());
         assertEquals(11, reloaded.getPregenSettleRadius());
@@ -67,8 +67,8 @@ public class GsonConfigSettleTest {
 
     @Test
     public void clampsBeforeWrite() throws IOException {
-        final Path path = configPath();
-        final GsonConfig config = new GsonConfig(path);
+        Path path = configPath();
+        GsonConfig config = new GsonConfig(path);
 
         config.setPregenSettleDelayTicks(10_000L);
         assertEquals("delay clamps to its documented maximum", 600L, config.getPregenSettleDelayTicks());
@@ -82,18 +82,18 @@ public class GsonConfigSettleTest {
         config.setPregenSettleRadius(0);
         assertEquals("radius floors at 1", 1, config.getPregenSettleRadius());
 
-        final GsonConfig reloaded = new GsonConfig(path);
+        GsonConfig reloaded = new GsonConfig(path);
         assertEquals("clamped value was persisted", 1, reloaded.getPregenSettleRadius());
         assertEquals(0L, reloaded.getPregenSettleDelayTicks());
     }
 
     @Test
     public void aConfigFromAnEarlierVersionReadsAsTheDefaults() throws IOException {
-        final Path path = configPath();
+        Path path = configPath();
         Files.createDirectories(path.getParent());
         Files.writeString(path, "{\n  \"version\": 2,\n  \"language\": \"en\",\n  \"silent\": false\n}\n");
 
-        final GsonConfig config = new GsonConfig(path);
+        GsonConfig config = new GsonConfig(path);
         assertTrue(config.isPregenSettleEnabled());
         assertEquals(40L, config.getPregenSettleDelayTicks());
         assertEquals(7, config.getPregenSettleRadius());

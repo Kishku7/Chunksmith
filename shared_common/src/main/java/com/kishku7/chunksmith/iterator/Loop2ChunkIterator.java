@@ -25,17 +25,17 @@ public class Loop2ChunkIterator implements ChunkIterator {
     }
 
     public Loop2ChunkIterator(Selection selection) {
-        final int radiusChunksX = selection.radiusChunksX();
-        final int radiusChunksZ = selection.radiusChunksZ();
-        final int centerChunkX = selection.centerChunkX();
-        final int centerChunkZ = selection.centerChunkZ();
+        int radiusChunksX = selection.radiusChunksX();
+        int radiusChunksZ = selection.radiusChunksZ();
+        int centerChunkX = selection.centerChunkX();
+        int centerChunkZ = selection.centerChunkZ();
         this.x1 = centerChunkX - radiusChunksX;
         this.x2 = centerChunkX + radiusChunksX;
         this.z1 = centerChunkZ - radiusChunksZ;
         this.z2 = centerChunkZ + radiusChunksZ;
         this.x = x1;
         this.z = z1;
-        final int diameterChunksX = selection.diameterChunksX();
+        int diameterChunksX = selection.diameterChunksX();
         this.diameterChunksZ = selection.diameterChunksZ();
         this.total = diameterChunksX * diameterChunksZ;
     }
@@ -50,7 +50,7 @@ public class Loop2ChunkIterator implements ChunkIterator {
         if (!hasNext) {
             throw new NoSuchElementException();
         }
-        final ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
+        ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
         if (++z > z2) {
             z = z1;
             if (++x > x2) {

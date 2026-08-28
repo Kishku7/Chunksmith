@@ -159,7 +159,7 @@ public final class CsLodProtocol {
      * @return the backchannel port, or 0 if the game port is at the top of the range (no room for +1)
      */
     public static int httpPort(int gamePort) {
-        final int port = gamePort + 1;
+        int port = gamePort + 1;
         return port > 65535 ? 0 : port;
     }
 

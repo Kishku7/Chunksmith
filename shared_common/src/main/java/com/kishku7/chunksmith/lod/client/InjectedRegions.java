@@ -35,8 +35,8 @@ public final class InjectedRegions {
      * Atomic -- of two concurrent claims exactly one wins, and the winner must inject or {@link #release}.
      */
     public boolean claim(String dimension, int regionX, int regionZ, long hash) {
-        final String key = key(dimension, regionX, regionZ);
-        final Long previous = this.injected.put(key, hash);
+        String key = key(dimension, regionX, regionZ);
+        Long previous = this.injected.put(key, hash);
         if (previous == null) {
             return true;
         }

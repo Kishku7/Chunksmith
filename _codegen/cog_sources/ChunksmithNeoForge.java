@@ -97,15 +97,15 @@ public class ChunksmithNeoForge {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        final MinecraftServer server = event.getServer();
+        MinecraftServer server = event.getServer();
         // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need: it
         // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
         // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
         ServerSideRendererAdvisory.message(server.isDedicatedServer(), id -> ModList.get().isLoaded(id))
                 .ifPresent(message -> LoggerFactory.getLogger("Chunksmith").warn(message));
-        final Path configDir = FMLPaths.CONFIGDIR.get();
+        Path configDir = FMLPaths.CONFIGDIR.get();
         Path baseDir = configDir.resolve("chunksmith");
-        final Path legacyDir = configDir.resolve("chunky");
+        Path legacyDir = configDir.resolve("chunky");
         // Auto-migrate the legacy Chunky config on first run: if our directory does not yet
         // exist but a chunky directory does, take it over in place. If chunksmith already
         // exists, the legacy directory is left untouched. (Mirrors ChunksmithFabric.)
@@ -118,7 +118,7 @@ public class ChunksmithNeoForge {
                 baseDir = legacyDir;
             }
         }
-        final Path configPath = baseDir.resolve("config.json");
+        Path configPath = baseDir.resolve("config.json");
             StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
         this.chunky = new Chunksmith(new NeoForgeServer(this, server), new GsonConfig(configPath));
         if (chunky.getConfig().getContinueOnRestart()) {
@@ -138,9 +138,9 @@ public class ChunksmithNeoForge {
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> buildCommand(String root) {
-        final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
+        LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
-                    final MinecraftServer server = serverCommandSource.getServer();
+                    MinecraftServer server = serverCommandSource.getServer();
                     //noinspection ConstantValue
                     if (server != null && server.isSingleplayer()) {
                         return true;
@@ -157,20 +157,20 @@ public class ChunksmithNeoForge {
                     //[[[end]]]
                 })
                 .executes(context -> {
-                    final Sender sender;
+                    Sender sender;
                     if (context.getSource().getEntity() instanceof final ServerPlayer player) {
                         sender = new NeoForgePlayer(player);
                     } else {
                         sender = new NeoForgeSender(context.getSource());
                     }
-                    final Map<String, ChunksmithCommand> commands = chunky.getCommands();
-                    final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
-                    final String[] tokens = input.split(" ");
+                    Map<String, ChunksmithCommand> commands = chunky.getCommands();
+                    String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
+                    String[] tokens = input.split(" ");
                     if (CommandLiteral.CHUNKY.equals(tokens[0]) || CommandLiteral.CY.equals(tokens[0])) {
                         sender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
                     }
-                    final String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
-                    final CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
+                    String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
+                    CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
                     commands.get(subCommand).execute(sender, arguments);
                     return Command.SINGLE_SUCCESS;
                 });
@@ -232,7 +232,7 @@ public class ChunksmithNeoForge {
         registerArguments(command, literal(CommandLiteral.WORLDBORDER));
         registerArguments(command, literal(CommandLiteral.WORLD),
                 argument(CommandLiteral.WORLD, dimension()));
-        final LiteralArgumentBuilder<CommandSourceStack> borderCommand = literal(CommandLiteral.BORDER)
+        LiteralArgumentBuilder<CommandSourceStack> borderCommand = literal(CommandLiteral.BORDER)
                 .requires(serverCommandSource -> chunky != null && chunky.getCommands().containsKey(CommandLiteral.BORDER))
                 .executes(command.getCommand());
         registerArguments(borderCommand, literal(CommandLiteral.ADD),

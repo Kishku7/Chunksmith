@@ -105,8 +105,8 @@ public final class UnloadDiagnostics {
         if (levelSampledAt <= 0L) {
             return "not sampled yet";
         }
-        final long total = levelTicking + levelLoaded + levelDroppable;
-        final String verdict;
+        long total = levelTicking + levelLoaded + levelDroppable;
+        String verdict;
         if (total <= 0L) {
             verdict = "nothing resident";
         } else if (levelDroppable > total / 2L) {
@@ -149,7 +149,7 @@ public final class UnloadDiagnostics {
         // consults no budget, so sampling it reads zero on a healthy server exactly as often as on a
         // sick one. The 3.5.5 build printed "NOTHING IS ELIGIBLE TO UNLOAD" from that zero and it
         // proved nothing. TicketLedger is what actually answers the question.
-        final String verdict;
+        String verdict;
         if (visible <= 0L) {
             verdict = "nothing resident";
         } else if (unloadQueue > 2000L) {

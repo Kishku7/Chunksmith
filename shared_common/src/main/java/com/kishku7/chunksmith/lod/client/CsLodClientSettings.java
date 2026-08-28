@@ -83,7 +83,7 @@ public final class CsLodClientSettings {
                     Kind.INTEGER,
                     () -> Integer.toString(CsLodClientConfig.syncIntervalSeconds()),
                     raw -> {
-                        final Optional<Long> value = Input.tryLong(raw);
+                        Optional<Long> value = Input.tryLong(raw);
                         if (value.isEmpty() || value.get() > Integer.MAX_VALUE
                                 || value.get() < Integer.MIN_VALUE) {
                             return false;
@@ -97,7 +97,7 @@ public final class CsLodClientSettings {
                     Kind.BOOLEAN,
                     () -> Boolean.toString(CsLodClientConfig.reinjectOnJoin()),
                     raw -> {
-                        final Optional<Boolean> value = Input.tryBoolean(raw);
+                        Optional<Boolean> value = Input.tryBoolean(raw);
                         value.ifPresent(CsLodClientConfig::setReinjectOnJoin);
                         return value.isPresent();
                     },

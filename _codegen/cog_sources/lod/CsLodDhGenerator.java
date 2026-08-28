@@ -83,7 +83,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
 
     @Override
     public DhApiChunk generateApiChunk(int chunkX, int chunkZ, EDhApiDistantGeneratorMode mode) {
-        final CsLodChunk record;
+        CsLodChunk record;
         try {
             record = store.read(chunkX, chunkZ);
         } catch (IOException e) {
@@ -96,9 +96,9 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
             return emptyChunk(chunkX, chunkZ);
         }
 
-        final int bottomY = record.getMinSectionY() * 16;
-        final int topY = bottomY + record.getSections().size() * 16;
-        final DhApiChunk chunk = DhApiChunk.create(chunkX, chunkZ, bottomY, topY);
+        int bottomY = record.getMinSectionY() * 16;
+        int topY = bottomY + record.getSections().size() * 16;
+        DhApiChunk chunk = DhApiChunk.create(chunkX, chunkZ, bottomY, topY);
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -114,28 +114,28 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
      * overlap nor leave holes.
      */
     private List<DhApiTerrainDataPoint> column(CsLodChunk record, int x, int z, int bottomY) {
-        final List<CsLodChunk.Section> sections = record.getSections();
-        final int height = sections.size() * 16;
+        List<CsLodChunk.Section> sections = record.getSections();
+        int height = sections.size() * 16;
 
         // Flatten the column first so we can look one block UP for the light DH wants.
-        final String[] states = new String[height];
-        final String[] biomes = new String[height];
-        final int[] skyLight = new int[height];
-        final int[] blockLight = new int[height];
+        String[] states = new String[height];
+        String[] biomes = new String[height];
+        int[] skyLight = new int[height];
+        int[] blockLight = new int[height];
 
         for (int s = 0; s < sections.size(); s++) {
-            final CsLodChunk.Section section = sections.get(s);
+            CsLodChunk.Section section = sections.get(s);
             for (int y = 0; y < 16; y++) {
-                final int index = s * 16 + y;
-                final int voxel = y * 256 + z * 16 + x;
+                int index = s * 16 + y;
+                int voxel = y * 256 + z * 16 + x;
 
-                final int blockId = section.getUniformBlock() >= 0
+                int blockId = section.getUniformBlock() >= 0
                         ? section.getUniformBlock()
                         : section.getBlocks()[voxel];
                 states[index] = record.getBlockPalette().get(blockId);
 
-                final int biomeCell = (y >> 2) * 16 + (z >> 2) * 4 + (x >> 2);
-                final int biomeId = section.getUniformBiome() >= 0
+                int biomeCell = (y >> 2) * 16 + (z >> 2) * 4 + (x >> 2);
+                int biomeId = section.getUniformBiome() >= 0
                         ? section.getUniformBiome()
                         : section.getBiomes()[biomeCell];
                 biomes[index] = record.getBiomePalette().get(biomeId);
@@ -151,11 +151,11 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
 
         // Run-length merge: DH stores columns as runs, and one data point per block would be both
         // enormous and pointless.
-        final List<DhApiTerrainDataPoint> points = new ArrayList<>();
+        List<DhApiTerrainDataPoint> points = new ArrayList<>();
         int runStart = 0;
         for (int y = 1; y <= height; y++) {
-            final boolean end = y == height;
-            final boolean same = !end
+            boolean end = y == height;
+            boolean same = !end
                     && states[y].equals(states[runStart])
                     && biomes[y].equals(biomes[runStart])
                     && skyOf(skyLight, y, height) == skyOf(skyLight, runStart, height)
@@ -188,7 +188,7 @@ public final class CsLodDhGenerator extends AbstractDhApiChunkWorldGenerator {
      * "If you want to remove all data from a column please clear the list or pass in an empty list."
      */
     private DhApiChunk emptyChunk(int chunkX, int chunkZ) {
-        final DhApiChunk chunk = DhApiChunk.create(
+        DhApiChunk chunk = DhApiChunk.create(
                 chunkX, chunkZ, level.getMinHeight(), level.getMaxHeight());
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {

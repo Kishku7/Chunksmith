@@ -23,10 +23,10 @@ public class ListTag extends Tag {
     @Override
     public void read(DataInput input) throws IOException {
         this.type = input.readByte();
-        final int size = input.readInt();
+        int size = input.readInt();
         this.value = new ArrayList<>();
         for (int i = 0; i < size; ++i) {
-            final Tag tag = Tag.create(type, "");
+            Tag tag = Tag.create(type, "");
             tag.read(input);
             value.add(tag);
         }
@@ -35,8 +35,8 @@ public class ListTag extends Tag {
     @Override
     public void skip(DataInput input) throws IOException {
         this.type = input.readByte();
-        final int size = input.readInt();
-        final Tag tag = Tag.create(type, "");
+        int size = input.readInt();
+        Tag tag = Tag.create(type, "");
         for (int i = 0; i < size; ++i) {
             tag.skip(input);
         }
@@ -45,7 +45,7 @@ public class ListTag extends Tag {
     @Override
     public void write(DataOutput output) throws IOException {
         output.writeByte(type);
-        final int size = value.size();
+        int size = value.size();
         output.writeInt(size);
         for (Tag tag : value) {
             tag.write(output);
@@ -70,10 +70,10 @@ public class ListTag extends Tag {
 
     @Override
     public String print(int level) {
-        final int size = value.size();
-        final String entry = size == 1 ? "entry" : "entries";
-        final String indent = " ".repeat(level * Tag.INDENT);
-        final StringBuilder listBuilder = new StringBuilder("%s%s('%s'): %d %s".formatted(indent, typeName(), name, size, entry));
+        int size = value.size();
+        String entry = size == 1 ? "entry" : "entries";
+        String indent = " ".repeat(level * Tag.INDENT);
+        StringBuilder listBuilder = new StringBuilder("%s%s('%s'): %d %s".formatted(indent, typeName(), name, size, entry));
         listBuilder.append('\n').append(indent).append("{\n");
         for (Tag tag : value) {
             listBuilder.append(tag.print(level + 1)).append('\n');

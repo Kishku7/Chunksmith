@@ -16,13 +16,13 @@ public class TotalTest {
      */
     @Test
     public void radius() {
-        final Selection original = SELECTION.build();
+        Selection original = SELECTION.build();
         for (int i = 0; i < original.radiusX(); ++i) {
-            final Selection s = SELECTION.radiusX(i).radiusZ(i).build();
-            final ChunkIterator concentricIterator = new ConcentricChunkIterator(s);
-            final ChunkIterator loop2Iterator = new Loop2ChunkIterator(s);
-            final ChunkIterator spiralIterator = new SpiralChunkIterator(s);
-            final ChunkIterator regionIterator = new RegionChunkIterator(s);
+            Selection s = SELECTION.radiusX(i).radiusZ(i).build();
+            ChunkIterator concentricIterator = new ConcentricChunkIterator(s);
+            ChunkIterator loop2Iterator = new Loop2ChunkIterator(s);
+            ChunkIterator spiralIterator = new SpiralChunkIterator(s);
+            ChunkIterator regionIterator = new RegionChunkIterator(s);
             assertEquals(concentricIterator.total(), loop2Iterator.total());
             assertEquals(loop2Iterator.total(), spiralIterator.total());
             assertEquals(spiralIterator.total(), regionIterator.total());
@@ -34,14 +34,14 @@ public class TotalTest {
      */
     @Test
     public void center() {
-        final Selection original = SELECTION.build();
+        Selection original = SELECTION.build();
         for (int i = 0; i > original.centerX(); --i) {
             for (int j = 0; j < original.centerZ(); ++j) {
-                final Selection s = SELECTION.center(i, j).build();
-                final ChunkIterator concentricIterator = new ConcentricChunkIterator(s);
-                final ChunkIterator loop2Iterator = new Loop2ChunkIterator(s);
-                final ChunkIterator spiralIterator = new SpiralChunkIterator(s);
-                final ChunkIterator regionIterator = new RegionChunkIterator(s);
+                Selection s = SELECTION.center(i, j).build();
+                ChunkIterator concentricIterator = new ConcentricChunkIterator(s);
+                ChunkIterator loop2Iterator = new Loop2ChunkIterator(s);
+                ChunkIterator spiralIterator = new SpiralChunkIterator(s);
+                ChunkIterator regionIterator = new RegionChunkIterator(s);
                 assertEquals(concentricIterator.total(), loop2Iterator.total());
                 assertEquals(loop2Iterator.total(), spiralIterator.total());
                 assertEquals(spiralIterator.total(), regionIterator.total());

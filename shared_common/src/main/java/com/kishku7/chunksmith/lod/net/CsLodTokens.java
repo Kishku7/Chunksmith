@@ -19,7 +19,7 @@ public final class CsLodTokens {
     private final Map<String, Entry> byToken = new ConcurrentHashMap<>();
     private final Map<UUID, String> byPlayer = new ConcurrentHashMap<>();
 
-    public String issue(final UUID player, final String ip) {
+    public String issue(UUID player, String ip) {
         revoke(player);
         final byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
@@ -29,7 +29,7 @@ public final class CsLodTokens {
         return token;
     }
 
-    public UUID validate(final String token, final String ip, final OnlineCheck online) {
+    public UUID validate(String token, String ip, OnlineCheck online) {
         if (token == null || token.isEmpty()) {
             return null;
         }
@@ -51,7 +51,7 @@ public final class CsLodTokens {
         return entry.player;
     }
 
-    public void revoke(final UUID player) {
+    public void revoke(UUID player) {
         final String existing = byPlayer.remove(player);
         if (existing != null) {
             byToken.remove(existing);
@@ -77,7 +77,7 @@ public final class CsLodTokens {
         private final String ip;
         private final long expiresAt;
 
-        private Entry(final UUID player, final String ip, final long expiresAt) {
+        private Entry(UUID player, String ip, long expiresAt) {
             this.player = player;
             this.ip = ip;
             this.expiresAt = expiresAt;

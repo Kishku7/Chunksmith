@@ -75,9 +75,9 @@ public class ChunksmithFabric implements ModInitializer {
             // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
             ServerSideRendererAdvisory.message(minecraftServer.isDedicatedServer(), FabricLoader.getInstance()::isModLoaded)
                     .ifPresent(message -> LoggerFactory.getLogger("Chunksmith").warn(message));
-            final Path configDir = FabricLoader.getInstance().getConfigDir();
+            Path configDir = FabricLoader.getInstance().getConfigDir();
             Path baseDir = configDir.resolve("chunksmith");
-            final Path legacyDir = configDir.resolve("chunky");
+            Path legacyDir = configDir.resolve("chunky");
             // Auto-migrate the legacy Chunky config on first run: if our directory does not
             // yet exist but a chunky directory does, take it over in place. If chunksmith
             // already exists, the legacy directory is left untouched.
@@ -90,7 +90,7 @@ public class ChunksmithFabric implements ModInitializer {
                     baseDir = legacyDir;
                 }
             }
-            final Path configPath = baseDir.resolve("config.json");
+            Path configPath = baseDir.resolve("config.json");
             StructureFaultReporter.get().setReportFile(baseDir.resolve("worldgen-faults.txt"));
             this.chunky = new Chunksmith(new FabricServer(this, minecraftServer), new GsonConfig(configPath));
             if (chunky.getConfig().getContinueOnRestart()) {
@@ -116,29 +116,29 @@ public class ChunksmithFabric implements ModInitializer {
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> buildCommand(String root) {
-        final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
+        LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
-                    final MinecraftServer minecraftServer = serverCommandSource.getServer();
+                    MinecraftServer minecraftServer = serverCommandSource.getServer();
                     if (minecraftServer != null && minecraftServer.isSingleplayer()) {
                         return true;
                     }
                     return new FabricSender(serverCommandSource).hasPermission("chunksmith.command", true);
                 })
                 .executes(context -> {
-                    final Sender sender;
+                    Sender sender;
                     if (context.getSource().getEntity() instanceof final ServerPlayer player) {
                         sender = new FabricPlayer(player);
                     } else {
                         sender = new FabricSender(context.getSource());
                     }
-                    final Map<String, ChunksmithCommand> commands = chunky.getCommands();
-                    final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
-                    final String[] tokens = input.split(" ");
+                    Map<String, ChunksmithCommand> commands = chunky.getCommands();
+                    String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
+                    String[] tokens = input.split(" ");
                     if (CommandLiteral.CHUNKY.equals(tokens[0]) || CommandLiteral.CY.equals(tokens[0])) {
                         sender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
                     }
-                    final String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
-                    final CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
+                    String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
+                    CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
                     commands.get(subCommand).execute(sender, arguments);
                     return Command.SINGLE_SUCCESS;
                 });
@@ -200,7 +200,7 @@ public class ChunksmithFabric implements ModInitializer {
         registerArguments(command, literal(CommandLiteral.WORLDBORDER));
         registerArguments(command, literal(CommandLiteral.WORLD),
                 argument(CommandLiteral.WORLD, dimension()));
-        final LiteralArgumentBuilder<CommandSourceStack> borderCommand = literal(CommandLiteral.BORDER)
+        LiteralArgumentBuilder<CommandSourceStack> borderCommand = literal(CommandLiteral.BORDER)
                 .requires(serverCommandSource -> chunky != null && chunky.getCommands().containsKey(CommandLiteral.BORDER))
                 .executes(command.getCommand());
         registerArguments(borderCommand, literal(CommandLiteral.ADD),

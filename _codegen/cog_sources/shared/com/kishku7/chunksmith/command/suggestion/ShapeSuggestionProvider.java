@@ -14,7 +14,7 @@ public class ShapeSuggestionProvider implements SuggestionProvider<CommandSource
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
         try {
-            final String input = context.getArgument(CommandLiteral.SHAPE, String.class);
+            String input = context.getArgument(CommandLiteral.SHAPE, String.class);
             ShapeType.all().forEach(shape -> {
                 if (shape.contains(input.toLowerCase())) {
                     builder.suggest(shape);

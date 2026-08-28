@@ -19,14 +19,14 @@ public class ByteArrayTag extends Tag {
 
     @Override
     public void read(DataInput input) throws IOException {
-        final int size = input.readInt();
+        int size = input.readInt();
         this.value = new byte[size];
         input.readFully(value);
     }
 
     @Override
     public void skip(DataInput input) throws IOException {
-        final int size = input.readInt();
+        int size = input.readInt();
         input.skipBytes(size);
     }
 

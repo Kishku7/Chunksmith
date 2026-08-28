@@ -16,7 +16,7 @@ public class ConfirmCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<Runnable> pendingAction = chunky.getPendingAction(sender);
+        Optional<Runnable> pendingAction = chunky.getPendingAction(sender);
         if (pendingAction.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_CONFIRM);
             return;

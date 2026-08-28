@@ -20,9 +20,9 @@ public class ChunkSettleWindowCapTest {
 
     /** Offer a straight line of chunks. No chunk in a line ever gets all nine of its neighbours. */
     private static List<Integer> offerLine(ChunkSettleWindow window, int count, long cap) {
-        final List<Integer> released = new ArrayList<>();
+        List<Integer> released = new ArrayList<>();
         for (int x = 0; x < count; x++) {
-            final int captured = x;
+            int captured = x;
             window.offer(x, 0, 0L, () -> released.add(captured));
         }
         assertTrue("a line closes no neighbourhood",
@@ -32,7 +32,7 @@ public class ChunkSettleWindowCapTest {
 
     @Test
     public void anUncappedFrontierGrowsForever() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L);
+        ChunkSettleWindow window = new ChunkSettleWindow(0L);
         offerLine(window, 5_000, 0L);
         assertEquals("this is the leak: every one of them is still held", 5_000, window.heldCount());
         assertEquals(0L, window.evictedCount());
@@ -40,7 +40,7 @@ public class ChunkSettleWindowCapTest {
 
     @Test
     public void theCapBoundsTheFrontier() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 100L);
+        ChunkSettleWindow window = new ChunkSettleWindow(0L, 100L);
         offerLine(window, 5_000, 100L);
         assertEquals(100, window.heldCount());
         assertEquals("everything over the cap came back", 4_900L, window.evictedCount());
@@ -48,10 +48,10 @@ public class ChunkSettleWindowCapTest {
 
     @Test
     public void evictionIsOldestFirst() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 3L);
-        final List<Integer> released = new ArrayList<>();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L, 3L);
+        List<Integer> released = new ArrayList<>();
         for (int x = 0; x < 6; x++) {
-            final int captured = x;
+            int captured = x;
             window.offer(x, 0, 0L, () -> released.add(captured));
         }
         assertEquals("the three oldest went, in order", List.of(0, 1, 2), released);
@@ -60,10 +60,10 @@ public class ChunkSettleWindowCapTest {
 
     @Test
     public void everyTicketReturns() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 10L);
-        final List<Integer> released = new ArrayList<>();
+        ChunkSettleWindow window = new ChunkSettleWindow(0L, 10L);
+        List<Integer> released = new ArrayList<>();
         for (int x = 0; x < 500; x++) {
-            final int captured = x;
+            int captured = x;
             window.offer(x, 0, 0L, () -> released.add(captured));
         }
         window.drain();
@@ -75,7 +75,7 @@ public class ChunkSettleWindowCapTest {
 
     @Test
     public void slackCapDoesNothing() {
-        final ChunkSettleWindow window = new ChunkSettleWindow(0L, 100_000L);
+        ChunkSettleWindow window = new ChunkSettleWindow(0L, 100_000L);
         offerLine(window, 1_000, 100_000L);
         assertEquals(1_000, window.heldCount());
         assertEquals(0L, window.evictedCount());

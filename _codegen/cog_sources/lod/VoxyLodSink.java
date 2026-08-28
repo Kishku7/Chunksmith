@@ -61,7 +61,7 @@ public final class VoxyLodSink implements LodSink {
             return 0;
         }
         try {
-            final var instance = VoxyCommon.getInstance();
+            var instance = VoxyCommon.getInstance();
             if (instance == null) {
                 return 0;
             }

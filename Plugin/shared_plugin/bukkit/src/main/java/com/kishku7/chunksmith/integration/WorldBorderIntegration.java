@@ -17,7 +17,7 @@ public class WorldBorderIntegration implements BorderIntegration {
         return new Border() {
             @Override
             public Vector2 getCenter() {
-                final BorderData borderData = Config.Border(world);
+                BorderData borderData = Config.Border(world);
                 return Vector2.of(borderData.getX(), borderData.getZ());
             }
 
@@ -33,11 +33,11 @@ public class WorldBorderIntegration implements BorderIntegration {
 
             @Override
             public String getShape() {
-                final BorderData borderData = Config.Border(world);
-                final double radiusX = getRadiusX();
-                final double radiusZ = getRadiusZ();
-                final boolean round = borderData.getShape() == null ? Config.ShapeRound() : borderData.getShape();
-                final String shape;
+                BorderData borderData = Config.Border(world);
+                double radiusX = getRadiusX();
+                double radiusZ = getRadiusZ();
+                boolean round = borderData.getShape() == null ? Config.ShapeRound() : borderData.getShape();
+                String shape;
                 if (radiusX == radiusZ) {
                     shape = round ? ShapeType.CIRCLE : ShapeType.SQUARE;
                 } else {

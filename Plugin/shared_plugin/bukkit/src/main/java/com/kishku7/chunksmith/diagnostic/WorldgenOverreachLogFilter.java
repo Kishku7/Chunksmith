@@ -43,13 +43,13 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
      */
     public static WorldgenOverreachLogFilter install() {
         try {
-            final org.apache.logging.log4j.spi.LoggerContext spi = org.apache.logging.log4j.LogManager.getContext(false);
+            org.apache.logging.log4j.spi.LoggerContext spi = org.apache.logging.log4j.LogManager.getContext(false);
             if (!(spi instanceof final LoggerContext ctx)) {
                 return null;
             }
-            final WorldgenOverreachLogFilter filter = new WorldgenOverreachLogFilter();
+            WorldgenOverreachLogFilter filter = new WorldgenOverreachLogFilter();
             filter.start();
-            final Configuration config = ctx.getConfiguration();
+            Configuration config = ctx.getConfiguration();
             config.getRootLogger().addFilter(filter);
             ctx.updateLoggers();
             return filter;
@@ -60,7 +60,7 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
 
     public void uninstall() {
         try {
-            final org.apache.logging.log4j.spi.LoggerContext spi = org.apache.logging.log4j.LogManager.getContext(false);
+            org.apache.logging.log4j.spi.LoggerContext spi = org.apache.logging.log4j.LogManager.getContext(false);
             if (spi instanceof final LoggerContext ctx) {
                 ctx.getConfiguration().getRootLogger().removeFilter(this);
                 ctx.updateLoggers();
@@ -99,7 +99,7 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
         if (event == null) {
             return Result.NEUTRAL;
         }
-        final Message m = event.getMessage();
+        Message m = event.getMessage();
         return evaluate(event.getLevel(), m == null ? null : m.getFormattedMessage());
     }
 

@@ -21,18 +21,18 @@ public class PatternCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<String> optionalType = arguments.next().flatMap(Input::tryPattern);
+        Optional<String> optionalType = arguments.next().flatMap(Input::tryPattern);
         if (optionalType.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_PATTERN);
             return;
         }
-        final String type = optionalType.get();
-        final Optional<String> value = arguments.next();
+        String type = optionalType.get();
+        Optional<String> value = arguments.next();
         if (PatternType.CSV.equals(type) && value.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_PATTERN);
             return;
         }
-        final Parameter pattern = Parameter.of(type, value.orElse(null));
+        Parameter pattern = Parameter.of(type, value.orElse(null));
         chunky.getSelection().pattern(pattern);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_PATTERN, translate("pattern_" + pattern.getType()));
     }

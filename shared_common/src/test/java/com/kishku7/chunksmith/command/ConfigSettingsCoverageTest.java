@@ -34,8 +34,8 @@ public class ConfigSettingsCoverageTest {
     private static final Set<String> NOT_SETTINGS = Set.of("version", "tasks");
 
     private static List<String> configModelFields() throws ClassNotFoundException {
-        final Class<?> model = Class.forName("com.kishku7.chunksmith.platform.impl.GsonConfig$ConfigModel");
-        final List<String> names = new ArrayList<>();
+        Class<?> model = Class.forName("com.kishku7.chunksmith.platform.impl.GsonConfig$ConfigModel");
+        List<String> names = new ArrayList<>();
         for (Field field : model.getDeclaredFields()) {
             if (field.isSynthetic() || Modifier.isStatic(field.getModifiers())) {
                 continue;
@@ -47,7 +47,7 @@ public class ConfigSettingsCoverageTest {
 
     @Test
     public void everyKeyHasACommand() throws ClassNotFoundException {
-        final List<String> missing = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
         for (String field : configModelFields()) {
             if (NOT_SETTINGS.contains(field)) {
                 continue;
@@ -65,8 +65,8 @@ public class ConfigSettingsCoverageTest {
     /** The mirror of the above: a setting that names a key the config does not have is a typo. */
     @Test
     public void everyCommandSettingNamesARealKey() throws ClassNotFoundException {
-        final List<String> fields = configModelFields();
-        final List<String> unknown = new ArrayList<>();
+        List<String> fields = configModelFields();
+        List<String> unknown = new ArrayList<>();
         for (ConfigSetting setting : ConfigSettings.all()) {
             if (!fields.contains(setting.name())) {
                 unknown.add(setting.name());
@@ -86,19 +86,19 @@ public class ConfigSettingsCoverageTest {
 
     @Test
     public void offersCompletions() {
-        final ConfigSetting settle = ConfigSettings.find("pregenSettle").orElseThrow();
+        ConfigSetting settle = ConfigSettings.find("pregenSettle").orElseThrow();
         assertTrue(settle.kind().completions().contains("true"));
 
-        final ConfigSetting lod = ConfigSettings.find("lodEnabled").orElseThrow();
+        ConfigSetting lod = ConfigSettings.find("lodEnabled").orElseThrow();
         assertTrue("lodEnabled offers auto",
                 lod.kind().completions().contains("auto"));
     }
 
     @Test
     public void settingNamesAreUnique() {
-        final List<String> seen = new ArrayList<>();
+        List<String> seen = new ArrayList<>();
         for (ConfigSetting setting : ConfigSettings.all()) {
-            final String lower = setting.name().toLowerCase(Locale.ROOT);
+            String lower = setting.name().toLowerCase(Locale.ROOT);
             if (seen.contains(lower)) {
                 fail("duplicate setting name: " + setting.name());
             }

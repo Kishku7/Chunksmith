@@ -198,8 +198,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public double getThrottleTargetMspt() {
-        final double raw = Optional.ofNullable(configModel.throttleTargetMspt).orElse(TARGET_MSPT_DEFAULT);
-        final double clamped = Math.max(TARGET_MSPT_MIN, Math.min(TARGET_MSPT_MAX, raw));
+        double raw = Optional.ofNullable(configModel.throttleTargetMspt).orElse(TARGET_MSPT_DEFAULT);
+        double clamped = Math.max(TARGET_MSPT_MIN, Math.min(TARGET_MSPT_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleTargetMspt %.1f is out of range [%.1f, %.1f], using %.1f",
                     raw, TARGET_MSPT_MIN, TARGET_MSPT_MAX, clamped));
@@ -209,8 +209,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleMaxChunkMillis() {
-        final long raw = Optional.ofNullable(configModel.throttleMaxChunkMillis).orElse(MAX_CHUNK_MILLIS_DEFAULT);
-        final long clamped = Math.max(MAX_CHUNK_MILLIS_MIN, Math.min(MAX_CHUNK_MILLIS_MAX, raw));
+        long raw = Optional.ofNullable(configModel.throttleMaxChunkMillis).orElse(MAX_CHUNK_MILLIS_DEFAULT);
+        long clamped = Math.max(MAX_CHUNK_MILLIS_MIN, Math.min(MAX_CHUNK_MILLIS_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleMaxChunkMillis %d is out of range [%d, %d], using %d",
                     raw, MAX_CHUNK_MILLIS_MIN, MAX_CHUNK_MILLIS_MAX, clamped));
@@ -220,11 +220,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleMaxQueuedWrites() {
-        final long raw = Optional.ofNullable(configModel.throttleMaxQueuedWrites).orElse(MAX_QUEUED_WRITES_DEFAULT);
+        long raw = Optional.ofNullable(configModel.throttleMaxQueuedWrites).orElse(MAX_QUEUED_WRITES_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(MAX_QUEUED_WRITES_MIN, Math.min(MAX_QUEUED_WRITES_MAX, raw));
+        long clamped = Math.max(MAX_QUEUED_WRITES_MIN, Math.min(MAX_QUEUED_WRITES_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleMaxQueuedWrites %d is out of range [%d, %d], using %d",
                     raw, MAX_QUEUED_WRITES_MIN, MAX_QUEUED_WRITES_MAX, clamped));
@@ -234,11 +234,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleMaxAddedChunks() {
-        final long raw = Optional.ofNullable(configModel.throttleMaxAddedChunks).orElse(MAX_ADDED_CHUNKS_DEFAULT);
+        long raw = Optional.ofNullable(configModel.throttleMaxAddedChunks).orElse(MAX_ADDED_CHUNKS_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(MAX_ADDED_CHUNKS_MIN, Math.min(MAX_ADDED_CHUNKS_MAX, raw));
+        long clamped = Math.max(MAX_ADDED_CHUNKS_MIN, Math.min(MAX_ADDED_CHUNKS_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleMaxAddedChunks %d is out of range [%d, %d], using %d",
                     raw, MAX_ADDED_CHUNKS_MIN, MAX_ADDED_CHUNKS_MAX, clamped));
@@ -248,11 +248,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleMaxHeapPercent() {
-        final long raw = Optional.ofNullable(configModel.throttleMaxHeapPercent).orElse(MAX_HEAP_PERCENT_DEFAULT);
+        long raw = Optional.ofNullable(configModel.throttleMaxHeapPercent).orElse(MAX_HEAP_PERCENT_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(MAX_HEAP_PERCENT_MIN, Math.min(MAX_HEAP_PERCENT_MAX, raw));
+        long clamped = Math.max(MAX_HEAP_PERCENT_MIN, Math.min(MAX_HEAP_PERCENT_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleMaxHeapPercent %d is out of range [%d, %d], using %d",
                     raw, MAX_HEAP_PERCENT_MIN, MAX_HEAP_PERCENT_MAX, clamped));
@@ -267,8 +267,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public int getAutoPauseGraceSeconds() {
-        final int raw = Optional.ofNullable(configModel.autoPauseGraceSeconds).orElse(AUTO_PAUSE_GRACE_DEFAULT);
-        final int clamped = Math.max(AUTO_PAUSE_GRACE_MIN, Math.min(AUTO_PAUSE_GRACE_MAX, raw));
+        int raw = Optional.ofNullable(configModel.autoPauseGraceSeconds).orElse(AUTO_PAUSE_GRACE_DEFAULT);
+        int clamped = Math.max(AUTO_PAUSE_GRACE_MIN, Math.min(AUTO_PAUSE_GRACE_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: autoPauseGraceSeconds %d is out of range [%d, %d], using %d",
                     raw, AUTO_PAUSE_GRACE_MIN, AUTO_PAUSE_GRACE_MAX, clamped));
@@ -278,11 +278,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleTickBudgetMillis() {
-        final long raw = Optional.ofNullable(configModel.throttleTickBudgetMillis).orElse(TICK_BUDGET_DEFAULT);
+        long raw = Optional.ofNullable(configModel.throttleTickBudgetMillis).orElse(TICK_BUDGET_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(TICK_BUDGET_MIN, Math.min(TICK_BUDGET_MAX, raw));
+        long clamped = Math.max(TICK_BUDGET_MIN, Math.min(TICK_BUDGET_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleTickBudgetMillis %d is out of range [%d, %d], using %d",
                     raw, TICK_BUDGET_MIN, TICK_BUDGET_MAX, clamped));
@@ -292,8 +292,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottlePlayerReserveMillis() {
-        final long raw = Optional.ofNullable(configModel.throttlePlayerReserveMillis).orElse(PLAYER_RESERVE_DEFAULT);
-        final long clamped = Math.max(PLAYER_RESERVE_MIN, Math.min(PLAYER_RESERVE_MAX, raw));
+        long raw = Optional.ofNullable(configModel.throttlePlayerReserveMillis).orElse(PLAYER_RESERVE_DEFAULT);
+        long clamped = Math.max(PLAYER_RESERVE_MIN, Math.min(PLAYER_RESERVE_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttlePlayerReserveMillis %d is out of range [%d, %d], using %d",
                     raw, PLAYER_RESERVE_MIN, PLAYER_RESERVE_MAX, clamped));
@@ -303,11 +303,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleCeilingMillis() {
-        final long raw = Optional.ofNullable(configModel.throttleCeilingMillis).orElse(CEILING_DEFAULT);
+        long raw = Optional.ofNullable(configModel.throttleCeilingMillis).orElse(CEILING_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(CEILING_MIN, Math.min(CEILING_MAX, raw));
+        long clamped = Math.max(CEILING_MIN, Math.min(CEILING_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleCeilingMillis %d is out of range [%d, %d], using %d",
                     raw, CEILING_MIN, CEILING_MAX, clamped));
@@ -317,8 +317,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public LodMode getLodMode() {
-        final String raw = configModel.lodEnabled;
-        final LodMode mode = LodMode.parse(raw);
+        String raw = configModel.lodEnabled;
+        LodMode mode = LodMode.parse(raw);
         if (mode == null) {
             LOGGER.warn("Chunksmith: lodEnabled '" + raw
                     + "' is not one of auto/true/false, using auto");
@@ -329,11 +329,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getThrottleMaxLodQueue() {
-        final long raw = Optional.ofNullable(configModel.throttleMaxLodQueue).orElse(MAX_LOD_QUEUE_DEFAULT);
+        long raw = Optional.ofNullable(configModel.throttleMaxLodQueue).orElse(MAX_LOD_QUEUE_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(MAX_LOD_QUEUE_MIN, Math.min(MAX_LOD_QUEUE_MAX, raw));
+        long clamped = Math.max(MAX_LOD_QUEUE_MIN, Math.min(MAX_LOD_QUEUE_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: throttleMaxLodQueue %d is out of range [%d, %d], using %d",
                     raw, MAX_LOD_QUEUE_MIN, MAX_LOD_QUEUE_MAX, clamped));
@@ -343,9 +343,9 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getDispatchMaxConcurrent() {
-        final long raw = Optional.ofNullable(configModel.dispatchMaxConcurrent)
+        long raw = Optional.ofNullable(configModel.dispatchMaxConcurrent)
                 .orElse(DISPATCH_MAX_CONCURRENT_DEFAULT);
-        final long clamped = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
+        long clamped = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
                 Math.min(DISPATCH_MAX_CONCURRENT_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format(
@@ -362,9 +362,9 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getPregenSettleDelayTicks() {
-        final long raw = Optional.ofNullable(configModel.pregenSettleDelayTicks)
+        long raw = Optional.ofNullable(configModel.pregenSettleDelayTicks)
                 .orElse(SETTLE_DELAY_DEFAULT);
-        final long clamped = Math.max(0L, Math.min(SETTLE_DELAY_MAX, raw));
+        long clamped = Math.max(0L, Math.min(SETTLE_DELAY_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: pregenSettleDelayTicks %d is out of range [0, %d],"
                     + " using %d", raw, SETTLE_DELAY_MAX, clamped));
@@ -374,11 +374,11 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getPregenSettleMaxHeld() {
-        final long raw = Optional.ofNullable(configModel.pregenSettleMaxHeld).orElse(SETTLE_MAX_HELD_DEFAULT);
+        long raw = Optional.ofNullable(configModel.pregenSettleMaxHeld).orElse(SETTLE_MAX_HELD_DEFAULT);
         if (raw <= 0L) {
             return 0L;
         }
-        final long clamped = Math.max(SETTLE_MAX_HELD_MIN, Math.min(SETTLE_MAX_HELD_MAX, raw));
+        long clamped = Math.max(SETTLE_MAX_HELD_MIN, Math.min(SETTLE_MAX_HELD_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: pregenSettleMaxHeld %d is out of range [%d, %d], using %d",
                     raw, SETTLE_MAX_HELD_MIN, SETTLE_MAX_HELD_MAX, clamped));
@@ -388,8 +388,8 @@ public final class GsonConfig implements Config {
 
     @Override
     public int getPregenSettleRadius() {
-        final int raw = Optional.ofNullable(configModel.pregenSettleRadius).orElse(SETTLE_RADIUS_DEFAULT);
-        final int clamped = Math.max(1, Math.min(SETTLE_RADIUS_MAX, raw));
+        int raw = Optional.ofNullable(configModel.pregenSettleRadius).orElse(SETTLE_RADIUS_DEFAULT);
+        int clamped = Math.max(1, Math.min(SETTLE_RADIUS_MAX, raw));
         if (raw != clamped) {
             LOGGER.warn(String.format("Chunksmith: pregenSettleRadius %d is out of range [1, %d],"
                     + " using %d", raw, SETTLE_RADIUS_MAX, clamped));
@@ -425,7 +425,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public int getLodBackchannelPort() {
-        final int raw = Optional.ofNullable(configModel.lodBackchannelPort).orElse(BACKCHANNEL_PORT_DERIVE);
+        int raw = Optional.ofNullable(configModel.lodBackchannelPort).orElse(BACKCHANNEL_PORT_DERIVE);
         if (raw == BACKCHANNEL_PORT_DERIVE) {
             return BACKCHANNEL_PORT_DERIVE;
         }

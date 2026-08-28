@@ -27,18 +27,18 @@ public final class CsvChunkIterator implements ChunkIterator {
     }
 
     public CsvChunkIterator(Selection selection) {
-        final Path filePath = selection.pattern().getValue()
+        Path filePath = selection.pattern().getValue()
                 .map(value -> selection.chunky().getConfig().getDirectory().resolve(String.format("%s.csv", value)))
                 .orElse(null);
         this.chunks = new LinkedList<>();
-        final AtomicLong valid = new AtomicLong();
+        AtomicLong valid = new AtomicLong();
         if (filePath != null) {
             try (final Stream<String> lines = Files.lines(filePath)) {
                 lines.forEach(line -> {
-                    final String[] split = line.split(",");
+                    String[] split = line.split(",");
                     if (split.length > 1) {
-                        final Optional<Integer> x = Input.tryInteger(split[0]);
-                        final Optional<Integer> z = Input.tryInteger(split[1]);
+                        Optional<Integer> x = Input.tryInteger(split[0]);
+                        Optional<Integer> z = Input.tryInteger(split[1]);
                         if (x.isPresent() && z.isPresent()) {
                             chunks.add(new ChunkCoordinate(x.get(), z.get()));
                             valid.incrementAndGet();

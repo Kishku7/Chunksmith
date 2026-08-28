@@ -74,7 +74,7 @@ public abstract class MinecraftServerTicketsMixin {
      */
     @Unique
     private void chunksmith$sampleChunkLevels() {
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         if (now - this.chunksmith$lastLevelSampleMillis < CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS) {
             return;
         }
@@ -82,15 +82,15 @@ public abstract class MinecraftServerTicketsMixin {
         long ticking = 0L;
         long loadedLevel = 0L;
         long droppable = 0L;
-        final StringBuilder sample = new StringBuilder();
+        StringBuilder sample = new StringBuilder();
         int sampled = 0;
         // Tally every ticket on every resident chunk by type. Six sampled strings named the suspect;
         // this counts it. "How many" is the difference between a clue and a cause.
-        final Map<String, Integer> byType = new HashMap<>();
+        Map<String, Integer> byType = new HashMap<>();
         for (ServerLevel level : this.getAllLevels()) {
-            final ChunkMap map = level.getChunkSource().chunkMap;
-            final DistanceManager distance = map.getDistanceManager();
-            final TicketStorage store =
+            ChunkMap map = level.getChunkSource().chunkMap;
+            DistanceManager distance = map.getDistanceManager();
+            TicketStorage store =
                     ((DistanceManagerMixin) distance).getTicketStorage();
             for (long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
                 for (Ticket ticket : store.getTickets(pos)) {
@@ -101,7 +101,7 @@ public abstract class MinecraftServerTicketsMixin {
                 // 33 + RADIUS_AROUND_FULL_CHUNK, so "44" was wrong and two whole levels of droppable
                 // chunks were being counted as loaded. Reading the constant also makes the buckets
                 // correct on every MC version instead of just the one they were guessed for.
-                final int chunkLevel = distance.getChunkLevel(pos, false);
+                int chunkLevel = distance.getChunkLevel(pos, false);
                 if (chunkLevel <= ChunkLevel.byStatus(
                         ChunkStatus.FULL)) {
                     ticking++;
@@ -133,7 +133,7 @@ public abstract class MinecraftServerTicketsMixin {
         }
         UnloadDiagnostics.reportLevels(ticking, loadedLevel, droppable, now);
         UnloadDiagnostics.reportTicketSample(sampled == 0 ? "no chunk at a ticking level" : sample.toString());
-        final StringBuilder tally = new StringBuilder();
+        StringBuilder tally = new StringBuilder();
         byType.entrySet().stream()
                 .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
                 .limit(6)

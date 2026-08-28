@@ -7,8 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Rectangle extends AbstractPolygon {
-    final double b1x, b1z, b2x, b2z;
-    final double p1x, p1z, p2x, p2z, p3x, p3z, p4x, p4z;
+    double b1x, b1z, b2x, b2z;
+    double p1x, p1z, p2x, p2z, p3x, p3z, p4x, p4z;
 
     protected Rectangle(Selection selection, boolean chunkAligned) {
         super(selection, chunkAligned);

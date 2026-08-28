@@ -16,7 +16,7 @@ public class TrimModeSuggestionProvider implements SuggestionProvider<CommandSou
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
         try {
-            final String input = context.getArgument(CommandLiteral.TRIM_MODE, String.class);
+            String input = context.getArgument(CommandLiteral.TRIM_MODE, String.class);
             TRIM_MODES.forEach(shape -> {
                 if (shape.contains(input.toLowerCase())) {
                     builder.suggest(shape);

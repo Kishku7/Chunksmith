@@ -30,9 +30,9 @@ public class CsLodPresenceIndexTest {
 
     @Test
     public void presentOnlyForWrittenChunks() throws Exception {
-        final Path root = Files.createTempDirectory("cslod-presence");
+        Path root = Files.createTempDirectory("cslod-presence");
         try {
-            final CsLodRegionStore store = new CsLodRegionStore(root);
+            CsLodRegionStore store = new CsLodRegionStore(root);
             try {
                 store.write(sample(0, 0));
                 store.write(sample(5, 9));
@@ -44,7 +44,7 @@ public class CsLodPresenceIndexTest {
                 store.close();
             }
 
-            final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
+            CsLodPresenceIndex index = new CsLodPresenceIndex(root);
 
             assertTrue("written chunk", index.hasLod(0, 0));
             assertTrue(index.hasLod(5, 9));
@@ -63,8 +63,8 @@ public class CsLodPresenceIndexTest {
     public void noStoreMeansAbsent() throws Exception {
         // The "LOD off, then turned on" case: chunks on disk, no CSLOD tree at all. Every chunk must
         // come back absent, so the re-run loads them and builds the LODs.
-        final Path root = Files.createTempDirectory("cslod-presence").resolve("never-created");
-        final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
+        Path root = Files.createTempDirectory("cslod-presence").resolve("never-created");
+        CsLodPresenceIndex index = new CsLodPresenceIndex(root);
 
         assertFalse(index.hasLod(0, 0));
         assertFalse(index.hasLod(100, -100));
@@ -77,9 +77,9 @@ public class CsLodPresenceIndexTest {
         // The same-run guarantee. The store writes asynchronously, so the on-disk header lags dispatch;
         // the in-memory bitmap is what stops a chunk generated early in a run from being re-processed
         // later in that same run.
-        final Path root = Files.createTempDirectory("cslod-presence");
+        Path root = Files.createTempDirectory("cslod-presence");
         try {
-            final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
+            CsLodPresenceIndex index = new CsLodPresenceIndex(root);
             assertFalse(index.hasLod(7, 7));
 
             index.markLod(7, 7);
@@ -94,9 +94,9 @@ public class CsLodPresenceIndexTest {
 
     @Test
     public void marksDoNotBleedAcrossRegions() throws Exception {
-        final Path root = Files.createTempDirectory("cslod-presence");
+        Path root = Files.createTempDirectory("cslod-presence");
         try {
-            final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
+            CsLodPresenceIndex index = new CsLodPresenceIndex(root);
             // Same slot index (0) in four different regions: if the region key were ignored, these
             // would alias onto one bitmap and three of them would come back wrongly present.
             index.markLod(0, 0);
@@ -118,9 +118,9 @@ public class CsLodPresenceIndexTest {
         // The cost claim: presence for a whole region costs one 8 KB header read, not one read per
         // chunk. If this ever regresses to a per-chunk open, the check stops being free and the whole
         // design argument collapses, so it is asserted, not assumed.
-        final Path root = Files.createTempDirectory("cslod-presence");
+        Path root = Files.createTempDirectory("cslod-presence");
         try {
-            final CsLodRegionStore store = new CsLodRegionStore(root);
+            CsLodRegionStore store = new CsLodRegionStore(root);
             try {
                 for (int x = 0; x < 32; x++) {
                     for (int z = 0; z < 32; z++) {
@@ -131,7 +131,7 @@ public class CsLodPresenceIndexTest {
                 store.close();
             }
 
-            final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
+            CsLodPresenceIndex index = new CsLodPresenceIndex(root);
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
                     assertTrue(index.hasLod(x, z));
@@ -151,11 +151,11 @@ public class CsLodPresenceIndexTest {
     @Test
     public void countsRecords() throws Exception {
         // Backs /cslod status: the number an operator compares against their chunk count.
-        final Path root = Files.createTempDirectory("cslod-presence");
+        Path root = Files.createTempDirectory("cslod-presence");
         try {
             assertEquals(0L, CsLodPresenceIndex.countRecords(root));
 
-            final CsLodRegionStore store = new CsLodRegionStore(root);
+            CsLodRegionStore store = new CsLodRegionStore(root);
             try {
                 store.write(sample(0, 0));
                 store.write(sample(1, 0));
@@ -167,7 +167,7 @@ public class CsLodPresenceIndexTest {
             assertEquals(3L, CsLodPresenceIndex.countRecords(root));
 
             // Rewriting a chunk re-points its slot; it must not be double-counted.
-            final CsLodRegionStore again = new CsLodRegionStore(root);
+            CsLodRegionStore again = new CsLodRegionStore(root);
             try {
                 again.write(sample(0, 0));
             } finally {
@@ -183,11 +183,11 @@ public class CsLodPresenceIndexTest {
     public void truncatedRegionFileReadsAbsent() throws Exception {
         // A half-created region file must not blow up a pregen. Absent is the safe direction: we
         // rebuild LODs we may already have had, instead of skipping chunks that have none.
-        final Path root = Files.createTempDirectory("cslod-presence");
+        Path root = Files.createTempDirectory("cslod-presence");
         try {
             Files.write(root.resolve("r.0.0.cslod"), new byte[64]);
 
-            final CsLodPresenceIndex index = new CsLodPresenceIndex(root);
+            CsLodPresenceIndex index = new CsLodPresenceIndex(root);
 
             assertFalse(index.hasLod(0, 0));
             assertFalse(index.hasLod(20, 20));
@@ -201,7 +201,7 @@ public class CsLodPresenceIndexTest {
 
     /** Smallest valid record: the contents are irrelevant here; only the header slot matters. */
     private static CsLodChunk sample(int chunkX, int chunkZ) {
-        final CsLodChunk.Section uniform =
+        CsLodChunk.Section uniform =
                 new CsLodChunk.Section(null, 0, null, 0, null, 15, null, 0);
         return new CsLodChunk("minecraft:overworld", chunkX, chunkZ, -4,
                 List.of("minecraft:air"),

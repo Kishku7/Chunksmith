@@ -39,27 +39,27 @@ public class CsLodBoundsTest {
 
     @Test
     public void helloRejectsHugeDimensionCount() throws Exception {
-        final byte[] payload = helloBytes(Integer.MAX_VALUE, /*writeEntries=*/0);
+        byte[] payload = helloBytes(Integer.MAX_VALUE, /*writeEntries=*/0);
         assertThrowsIOException(() -> CsLodMessages.decodeServerHello(reader(payload)));
     }
 
     @Test
     public void helloRejectsNegativeDimensionCount() throws Exception {
-        final byte[] payload = helloBytes(-1, 0);
+        byte[] payload = helloBytes(-1, 0);
         assertThrowsIOException(() -> CsLodMessages.decodeServerHello(reader(payload)));
     }
 
     @Test
     public void helloRejectsOneOverTheCeiling() throws Exception {
-        final byte[] payload = helloBytes(CsLodProtocol.MAX_HELLO_DIMENSIONS + 1, 0);
+        byte[] payload = helloBytes(CsLodProtocol.MAX_HELLO_DIMENSIONS + 1, 0);
         assertThrowsIOException(() -> CsLodMessages.decodeServerHello(reader(payload)));
     }
 
     @Test
     public void helloAtTheCeiling() throws Exception {
-        final int n = CsLodProtocol.MAX_HELLO_DIMENSIONS;
-        final byte[] payload = helloBytes(n, n);
-        final CsLodMessages.ServerHello hello = CsLodMessages.decodeServerHello(reader(payload));
+        int n = CsLodProtocol.MAX_HELLO_DIMENSIONS;
+        byte[] payload = helloBytes(n, n);
+        CsLodMessages.ServerHello hello = CsLodMessages.decodeServerHello(reader(payload));
         assertEquals(n, hello.dimensions().size());
         assertEquals("d0", hello.dimensions().get(0));
     }
@@ -68,7 +68,7 @@ public class CsLodBoundsTest {
 
     @Test
     public void indexRejectsHugeRegionCount() throws Exception {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeUTF("minecraft:overworld");
             out.writeInt(Integer.MAX_VALUE);
@@ -78,15 +78,15 @@ public class CsLodBoundsTest {
 
     @Test
     public void indexRoundTripsAtTheCeiling() throws Exception {
-        final int n = CsLodProtocol.MAX_INDEX_REGIONS;
-        final List<CsLodMessages.RegionEntry> entries = new ArrayList<>();
+        int n = CsLodProtocol.MAX_INDEX_REGIONS;
+        List<CsLodMessages.RegionEntry> entries = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             entries.add(new CsLodMessages.RegionEntry(i, -i, i * 31L, i * 7L));
         }
-        final byte[] encoded = CsLodMessages.encode(new CsLodMessages.RegionIndex("minecraft:overworld", entries));
-        final DataInputStream in = reader(encoded);
+        byte[] encoded = CsLodMessages.encode(new CsLodMessages.RegionIndex("minecraft:overworld", entries));
+        DataInputStream in = reader(encoded);
         assertEquals(CsLodProtocol.S2C_INDEX, in.readByte());
-        final CsLodMessages.RegionIndex decoded = CsLodMessages.decodeRegionIndex(in);
+        CsLodMessages.RegionIndex decoded = CsLodMessages.decodeRegionIndex(in);
         assertEquals(n, decoded.regions().size());
         assertEquals(entries.get(n - 1), decoded.regions().get(n - 1));
     }
@@ -95,7 +95,7 @@ public class CsLodBoundsTest {
 
     @Test
     public void sliceRejectsHugePayloadLength() throws Exception {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeUTF("minecraft:overworld");
             out.writeInt(0);
@@ -108,7 +108,7 @@ public class CsLodBoundsTest {
 
     @Test
     public void sliceRejectsNegativePayloadLength() throws Exception {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeUTF("minecraft:overworld");
             out.writeInt(0);
@@ -121,15 +121,15 @@ public class CsLodBoundsTest {
 
     @Test
     public void sliceAtTheCeiling() throws Exception {
-        final byte[] data = new byte[CsLodProtocol.MAX_SLICE_BYTES];
+        byte[] data = new byte[CsLodProtocol.MAX_SLICE_BYTES];
         for (int i = 0; i < data.length; i++) {
             data[i] = (byte) (i & 0xFF);
         }
-        final byte[] encoded = CsLodMessages.encode(
+        byte[] encoded = CsLodMessages.encode(
                 new CsLodMessages.RegionSlice("minecraft:overworld", 1, 2, true, data));
-        final DataInputStream in = reader(encoded);
+        DataInputStream in = reader(encoded);
         assertEquals(CsLodProtocol.S2C_CHUNK, in.readByte());
-        final CsLodMessages.RegionSlice slice = CsLodMessages.decodeRegionSlice(in);
+        CsLodMessages.RegionSlice slice = CsLodMessages.decodeRegionSlice(in);
         assertEquals(data.length, slice.data().length);
     }
 
@@ -137,28 +137,28 @@ public class CsLodBoundsTest {
 
     @Test
     public void codecRejectsHugePaletteSize() throws Exception {
-        final byte[] record = recordWithBlockPaletteVarint(Integer.MAX_VALUE);
+        byte[] record = recordWithBlockPaletteVarint(Integer.MAX_VALUE);
         assertThrowsIOException(() -> CsLodCodec.decode(record));
     }
 
     @Test
     public void codecRejectsNegativePaletteSize() throws Exception {
         // A varint that decodes to a negative int (high bit set in the fifth group).
-        final byte[] record = recordWithBlockPaletteVarint(-1);
+        byte[] record = recordWithBlockPaletteVarint(-1);
         assertThrowsIOException(() -> CsLodCodec.decode(record));
     }
 
     @Test
     public void paletteAtTheCeiling() throws Exception {
-        final int n = CsLodProtocol.MAX_PALETTE_SIZE;
-        final List<String> blockPalette = new ArrayList<>();
+        int n = CsLodProtocol.MAX_PALETTE_SIZE;
+        List<String> blockPalette = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             blockPalette.add("b" + i);
         }
         // Zero sections so no per-voxel indices are written; this isolates the palette-size path.
-        final CsLodChunk chunk = new CsLodChunk("minecraft:overworld", 0, 0, -4,
+        CsLodChunk chunk = new CsLodChunk("minecraft:overworld", 0, 0, -4,
                 blockPalette, List.of("minecraft:plains"), List.of());
-        final CsLodChunk decoded = CsLodCodec.decode(CsLodCodec.encode(chunk));
+        CsLodChunk decoded = CsLodCodec.decode(CsLodCodec.encode(chunk));
         assertNotNull(decoded);
         assertEquals(n, decoded.getBlockPalette().size());
     }
@@ -167,14 +167,14 @@ public class CsLodBoundsTest {
 
     @Test
     public void regionStoreRejectsHugeSlotLength() throws Exception {
-        final Path root = Files.createTempDirectory("cslod-bounds");
+        Path root = Files.createTempDirectory("cslod-bounds");
         try {
             // Header is 1024 slots x 8 bytes. slotIndex(0,0) == 0, so slot 0 points at a bogus record
             // that claims Integer.MAX_VALUE bytes, exactly the shape an in-band write from a hostile
             // server could leave on disk.
-            final int headerBytes = 32 * 32 * 8;
-            final byte[] file = new byte[headerBytes + 16];
-            final ByteArrayOutputStream slot = new ByteArrayOutputStream();
+            int headerBytes = 32 * 32 * 8;
+            byte[] file = new byte[headerBytes + 16];
+            ByteArrayOutputStream slot = new ByteArrayOutputStream();
             try (DataOutputStream out = new DataOutputStream(slot)) {
                 out.writeInt(headerBytes);        // offset > 0
                 out.writeInt(Integer.MAX_VALUE);  // length -- the trap
@@ -182,7 +182,7 @@ public class CsLodBoundsTest {
             System.arraycopy(slot.toByteArray(), 0, file, 0, 8);
             Files.write(root.resolve("r.0.0.cslod"), file);
 
-            final CsLodRegionStore store = new CsLodRegionStore(root);
+            CsLodRegionStore store = new CsLodRegionStore(root);
             try {
                 assertThrowsIOException(() -> store.read(0, 0));
             } finally {
@@ -201,7 +201,7 @@ public class CsLodBoundsTest {
 
     /** The body of an S2C_HELLO after the message-id byte, with {@code count} claimed and {@code writeEntries} present. */
     private static byte[] helloBytes(int count, int writeEntries) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeInt(CsLodProtocol.VERSION);
             out.writeBoolean(true);
@@ -217,7 +217,7 @@ public class CsLodBoundsTest {
 
     /** A Deflate-compressed CSLOD record whose block-palette varint claims {@code paletteSize}. */
     private static byte[] recordWithBlockPaletteVarint(int paletteSize) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(new DeflaterOutputStream(raw))) {
             out.writeInt(CsLodCodec.MAGIC);
             out.writeShort(CsLodCodec.VERSION);

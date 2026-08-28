@@ -13,12 +13,12 @@ import java.util.List;
 public class WorldCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public WorldCommand(final Chunksmith chunky) {
+    public WorldCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final World world;
         if (arguments.size() == 0 && sender instanceof final Player player) {
             world = player.getWorld();
@@ -34,7 +34,7 @@ public class WorldCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));

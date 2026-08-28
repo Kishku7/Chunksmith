@@ -54,11 +54,11 @@ public final class CsLodManifest {
      * id is malformed. The caller must then refuse the whole operation, as the downloader and injector do.
      */
     public static CsLodManifest open(Path storeRoot, String dimension) {
-        final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
+        Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dir == null) {
             return null;
         }
-        final CsLodManifest manifest = new CsLodManifest(dir.resolve(FILE_NAME));
+        CsLodManifest manifest = new CsLodManifest(dir.resolve(FILE_NAME));
         manifest.load();
         return manifest;
     }
@@ -90,7 +90,7 @@ public final class CsLodManifest {
      * @param dimensionDir the directory the regions live in -- already gated through {@link CsLodStore}
      */
     public boolean holds(Path dimensionDir, CsLodMessages.RegionEntry advertised) {
-        final Entry mine = get(advertised.regionX(), advertised.regionZ());
+        Entry mine = get(advertised.regionX(), advertised.regionZ());
         if (mine == null || mine.hash() != advertised.hash()) {
             return false;
         }
@@ -99,7 +99,7 @@ public final class CsLodManifest {
         if (advertised.hash() == 0L) {
             return false;
         }
-        final Path region = dimensionDir.resolve(
+        Path region = dimensionDir.resolve(
                 "r." + advertised.regionX() + "." + advertised.regionZ() + ".cslod");
         try {
             return Files.isRegularFile(region) && Files.size(region) == mine.sizeBytes();
@@ -140,16 +140,16 @@ public final class CsLodManifest {
      * re-download those regions next session, so failure is logged by the caller and otherwise survivable.
      */
     public void save() throws IOException {
-        final List<String> lines = new ArrayList<>(this.entries.size());
+        List<String> lines = new ArrayList<>(this.entries.size());
         for (Map.Entry<Long, Entry> entry : this.entries.entrySet()) {
-            final long packed = entry.getKey();
-            final int regionX = (int) (packed >> 32);
-            final int regionZ = (int) packed;
+            long packed = entry.getKey();
+            int regionX = (int) (packed >> 32);
+            int regionZ = (int) packed;
             lines.add(regionX + "," + regionZ + "=" + entry.getValue().hash() + ","
                     + entry.getValue().sizeBytes());
         }
         Files.createDirectories(this.file.getParent());
-        final Path temp = this.file.resolveSibling(FILE_NAME + ".part");
+        Path temp = this.file.resolveSibling(FILE_NAME + ".part");
         Files.write(temp, lines, StandardCharsets.US_ASCII);
         Files.move(temp, this.file, StandardCopyOption.REPLACE_EXISTING);
     }
@@ -162,7 +162,7 @@ public final class CsLodManifest {
         if (!Files.isRegularFile(this.file)) {
             return;
         }
-        final List<String> lines;
+        List<String> lines;
         try {
             lines = Files.readAllLines(this.file, StandardCharsets.US_ASCII);
         } catch (IOException e) {
@@ -176,12 +176,12 @@ public final class CsLodManifest {
 
     /** {@code x,z=token,size}. Anything else is skipped in silence -- see the class doc. */
     private void parse(String line) {
-        final int equals = line.indexOf('=');
+        int equals = line.indexOf('=');
         if (equals <= 0) {
             return;
         }
-        final String[] coords = line.substring(0, equals).split(",", -1);
-        final String[] values = line.substring(equals + 1).split(",", -1);
+        String[] coords = line.substring(0, equals).split(",", -1);
+        String[] values = line.substring(equals + 1).split(",", -1);
         if (coords.length != 2 || values.length != 2) {
             return;
         }

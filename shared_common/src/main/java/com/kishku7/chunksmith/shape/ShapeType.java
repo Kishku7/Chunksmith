@@ -22,11 +22,11 @@ public final class ShapeType {
     }
 
     public static List<String> all() {
-        final Set<String> customTypes = ShapeFactory.getCustomTypes();
+        Set<String> customTypes = ShapeFactory.getCustomTypes();
         if (customTypes.isEmpty()) {
             return DEFAULTS;
         }
-        final List<String> allTypes = new ArrayList<>(DEFAULTS);
+        List<String> allTypes = new ArrayList<>(DEFAULTS);
         allTypes.addAll(customTypes);
         return allTypes;
     }

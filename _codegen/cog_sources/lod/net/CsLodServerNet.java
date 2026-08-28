@@ -153,7 +153,7 @@ public final class CsLodServerNet {
             LOGGER.info("Chunksmith: LOD is disabled; not serving LODs");
             return;
         }
-        final Path root = LodSupport.storeRootBase(current);
+        Path root = LodSupport.storeRootBase(current);
         try {
             Files.createDirectories(root);
         } catch (IOException e) {
@@ -161,7 +161,7 @@ public final class CsLodServerNet {
             return;
         }
         scanPool = Executors.newSingleThreadExecutor(runnable -> {
-            final Thread thread = new Thread(runnable, "chunksmith-lod-scan");
+            Thread thread = new Thread(runnable, "chunksmith-lod-scan");
             thread.setDaemon(true);
             return thread;
         });
@@ -195,7 +195,7 @@ public final class CsLodServerNet {
      * @return the port now bound, or 0 if the backchannel is not running (in-band fallback)
      */
     public static int rebind() {
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         if (current == null) {
             return 0;
         }
@@ -206,7 +206,7 @@ public final class CsLodServerNet {
         if (!LodSupport.lodEnabled(current)) {
             return 0;
         }
-        final Path root = LodSupport.storeRootBase(current);
+        Path root = LodSupport.storeRootBase(current);
         try {
             Files.createDirectories(root);
         } catch (IOException e) {
@@ -214,7 +214,7 @@ public final class CsLodServerNet {
             return 0;
         }
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
-        final int bound = http.start(current.getLocalIp(), current.getPort(), configuredPort());
+        int bound = http.start(current.getLocalIp(), current.getPort(), configuredPort());
         readvertise(current, bound);
         return bound;
     }
@@ -226,14 +226,14 @@ public final class CsLodServerNet {
      * channel keeps working meanwhile.
      */
     private static void readvertise(MinecraftServer current, int port) {
-        final List<String> dims = dimensions();
-        final boolean available = !dims.isEmpty();
+        List<String> dims = dimensions();
+        boolean available = !dims.isEmpty();
         int told = 0;
         for (ServerPlayer player : current.getPlayerList().getPlayers()) {
             if (!GREETED.contains(player.getUUID())) {
                 continue;
             }
-            final String token = (available && port != 0)
+            String token = (available && port != 0)
                     ? TOKENS.issue(player.getUUID(), addressOf(player))
                     : "";
             try {
@@ -256,7 +256,7 @@ public final class CsLodServerNet {
             http.stop();
             http = null;
         }
-        final ExecutorService current = scanPool;
+        ExecutorService current = scanPool;
         if (current != null) {
             // A scan holds no lock the shutdown needs and writes nothing, but we wait a moment anyway so a
             // scan in flight is not interrupted mid-readdir into an otherwise clean shutdown.
@@ -281,7 +281,7 @@ public final class CsLodServerNet {
     }
 
     public static String describe() {
-        final String inBand = CsLodInBandSender.pending() > 0
+        String inBand = CsLodInBandSender.pending() > 0
                 ? " | in-band backlog: " + CsLodInBandSender.pending() + " regions" : "";
         return (http == null ? "LOD serving: in-band only (no backchannel)" : "LOD serving: " + http.describe())
                 + inBand;
@@ -302,7 +302,7 @@ public final class CsLodServerNet {
     }
 
     private static boolean isOnline(UUID player) {
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         return current != null && current.getPlayerList().getPlayer(player) != null;
     }
 
@@ -312,7 +312,7 @@ public final class CsLodServerNet {
             return;
         }
         try (DataInputStream in = CsLodMessages.reader(data)) {
-            final byte id = in.readByte();
+            byte id = in.readByte();
             switch (id) {
                 case CsLodProtocol.C2S_HELLO -> hello(player, CsLodMessages.decodeClientHello(in));
                 case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false);
@@ -358,16 +358,16 @@ public final class CsLodServerNet {
             return;
         }
 
-        final List<String> dims = dimensions();
-        final boolean available = !dims.isEmpty();
-        final int port = http == null ? 0 : http.getPort();
+        List<String> dims = dimensions();
+        boolean available = !dims.isEmpty();
+        int port = http == null ? 0 : http.getPort();
 
         // The token is issued on this connection, which Mojang has already authenticated: a UUID or a name
         // proves nothing (both are public), but only a genuinely joined player can receive this, and only
         // when there is something to serve. "The store directory exists" used to be enough, so a server
         // minted a token the instant a pregen created the folder and before it wrote a single region: a
         // credential to download nothing, and an operator reading "1 live token, 0 files".
-        final String token = (available && port != 0)
+        String token = (available && port != 0)
                 ? TOKENS.issue(player.getUUID(), addressOf(player))
                 : "";
 
@@ -388,7 +388,7 @@ public final class CsLodServerNet {
 
         // The client re-asks on a backed-off clock and again to renew its token. Narrate only the first
         // hello of a session: a line every fifteen seconds per waiting player is how a feature gets disabled.
-        final String line = "Chunksmith: LOD hello from " + nameOf(player)
+        String line = "Chunksmith: LOD hello from " + nameOf(player)
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
                 + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port);
         if (GREETED.add(player.getUUID())) {
@@ -403,19 +403,19 @@ public final class CsLodServerNet {
      * instead, at a rate that leaves room for gameplay traffic.
      */
     private static void inBand(ServerPlayer player, DataInputStream in) throws IOException {
-        final String requested = in.readUTF();
-        final int count = in.readInt();
+        String requested = in.readUTF();
+        int count = in.readInt();
         // Bound the count before sizing anything: it came off the wire (see CsLodIndexScan.MAX_REGIONS).
         if (count < 0 || count > CsLodIndexScan.MAX_REGIONS) {
             LOGGER.warn("Chunksmith: ignoring an in-band LOD request from {} for {} regions (max {})",
                     nameOf(player), count, CsLodIndexScan.MAX_REGIONS);
             return;
         }
-        final List<CsLodMessages.RegionEntry> wanted = new ArrayList<>(count);
+        List<CsLodMessages.RegionEntry> wanted = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             wanted.add(new CsLodMessages.RegionEntry(in.readInt(), in.readInt(), 0L, 0L));
         }
-        final Path root = storeBase();
+        Path root = storeBase();
         if (root == null) {
             return;
         }
@@ -427,7 +427,7 @@ public final class CsLodServerNet {
         }
         // Same rule as the index (see dispatch()): serve the dimension the player is in, whatever they
         // asked for. The sender stamps it on every slice and the client files under the dimension it is told.
-        final String dimension = dimensionOf(player);
+        String dimension = dimensionOf(player);
         if (dimension.isEmpty()) {
             return;
         }
@@ -467,19 +467,19 @@ public final class CsLodServerNet {
         }
         sinceStoreWatch = 0;
 
-        final List<String> dims = dimensions();
+        List<String> dims = dimensions();
         if (dims.isEmpty()) {
             return;
         }
-        final int port = http == null ? 0 : http.getPort();
+        int port = http == null ? 0 : http.getPort();
 
         for (UUID uuid : List.copyOf(WAITING)) {
-            final ServerPlayer player = current.getPlayerList().getPlayer(uuid);
+            ServerPlayer player = current.getPlayerList().getPlayer(uuid);
             if (player == null) {
                 WAITING.remove(uuid);
                 continue;
             }
-            final Set<String> told = ANNOUNCED.computeIfAbsent(uuid,
+            Set<String> told = ANNOUNCED.computeIfAbsent(uuid,
                     ignored -> ConcurrentHashMap.newKeySet());
             if (!told.addAll(dims)) {
                 // They already know about every dimension we can serve. Never say it twice.
@@ -488,7 +488,7 @@ public final class CsLodServerNet {
             }
             WAITING.remove(uuid);
 
-            final String token = port != 0 ? TOKENS.issue(uuid, addressOf(player)) : "";
+            String token = port != 0 ? TOKENS.issue(uuid, addressOf(player)) : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                         CsLodProtocol.VERSION, true, port, token, dims)));
@@ -558,7 +558,7 @@ public final class CsLodServerNet {
      */
     private static void dispatch(ServerPlayer player, String requested, boolean summaryOnly)
             throws IOException {
-        final Path root = storeBase();
+        Path root = storeBase();
         if (root == null) {
             return;
         }
@@ -574,7 +574,7 @@ public final class CsLodServerNet {
         // world. A 3.1.0-beta-2 client latched onto the first dimension we listed at join and never asked
         // for another; we cannot patch a jar already in a player's mods folder, but we do not have to
         // honour a request we know is wrong. Serve the dimension they are actually in, and echo which.
-        final String dimension = dimensionOf(player);
+        String dimension = dimensionOf(player);
         if (dimension.isEmpty()) {
             return;
         }
@@ -583,7 +583,7 @@ public final class CsLodServerNet {
                     + " instead.", nameOf(player), requested, dimension, dimension);
         }
 
-        final UUID uuid = player.getUUID();
+        UUID uuid = player.getUUID();
         // One scan per player at a time (see SCANNING): what keeps the scan queue bounded.
         if (!SCANNING.add(uuid)) {
             LOGGER.debug("Chunksmith: {} already has a LOD scan in flight; dropping the duplicate request",
@@ -591,12 +591,12 @@ public final class CsLodServerNet {
             return;
         }
 
-        final Request request = new Request(uuid, nameOf(player), dimension,
+        Request request = new Request(uuid, nameOf(player), dimension,
                 (int) player.getX(), (int) player.getZ(),
                 RADIUS.getOrDefault(uuid, CsLodProtocol.DEFAULT_RADIUS_BLOCKS),
                 summaryOnly);
 
-        final ExecutorService pool = scanPool;
+        ExecutorService pool = scanPool;
         if (pool == null) {
             SCANNING.remove(uuid);
             return;
@@ -616,11 +616,11 @@ public final class CsLodServerNet {
      */
     private static void run(Path root, Request request) {
         try {
-            final Path dir = safeDimensionDir(root, request.dimension());
+            Path dir = safeDimensionDir(root, request.dimension());
             if (dir == null) {
                 return;
             }
-            final CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
+            CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
                     new CsLodIndexScan.Request(request.dimension(), request.px(), request.pz(),
                             request.radius()), System.currentTimeMillis());
             if (scanned.capped()) {
@@ -631,9 +631,9 @@ public final class CsLodServerNet {
                         scanned.bytes() / (1024 * 1024), CsLodIndexScan.MAX_BYTES / (1024 * 1024),
                         request.radius());
             }
-            final List<CsLodMessages.RegionEntry> regions = scanned.regions();
+            List<CsLodMessages.RegionEntry> regions = scanned.regions();
 
-            final byte[] message;
+            byte[] message;
             if (request.summaryOnly()) {
                 message = CsLodMessages.encode(new CsLodMessages.RegionSummary(
                         request.dimension(), regions.size(), CsLodIndexScan.aggregate(regions)));
@@ -645,12 +645,12 @@ public final class CsLodServerNet {
 
             // Back to the main thread to send: the send is the one part of this that touches a live player
             // object, and hopping back costs a queue entry and buys not reasoning about channel thread-safety.
-            final MinecraftServer current = server;
+            MinecraftServer current = server;
             if (current == null) {
                 return;
             }
             current.execute(() -> {
-                final ServerPlayer player = current.getPlayerList().getPlayer(request.uuid());
+                ServerPlayer player = current.getPlayerList().getPlayer(request.uuid());
                 if (player != null) {
                     send(player, message);
                 }
@@ -672,7 +672,7 @@ public final class CsLodServerNet {
         if (dimension == null || dimension.isEmpty() || !DIM_DIR.matcher(dimension).matches()) {
             return null;
         }
-        final Path dir = root.resolve(dimension).normalize();
+        Path dir = root.resolve(dimension).normalize();
         return dir.startsWith(root) ? dir : null;
     }
 
@@ -684,11 +684,11 @@ public final class CsLodServerNet {
      * region file it finds.
      */
     private static List<String> dimensions() {
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         if (current == null) {
             return List.of();
         }
-        final List<Path> dirs = new ArrayList<>();
+        List<Path> dirs = new ArrayList<>();
         for (ServerLevel level : current.getAllLevels()) {
             dirs.add(LodSupport.storeRoot(level));
         }
@@ -702,7 +702,7 @@ public final class CsLodServerNet {
      * in practice; it exists so a caller can never get a plausible-looking wrong answer.
      */
     private static String dimensionOf(ServerPlayer player) {
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         if (current == null) {
             return "";
         }
@@ -715,7 +715,7 @@ public final class CsLodServerNet {
     }
 
     private static Path storeBase() {
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         return current == null ? null : LodSupport.storeRootBase(current);
     }
 
@@ -729,7 +729,7 @@ public final class CsLodServerNet {
     }
 
     private static String addressOf(ServerPlayer player) {
-        final var address = player.connection.getRemoteAddress();
+        var address = player.connection.getRemoteAddress();
         if (address instanceof final InetSocketAddress inet && inet.getAddress() != null) {
             return inet.getAddress().getHostAddress();
         }

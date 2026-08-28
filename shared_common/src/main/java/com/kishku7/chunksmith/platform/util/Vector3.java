@@ -30,7 +30,7 @@ public class Vector3 {
     }
 
     public Vector3 normalize() {
-        final double length = length();
+        double length = length();
         x /= length;
         y /= length;
         z /= length;
@@ -42,9 +42,9 @@ public class Vector3 {
     }
 
     public double distanceSquared(Vector3 other) {
-        final double dx = this.x - other.x;
-        final double dy = this.y - other.y;
-        final double dz = this.z - other.z;
+        double dx = this.x - other.x;
+        double dy = this.y - other.y;
+        double dz = this.z - other.z;
         return dx * dx + dy * dy + dz * dz;
     }
 

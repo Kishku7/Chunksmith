@@ -29,17 +29,17 @@ public final class HeapPressure {
     }
 
     public static double usedPercent() {
-        final Runtime runtime = Runtime.getRuntime();
-        final long max = runtime.maxMemory();
+        Runtime runtime = Runtime.getRuntime();
+        long max = runtime.maxMemory();
         if (max <= 0L) {
             return -1.0D;
         }
-        final long used = runtime.totalMemory() - runtime.freeMemory();
+        long used = runtime.totalMemory() - runtime.freeMemory();
         return 100.0D * used / max;
     }
 
     public static long usedMegabytes() {
-        final Runtime runtime = Runtime.getRuntime();
+        Runtime runtime = Runtime.getRuntime();
         return (runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L);
     }
 
@@ -74,7 +74,7 @@ public final class HeapPressure {
         if (currentlyHeld) {
             // Hysteresis. Releasing the moment it dips back under the threshold would put us straight
             // back over it, so require real headroom before generating again.
-            final double resumeAt = Math.max(50.0D, thresholdPercent - RESUME_MARGIN_PERCENT);
+            double resumeAt = Math.max(50.0D, thresholdPercent - RESUME_MARGIN_PERCENT);
             if (used <= resumeAt) {
                 consecutiveHigh = 0;
                 return false;

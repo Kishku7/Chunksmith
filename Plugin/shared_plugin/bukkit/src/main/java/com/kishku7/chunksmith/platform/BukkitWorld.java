@@ -79,7 +79,7 @@ public class BukkitWorld implements World {
     }
 
     private CompletableFuture<Void> getChunkFuture(int x, int z) {
-        final CompletableFuture<Chunk> rawFuture;
+        CompletableFuture<Chunk> rawFuture;
         if (Paper.isPaper()) {
             rawFuture = Paper.getChunkAtAsync(world, x, z);
         } else {
@@ -93,7 +93,7 @@ public class BukkitWorld implements World {
         // thenAccept both supplies the CompletableFuture<Void> this method must return and runs the offer
         // as its side effect.
         return rawFuture.thenAccept(chunk -> {
-            final Chunksmith chunky = ((ChunksmithBukkit) plugin).getChunky();
+            Chunksmith chunky = ((ChunksmithBukkit) plugin).getChunky();
             if (chunky != null) {
                 // GenerationTask does not always .join() or .exceptionally() this future per chunk, so an
                 // uncaught throwable out of offer() would complete it exceptionally with no log line
@@ -112,17 +112,17 @@ public class BukkitWorld implements World {
 
     @Override
     public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
-        final CompletableFuture<Void> chunkFuture = this.getChunkFuture(x, z);
+        CompletableFuture<Void> chunkFuture = this.getChunkFuture(x, z);
         if (TICKING_LOAD_DURATION > 0) {
-            final CompletableFuture<Void> removeTicketFuture = new CompletableFuture<>();
+            CompletableFuture<Void> removeTicketFuture = new CompletableFuture<>();
             chunkFuture.thenAccept(ignored -> {
-                final Runnable addTicketTask = () -> world.addPluginChunkTicket(x, z, plugin);
-                final Runnable removeTicketTask = () -> {
+                Runnable addTicketTask = () -> world.addPluginChunkTicket(x, z, plugin);
+                Runnable removeTicketTask = () -> {
                     world.removePluginChunkTicket(x, z, plugin);
                     removeTicketFuture.complete(null);
                 };
                 if (Folia.isFolia()) {
-                    final org.bukkit.Location location = new org.bukkit.Location(world, x << 4, 0, z << 4);
+                    org.bukkit.Location location = new org.bukkit.Location(world, x << 4, 0, z << 4);
                     Folia.schedule(plugin, location, addTicketTask);
                     CompletableFuture.runAsync(() -> Folia.schedule(plugin, location, removeTicketTask), CompletableFuture.delayedExecutor(TICKING_LOAD_DURATION, TimeUnit.SECONDS));
                 } else {
@@ -149,7 +149,7 @@ public class BukkitWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final org.bukkit.Location spawnLocation = world.getSpawnLocation();
+        org.bukkit.Location spawnLocation = world.getSpawnLocation();
         return new Location(this, spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ(), spawnLocation.getYaw(), spawnLocation.getPitch());
     }
 
@@ -169,21 +169,21 @@ public class BukkitWorld implements World {
 
     @Override
     public CompletableFuture<Integer> getElevationAtAsync(int x, int z) {
-        final int chunkX = x >> 4;
-        final int chunkZ = z >> 4;
+        int chunkX = x >> 4;
+        int chunkZ = z >> 4;
 
         return this.getChunkFuture(chunkX, chunkZ).thenApplyAsync(ignored -> this.getElevationForLocation(x, z), getMainThreadExecutor(chunkX, chunkZ));
     }
 
     private int getElevationForLocation(int x, int z) {
-        final int height = world.getHighestBlockYAt(x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+        int height = world.getHighestBlockYAt(x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             Block block = world.getBlockAt(x, logicalHeight, z);
             int air = 0;
             while (block.getY() > world.getMinHeight()) {
                 block = block.getRelative(BlockFace.DOWN);
-                final Material type = block.getType();
+                Material type = block.getType();
                 if (type.isSolid() && air > 1) {
                     return block.getY() + 1;
                 }
@@ -224,14 +224,14 @@ public class BukkitWorld implements World {
 
     @Override
     public void playEffect(Player player, String effect) {
-        final Effect effectType;
+        Effect effectType;
         try {
             effectType = Effect.valueOf(effect.toUpperCase());
         } catch (IllegalArgumentException e) {
             return;
         }
-        final Location location = player.getLocation();
-        final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        Location location = player.getLocation();
+        org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         world.playEffect(bukkitLocation, effectType, 0);
     }
 
@@ -240,14 +240,14 @@ public class BukkitWorld implements World {
     // string->Sound lookup; the Registry-based replacement is absent on older targeted servers.
     @SuppressWarnings({"deprecation", "removal"})
     public void playSound(Player player, String sound) {
-        final Sound soundType;
+        Sound soundType;
         try {
             soundType = Sound.valueOf(sound.toUpperCase());
         } catch (IllegalArgumentException e) {
             return;
         }
-        final Location location = player.getLocation();
-        final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        Location location = player.getLocation();
+        org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         world.playSound(bukkitLocation, soundType, 2f, 1f);
     }
 
@@ -273,25 +273,25 @@ public class BukkitWorld implements World {
                 gh = world.getClass().getMethod("getHandle");
                 getHandleMethod = gh;
             }
-            final Object serverLevel = gh.invoke(world);
+            Object serverLevel = gh.invoke(world);
             Method gcs = getChunkSourceMethod;
             if (gcs == null) {
                 gcs = findMethod(serverLevel.getClass(), "getChunkSource");
                 getChunkSourceMethod = gcs;
             }
-            final Object chunkSource = gcs.invoke(serverLevel);
+            Object chunkSource = gcs.invoke(serverLevel);
             Field cmf = chunkMapField;
             if (cmf == null) {
                 cmf = findField(chunkSource.getClass(), "chunkMap");
                 chunkMapField = cmf;
             }
-            final Object chunkMap = cmf.get(chunkSource);
+            Object chunkMap = cmf.get(chunkSource);
             Field wf = workerField;
             if (wf == null) {
                 wf = findField(chunkMap.getClass(), "worker");
                 workerField = wf;
             }
-            final Object worker = wf.get(chunkMap);
+            Object worker = wf.get(chunkMap);
             if (worker == null) {
                 return -1;
             }
@@ -300,7 +300,7 @@ public class BukkitWorld implements World {
                 pwf = findField(worker.getClass(), "pendingWrites");
                 pendingWritesField = pwf;
             }
-            final Object pending = pwf.get(worker);
+            Object pending = pwf.get(worker);
             if (pending instanceof Map<?, ?> map) {
                 return map.size();
             }
@@ -314,7 +314,7 @@ public class BukkitWorld implements World {
     private static Method findMethod(Class<?> from, String name) throws NoSuchMethodException {
         for (Class<?> k = from; k != null; k = k.getSuperclass()) {
             try {
-                final Method m = k.getDeclaredMethod(name);
+                Method m = k.getDeclaredMethod(name);
                 m.setAccessible(true);
                 return m;
             } catch (NoSuchMethodException ignored) {
@@ -326,7 +326,7 @@ public class BukkitWorld implements World {
     private static Field findField(Class<?> from, String name) throws NoSuchFieldException {
         for (Class<?> k = from; k != null; k = k.getSuperclass()) {
             try {
-                final Field f = k.getDeclaredField(name);
+                Field f = k.getDeclaredField(name);
                 f.setAccessible(true);
                 return f;
             } catch (NoSuchFieldException ignored) {
@@ -340,8 +340,8 @@ public class BukkitWorld implements World {
         if (name == null) {
             return Optional.empty();
         }
-        final org.bukkit.World.Environment environment = world.getEnvironment();
-        final String parent;
+        org.bukkit.World.Environment environment = world.getEnvironment();
+        String parent;
         if (org.bukkit.World.Environment.NETHER.equals(environment)) {
             parent = "DIM-1";
         } else if (org.bukkit.World.Environment.THE_END.equals(environment)) {
@@ -349,9 +349,9 @@ public class BukkitWorld implements World {
         } else {
             parent = "";
         }
-        final Path bukkitDir = world.getWorldFolder().toPath().resolve(parent).normalize().resolve(name);
-        final Path vanillaDir = world.getWorldFolder().toPath().normalize().resolve(name);
-        final Path directory = Files.isDirectory(bukkitDir) ? bukkitDir : vanillaDir;
+        Path bukkitDir = world.getWorldFolder().toPath().resolve(parent).normalize().resolve(name);
+        Path vanillaDir = world.getWorldFolder().toPath().normalize().resolve(name);
+        Path directory = Files.isDirectory(bukkitDir) ? bukkitDir : vanillaDir;
         return Files.isDirectory(directory) ? Optional.of(directory) : Optional.empty();
     }
 }

@@ -24,22 +24,22 @@ public class CsLodRegionHashTest {
 
     @Test
     public void aNewMtimeMovesTheToken() {
-        final long size = 4_812_345L;
+        long size = 4_812_345L;
         assertNotEquals(CsLodRegionHash.of(1_700_000_000_000L, size),
                 CsLodRegionHash.of(1_700_000_000_001L, size));
     }
 
     @Test
     public void aNewSizeMovesTheToken() {
-        final long mtime = 1_700_000_000_000L;
+        long mtime = 1_700_000_000_000L;
         assertNotEquals(CsLodRegionHash.of(mtime, 4_812_345L),
                 CsLodRegionHash.of(mtime, 4_812_346L));
     }
 
     @Test
     public void mtimeAndSizeCannotCancel() {
-        final long mtime = 1_700_000_000_000L;
-        final long size = 5_000_000L;
+        long mtime = 1_700_000_000_000L;
+        long size = 5_000_000L;
         assertNotEquals("+1ms / -1 byte must not alias",
                 CsLodRegionHash.of(mtime, size),
                 CsLodRegionHash.of(mtime + 1, size - 1));
@@ -52,7 +52,7 @@ public class CsLodRegionHashTest {
 
     @Test
     public void aPregensWholeRunOfRegionsIsCollisionFree() {
-        final Set<Long> tokens = new HashSet<>();
+        Set<Long> tokens = new HashSet<>();
         long mtime = 1_700_000_000_000L;
         long size = 1_000_000L;
         for (int i = 0; i < 3600; i++) {
@@ -65,8 +65,8 @@ public class CsLodRegionHashTest {
 
     @Test
     public void adjacentInputsScatter() {
-        final long a = CsLodRegionHash.of(1_700_000_000_000L, 4_000_000L);
-        final long b = CsLodRegionHash.of(1_700_000_000_001L, 4_000_000L);
+        long a = CsLodRegionHash.of(1_700_000_000_000L, 4_000_000L);
+        long b = CsLodRegionHash.of(1_700_000_000_001L, 4_000_000L);
         assertTrue("one millisecond apart must flip roughly half the bits, not one",
                 Long.bitCount(a ^ b) > 16);
     }

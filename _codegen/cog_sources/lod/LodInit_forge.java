@@ -118,7 +118,7 @@ public final class LodInit {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        final MinecraftServer current = server;
+        MinecraftServer current = server;
         if (current != null) {
             CsLodServerNet.tick(current);
         }

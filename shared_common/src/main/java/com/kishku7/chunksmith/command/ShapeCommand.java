@@ -20,12 +20,12 @@ public class ShapeCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Optional<String> inputShape = arguments.next().flatMap(Input::tryShape);
+        Optional<String> inputShape = arguments.next().flatMap(Input::tryShape);
         if (inputShape.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_SHAPE);
             return;
         }
-        final String shape = inputShape.get();
+        String shape = inputShape.get();
         chunky.getSelection().shape(shape);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SHAPE, translate("shape_" + shape));
     }

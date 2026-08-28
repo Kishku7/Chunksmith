@@ -135,7 +135,7 @@ public abstract class PersistentEntitySectionManagerMixin {
         // cog.outl('        final %s<?, ?> pendingWrites;' % compat.pending_writes_type(mcver))
         //]]]
         //[[[end]]]
-        final Path entityRegionFolder;
+        Path entityRegionFolder;
         try {
             //[[[cog
             // import cog, compat
@@ -156,7 +156,7 @@ public abstract class PersistentEntitySectionManagerMixin {
             //]]]
             //[[[end]]]
             pendingWrites = worker.chunksmith$getPendingWrites();
-            final RegionFileStorage storage = worker.chunksmith$getStorage();
+            RegionFileStorage storage = worker.chunksmith$getStorage();
             entityRegionFolder = ((RegionFileStorageAccessor) (Object) storage).chunksmith$getFolder();
         } catch (Throwable introspectionFailed) {
             // Cannot reach the worker internals -> never gamble, do the real vanilla load.
@@ -213,14 +213,14 @@ public abstract class PersistentEntitySectionManagerMixin {
         if (!Debug.ENABLED) {
             return;
         }
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         if (now - this.chunksmith$lastDiag < CHUNKY$DIAG_INTERVAL_MS) {
             return;
         }
         this.chunksmith$lastDiag = now;
         try {
             // gatherStats() CSV: known,visible,sections,loadStatuses,visibility,inbox,toUnload
-            final String stats = ((PersistentEntitySectionManager) (Object) this).gatherStats();
+            String stats = ((PersistentEntitySectionManager) (Object) this).gatherStats();
             CHUNKY$LOG.info("[Chunksmith debug] fastHits={} vanillaFalls={} | known,visible,sections,loadStatuses,visibility,inbox,toUnload={}",
                     this.chunksmith$fastHits.get(), this.chunksmith$vanillaFalls.get(), stats);
         } catch (Throwable ignored) {
@@ -234,13 +234,13 @@ public abstract class PersistentEntitySectionManagerMixin {
      */
     @Unique
     private static boolean chunksmith$entitiesOnDisk(Path folder, ChunkPos pos) throws IOException {
-        final Path mca = folder.resolve("r." + pos.getRegionX() + "." + pos.getRegionZ() + ".mca");
+        Path mca = folder.resolve("r." + pos.getRegionX() + "." + pos.getRegionZ() + ".mca");
         if (!Files.exists(mca)) {
             return false;
         }
-        final int slot = pos.getRegionLocalX() + pos.getRegionLocalZ() * 32; // 0..1023
+        int slot = pos.getRegionLocalX() + pos.getRegionLocalZ() * 32; // 0..1023
         try (FileChannel channel = FileChannel.open(mca, StandardOpenOption.READ)) {
-            final ByteBuffer header = ByteBuffer.allocate(4096);
+            ByteBuffer header = ByteBuffer.allocate(4096);
             while (header.hasRemaining()) {
                 if (channel.read(header) < 0) {
                     break;

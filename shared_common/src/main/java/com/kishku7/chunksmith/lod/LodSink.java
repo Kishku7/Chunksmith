@@ -16,7 +16,7 @@ public interface LodSink {
     LodSink NOOP = new LodSink() {
 
         @Override
-        public boolean offer(final Object chunk) {
+        public boolean offer(Object chunk) {
             return true;
         }
 

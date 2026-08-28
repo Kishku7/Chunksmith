@@ -43,7 +43,7 @@ public final class EventBus {
     }
 
     public void call(Object event) {
-        final Class<?> eventClass = event.getClass();
+        Class<?> eventClass = event.getClass();
         if (accept == null || !subscribers.containsKey(eventClass)) {
             return;
         }

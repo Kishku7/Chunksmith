@@ -37,7 +37,7 @@ public final class CsLodSummary {
      * every output bit. Change any of the three and this number is unrelated to what it was.
      */
     public static long token(int regionX, int regionZ, long hash) {
-        final long packed = ((long) regionX << 32) ^ (regionZ & 0xFFFFFFFFL);
+        long packed = ((long) regionX << 32) ^ (regionZ & 0xFFFFFFFFL);
         return mix(mix(packed) ^ (hash * 0x9E3779B97F4A7C15L));
     }
 

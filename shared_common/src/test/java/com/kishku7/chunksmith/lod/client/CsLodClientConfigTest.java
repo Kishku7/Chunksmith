@@ -57,9 +57,9 @@ public class CsLodClientConfigTest {
 
     @Test
     public void aMissingConfigIsWritten() throws IOException {
-        final Path dir = temp.newFolder("config").toPath();
+        Path dir = temp.newFolder("config").toPath();
 
-        final String said = CsLodClientConfig.load(dir);
+        String said = CsLodClientConfig.load(dir);
 
         assertEquals(300, CsLodClientConfig.syncIntervalSeconds());
         assertEquals(300_000L, CsLodClientConfig.syncIntervalMillis());
@@ -71,9 +71,9 @@ public class CsLodClientConfigTest {
 
     @Test
     public void aConfiguredValueIsClamped() throws IOException {
-        final Path dir = write("sync-interval-seconds=5");
+        Path dir = write("sync-interval-seconds=5");
 
-        final String said = CsLodClientConfig.load(dir);
+        String said = CsLodClientConfig.load(dir);
 
         assertEquals("5 seconds is not honoured", 30, CsLodClientConfig.syncIntervalSeconds());
         assertEquals(30_000L, CsLodClientConfig.syncIntervalMillis());
@@ -82,7 +82,7 @@ public class CsLodClientConfigTest {
 
     @Test
     public void aLegalValueSticks() throws IOException {
-        final Path dir = write("sync-interval-seconds=45");
+        Path dir = write("sync-interval-seconds=45");
 
         CsLodClientConfig.load(dir);
 
@@ -92,9 +92,9 @@ public class CsLodClientConfigTest {
 
     @Test
     public void garbageFallsBackToTheDefault() throws IOException {
-        final Path dir = write("sync-interval-seconds=soon");
+        Path dir = write("sync-interval-seconds=soon");
 
-        final String said = CsLodClientConfig.load(dir);
+        String said = CsLodClientConfig.load(dir);
 
         assertEquals(300, CsLodClientConfig.syncIntervalSeconds());
         assertTrue(said, said.contains("not a number"));
@@ -102,7 +102,7 @@ public class CsLodClientConfigTest {
 
     @Test
     public void aMissingKeyFallsBackToTheDefault() throws IOException {
-        final Path dir = write("something-else=1");
+        Path dir = write("something-else=1");
 
         CsLodClientConfig.load(dir);
 
@@ -121,7 +121,7 @@ public class CsLodClientConfigTest {
     }
 
     private Path write(String line) throws IOException {
-        final Path dir = temp.newFolder().toPath();
+        Path dir = temp.newFolder().toPath();
         Files.write(dir.resolve(CsLodClientConfig.FILE_NAME),
                 line.getBytes(StandardCharsets.US_ASCII));
         return dir;

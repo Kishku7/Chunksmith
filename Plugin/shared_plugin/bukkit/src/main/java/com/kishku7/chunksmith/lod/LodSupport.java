@@ -63,11 +63,11 @@ public final class LodSupport {
         if (!lodEnabled(config)) {
             return;
         }
-        final LodSink sink = sinkFor(config, world);
+        LodSink sink = sinkFor(config, world);
         if (sink == LodSink.NOOP) {
             return;
         }
-        final CsLodChunk record = CsLodExtractor.extract(world, chunk);
+        CsLodChunk record = CsLodExtractor.extract(world, chunk);
         if (record != null) {
             sink.offer(record);
         }
@@ -75,13 +75,13 @@ public final class LodSupport {
 
     /** The active sink for a world, resolved once. Never null. */
     public static LodSink sinkFor(Config config, World world) {
-        final String key = world.getKey().toString();
+        String key = world.getKey().toString();
         return SINKS.computeIfAbsent(key, ignored -> create(config, world));
     }
 
     private static LodSink create(Config config, World world) {
-        final Path root = storeRoot(world);
-        final CsLodStoreSink sink = new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY);
+        Path root = storeRoot(world);
+        CsLodStoreSink sink = new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY);
         LodSinks.set(sink);
         LOGGER.info("Chunksmith: LOD store enabled -> " + root);
         return sink;

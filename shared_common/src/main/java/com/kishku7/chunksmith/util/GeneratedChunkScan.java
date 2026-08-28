@@ -33,23 +33,23 @@ public final class GeneratedChunkScan {
                             final RegionCache.WorldState state,
                             final int minChunkX, final int minChunkZ,
                             final int maxChunkX, final int maxChunkZ) {
-        final File dir = regionDirectory.toFile();
-        final File[] files = dir.listFiles((d, name) -> name.startsWith("r.") && name.endsWith(".mca"));
+        File dir = regionDirectory.toFile();
+        File[] files = dir.listFiles((d, name) -> name.startsWith("r.") && name.endsWith(".mca"));
         if (files == null || files.length == 0) {
             return 0L;
         }
 
-        final int minRegionX = minChunkX >> 5;
-        final int minRegionZ = minChunkZ >> 5;
-        final int maxRegionX = maxChunkX >> 5;
-        final int maxRegionZ = maxChunkZ >> 5;
+        int minRegionX = minChunkX >> 5;
+        int minRegionZ = minChunkZ >> 5;
+        int maxRegionX = maxChunkX >> 5;
+        int maxRegionZ = maxChunkZ >> 5;
 
         long seeded = 0L;
         int scanned = 0;
         int unreadable = 0;
 
         for (File file : files) {
-            final int[] coords = regionCoordinates(file.getName());
+            int[] coords = regionCoordinates(file.getName());
             if (coords == null) {
                 continue;
             }
@@ -58,11 +58,11 @@ public final class GeneratedChunkScan {
                 continue;   // wholly outside the selection: never opened
             }
             try {
-                final RegionFile region = new RegionFile(file, ChunkFilter.of(TagType.STRING, "Status"));
+                RegionFile region = new RegionFile(file, ChunkFilter.of(TagType.STRING, "Status"));
                 scanned++;
                 for (Chunk chunk : region.getChunks()) {
-                    final int cx = chunk.getX();
-                    final int cz = chunk.getZ();
+                    int cx = chunk.getX();
+                    int cz = chunk.getZ();
                     if (cx < minChunkX || cx > maxChunkX || cz < minChunkZ || cz > maxChunkZ) {
                         continue;
                     }
@@ -86,12 +86,12 @@ public final class GeneratedChunkScan {
     }
 
     private static int[] regionCoordinates(String name) {
-        final int end = name.indexOf(".mca");
+        int end = name.indexOf(".mca");
         if (end < 2) {
             return null;
         }
-        final String middle = name.substring(2, end);
-        final int dot = middle.indexOf('.');
+        String middle = name.substring(2, end);
+        int dot = middle.indexOf('.');
         if (dot < 1) {
             return null;
         }

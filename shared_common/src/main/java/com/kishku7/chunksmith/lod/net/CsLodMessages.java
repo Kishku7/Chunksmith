@@ -32,7 +32,7 @@ public final class CsLodMessages {
     }
 
     public static byte[] encode(ClientHello hello) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_HELLO);
             out.writeInt(hello.protocolVersion());
@@ -63,7 +63,7 @@ public final class CsLodMessages {
     }
 
     public static byte[] encode(ServerHello hello) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_HELLO);
             out.writeInt(hello.protocolVersion());
@@ -79,11 +79,11 @@ public final class CsLodMessages {
     }
 
     public static ServerHello decodeServerHello(DataInputStream in) throws IOException {
-        final int version = in.readInt();
-        final boolean available = in.readBoolean();
-        final int port = in.readInt();
-        final String token = in.readUTF();
-        final int count = in.readInt();
+        int version = in.readInt();
+        boolean available = in.readBoolean();
+        int port = in.readInt();
+        String token = in.readUTF();
+        int count = in.readInt();
         // Bound before allocating: count is off the wire from an untrusted server.
         if (count < 0 || count > CsLodProtocol.MAX_HELLO_DIMENSIONS) {
             throw new IOException("CSLOD hello: dimension count " + count + " out of range [0, "
@@ -91,7 +91,7 @@ public final class CsLodMessages {
         }
         // Do not presize from the wire count. Grow as entries arrive, so a short packet that over-claims
         // hits EOF harmlessly.
-        final List<String> dimensions = new ArrayList<>();
+        List<String> dimensions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             dimensions.add(in.readUTF());
         }
@@ -108,7 +108,7 @@ public final class CsLodMessages {
     }
 
     public static byte[] encode(RegionIndex index) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_INDEX);
             out.writeUTF(index.dimension());
@@ -124,15 +124,15 @@ public final class CsLodMessages {
     }
 
     public static RegionIndex decodeRegionIndex(DataInputStream in) throws IOException {
-        final String dimension = in.readUTF();
-        final int count = in.readInt();
+        String dimension = in.readUTF();
+        int count = in.readInt();
         // The count is off the wire from an untrusted server, so bound it before allocating.
         if (count < 0 || count > CsLodProtocol.MAX_INDEX_REGIONS) {
             throw new IOException("CSLOD index: region count " + count + " out of range [0, "
                     + CsLodProtocol.MAX_INDEX_REGIONS + "]");
         }
         // Do not presize from the wire count: each entry is four further reads, so a lie hits EOF first.
-        final List<RegionEntry> regions = new ArrayList<>();
+        List<RegionEntry> regions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             regions.add(new RegionEntry(in.readInt(), in.readInt(), in.readLong(), in.readLong()));
         }
@@ -152,7 +152,7 @@ public final class CsLodMessages {
 
     /** Ask the server whether anything has changed. 22 bytes for a normal dimension id. */
     public static byte[] requestSummary(String dimension) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_REQUEST_SUMMARY);
             out.writeUTF(dimension);
@@ -161,7 +161,7 @@ public final class CsLodMessages {
     }
 
     public static byte[] encode(RegionSummary summary) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_SUMMARY);
             out.writeUTF(summary.dimension());
@@ -177,8 +177,8 @@ public final class CsLodMessages {
      * negative count is not a thing an honest server sends.
      */
     public static RegionSummary decodeRegionSummary(DataInputStream in) throws IOException {
-        final String dimension = in.readUTF();
-        final int count = in.readInt();
+        String dimension = in.readUTF();
+        int count = in.readInt();
         if (count < 0 || count > CsLodProtocol.MAX_INDEX_REGIONS) {
             throw new IOException("CSLOD summary: region count " + count + " out of range [0, "
                     + CsLodProtocol.MAX_INDEX_REGIONS + "]");
@@ -190,7 +190,7 @@ public final class CsLodMessages {
 
     /** Ask for a dimension's index. */
     public static byte[] requestIndex(String dimension) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_REQUEST_INDEX);
             out.writeUTF(dimension);
@@ -200,7 +200,7 @@ public final class CsLodMessages {
 
     /** Ask for regions in-band (the fallback, when the backchannel is unreachable). */
     public static byte[] requestRegions(String dimension, List<RegionEntry> wanted) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.C2S_REQUEST_REGIONS);
             out.writeUTF(dimension);
@@ -224,7 +224,7 @@ public final class CsLodMessages {
     }
 
     public static byte[] encode(RegionSlice slice) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream(slice.data().length + 64);
+        ByteArrayOutputStream raw = new ByteArrayOutputStream(slice.data().length + 64);
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_CHUNK);
             out.writeUTF(slice.dimension());
@@ -238,18 +238,18 @@ public final class CsLodMessages {
     }
 
     public static RegionSlice decodeRegionSlice(DataInputStream in) throws IOException {
-        final String dimension = in.readUTF();
-        final int x = in.readInt();
-        final int z = in.readInt();
-        final boolean last = in.readBoolean();
-        final int length = in.readInt();
+        String dimension = in.readUTF();
+        int x = in.readInt();
+        int z = in.readInt();
+        boolean last = in.readBoolean();
+        int length = in.readInt();
         // Bound before allocating: length is off the wire from an untrusted server. An honest slice is at
         // most the 24 KiB drip (see MAX_SLICE_BYTES); do not new byte[length] on a hostile huge value.
         if (length < 0 || length > CsLodProtocol.MAX_SLICE_BYTES) {
             throw new IOException("CSLOD slice: payload length " + length + " out of range [0, "
                     + CsLodProtocol.MAX_SLICE_BYTES + "]");
         }
-        final byte[] data = new byte[length];
+        byte[] data = new byte[length];
         in.readFully(data);
         return new RegionSlice(dimension, x, z, last, data);
     }
@@ -275,7 +275,7 @@ public final class CsLodMessages {
     }
 
     public static byte[] encode(ClientSetting setting) throws IOException {
-        final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(raw)) {
             out.writeByte(CsLodProtocol.S2C_CLIENT_SETTING);
             out.writeByte(setting.action());
@@ -286,7 +286,7 @@ public final class CsLodMessages {
     }
 
     public static ClientSetting decodeClientSetting(DataInputStream in) throws IOException {
-        final byte action = in.readByte();
+        byte action = in.readByte();
         if (action != CsLodProtocol.SETTING_LIST
                 && action != CsLodProtocol.SETTING_SHOW
                 && action != CsLodProtocol.SETTING_SET) {

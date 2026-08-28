@@ -89,14 +89,14 @@ public final class VoxyTarget {
     }
 
     private static int doInject(Level level, CsLodChunk record) {
-        final WorldIdentifier world = WorldIdentifier.of(level);
+        WorldIdentifier world = WorldIdentifier.of(level);
         int ingested = 0;
         for (int i = 0; i < record.getSections().size(); i++) {
             awaitCapacity();
-            final CsLodChunk.Section section = record.getSections().get(i);
-            final LevelChunkSection rebuilt = CsLodSectionBuilder.rebuild(level, record, section);
-            final DataLayer sky = light(section.getSkyLight(), section.getUniformSky());
-            final DataLayer block = light(section.getBlockLight(), section.getUniformBlockLight());
+            CsLodChunk.Section section = record.getSections().get(i);
+            LevelChunkSection rebuilt = CsLodSectionBuilder.rebuild(level, record, section);
+            DataLayer sky = light(section.getSkyLight(), section.getUniformSky());
+            DataLayer block = light(section.getBlockLight(), section.getUniformBlockLight());
 
             VoxelIngestService.rawIngest(world, rebuilt,
                     record.getChunkX(), record.getMinSectionY() + i, record.getChunkZ(),

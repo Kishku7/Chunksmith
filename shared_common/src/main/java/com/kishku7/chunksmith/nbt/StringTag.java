@@ -23,7 +23,7 @@ public class StringTag extends Tag {
 
     @Override
     public void skip(DataInput input) throws IOException {
-        final int size = input.readUnsignedShort();
+        int size = input.readUnsignedShort();
         input.skipBytes(size);
     }
 

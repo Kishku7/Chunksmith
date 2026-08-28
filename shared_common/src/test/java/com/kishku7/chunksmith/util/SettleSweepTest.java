@@ -31,7 +31,7 @@ public class SettleSweepTest {
     }
 
     private static List<String> drain(SettleSweep sweep) {
-        final List<String> stops = new ArrayList<>();
+        List<String> stops = new ArrayList<>();
         int[] stop;
         while ((stop = sweep.nextStop()) != null) {
             stops.add(stop[0] + "," + stop[1]);
@@ -42,10 +42,10 @@ public class SettleSweepTest {
     /** The rule. Nothing is eligible while any chunk of its window is still missing. */
     @Test
     public void aWindowWithUngeneratedGroundIsNeverIssued() {
-        final SettleSweep sweep = new SettleSweep(0, 0, 30, 30, 3);
+        SettleSweep sweep = new SettleSweep(0, 0, 30, 30, 3);
         fill(sweep, 0, 0, 29, 29);
         // Punch one hole in the middle of the very first window.
-        final SettleSweep holed = new SettleSweep(0, 0, 30, 30, 3);
+        SettleSweep holed = new SettleSweep(0, 0, 30, 30, 3);
         for (int x = 0; x <= 29; x++) {
             for (int z = 0; z <= 29; z++) {
                 if (!(x == 2 && z == 2)) {
@@ -60,17 +60,17 @@ public class SettleSweepTest {
 
     @Test
     public void nothingIssuedBeforeGeneration() {
-        final SettleSweep sweep = new SettleSweep(0, 0, 20, 20, 3);
+        SettleSweep sweep = new SettleSweep(0, 0, 20, 20, 3);
         assertNull(sweep.nextStop());
         assertEquals(0, sweep.stopsIssued());
     }
 
     @Test
     public void everyStopOnce() {
-        final SettleSweep sweep = new SettleSweep(0, 0, 12, 12, 3);
+        SettleSweep sweep = new SettleSweep(0, 0, 12, 12, 3);
         fill(sweep, -8, -8, 20, 20);
 
-        final List<String> stops = drain(sweep);
+        List<String> stops = drain(sweep);
 
         assertEquals(sweep.stopCount(), stops.size());
         assertEquals("no stop repeats", stops.size(), new HashSet<>(stops).size());
@@ -80,13 +80,13 @@ public class SettleSweepTest {
 
     @Test
     public void theStopsCoverTheWholeArea() {
-        final int w = 20;
-        final int h = 17;
-        final int r = 4;
-        final SettleSweep sweep = new SettleSweep(0, 0, w, h, r);
+        int w = 20;
+        int h = 17;
+        int r = 4;
+        SettleSweep sweep = new SettleSweep(0, 0, w, h, r);
         fill(sweep, -10, -10, 40, 40);
 
-        final boolean[][] covered = new boolean[w][h];
+        boolean[][] covered = new boolean[w][h];
         int[] stop;
         while ((stop = sweep.nextStop()) != null) {
             for (int x = stop[0] - r; x <= stop[0] + r; x++) {
@@ -106,16 +106,16 @@ public class SettleSweepTest {
 
     @Test
     public void finishedGroundSweepsEarly() {
-        final SettleSweep sweep = new SettleSweep(0, 0, 40, 10, 3);
+        SettleSweep sweep = new SettleSweep(0, 0, 40, 10, 3);
         // Only the western third exists so far.
         fill(sweep, 0, 0, 13, 9);
 
-        final int[] first = sweep.nextStop();
+        int[] first = sweep.nextStop();
         assertNotNull("the finished part must not wait for the rest", first);
         assertTrue("and the stop must be inside the finished part", first[0] <= 13);
 
         // Everything eligible now is in the west; the east is still off-limits.
-        final List<String> early = drain(sweep);
+        List<String> early = drain(sweep);
         for (String s : early) {
             assertTrue("no stop may be issued in ungenerated ground: " + s,
                     Integer.parseInt(s.split(",")[0]) <= 13);
@@ -128,7 +128,7 @@ public class SettleSweepTest {
 
     @Test
     public void edgeStopsAreNotStranded() {
-        final SettleSweep sweep = new SettleSweep(0, 0, 9, 9, 4);
+        SettleSweep sweep = new SettleSweep(0, 0, 9, 9, 4);
         fill(sweep, 0, 0, 8, 8);   // exactly the bounds and not one chunk more
 
         assertTrue("out-of-bounds neighbours are not required", sweep.windowGenerated(0, 0));
@@ -138,20 +138,20 @@ public class SettleSweepTest {
 
     @Test
     public void negativeBoundsAreHandled() {
-        final SettleSweep sweep = new SettleSweep(-20, -20, 12, 12, 3);
+        SettleSweep sweep = new SettleSweep(-20, -20, 12, 12, 3);
         fill(sweep, -30, -30, 0, 0);
 
-        final List<String> stops = drain(sweep);
+        List<String> stops = drain(sweep);
         assertEquals(sweep.stopCount(), stops.size());
         for (String s : stops) {
-            final int x = Integer.parseInt(s.split(",")[0]);
+            int x = Integer.parseInt(s.split(",")[0]);
             assertTrue("stops stay inside the task bounds", x >= -20 && x < -8);
         }
     }
 
     @Test
     public void anEmptyAreaIsHarmless() {
-        final SettleSweep sweep = new SettleSweep(0, 0, 0, 0, 5);
+        SettleSweep sweep = new SettleSweep(0, 0, 0, 0, 5);
         assertEquals(0, sweep.stopCount());
         assertNull(sweep.nextStop());
         assertTrue(sweep.isComplete());

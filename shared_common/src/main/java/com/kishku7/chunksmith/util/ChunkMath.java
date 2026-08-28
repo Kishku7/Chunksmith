@@ -5,8 +5,8 @@ public final class ChunkMath {
     }
 
     public static long pack(int x, int z) {
-        final long lx = x & 0xFFFFFFFFL;
-        final long lz = z & 0xFFFFFFFFL;
+        long lx = x & 0xFFFFFFFFL;
+        long lz = z & 0xFFFFFFFFL;
         return lx << 32 | lz;
     }
 

@@ -36,8 +36,8 @@ public class BossBarTaskFinishListener implements Consumer<GenerationTaskFinishE
 
     @Override
     public void accept(GenerationTaskFinishEvent event) {
-        final GenerationTask task = event.generationTask();
-        final World world = task.getSelection().world();
+        GenerationTask task = event.generationTask();
+        World world = task.getSelection().world();
         //[[[cog
         // import cog, compat
         // t = compat.identifier_type(mcver)
@@ -47,7 +47,7 @@ public class BossBarTaskFinishListener implements Consumer<GenerationTaskFinishE
         if (worldIdentifier == null) {
             return;
         }
-        final ServerBossEvent bossBar = bossBars.get(worldIdentifier);
+        ServerBossEvent bossBar = bossBars.get(worldIdentifier);
         if (bossBar != null) {
             bossBar.removeAllPlayers();
             bossBars.remove(worldIdentifier);

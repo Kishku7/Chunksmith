@@ -95,9 +95,9 @@ public final class Chunksmith {
     }
 
     private Optional<Double> loadLimit() {
-        final Path limitFile = config.getDirectory().resolve(".chunky.properties");
+        Path limitFile = config.getDirectory().resolve(".chunky.properties");
         try (final InputStream input = Files.newInputStream(limitFile)) {
-            final Properties properties = new Properties();
+            Properties properties = new Properties();
             properties.load(input);
             return Input.tryDouble(properties.getProperty("radius-limit"));
         } catch (IOException e) {
@@ -107,7 +107,7 @@ public final class Chunksmith {
 
     private Version loadVersion() {
         try (final InputStream input = getClass().getClassLoader().getResourceAsStream("version.properties")) {
-            final Properties properties = new Properties();
+            Properties properties = new Properties();
             properties.load(input);
             return new Version(properties.getProperty("version"));
         } catch (IOException e) {
@@ -116,7 +116,7 @@ public final class Chunksmith {
     }
 
     private Map<String, ChunksmithCommand> loadCommands() {
-        final Map<String, ChunksmithCommand> commandMap = new HashMap<>();
+        Map<String, ChunksmithCommand> commandMap = new HashMap<>();
         commandMap.put(CommandLiteral.CANCEL, new CancelCommand(this));
         commandMap.put(CommandLiteral.CENTER, new CenterCommand(this));
         commandMap.put(CommandLiteral.CONFIRM, new ConfirmCommand(this));
@@ -181,7 +181,7 @@ public final class Chunksmith {
 
     public Optional<Runnable> getPendingAction(Sender sender) {
         pendingActions.values().removeIf(PendingAction::hasExpired);
-        final PendingAction pendingAction = pendingActions.remove(sender.getName());
+        PendingAction pendingAction = pendingActions.remove(sender.getName());
         return Optional.ofNullable(pendingAction).map(PendingAction::getAction);
     }
 

@@ -18,7 +18,7 @@ public class Version implements Comparable<Version> {
             this.major = Integer.MIN_VALUE;
             return;
         }
-        final String[] semVer = version.split("\\.");
+        String[] semVer = version.split("\\.");
         if (semVer.length > 0) {
             this.major = Input.tryInteger(semVer[0]).orElse(Integer.MIN_VALUE);
         }
@@ -77,7 +77,7 @@ public class Version implements Comparable<Version> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final Version version = (Version) o;
+        Version version = (Version) o;
         return major == version.major && minor == version.minor && patch == version.patch;
     }
 

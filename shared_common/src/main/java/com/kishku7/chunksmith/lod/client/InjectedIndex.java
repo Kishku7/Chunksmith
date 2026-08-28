@@ -64,11 +64,11 @@ public final class InjectedIndex {
      */
     public static InjectedIndex open(final Path storeRoot, final String dimension, final String epoch,
                                      final boolean ignore) {
-        final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
+        Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dir == null) {
             return null;
         }
-        final InjectedIndex index = new InjectedIndex(dir.resolve(FILE_NAME), epoch);
+        InjectedIndex index = new InjectedIndex(dir.resolve(FILE_NAME), epoch);
         if (!ignore) {
             index.load();
         }
@@ -101,9 +101,9 @@ public final class InjectedIndex {
 
     /** Every remembered region, as {@code {x, z, token}} triples. Used to seed the session's claim set. */
     public List<long[]> entries() {
-        final List<long[]> out = new ArrayList<>(this.entries.size());
+        List<long[]> out = new ArrayList<>(this.entries.size());
         for (Map.Entry<Long, Long> entry : this.entries.entrySet()) {
-            final long packed = entry.getKey();
+            long packed = entry.getKey();
             out.add(new long[] { (int) (packed >> 32), (int) packed, entry.getValue() });
         }
         return out;
@@ -114,14 +114,14 @@ public final class InjectedIndex {
      * re-inject next session, which is the behaviour this class replaces: slow, not wrong.
      */
     public void save() throws IOException {
-        final List<String> lines = new ArrayList<>(this.entries.size() + 1);
+        List<String> lines = new ArrayList<>(this.entries.size() + 1);
         lines.add(EPOCH_PREFIX + this.epoch);
         for (Map.Entry<Long, Long> entry : this.entries.entrySet()) {
-            final long packed = entry.getKey();
+            long packed = entry.getKey();
             lines.add((int) (packed >> 32) + "," + (int) packed + "=" + entry.getValue());
         }
         Files.createDirectories(this.file.getParent());
-        final Path temp = this.file.resolveSibling(FILE_NAME + ".part");
+        Path temp = this.file.resolveSibling(FILE_NAME + ".part");
         Files.write(temp, lines, StandardCharsets.US_ASCII);
         Files.move(temp, this.file, StandardCopyOption.REPLACE_EXISTING);
     }
@@ -136,7 +136,7 @@ public final class InjectedIndex {
         if (!Files.isRegularFile(this.file)) {
             return;
         }
-        final List<String> lines;
+        List<String> lines;
         try {
             lines = Files.readAllLines(this.file, StandardCharsets.US_ASCII);
         } catch (IOException e) {
@@ -153,11 +153,11 @@ public final class InjectedIndex {
 
     /** {@code x,z=token}. Anything else is skipped in silence. See the class doc. */
     private void parse(String line) {
-        final int equals = line.indexOf('=');
+        int equals = line.indexOf('=');
         if (equals <= 0) {
             return;
         }
-        final String[] coords = line.substring(0, equals).split(",", -1);
+        String[] coords = line.substring(0, equals).split(",", -1);
         if (coords.length != 2) {
             return;
         }

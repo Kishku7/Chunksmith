@@ -48,7 +48,7 @@ public class ConcentricChunkIterator implements ChunkIterator {
         this.z = selection.centerChunkZ();
         this.xCenter = x;
         this.zCenter = z;
-        final long diameterChunks = selection.diameterChunksX();
+        long diameterChunks = selection.diameterChunksX();
         this.total = diameterChunks * diameterChunks;
     }
 
@@ -62,7 +62,7 @@ public class ConcentricChunkIterator implements ChunkIterator {
         if (!hasNext) {
             throw new NoSuchElementException();
         }
-        final ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
+        ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
         if (x == xCenter + annulus && z == zCenter + annulus) {
             ++annulus;
             ++x;

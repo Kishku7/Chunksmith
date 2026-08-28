@@ -127,7 +127,7 @@ public final class ChunksmithForge {
     //     cog.outl("@SubscribeEvent")
     //]]]
     //[[[end]]]
-    public void onServerStarting(final ServerStartingEvent event) {
+    public void onServerStarting(ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
         // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need. It
         // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
@@ -144,7 +144,7 @@ public final class ChunksmithForge {
             try {
                 Files.move(legacyDir, baseDir);
                 LoggerFactory.getLogger("Chunksmith").info("Migrated existing config/chunky to config/chunksmith.");
-            } catch (final IOException e) {
+            } catch (IOException e) {
                 LoggerFactory.getLogger("Chunksmith").warn("Could not migrate config/chunky to config/chunksmith; using the existing chunky directory.", e);
                 baseDir = legacyDir;
             }
@@ -165,7 +165,7 @@ public final class ChunksmithForge {
     //     cog.outl("@SubscribeEvent")
     //]]]
     //[[[end]]]
-    public void onRegisterCommands(final RegisterCommandsEvent event) {
+    public void onRegisterCommands(RegisterCommandsEvent event) {
         // Primary commands plus deprecated aliases (which emit a notice pointing to /cs).
         event.getDispatcher().register(buildCommand(CommandLiteral.CS));
         event.getDispatcher().register(buildCommand(CommandLiteral.CHUNKSMITH));
@@ -173,7 +173,7 @@ public final class ChunksmithForge {
         event.getDispatcher().register(buildCommand(CommandLiteral.CY));
     }
 
-    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(final String root) {
+    private LiteralArgumentBuilder<CommandSourceStack> buildCommand(String root) {
         final LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
                 .requires(serverCommandSource -> {
                     final MinecraftServer server = serverCommandSource.getServer();
@@ -295,7 +295,7 @@ public final class ChunksmithForge {
     }
 
     @SafeVarargs
-    private <S> void registerArguments(final LiteralArgumentBuilder<S> command, final ArgumentBuilder<S, ?>... arguments) {
+    private <S> void registerArguments(LiteralArgumentBuilder<S> command, ArgumentBuilder<S, ?>... arguments) {
         for (int i = arguments.length - 1; i > 0; --i) {
             arguments[i - 1].then(arguments[i].executes(command.getCommand()));
         }
@@ -308,7 +308,7 @@ public final class ChunksmithForge {
     //     cog.outl("@SubscribeEvent")
     //]]]
     //[[[end]]]
-    public void onServerStopping(final ServerStoppingEvent event) {
+    public void onServerStopping(ServerStoppingEvent event) {
         if (chunky != null) {
             chunky.disable();
         }

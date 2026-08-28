@@ -55,12 +55,12 @@ public class CsLodManifestTest {
     @Test
     public void roundTrips() throws IOException {
         setUpStore();
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 0xDEAD_BEEF_1234_5678L, 4_812_345L);
         manifest.put(-3, 7, 42L, 17L);
         manifest.save();
 
-        final CsLodManifest reopened = CsLodManifest.open(this.root, DIM);
+        CsLodManifest reopened = CsLodManifest.open(this.root, DIM);
         assertEquals(2, reopened.size());
         assertEquals(Long.valueOf(0xDEAD_BEEF_1234_5678L).longValue(), reopened.get(0, 0).hash());
         assertEquals(4_812_345L, reopened.get(0, 0).sizeBytes());
@@ -74,7 +74,7 @@ public class CsLodManifestTest {
         setUpStore();
         region(0, 0, 100);
 
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
 
         assertEquals(0, manifest.size());
         assertFalse("no manifest, no claim",
@@ -91,7 +91,7 @@ public class CsLodManifestTest {
                  + "\n"
                  + "2,2=222,200\n").getBytes(StandardCharsets.US_ASCII));
 
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
 
         assertEquals("good lines survive", 2, manifest.size());
         assertEquals(111L, manifest.get(0, 0).hash());
@@ -105,7 +105,7 @@ public class CsLodManifestTest {
     public void holdsWhenTokenAndSizeMatch() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 999L, 100L);
 
         assertTrue(manifest.holds(this.root.resolve(DIM), entry(0, 0, 999L, 100L)));
@@ -115,7 +115,7 @@ public class CsLodManifestTest {
     public void aMovedTokenIsNotHeld() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 999L, 100L);
 
         assertFalse(manifest.holds(this.root.resolve(DIM), entry(0, 0, 1000L, 120L)));
@@ -125,7 +125,7 @@ public class CsLodManifestTest {
     public void aDeletedRegionIsNotHeld() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 999L, 100L);
         assertTrue(manifest.holds(this.root.resolve(DIM), entry(0, 0, 999L, 100L)));
 
@@ -139,7 +139,7 @@ public class CsLodManifestTest {
     public void aTruncatedRegionIsNotHeld() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 999L, 100L);
 
         region(0, 0, 50);
@@ -151,7 +151,7 @@ public class CsLodManifestTest {
     public void aZeroTokenIsNeverHeld() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 0L, 100L);
 
         assertFalse(manifest.holds(this.root.resolve(DIM), entry(0, 0, 0L, 100L)));
@@ -173,15 +173,15 @@ public class CsLodManifestTest {
         region(0, 0, 100);
         region(0, 1, 200);
         region(1, 0, 300);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 111L, 100L);
         manifest.put(0, 1, 222L, 200L);
         manifest.put(1, 0, 333L, 300L);
 
-        final List<CsLodMessages.RegionEntry> index = List.of(
+        List<CsLodMessages.RegionEntry> index = List.of(
                 entry(0, 0, 111L, 100L), entry(0, 1, 222L, 200L), entry(1, 0, 333L, 300L));
 
-        final CsLodSummary.Snapshot ours = manifest.fold(this.root.resolve(DIM), index);
+        CsLodSummary.Snapshot ours = manifest.fold(this.root.resolve(DIM), index);
 
         // What the server would compute over the same set.
         long server = 0L;
@@ -197,13 +197,13 @@ public class CsLodManifestTest {
     public void anUnseenRegionMakesUsDisagree() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 111L, 100L);
 
-        final List<CsLodMessages.RegionEntry> index =
+        List<CsLodMessages.RegionEntry> index =
                 List.of(entry(0, 0, 111L, 100L), entry(5, 5, 555L, 500L));
 
-        final CsLodSummary.Snapshot ours = manifest.fold(this.root.resolve(DIM), index);
+        CsLodSummary.Snapshot ours = manifest.fold(this.root.resolve(DIM), index);
 
         assertEquals("one of the two", 1, ours.count());
         assertNotEquals(2, ours.count());
@@ -214,19 +214,19 @@ public class CsLodManifestTest {
         setUpStore();
         region(0, 0, 100);
         region(0, 1, 200);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 111L, 100L);
         manifest.put(0, 1, 222L, 200L);
 
-        final List<CsLodMessages.RegionEntry> index =
+        List<CsLodMessages.RegionEntry> index =
                 List.of(entry(0, 0, 111L, 100L), entry(0, 1, 222L, 200L));
 
-        final CsLodSummary.Snapshot before = manifest.fold(this.root.resolve(DIM), index);
+        CsLodSummary.Snapshot before = manifest.fold(this.root.resolve(DIM), index);
         assertEquals(2, before.count());
 
         Files.delete(this.root.resolve(DIM).resolve("r.0.1.cslod"));
 
-        final CsLodSummary.Snapshot after = manifest.fold(this.root.resolve(DIM), index);
+        CsLodSummary.Snapshot after = manifest.fold(this.root.resolve(DIM), index);
         assertEquals("the deleted region stops contributing", 1, after.count());
         assertNotEquals(before.aggregate(), after.aggregate());
     }
@@ -235,12 +235,12 @@ public class CsLodManifestTest {
     public void aChangedRegionMakesUsDisagree() throws IOException {
         setUpStore();
         region(0, 0, 100);
-        final CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
+        CsLodManifest manifest = CsLodManifest.open(this.root, DIM);
         manifest.put(0, 0, 111L, 100L);
 
-        final CsLodSummary.Snapshot same =
+        CsLodSummary.Snapshot same =
                 manifest.fold(this.root.resolve(DIM), List.of(entry(0, 0, 111L, 100L)));
-        final CsLodSummary.Snapshot grown =
+        CsLodSummary.Snapshot grown =
                 manifest.fold(this.root.resolve(DIM), List.of(entry(0, 0, 999L, 140L)));
 
         assertEquals(1, same.count());

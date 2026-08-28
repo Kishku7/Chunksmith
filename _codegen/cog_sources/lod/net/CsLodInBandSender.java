@@ -54,9 +54,9 @@ public final class CsLodInBandSender {
     public static void queue(final ServerPlayer player, final Path storeRoot, final String dimension,
                              final List<CsLodMessages.RegionEntry> wanted) throws IOException {
         cancel(player);
-        final Deque<Region> regions = new ArrayDeque<>();
+        Deque<Region> regions = new ArrayDeque<>();
         for (CsLodMessages.RegionEntry entry : wanted) {
-            final Path file = storeRoot.resolve(dimension)
+            Path file = storeRoot.resolve(dimension)
                     .resolve("r." + entry.regionX() + "." + entry.regionZ() + ".cslod");
             if (!Files.isRegularFile(file)) {
                 continue;
@@ -68,7 +68,7 @@ public final class CsLodInBandSender {
 
     /** Drip-feed. Call once per server tick. */
     public static void tick(ServerPlayer player) {
-        final Transfer transfer = TRANSFERS.get(player.getUUID());
+        Transfer transfer = TRANSFERS.get(player.getUUID());
         if (transfer == null) {
             return;
         }
@@ -92,7 +92,7 @@ public final class CsLodInBandSender {
     }
 
     public static void forget(UUID player) {
-        final Transfer transfer = TRANSFERS.get(player);
+        Transfer transfer = TRANSFERS.get(player);
         if (transfer != null) {
             finish(player, transfer);
         }
@@ -141,17 +141,17 @@ public final class CsLodInBandSender {
                 this.sent = 0L;
             }
 
-            final byte[] buffer = new byte[SLICE_BYTES];
+            byte[] buffer = new byte[SLICE_BYTES];
             // readNBytes only stops short at EOF, so a short read IS the end of the file, which also
             // covers a region the writer thread replaced underneath us.
-            final int read = this.in.readNBytes(buffer, 0, SLICE_BYTES);
+            int read = this.in.readNBytes(buffer, 0, SLICE_BYTES);
             if (read <= 0) {
                 closeCurrent();
                 return true;
             }
             this.sent += read;
-            final boolean last = read < SLICE_BYTES || this.sent >= this.current.size();
-            final byte[] data = read == SLICE_BYTES ? buffer : Arrays.copyOf(buffer, read);
+            boolean last = read < SLICE_BYTES || this.sent >= this.current.size();
+            byte[] data = read == SLICE_BYTES ? buffer : Arrays.copyOf(buffer, read);
 
             CsLodServerNet.sendTo(player, CsLodMessages.encode(new CsLodMessages.RegionSlice(
                     this.dimension, this.current.regionX(), this.current.regionZ(), last, data)));

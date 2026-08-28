@@ -55,7 +55,7 @@ public final class ClientPlatform {
             // bytes MUST be copied out before hopping to the main thread. Reading it inside the
             // client.execute lambda would race the release and hand us garbage (or throw). The server-side
             // twin in CsLodChannel carries the same note for the same reason.
-            final byte[] data = buf.readByteArray();
+            byte[] data = buf.readByteArray();
             client.execute(() -> onPayload.accept(data));
         });
     }
@@ -65,7 +65,7 @@ public final class ClientPlatform {
         if (!ClientPlayNetworking.canSend(CsLodChannel.ID)) {
             return;
         }
-        final FriendlyByteBuf buf = PacketByteBufs.create();
+        FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeByteArray(data);
         ClientPlayNetworking.send(CsLodChannel.ID, buf);
     }

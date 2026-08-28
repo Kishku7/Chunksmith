@@ -52,8 +52,8 @@ public final class CsLodDhPusher {
             return 0;
         }
 
-        final int[] pushed = {0};
-        final int[] failed = {0};
+        int[] pushed = {0};
+        int[] failed = {0};
 
         // LinkageError, not Exception: overwriteChunkDataAsync is our only call into DH's terrain repo, so
         // a mismatched DH blows up here as an Error (NoSuchMethodError / NoClassDefFoundError /
@@ -61,8 +61,8 @@ public final class CsLodDhPusher {
         // on this signature having been stable since DH 2.0.0-a; the catch makes being wrong containable.
         try {
             CsLodRegionStore.forEachChunk(storeRoot, record -> {
-                final LevelChunk chunk = synthesize(level, record);
-                final DhApiResult<Void> result =
+                LevelChunk chunk = synthesize(level, record);
+                DhApiResult<Void> result =
                         DhApi.Delayed.terrainRepo.overwriteChunkDataAsync(wrapper, new Object[]{chunk, level});
                 if (result.success) {
                     pushed[0]++;
@@ -95,9 +95,9 @@ public final class CsLodDhPusher {
      * does and that P2 proved correct.
      */
     private static LevelChunk synthesize(ServerLevel level, CsLodChunk record) {
-        final LevelChunk chunk = new LevelChunk(level, new ChunkPos(record.getChunkX(), record.getChunkZ()));
-        final LevelChunkSection[] sections = chunk.getSections();
-        final int count = Math.min(sections.length, record.getSections().size());
+        LevelChunk chunk = new LevelChunk(level, new ChunkPos(record.getChunkX(), record.getChunkZ()));
+        LevelChunkSection[] sections = chunk.getSections();
+        int count = Math.min(sections.length, record.getSections().size());
         for (int i = 0; i < count; i++) {
             sections[i] = CsLodSectionBuilder.rebuild(level, record, record.getSections().get(i));
         }

@@ -92,7 +92,7 @@ public class HeapPressureTest {
         assertTrue(HeapPressure.maxMegabytes() > 0L);
         assertTrue(HeapPressure.usedMegabytes() >= 0L);
         assertTrue(HeapPressure.usedMegabytes() <= HeapPressure.maxMegabytes());
-        final double percent = HeapPressure.usedPercent();
+        double percent = HeapPressure.usedPercent();
         assertTrue(percent >= 0.0D && percent <= 100.0D);
     }
 }

@@ -105,9 +105,9 @@ public final class CsLodClientConfig {
      * @return the message to log; one line, said once, and it names the clamp when the clamp bit
      */
     public static synchronized String load(Path configDir) {
-        final Path path = configDir.resolve(FILE_NAME);
+        Path path = configDir.resolve(FILE_NAME);
         file = path;
-        final Properties properties = new Properties();
+        Properties properties = new Properties();
         boolean present = false;
         if (Files.isRegularFile(path)) {
             try (InputStream in = Files.newInputStream(path)) {
@@ -126,7 +126,7 @@ public final class CsLodClientConfig {
         reinject = Boolean.parseBoolean(
                 properties.getProperty(KEY_REINJECT, "false").trim());
 
-        final String raw = properties.getProperty(KEY_SYNC_SECONDS);
+        String raw = properties.getProperty(KEY_SYNC_SECONDS);
         int requested = DEFAULT_SYNC_SECONDS;
         boolean unparseable = false;
         if (raw != null && !raw.isBlank()) {
@@ -137,7 +137,7 @@ public final class CsLodClientConfig {
             }
         }
 
-        final int clamped = clamp(requested);
+        int clamped = clamp(requested);
         syncSeconds = clamped;
         loaded = true;
 
@@ -216,11 +216,11 @@ public final class CsLodClientConfig {
      * in effect in memory, and a player who cannot write their own config directory has a bigger problem.
      */
     private static void save() {
-        final Path path = file;
+        Path path = file;
         if (path == null) {
             return;
         }
-        final Properties out = new Properties();
+        Properties out = new Properties();
         out.setProperty(KEY_SYNC_SECONDS, Integer.toString(syncSeconds));
         out.setProperty(KEY_REINJECT, Boolean.toString(reinject));
         try {

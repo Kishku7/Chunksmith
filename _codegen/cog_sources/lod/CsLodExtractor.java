@@ -46,7 +46,7 @@ public final class CsLodExtractor {
 
     /** Extract, or null if the chunk carries nothing worth storing. */
     public static CsLodChunk extract(LevelChunk chunk) {
-        final LevelChunkSection[] sections = chunk.getSections();
+        LevelChunkSection[] sections = chunk.getSections();
         if (sections.length == 0) {
             return null;
         }
@@ -60,15 +60,15 @@ public final class CsLodExtractor {
         // cog.outl("final int minSectionY = chunk.%s();" % compat.chunk_min_section_call(mcver))
         //]]]
         //[[[end]]]
-        final LevelLightEngine light = chunk.getLevel().getLightEngine();
+        LevelLightEngine light = chunk.getLevel().getLightEngine();
 
-        final Palette blocks = new Palette();
-        final Palette biomes = new Palette();
-        final List<CsLodChunk.Section> out = new ArrayList<>(sections.length);
+        Palette blocks = new Palette();
+        Palette biomes = new Palette();
+        List<CsLodChunk.Section> out = new ArrayList<>(sections.length);
 
         for (int i = 0; i < sections.length; i++) {
-            final LevelChunkSection section = sections[i];
-            final SectionPos pos = SectionPos.of(chunkX, minSectionY + i, chunkZ);
+            LevelChunkSection section = sections[i];
+            SectionPos pos = SectionPos.of(chunkX, minSectionY + i, chunkZ);
             out.add(extractSection(section, pos, light, blocks, biomes));
         }
 
@@ -94,8 +94,8 @@ public final class CsLodExtractor {
             for (int y = 0; y < 16; y++) {
                 for (int z = 0; z < 16; z++) {
                     for (int x = 0; x < 16; x++) {
-                        final BlockState state = section.getBlockState(x, y, z);
-                        final int id = blocks.id(BlockStateParser.serialize(state));
+                        BlockState state = section.getBlockState(x, y, z);
+                        int id = blocks.id(BlockStateParser.serialize(state));
                         blockIndices[n++] = id;
                         if (first < 0) {
                             first = id;
@@ -120,7 +120,7 @@ public final class CsLodExtractor {
         for (int y = 0; y < 4; y++) {
             for (int z = 0; z < 4; z++) {
                 for (int x = 0; x < 4; x++) {
-                    final Holder<Biome> holder = section.getNoiseBiome(x, y, z);
+                    Holder<Biome> holder = section.getNoiseBiome(x, y, z);
                     //[[[cog
                     // import cog, compat
                     // cog.outl("final int id = biomes.id(holder.unwrapKey()")
@@ -143,32 +143,32 @@ public final class CsLodExtractor {
         }
 
         // ---- light: sky and block, separate, present even for pure-air sections ----
-        final Light sky = extractLight(light, LightLayer.SKY, pos);
-        final Light block = extractLight(light, LightLayer.BLOCK, pos);
+        Light sky = extractLight(light, LightLayer.SKY, pos);
+        Light block = extractLight(light, LightLayer.BLOCK, pos);
 
         return new CsLodChunk.Section(blockIndices, uniformBlock, biomeIndices, uniformBiome,
                 sky.packed, sky.uniform, block.packed, block.uniform);
     }
 
     private static Light extractLight(LevelLightEngine engine, LightLayer layer, SectionPos pos) {
-        final DataLayer data = engine.getLayerListener(layer).getDataLayerData(pos);
+        DataLayer data = engine.getLayerListener(layer).getDataLayerData(pos);
         if (data == null || data.isEmpty()) {
             // No stored data for this section: its light is uniform by construction. Sample one
             // position through the layer listener so that (for example) open sky above the terrain
             // records 15 rather than a black 0. DH would render an unlit LOD otherwise.
-            final int value = engine.getLayerListener(layer)
+            int value = engine.getLayerListener(layer)
                     .getLightValue(pos.origin().offset(0, 0, 0));
             return new Light(null, Math.max(0, Math.min(15, value)));
         }
 
-        final byte[] packed = new byte[CsLodChunk.LIGHT_BYTES];
+        byte[] packed = new byte[CsLodChunk.LIGHT_BYTES];
         int first = -1;
         boolean uniform = true;
         int n = 0;
         for (int y = 0; y < 16; y++) {
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
-                    final int value = Math.max(0, Math.min(15, data.get(x, y, z)));
+                    int value = Math.max(0, Math.min(15, data.get(x, y, z)));
                     if (first < 0) {
                         first = value;
                     } else if (value != first) {
@@ -203,11 +203,11 @@ public final class CsLodExtractor {
         private final List<String> order = new ArrayList<>();
 
         private int id(String value) {
-            final Integer existing = ids.get(value);
+            Integer existing = ids.get(value);
             if (existing != null) {
                 return existing;
             }
-            final int id = order.size();
+            int id = order.size();
             ids.put(value, id);
             order.add(value);
             return id;

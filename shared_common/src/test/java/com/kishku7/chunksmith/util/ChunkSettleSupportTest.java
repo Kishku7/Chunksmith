@@ -52,14 +52,14 @@ public class ChunkSettleSupportTest {
     @Test
     public void theTickReleasesWithoutAnyNewChunkArriving() {
         ChunkSettleSupport.configure(true, 40L, 0L);
-        final ChunkSettleWindow window = ChunkSettleSupport.newWindow();
-        final List<String> released = new ArrayList<>();
+        ChunkSettleWindow window = ChunkSettleSupport.newWindow();
+        List<String> released = new ArrayList<>();
 
         // A closed 3x3 around (0,0): the centre's neighbourhood is complete, so it becomes DUE at
         // tick 40. But nothing else will ever be offered, which is the situation under test.
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                final String name = x + "," + z;
+                String name = x + "," + z;
                 window.offer(x, z, 0L, () -> released.add(name));
             }
         }
@@ -74,7 +74,7 @@ public class ChunkSettleSupportTest {
 
     @Test
     public void aDrainedWindowIsNotPumpedForEver() {
-        final ChunkSettleWindow window = ChunkSettleSupport.newWindow();
+        ChunkSettleWindow window = ChunkSettleSupport.newWindow();
         window.offer(0, 0, 0L, () -> { });
         assertEquals(1, ChunkSettleSupport.liveWindowCount());
 

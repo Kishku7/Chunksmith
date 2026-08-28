@@ -60,7 +60,7 @@ public final class SettleSweep {
 
     /** Record that a chunk now exists on disk. Out-of-bounds chunks are ignored, not an error. */
     public void markGenerated(int chunkX, int chunkZ) {
-        final int index = index(chunkX, chunkZ);
+        int index = index(chunkX, chunkZ);
         if (index >= 0) {
             this.generated.set(index);
         }
@@ -72,16 +72,16 @@ public final class SettleSweep {
      * generated window must never be loaded. Returns each stop at most once.
      */
     public int[] nextStop() {
-        final int stops = stopCount();
+        int stops = stopCount();
         for (int scanned = 0; scanned < stops; scanned++) {
-            final int slot = this.cursor;
+            int slot = this.cursor;
             this.cursor = (this.cursor + 1) % Math.max(1, stops);
-            final int stopsX = stopsPerRow();
-            final int gx = slot % stopsX;
-            final int gz = slot / stopsX;
-            final int chunkX = this.minChunkX + Math.min(gx * this.radius, this.width - 1);
-            final int chunkZ = this.minChunkZ + Math.min(gz * this.radius, this.height - 1);
-            final int index = index(chunkX, chunkZ);
+            int stopsX = stopsPerRow();
+            int gx = slot % stopsX;
+            int gz = slot / stopsX;
+            int chunkX = this.minChunkX + Math.min(gx * this.radius, this.width - 1);
+            int chunkZ = this.minChunkZ + Math.min(gz * this.radius, this.height - 1);
+            int index = index(chunkX, chunkZ);
             if (index < 0 || this.swept.get(index)) {
                 continue;
             }
@@ -102,7 +102,7 @@ public final class SettleSweep {
     public boolean windowGenerated(int chunkX, int chunkZ) {
         for (int x = chunkX - this.radius; x <= chunkX + this.radius; x++) {
             for (int z = chunkZ - this.radius; z <= chunkZ + this.radius; z++) {
-                final int index = index(x, z);
+                int index = index(x, z);
                 if (index >= 0 && !this.generated.get(index)) {
                     return false;
                 }
@@ -137,8 +137,8 @@ public final class SettleSweep {
 
     /** Flat index into the bitsets, or -1 when the chunk is outside the task's bounds. */
     private int index(int chunkX, int chunkZ) {
-        final int x = chunkX - this.minChunkX;
-        final int z = chunkZ - this.minChunkZ;
+        int x = chunkX - this.minChunkX;
+        int z = chunkZ - this.minChunkZ;
         if (x < 0 || z < 0 || x >= this.width || z >= this.height) {
             return -1;
         }

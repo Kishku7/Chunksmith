@@ -18,7 +18,7 @@ public class ProgressCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
+        Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         if (generationTasks.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_PROGRESS_NO_TASKS);
             return;

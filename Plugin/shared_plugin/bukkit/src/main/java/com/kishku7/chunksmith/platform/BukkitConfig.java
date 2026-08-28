@@ -17,7 +17,7 @@ public final class BukkitConfig implements Config {
 
     public BukkitConfig(ChunksmithBukkit plugin) {
         this.plugin = plugin;
-        final FileConfigurationOptions options = plugin.getConfig().options();
+        FileConfigurationOptions options = plugin.getConfig().options();
         options.copyDefaults(true);
         try {
             FileConfigurationOptions.class.getMethod("header", String.class).invoke(options, String.join("\n", HEADER));
@@ -138,8 +138,8 @@ public final class BukkitConfig implements Config {
      */
     @Override
     public LodMode getLodMode() {
-        final String raw = plugin.getConfig().getString("lod-enabled", "auto");
-        final LodMode mode = LodMode.parse(raw);
+        String raw = plugin.getConfig().getString("lod-enabled", "auto");
+        LodMode mode = LodMode.parse(raw);
         if (mode == null) {
             plugin.getLogger().warning("Chunksmith: lod-enabled '" + raw + "' is not one of auto/true/false, using auto");
             return LodMode.AUTO;

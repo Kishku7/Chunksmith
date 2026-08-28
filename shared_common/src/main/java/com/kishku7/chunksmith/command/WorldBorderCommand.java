@@ -20,12 +20,12 @@ import java.util.Optional;
 public class WorldBorderCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public WorldBorderCommand(final Chunksmith chunky) {
+    public WorldBorderCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         if (arguments.size() > 0) {
             final Optional<World> world = arguments.next().flatMap(arg -> Input.tryWorld(chunky, arg));
             if (world.isPresent()) {
@@ -55,7 +55,7 @@ public class WorldBorderCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
             final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
@@ -64,7 +64,7 @@ public class WorldBorderCommand implements ChunksmithCommand {
         return List.of();
     }
 
-    boolean setBorderViaIntegration(final World world) {
+    boolean setBorderViaIntegration(World world) {
         final Map<String, Integration> integrations = chunky.getServer().getIntegrations();
         if (integrations.containsKey("border")) {
             final BorderIntegration worldborder = (BorderIntegration) integrations.get("border");

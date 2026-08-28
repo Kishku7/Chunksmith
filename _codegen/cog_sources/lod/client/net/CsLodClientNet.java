@@ -171,7 +171,7 @@ public final class CsLodClientNet {
      * means we ask only for what is genuinely new; standing still costs nothing.
      */
     private static void travelTick() {
-        final LocalPlayer player = Minecraft.getInstance().player;
+        LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) {
             return;
         }
@@ -197,12 +197,12 @@ public final class CsLodClientNet {
         // out, 34 back), never an index: an index every few minutes from every client rebuilds the memory bug.
         syncTick();
 
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         if (now - lastIndexMillis < MIN_REFRESH_MILLIS) {
             return;
         }
-        final double dx = player.getX() - lastIndexX;
-        final double dz = player.getZ() - lastIndexZ;
+        double dx = player.getX() - lastIndexX;
+        double dz = player.getZ() - lastIndexZ;
         if (dx * dx + dz * dz < REFRESH_MOVE_BLOCKS * REFRESH_MOVE_BLOCKS) {
             return;
         }
@@ -225,7 +225,7 @@ public final class CsLodClientNet {
      * @return true if the dimension changed (the caller must do nothing else this tick)
      */
     private static boolean dimensionTick() {
-        final String now = CsLodDimension.current();
+        String now = CsLodDimension.current();
         if (now.isEmpty()) {
             // Mid-change: the old level is gone and the new one is not up. Wait for the next tick.
             return false;
@@ -234,7 +234,7 @@ public final class CsLodClientNet {
             return false;
         }
 
-        final String from = playerDimension;
+        String from = playerDimension;
         playerDimension = now;
 
         // Whatever we were pulling was for the level the player has just left: an index or download that
@@ -250,7 +250,7 @@ public final class CsLodClientNet {
         lastIndex = List.of();
         lastSyncMillis = 0L;
         PARTIAL.clear();
-        final CsLodDownloader current = downloader;
+        CsLodDownloader current = downloader;
         if (current != null) {
             current.cancel();
         }
@@ -297,7 +297,7 @@ public final class CsLodClientNet {
         if (!CsLodClientConfig.isLoaded()) {
             return;
         }
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         if (now - lastSyncMillis < CsLodClientConfig.syncIntervalMillis()) {
             return;
         }
@@ -320,25 +320,25 @@ public final class CsLodClientNet {
      * of the last index, and the game thread never waits on a disk.
      */
     private static void summary(CsLodMessages.RegionSummary summary) {
-        final String dimension = summary.dimension();
+        String dimension = summary.dimension();
         if (!dimension.equals(activeDimension)) {
             // The answer to a question we asked from a dimension we have since left. Drop it.
             return;
         }
-        final Path root = storeRoot();
-        final Path dir = CsLodStore.dimensionDir(root, dimension);
+        Path root = storeRoot();
+        Path dir = CsLodStore.dimensionDir(root, dimension);
         if (dir == null) {
             LOGGER.warn("Chunksmith: server sent a malformed dimension id in a LOD summary; ignoring it");
             return;
         }
-        final List<CsLodMessages.RegionEntry> mine = lastIndex;
+        List<CsLodMessages.RegionEntry> mine = lastIndex;
 
-        final Thread worker = new Thread(() -> {
-            final CsLodManifest manifest = CsLodManifest.open(root, dimension);
+        Thread worker = new Thread(() -> {
+            CsLodManifest manifest = CsLodManifest.open(root, dimension);
             if (manifest == null) {
                 return;
             }
-            final CsLodSummary.Snapshot ours = manifest.fold(dir, mine);
+            CsLodSummary.Snapshot ours = manifest.fold(dir, mine);
             if (ours.count() == summary.count() && ours.aggregate() == summary.aggregate()) {
                 LOGGER.debug("Chunksmith: LOD sync, nothing has changed ({} regions of {})",
                         ours.count(), dimension);
@@ -403,13 +403,13 @@ public final class CsLodClientNet {
         if (host.isEmpty()) {
             return;
         }
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         if (!RETRY.due(now)) {
             return;
         }
         RETRY.attempted(now);
         // Loud for the first couple of minutes so the log shows we are still trying; quiet after that.
-        final String line = "Chunksmith: the server still has no LOD data (asked " + RETRY.attempts()
+        String line = "Chunksmith: the server still has no LOD data (asked " + RETRY.attempts()
                 + " more time(s)); asking again in " + RETRY.delayMillis() / 1000L + "s";
         if (RETRY.attempts() <= 3) {
             LOGGER.info(line);
@@ -432,12 +432,12 @@ public final class CsLodClientNet {
      * write no file at all.
      */
     private static void hello() {
-        final boolean voxy = Renderers.hasVoxy();
-        final boolean dh = Renderers.hasDh();
-        final Minecraft client = Minecraft.getInstance();
+        boolean voxy = Renderers.hasVoxy();
+        boolean dh = Renderers.hasDh();
+        Minecraft client = Minecraft.getInstance();
         if (client.getCurrentServer() != null) {
             host = client.getCurrentServer().ip;
-            final int colon = host.lastIndexOf(':');
+            int colon = host.lastIndexOf(':');
             if (colon > 0) {
                 host = host.substring(0, colon);
             }
@@ -491,7 +491,7 @@ public final class CsLodClientNet {
             return;
         }
         try (DataInputStream in = CsLodMessages.reader(data)) {
-            final byte id = in.readByte();
+            byte id = in.readByte();
             switch (id) {
                 case CsLodProtocol.S2C_HELLO -> serverHello(CsLodMessages.decodeServerHello(in));
                 case CsLodProtocol.S2C_SUMMARY -> summary(CsLodMessages.decodeRegionSummary(in));
@@ -502,7 +502,7 @@ public final class CsLodClientNet {
                 case CsLodProtocol.S2C_DONE -> {
                     LOGGER.info("Chunksmith: in-band transfer complete");
                     // One manifest write for the whole transfer, not one per region.
-                    final CsLodManifest manifest = inBandManifest;
+                    CsLodManifest manifest = inBandManifest;
                     if (manifest != null) {
                         try {
                             manifest.save();
@@ -565,7 +565,7 @@ public final class CsLodClientNet {
 
         // The dimension is the one the player is standing in, NEVER the first one the server listed.
         // That single line was the 3.1.0-beta-2 bug; see the note on activeDimension.
-        final String mine = CsLodDimension.current();
+        String mine = CsLodDimension.current();
         if (mine.isEmpty()) {
             // No level yet; still loading in. dimensionTick() re-hellos once there is a level to name.
             return;
@@ -595,7 +595,7 @@ public final class CsLodClientNet {
 
         // Announce only on the hello that arms us for this dimension. The later ones are token renewals,
         // and a renewal every few minutes of travel must not re-narrate the connection.
-        final boolean arming = activeDimension.isEmpty();
+        boolean arming = activeDimension.isEmpty();
         if (backchannelPort == 0) {
             // The operator has not opened the port. Not an error: we ask in-band instead, which is much
             // slower (it rides the gameplay connection) but works everywhere.
@@ -616,7 +616,7 @@ public final class CsLodClientNet {
         if (!busy.compareAndSet(false, true)) {
             return;
         }
-        final LocalPlayer player = Minecraft.getInstance().player;
+        LocalPlayer player = Minecraft.getInstance().player;
         if (player != null) {
             lastIndexX = player.getX();
             lastIndexZ = player.getZ();
@@ -631,7 +631,7 @@ public final class CsLodClientNet {
     }
 
     private static void index(CsLodMessages.RegionIndex index) {
-        final Path root = storeRoot();
+        Path root = storeRoot();
         // The dimension is server-supplied and becomes a filesystem path in every transport below. Gate it
         // once at the top too, and free the busy latch we took to get here.
         if (CsLodStore.dimensionDir(root, index.dimension()) == null) {
@@ -653,7 +653,7 @@ public final class CsLodClientNet {
         downloader = new CsLodDownloader(root);
 
         // Off the game thread: a download must never make the game stutter. Injection follows on the same thread.
-        final Thread worker = new Thread(() -> {
+        Thread worker = new Thread(() -> {
             try {
                 // One cheap probe before we queue anything: an advertised-but-unreachable port costs a
                 // full connect timeout per region, ~30s of dead air on a 9-region store before the
@@ -667,7 +667,7 @@ public final class CsLodClientNet {
                     return;
                 }
 
-                final CsLodDownloader current = downloader;
+                CsLodDownloader current = downloader;
                 current.download(host, backchannelPort, token, index,
                         line -> LOGGER.info("Chunksmith: {}", line));
 
@@ -721,10 +721,10 @@ public final class CsLodClientNet {
 
         // The manifest is the cache check on both transports, and it is where each region's freshness
         // token is recorded as the slices land, so the next index can tell what we hold.
-        final CsLodManifest manifest = CsLodManifest.open(root, index.dimension());
+        CsLodManifest manifest = CsLodManifest.open(root, index.dimension());
         inBandManifest = manifest;
 
-        final List<CsLodMessages.RegionEntry> wanted = new ArrayList<>();
+        List<CsLodMessages.RegionEntry> wanted = new ArrayList<>();
         for (CsLodMessages.RegionEntry entry : index.regions()) {
             if (!CsLodCache.have(root, index.dimension(), manifest, entry)) {
                 wanted.add(entry);
@@ -751,12 +751,12 @@ public final class CsLodClientNet {
      * on the next join.
      */
     private static void slice(CsLodMessages.RegionSlice slice) {
-        final Path root = inBandRoot;
+        Path root = inBandRoot;
         if (root == null) {
             return;
         }
-        final String key = slice.regionX() + "." + slice.regionZ();
-        final ByteArrayOutputStream buffer =
+        String key = slice.regionX() + "." + slice.regionZ();
+        ByteArrayOutputStream buffer =
                 PARTIAL.computeIfAbsent(key, ignored -> new ByteArrayOutputStream());
         buffer.writeBytes(slice.data());
 
@@ -766,21 +766,21 @@ public final class CsLodClientNet {
         PARTIAL.remove(key);
         try {
             // slice.dimension() is a distinct wire value, so gate it here too (D20: every consumer validates).
-            final Path dimDir = CsLodStore.dimensionDir(root, slice.dimension());
+            Path dimDir = CsLodStore.dimensionDir(root, slice.dimension());
             if (dimDir == null) {
                 LOGGER.warn("Chunksmith: dropping an in-band slice with a malformed dimension id");
                 return;
             }
-            final Path target = dimDir.resolve("r." + slice.regionX() + "." + slice.regionZ() + ".cslod");
+            Path target = dimDir.resolve("r." + slice.regionX() + "." + slice.regionZ() + ".cslod");
             Files.createDirectories(target.getParent());
-            final Path temp = target.resolveSibling(target.getFileName() + ".part");
+            Path temp = target.resolveSibling(target.getFileName() + ".part");
             Files.write(temp, buffer.toByteArray());
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
 
             // Record what the server said about the region just assembled. The in-band request echoes
             // coordinates only, so the token has to come from the index that prompted the fetch.
-            final CsLodManifest manifest = inBandManifest;
-            final CsLodMessages.RegionEntry advertised = advertised(slice.regionX(), slice.regionZ());
+            CsLodManifest manifest = inBandManifest;
+            CsLodMessages.RegionEntry advertised = advertised(slice.regionX(), slice.regionZ());
             if (manifest != null && advertised != null) {
                 manifest.put(slice.regionX(), slice.regionZ(), advertised.hash(), Files.size(target));
             }
@@ -803,7 +803,7 @@ public final class CsLodClientNet {
     private static void injectAsync(final Path root, final String dimension,
                                     final List<CsLodMessages.RegionEntry> regions) {
         // Nothing to arm: the injector reads the current session generation when it starts (LodInjector.SESSION).
-        final Thread worker = new Thread(() -> {
+        Thread worker = new Thread(() -> {
             try {
                 LodInjector.injectRegions(root, dimension, regions,
                         line -> LOGGER.info("Chunksmith: {}", line));
@@ -816,7 +816,7 @@ public final class CsLodClientNet {
     }
 
     public static void cancel() {
-        final CsLodDownloader current = downloader;
+        CsLodDownloader current = downloader;
         if (current != null) {
             current.cancel();
             send(CsLodMessages.cancel());
@@ -824,7 +824,7 @@ public final class CsLodClientNet {
     }
 
     public static String describe() {
-        final CsLodDownloader current = downloader;
+        CsLodDownloader current = downloader;
         return current == null ? "idle" : current.describe();
     }
 
@@ -863,7 +863,7 @@ public final class CsLodClientNet {
 
     /** The client's own store, keyed by server so two servers never mix: {@code chunksmith/lod/<server>}. */
     private static Path storeRoot() {
-        final String key = host.isEmpty() ? "unknown" : host.replaceAll("[^a-zA-Z0-9._-]", "_");
+        String key = host.isEmpty() ? "unknown" : host.replaceAll("[^a-zA-Z0-9._-]", "_");
         return ClientPlatform.gameDir().resolve("chunksmith").resolve("lod").resolve(key);
     }
 
@@ -875,7 +875,7 @@ public final class CsLodClientNet {
      * Minecraft.getInstance() is safe here.
      */
     private static void clientSetting(CsLodMessages.ClientSetting request) {
-        final LocalPlayer player = Minecraft.getInstance().player;
+        LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) {
             return;
         }
@@ -889,14 +889,14 @@ public final class CsLodClientNet {
             return;
         }
 
-        final var found = CsLodClientSettings.find(request.name());
+        var found = CsLodClientSettings.find(request.name());
         if (found.isEmpty()) {
             say(player, Component.literal(
                     "[chunksmith] no LOD client setting called '" + request.name() + "'. Known: "
                             + String.join(", ", CsLodClientSettings.names())));
             return;
         }
-        final CsLodClientSettings.Setting setting = found.get();
+        CsLodClientSettings.Setting setting = found.get();
 
         if (request.action() == CsLodProtocol.SETTING_SHOW) {
             say(player, Component.literal(
@@ -907,7 +907,7 @@ public final class CsLodClientNet {
         // SETTING_SET. A refused value is a shape error: a word where a number belongs. An out-of-range
         // value is accepted and clamped, so the reply reports what was stored, not what was typed.
         if (!setting.write(request.value())) {
-            final var expected = setting.kind().completions();
+            var expected = setting.kind().completions();
             say(player, Component.literal(
                     "[chunksmith] '" + request.value() + "' is not a valid value for " + setting.name()
                             + (expected.isEmpty() ? " (expected a whole number)"

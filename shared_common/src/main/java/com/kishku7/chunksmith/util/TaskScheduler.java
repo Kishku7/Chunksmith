@@ -18,9 +18,9 @@ public class TaskScheduler {
     private final Set<Future<?>> futures = ConcurrentHashMap.newKeySet();
 
     public TaskScheduler() {
-        final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(3, Integer.MAX_VALUE, 5, TimeUnit.MINUTES, new SynchronousQueue<>());
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(3, Integer.MAX_VALUE, 5, TimeUnit.MINUTES, new SynchronousQueue<>());
         threadPoolExecutor.setThreadFactory(runnable -> {
-            final Thread thread = new Thread(runnable);
+            Thread thread = new Thread(runnable);
             thread.setDaemon(true);
             return thread;
         });

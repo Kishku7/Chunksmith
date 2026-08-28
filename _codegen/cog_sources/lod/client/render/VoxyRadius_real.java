@@ -47,7 +47,7 @@ public final class VoxyRadius {
     }
 
     public static int blocks() {
-        final Object config;
+        Object config;
         try {
             // Even the holder is fetched by name: a fork that renamed or removed {@code CONFIG} degrades to
             // "no config" instead of throwing a NoSuchFieldError out of our own bytecode.

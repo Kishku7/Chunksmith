@@ -23,7 +23,7 @@ public class CsLodRetryTest {
 
     @Test
     public void nothingIsDueBeforeTheFirstDelay() {
-        final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
+        CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         retry.started(1_000L);
 
         assertFalse(retry.due(1_000L));
@@ -34,7 +34,7 @@ public class CsLodRetryTest {
     // 15s, 30s, 60s, then 120s forever.
     @Test
     public void theDelayDoublesToTheCeiling() {
-        final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
+        CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         retry.started(0L);
 
         assertEquals(15_000L, retry.delayMillis());
@@ -55,7 +55,7 @@ public class CsLodRetryTest {
 
     @Test
     public void anAttemptRestartsTheClock() {
-        final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
+        CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         retry.started(0L);
 
         assertTrue(retry.due(15_000L));
@@ -68,7 +68,7 @@ public class CsLodRetryTest {
 
     @Test
     public void countsAttempts() {
-        final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
+        CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         assertEquals(0, retry.attempts());
         retry.started(0L);
         assertEquals("the join handshake is not a retry", 0, retry.attempts());
@@ -80,7 +80,7 @@ public class CsLodRetryTest {
 
     @Test
     public void resetPutsItBackToTheFirstDelay() {
-        final CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
+        CsLodRetry retry = new CsLodRetry(15_000L, 120_000L);
         retry.started(0L);
         retry.attempted(15_000L);
         retry.attempted(45_000L);
@@ -103,7 +103,7 @@ public class CsLodRetryTest {
 
     @Test
     public void theShippedPolicyIsFifteenSecondsToTwoMinutes() {
-        final CsLodRetry retry = new CsLodRetry();
+        CsLodRetry retry = new CsLodRetry();
         assertEquals(CsLodRetry.FIRST_DELAY_MILLIS, retry.delayMillis());
         assertEquals(15_000L, CsLodRetry.FIRST_DELAY_MILLIS);
         assertEquals(120_000L, CsLodRetry.MAX_DELAY_MILLIS);

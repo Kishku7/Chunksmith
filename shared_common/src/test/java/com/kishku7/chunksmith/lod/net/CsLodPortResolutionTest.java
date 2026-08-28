@@ -102,13 +102,13 @@ public class CsLodPortResolutionTest {
 
     @Test
     public void rebindCallsTheRegisteredActionAndReportsItsPort() {
-        final int[] calls = {0};
+        int[] calls = {0};
         CsLodControl.register(() -> {
             calls[0]++;
             return 30000;
         }, () -> 25565, () -> "backchannel: port 30000 (configured)");
         try {
-            final OptionalInt result = CsLodControl.apply();
+            OptionalInt result = CsLodControl.apply();
             assertTrue(result.isPresent());
             assertEquals(30000, result.getAsInt());
             assertEquals(1, calls[0]);
@@ -134,7 +134,7 @@ public class CsLodPortResolutionTest {
         // value that killed the backchannel, answered "done", and kept it dead across every restart.
         CsLodControl.register(() -> 0, () -> 25565, () -> "x");
         try {
-            final int[] seen = {0, -1};
+            int[] seen = {0, -1};
             assertFalse("the game's own port",
                     port().write(recording(seen), "25565"));
             assertEquals("refused write reached the config", 0, seen[0]);
@@ -147,7 +147,7 @@ public class CsLodPortResolutionTest {
     public void aLegalPortIsAcceptedWhileRunning() {
         CsLodControl.register(() -> 30000, () -> 25565, () -> "x");
         try {
-            final int[] seen = {0, -1};
+            int[] seen = {0, -1};
             assertTrue(port().write(recording(seen), "30000"));
             assertEquals(1, seen[0]);
             assertEquals(30000, seen[1]);
@@ -161,7 +161,7 @@ public class CsLodPortResolutionTest {
         // 0 means "derive" and must never be caught by the game-port guard.
         CsLodControl.register(() -> 25566, () -> 25565, () -> "x");
         try {
-            final int[] seen = {0, -1};
+            int[] seen = {0, -1};
             assertTrue(port().write(recording(seen), "0"));
             assertEquals(0, seen[1]);
         } finally {
@@ -171,7 +171,7 @@ public class CsLodPortResolutionTest {
 
     @Test
     public void aWordIsRefused() {
-        final int[] seen = {0, -1};
+        int[] seen = {0, -1};
         assertFalse(port().write(recording(seen), "nonsense"));
         assertEquals(0, seen[0]);
     }
@@ -199,7 +199,7 @@ public class CsLodPortResolutionTest {
                         seen[1] = (Integer) args[0];
                         return null;
                     }
-                    final Class<?> returnType = method.getReturnType();
+                    Class<?> returnType = method.getReturnType();
                     if (returnType == boolean.class) {
                         return Boolean.FALSE;
                     }

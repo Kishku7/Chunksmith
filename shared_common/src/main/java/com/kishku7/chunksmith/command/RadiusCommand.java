@@ -13,12 +13,12 @@ import java.util.Optional;
 public class RadiusCommand implements ChunksmithCommand {
     private final Chunksmith chunky;
 
-    public RadiusCommand(final Chunksmith chunky) {
+    public RadiusCommand(Chunksmith chunky) {
         this.chunky = chunky;
     }
 
     @Override
-    public void execute(final Sender sender, final CommandArguments arguments) {
+    public void execute(Sender sender, CommandArguments arguments) {
         final Optional<String> newX = arguments.next();
         final Optional<Integer> signX = newX.flatMap(Input::trySign);
         final Optional<Double> newRadiusX = newX.map(x -> signX.isPresent() ? x.substring(1) : x).flatMap(Input::tryDoubleSuffixed);
@@ -54,7 +54,7 @@ public class RadiusCommand implements ChunksmithCommand {
     }
 
     @Override
-    public List<String> suggestions(final CommandArguments arguments) {
+    public List<String> suggestions(CommandArguments arguments) {
         return List.of();
     }
 }

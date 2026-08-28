@@ -211,7 +211,7 @@ public class GenerationTask implements Runnable {
                 chunky.getConfig().getPregenSettleDelayTicks(),
                 chunky.getConfig().getPregenSettleMaxHeld());
         if (chunky.getConfig().isPregenSettleEnabled()) {
-            final int radius = chunky.getConfig().getPregenSettleRadius();
+            int radius = chunky.getConfig().getPregenSettleRadius();
             this.settleSweep = new SettleSweep(
                     selection.centerChunkX() - selection.radiusChunksX(),
                     selection.centerChunkZ() - selection.radiusChunksZ(),
@@ -242,18 +242,18 @@ public class GenerationTask implements Runnable {
         if (forceLoadExistingChunks) {
             return;
         }
-        final Optional<Path> regionDirectory =
+        Optional<Path> regionDirectory =
                 selection.world().getRegionDirectory();
         if (regionDirectory.isEmpty()) {
             return;
         }
         try {
-            final int centerChunkX = selection.centerChunkX();
-            final int centerChunkZ = selection.centerChunkZ();
-            final int radiusChunksX = selection.radiusChunksX();
-            final int radiusChunksZ = selection.radiusChunksZ();
-            final long began = System.currentTimeMillis();
-            final long seeded = GeneratedChunkScan.seed(
+            int centerChunkX = selection.centerChunkX();
+            int centerChunkZ = selection.centerChunkZ();
+            int radiusChunksX = selection.radiusChunksX();
+            int radiusChunksZ = selection.radiusChunksZ();
+            long began = System.currentTimeMillis();
+            long seeded = GeneratedChunkScan.seed(
                     regionDirectory.get(), worldState,
                     centerChunkX - radiusChunksX, centerChunkZ - radiusChunksZ,
                     centerChunkX + radiusChunksX, centerChunkZ + radiusChunksZ);
@@ -278,8 +278,8 @@ public class GenerationTask implements Runnable {
         // a skipped chunk is free, a generated one is the entire cost of the run.
         progress.skipped = skippedChunks.get();
         progress.generated = progress.chunkCount - progress.skipped;
-        final long currentTime = System.currentTimeMillis();
-        final Pair<Long, AtomicLong> bin = updateSamples.peekLast();
+        long currentTime = System.currentTimeMillis();
+        Pair<Long, AtomicLong> bin = updateSamples.peekLast();
         if (loaded) {
             worldState.setGenerated(chunkX, chunkZ);
             if (bin != null && currentTime - bin.left() < SAMPLE_SUB_INTERVAL) {
@@ -290,10 +290,10 @@ public class GenerationTask implements Runnable {
                 }
             }
         }
-        final Pair<Long, AtomicLong> oldest = updateSamples.peek();
-        final long oldestTime = oldest == null ? currentTime : oldest.left();
-        final long chunksLeft = chunkIterator.total() - finishedChunks.get();
-        final double timeDiff = (currentTime - oldestTime) / 1e3;
+        Pair<Long, AtomicLong> oldest = updateSamples.peek();
+        long oldestTime = oldest == null ? currentTime : oldest.left();
+        long chunksLeft = chunkIterator.total() - finishedChunks.get();
+        double timeDiff = (currentTime - oldestTime) / 1e3;
         if (chunksLeft > 0 && timeDiff < 1e-1) {
             return;
         }
@@ -304,7 +304,7 @@ public class GenerationTask implements Runnable {
         // Divide by the floored window, never the real one, so a barely-started window cannot
         // manufacture a four-figure rate. Once timeDiff passes the floor this is a no-op.
         progress.rate = sampleCount / Math.max(timeDiff, RATE_MIN_WINDOW_SECONDS);
-        final long time;
+        long time;
         if (chunksLeft == 0) {
             time = (prevTime + (currentTime - startTime.get())) / 1000;
             progress.complete = true;
@@ -324,8 +324,8 @@ public class GenerationTask implements Runnable {
             chunky.getEventBus().call(new GenerationTaskUpdateEvent(this));
             return;
         }
-        final boolean silentMode = chunky.getConfig().isSilent();
-        final boolean updateIntervalElapsed = ((currentTime - updateTime.get()) / 1e3) > chunky.getConfig().getUpdateInterval();
+        boolean silentMode = chunky.getConfig().isSilent();
+        boolean updateIntervalElapsed = ((currentTime - updateTime.get()) / 1e3) > chunky.getConfig().getUpdateInterval();
         if (updateIntervalElapsed) {
             if (!silentMode) {
                 progress.sendUpdate(chunky.getServer().getConsole());
@@ -343,30 +343,30 @@ public class GenerationTask implements Runnable {
      * latency backstop carries the throttle instead.
      */
     private void adjustFromTickHealth() {
-        final long now = System.currentTimeMillis();
-        final long last = lastMsptCheckTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastMsptCheckTime.get();
         if (now - last < MSPT_CHECK_INTERVAL_MS || !lastMsptCheckTime.compareAndSet(last, now)) {
             return;
         }
-        final double mspt = chunky.getServer().getMillisPerTick();
+        double mspt = chunky.getServer().getMillisPerTick();
         if (mspt < 0.0D) {
             return;
         }
         // "Our work is in flight" must mean we are actually adding load. A run held by one of our own
         // gates (or holding itself still for a baseline probe) has stopped dispatching, so those
         // ticks are baseline samples.
-        final boolean addingLoad = inFlight.get() > 0
+        boolean addingLoad = inFlight.get() > 0
                 && !writeQueueStalled && !chunkResidencyStalled && !heapStalled
                 && !TickBudget.isProbing();
         TickBudget.sample(mspt, addingLoad, chunky.getServer().getPlayers().size());
-        final double target = effectiveTargetMspt();
+        double target = effectiveTargetMspt();
         if (mspt > target + MSPT_BAND) {
             backoff();
         } else if (mspt < target - MSPT_BAND) {
             // Recovery, not just back-off. A single spike used to cost a full second of climbing back
             // at +1 per second, and a run that spent its life one step below the limit left work on
             // the table for no reason. The further under target we are, the faster we climb.
-            final double headroom = target - mspt;
+            double headroom = target - mspt;
             int steps = 1;
             if (headroom > MSPT_BAND * 4.0D) {
                 steps = 8;
@@ -396,7 +396,7 @@ public class GenerationTask implements Runnable {
         if (tickBudgetMillis <= 0L) {
             return targetMspt;
         }
-        final double measured = TickBudget.effectiveTarget();
+        double measured = TickBudget.effectiveTarget();
         if (measured < 0.0D) {
             return targetMspt;
         }
@@ -431,8 +431,8 @@ public class GenerationTask implements Runnable {
     }
 
     private void backoff() {
-        final long now = System.currentTimeMillis();
-        final long last = lastBackoffTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastBackoffTime.get();
         if (now - last < BACKOFF_INTERVAL_MS || !lastBackoffTime.compareAndSet(last, now)) {
             return;
         }
@@ -457,8 +457,8 @@ public class GenerationTask implements Runnable {
      *              point is to climb back quickly instead of one step per second after a single spike)
      */
     private void rampUp(boolean burst) {
-        final long now = System.currentTimeMillis();
-        final long last = lastRampTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastRampTime.get();
         if (!burst && (now - last < RAMP_INTERVAL_MS || !lastRampTime.compareAndSet(last, now))) {
             return;
         }
@@ -476,8 +476,8 @@ public class GenerationTask implements Runnable {
     }
 
     private void maybeNotify(int newLimit) {
-        final long now = System.currentTimeMillis();
-        final long last = lastThrottleNoticeTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastThrottleNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastThrottleNoticeTime.compareAndSet(last, now)) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_THROTTLE_NOTICE, newLimit, maxWorkingCount);
         }
@@ -500,12 +500,12 @@ public class GenerationTask implements Runnable {
      * {@code WRITE_STALL_MILLIS}. No-op when the platform cannot report the depth.
      */
     private void evaluateWriteBackpressure() {
-        final long now = System.currentTimeMillis();
-        final long last = lastWriteCheckTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastWriteCheckTime.get();
         if (now - last < WRITE_CHECK_INTERVAL_MS || !lastWriteCheckTime.compareAndSet(last, now)) {
             return;
         }
-        final long queued = selection.world().getQueuedChunkWrites();
+        long queued = selection.world().getQueuedChunkWrites();
         if (queued < 0) {
             writeQueueStalled = false;
             lastQueuedObserved = -1L;
@@ -514,14 +514,14 @@ public class GenerationTask implements Runnable {
         // Track drain progress. The region writer pops one chunk at a time, so any decrease in
         // depth means the disk is flushing; an empty queue is fully drained. When the queue
         // holds work but stops shrinking, the writer is blocked in fsync.
-        final long prev = lastQueuedObserved;
+        long prev = lastQueuedObserved;
         lastQueuedObserved = queued;
         if (queued <= 0L || prev < 0L || queued < prev) {
             lastWriteDrainTime.set(now);
         }
-        final long sinceDrain = now - lastWriteDrainTime.get();
+        long sinceDrain = now - lastWriteDrainTime.get();
         if (writeQueueStalled) {
-            final boolean resume;
+            boolean resume;
             if (WRITE_STALL_MILLIS <= 0L) {
                 resume = queued <= resumeQueuedWrites;
             } else {
@@ -532,8 +532,8 @@ public class GenerationTask implements Runnable {
                 writeQueueStalled = false;
             }
         } else {
-            final boolean depthExceeded = maxQueuedWrites > 0L && queued >= maxQueuedWrites;
-            final boolean drainStalled = WRITE_STALL_MILLIS > 0L
+            boolean depthExceeded = maxQueuedWrites > 0L && queued >= maxQueuedWrites;
+            boolean drainStalled = WRITE_STALL_MILLIS > 0L
                     && queued >= WRITE_STALL_MIN_DEPTH
                     && sinceDrain >= WRITE_STALL_MILLIS;
             if (depthExceeded || drainStalled) {
@@ -564,8 +564,8 @@ public class GenerationTask implements Runnable {
         if (maxAddedChunks <= 0L) {
             return;
         }
-        final long now = System.currentTimeMillis();
-        final long last = lastResidencyCheckTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastResidencyCheckTime.get();
         if (now - last < RESIDENCY_CHECK_INTERVAL_MS || !lastResidencyCheckTime.compareAndSet(last, now)) {
             return;
         }
@@ -573,7 +573,7 @@ public class GenerationTask implements Runnable {
         // whose ordinary resident set was already near the cap meant the gate closed on somebody else's
         // chunks and never opened. Live, that stuttered a run at the never-wedge interval. What a
         // pregen can be held responsible for is what it added.
-        final long added = ChunkResidency.addedChunks();
+        long added = ChunkResidency.addedChunks();
         if (added < 0L) {
             // The platform is not reporting, the reading went stale, or we never got a baseline.
             // Unknown is not zero: leave the gate exactly as it was rather than opening it on the
@@ -586,7 +586,7 @@ public class GenerationTask implements Runnable {
                 residencyStalledSince.set(0L);
                 return;
             }
-            final long since = residencyStalledSince.get();
+            long since = residencyStalledSince.get();
             if (RESIDENCY_STALL_MAX_MS > 0L && since > 0L && now - since >= RESIDENCY_STALL_MAX_MS) {
                 chunkResidencyStalled = false;
                 residencyStalledSince.set(0L);
@@ -619,12 +619,12 @@ public class GenerationTask implements Runnable {
         if (maxHeapPercent <= 0L) {
             return;
         }
-        final long now = System.currentTimeMillis();
-        final long last = lastHeapCheckTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastHeapCheckTime.get();
         if (now - last < HEAP_CHECK_INTERVAL_MS || !lastHeapCheckTime.compareAndSet(last, now)) {
             return;
         }
-        final boolean hold = HeapPressure.shouldHold(heapStalled, maxHeapPercent);
+        boolean hold = HeapPressure.shouldHold(heapStalled, maxHeapPercent);
         if (hold && !heapStalled) {
             maybeNotifyHeap();
         }
@@ -632,8 +632,8 @@ public class GenerationTask implements Runnable {
     }
 
     private void maybeNotifyHeap() {
-        final long now = System.currentTimeMillis();
-        final long last = lastHeapNoticeTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastHeapNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastHeapNoticeTime.compareAndSet(last, now)) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HEAP_BACKPRESSURE_NOTICE,
                     String.format("%.0f", HeapPressure.usedPercent()),
@@ -642,8 +642,8 @@ public class GenerationTask implements Runnable {
     }
 
     private void maybeNotifyResidency(long added) {
-        final long now = System.currentTimeMillis();
-        final long last = lastResidencyNoticeTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastResidencyNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastResidencyNoticeTime.compareAndSet(last, now)) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_RESIDENCY_BACKPRESSURE_NOTICE,
                     added, maxAddedChunks, ChunkResidency.loadedChunks());
@@ -651,8 +651,8 @@ public class GenerationTask implements Runnable {
     }
 
     private void maybeNotifyWrite(long queued) {
-        final long now = System.currentTimeMillis();
-        final long last = lastWriteNoticeTime.get();
+        long now = System.currentTimeMillis();
+        long last = lastWriteNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastWriteNoticeTime.compareAndSet(last, now)) {
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_WRITE_BACKPRESSURE_NOTICE, queued, maxQueuedWrites);
         }
@@ -660,13 +660,13 @@ public class GenerationTask implements Runnable {
 
     @Override
     public void run() {
-        final String poolThreadName = Thread.currentThread().getName();
+        String poolThreadName = Thread.currentThread().getName();
         Thread.currentThread().setName(String.format("Chunksmith-%s Thread", selection.world().getName()));
         dispatchThread = Thread.currentThread();
         if (!chunkIterator.process()) {
             stop(true);
         }
-        final boolean forceLoadExistingChunks = chunky.getConfig().isForceLoadExistingChunks();
+        boolean forceLoadExistingChunks = chunky.getConfig().isForceLoadExistingChunks();
         // Learn what this selection already has, in one pass over the region files, before the
         // first dispatch; otherwise every existing chunk costs an async round-trip to discover.
         preScanExistingChunks(forceLoadExistingChunks);
@@ -679,13 +679,13 @@ public class GenerationTask implements Runnable {
         // forceLoadExistingChunks keeps its old meaning as the explicit override: reprocess every
         // chunk in the selection regardless, LOD present or not, so there is nothing for the index
         // to decide and we do not even build one.
-        final CsLodPresenceIndex lodIndex = forceLoadExistingChunks
+        CsLodPresenceIndex lodIndex = forceLoadExistingChunks
                 ? null
                 : LodPresence.indexFor(selection.world().getName());
         // The index outlives the task (it is cached per dimension for the server's lifetime), so its
         // counters are cumulative. Snapshot them here and report the delta, or the summary would bill
         // this run for every earlier run's work too.
-        final CsLodPresenceIndex.Cost lodCostBefore = lodIndex == null ? null : lodIndex.cost();
+        CsLodPresenceIndex.Cost lodCostBefore = lodIndex == null ? null : lodIndex.cost();
         // Everything already resident belongs to the server, not to this run. Capture it before the
         // first dispatch so the gate below measures our growth and nothing else's.
         ChunkResidency.noteTaskStart();
@@ -694,9 +694,9 @@ public class GenerationTask implements Runnable {
         TicketLedger.reset();
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
-            final ChunkCoordinate chunk = chunkIterator.next();
-            final int chunkCenterX = (chunk.x() << 4) + 8;
-            final int chunkCenterZ = (chunk.z() << 4) + 8;
+            ChunkCoordinate chunk = chunkIterator.next();
+            int chunkCenterX = (chunk.x() << 4) + 8;
+            int chunkCenterZ = (chunk.z() << 4) + 8;
             if (!shape.isBounding(chunkCenterX, chunkCenterZ)) {
                 update(chunk.x(), chunk.z(), false);
                 continue;
@@ -720,7 +720,7 @@ public class GenerationTask implements Runnable {
                 // it reuses the existing hook exactly: no worldgen behaviour is touched.
                 lodBackfill = true;
             }
-            final boolean lodOnly = lodBackfill;
+            boolean lodOnly = lodBackfill;
             // Wait for a dispatch slot. Park 1ms at a time so stop() is responsive.
             // Re-evaluate tick health each pass so the limit can drop even while saturated
             // (no slot free) and chunk-completion callbacks have stopped firing.
@@ -747,22 +747,22 @@ public class GenerationTask implements Runnable {
                 // live server (2026-08-20 18:08): entering a gate used to hand back the whole settle
                 // frontier at once, so a two-second measurement window was dumping hundreds of ticket
                 // mutations into the distance manager every two minutes.
-                final boolean probing = TickBudget.shouldProbe(System.currentTimeMillis());
-                final boolean gated = writeQueueStalled || chunkResidencyStalled || heapStalled;
-                final long gateNow = System.currentTimeMillis();
+                boolean probing = TickBudget.shouldProbe(System.currentTimeMillis());
+                boolean gated = writeQueueStalled || chunkResidencyStalled || heapStalled;
+                long gateNow = System.currentTimeMillis();
                 // "Cannot sustain" is either of our gates holding, or the tick running far past the
                 // target the throttle steers to. The gates alone are too narrow: with the chunk gate
                 // off and the heap under its threshold, a live server logged twelve "Can't keep up"
                 // warnings at 5 cps and nothing of ours ever closed, so auto-pause could not see the
                 // situation it exists for. Twice the target is well clear of a healthy pre-gen and
                 // well short of a server that is merely busy.
-                final double mspt = chunky.getServer().getMillisPerTick();
+                double mspt = chunky.getServer().getMillisPerTick();
                 // Compare against the absolute ceiling, not the adaptive target. Once the target is
                 // derived from the baseline, "twice the target" moves with the server and becomes
                 // nearly unreachable. Auto-pause stopped being able to see a struggling server at
                 // all the moment the target went adaptive. Same shape as the 3.7.1 bug: a trigger
                 // keyed to the wrong reference.
-                final boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
+                boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
                         && mspt > TickBudget.effectiveTarget() + MSPT_BAND;
                 AutoPause.noteStruggling(gated || tickFarBehind, gateNow);
                 if (AutoPause.shouldPause(gateNow)) {
@@ -794,11 +794,11 @@ public class GenerationTask implements Runnable {
                 break;
             }
             inFlight.incrementAndGet();
-            final long dispatchTime = System.currentTimeMillis();
+            long dispatchTime = System.currentTimeMillis();
             // A LOD backfill forces the load: the chunk is already generated, and saying so here would
             // send it straight back down the skip branch, which is precisely the bug (an
             // already-generated chunk was never loaded, so the LOD hook never saw it).
-            final CompletableFuture<Boolean> isChunkGenerated = (forceLoadExistingChunks || lodOnly) ?
+            CompletableFuture<Boolean> isChunkGenerated = (forceLoadExistingChunks || lodOnly) ?
                     CompletableFuture.completedFuture(false) :
                     selection.world().isChunkGenerated(chunk.x(), chunk.z());
             isChunkGenerated
@@ -837,7 +837,7 @@ public class GenerationTask implements Runnable {
                         }
                         return selection.world().getChunkAtAsync(chunk.x(), chunk.z());
                     }).whenComplete((ignored, throwable) -> {
-                        final long elapsed = System.currentTimeMillis() - dispatchTime;
+                        long elapsed = System.currentTimeMillis() - dispatchTime;
                         inFlight.decrementAndGet();
                         if (ioThrottleEnabled) {
                             adjustFromChunkLatency(elapsed);
@@ -855,7 +855,7 @@ public class GenerationTask implements Runnable {
         // limit, and the verification below would sample chunks that have not landed yet. Bounded,
         // so a wedged chunk can never hang the task's completion. Runs for every task, not just LOD
         // ones: a task should not declare itself finished while its own work is still outstanding.
-        final long drainDeadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS;
+        long drainDeadline = System.currentTimeMillis() + DRAIN_TIMEOUT_MS;
         while (inFlight.get() > 0 && System.currentTimeMillis() < drainDeadline) {
             LockSupport.parkNanos(1_000_000L);
         }
@@ -906,10 +906,10 @@ public class GenerationTask implements Runnable {
         if (verifySampleCount.get() >= VERIFY_SAMPLE_MAX) {
             return;
         }
-        final long seen = generatedSeen.incrementAndGet();
+        long seen = generatedSeen.incrementAndGet();
         // Spread the sample across the selection rather than taking the first N, so a run that
         // breaks partway through is still caught.
-        final long stride = Math.max(1L, chunkIterator.total() / VERIFY_SAMPLE_MAX);
+        long stride = Math.max(1L, chunkIterator.total() / VERIFY_SAMPLE_MAX);
         if (seen % stride == 0L && verifySampleCount.incrementAndGet() <= VERIFY_SAMPLE_MAX) {
             verifySamples.add(new ChunkCoordinate(x, z));
         }
@@ -924,24 +924,24 @@ public class GenerationTask implements Runnable {
         // chunk is on disk while its write is still queued reports a perfectly good chunk as
         // missing. Bounded, and skipped entirely where the gauge is unavailable (-1 on Bukkit and
         // on replaced chunk systems we cannot read).
-        final long drainUntil = System.currentTimeMillis() + VERIFY_WRITE_DRAIN_MS;
+        long drainUntil = System.currentTimeMillis() + VERIFY_WRITE_DRAIN_MS;
         while (System.currentTimeMillis() < drainUntil) {
-            final long queued = selection.world().getQueuedChunkWrites();
+            long queued = selection.world().getQueuedChunkWrites();
             if (queued <= 0L) {
                 break;
             }
             LockSupport.parkNanos(50_000_000L);
         }
-        final List<ChunkCoordinate> missing = new ArrayList<>();
-        final long deadline = System.currentTimeMillis() + VERIFY_TIMEOUT_MS;
+        List<ChunkCoordinate> missing = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + VERIFY_TIMEOUT_MS;
         int checked = 0;
         for (ChunkCoordinate coordinate : verifySamples) {
-            final long remaining = deadline - System.currentTimeMillis();
+            long remaining = deadline - System.currentTimeMillis();
             if (remaining <= 0L) {
                 break;
             }
             try {
-                final Boolean present = selection.world()
+                Boolean present = selection.world()
                         .isChunkGenerated(coordinate.x(), coordinate.z())
                         .get(remaining, TimeUnit.MILLISECONDS);
                 checked++;
@@ -962,7 +962,7 @@ public class GenerationTask implements Runnable {
         if (missing.size() < VERIFY_MIN_MISSING || missing.size() < checked * VERIFY_MISSING_FRACTION) {
             return;
         }
-        final StringBuilder examples = new StringBuilder();
+        StringBuilder examples = new StringBuilder();
         for (int i = 0; i < Math.min(3, missing.size()); i++) {
             if (i > 0) {
                 examples.append("; ");
@@ -992,7 +992,7 @@ public class GenerationTask implements Runnable {
             selection.world().settleRelease(settleStop[0], settleStop[1], settleSweep.radius());
             settleStop = null;
         }
-        final int[] next = settleSweep.nextStop();
+        int[] next = settleSweep.nextStop();
         if (next != null) {
             settleStop = next;
             settleHeldFor = 0;
@@ -1173,7 +1173,7 @@ public class GenerationTask implements Runnable {
             } else {
                 sender.sendMessagePrefixed(TranslationKey.TASK_UPDATE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), String.format("%.1f", rate), chunkX, chunkZ, skipped, generated);
                 if (dispatchCurrent < dispatchMax) {
-                    final long now = System.currentTimeMillis();
+                    long now = System.currentTimeMillis();
                     if (now - lastThrottleStatusPrintMs >= THROTTLE_STATUS_INTERVAL_MS) {
                         lastThrottleStatusPrintMs = now;
                         sender.sendMessagePrefixed(TranslationKey.TASK_THROTTLE_STATUS, dispatchCurrent, dispatchMax);

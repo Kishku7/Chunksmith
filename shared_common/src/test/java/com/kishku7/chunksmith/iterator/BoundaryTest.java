@@ -19,14 +19,14 @@ public class BoundaryTest {
 
     @Test
     public void boundaries() {
-        final ChunkIterator concentricIterator = new ConcentricChunkIterator(SELECTION);
-        final ChunkIterator loop2Iterator = new Loop2ChunkIterator(SELECTION);
-        final ChunkIterator spiralIterator = new SpiralChunkIterator(SELECTION);
-        final ChunkIterator regionIterator = new RegionChunkIterator(SELECTION);
-        final List<ChunkCoordinate> concentricCoordinates = new ArrayList<>();
-        final List<ChunkCoordinate> loop2Coordinates = new ArrayList<>();
-        final List<ChunkCoordinate> spiralCoordinates = new ArrayList<>();
-        final List<ChunkCoordinate> regionCoordinates = new ArrayList<>();
+        ChunkIterator concentricIterator = new ConcentricChunkIterator(SELECTION);
+        ChunkIterator loop2Iterator = new Loop2ChunkIterator(SELECTION);
+        ChunkIterator spiralIterator = new SpiralChunkIterator(SELECTION);
+        ChunkIterator regionIterator = new RegionChunkIterator(SELECTION);
+        List<ChunkCoordinate> concentricCoordinates = new ArrayList<>();
+        List<ChunkCoordinate> loop2Coordinates = new ArrayList<>();
+        List<ChunkCoordinate> spiralCoordinates = new ArrayList<>();
+        List<ChunkCoordinate> regionCoordinates = new ArrayList<>();
         concentricIterator.forEachRemaining(concentricCoordinates::add);
         loop2Iterator.forEachRemaining(loop2Coordinates::add);
         spiralIterator.forEachRemaining(spiralCoordinates::add);
@@ -35,14 +35,14 @@ public class BoundaryTest {
         Collections.sort(loop2Coordinates);
         Collections.sort(spiralCoordinates);
         Collections.sort(regionCoordinates);
-        final ChunkCoordinate concentricPoint1 = concentricCoordinates.get(0);
-        final ChunkCoordinate concentricPoint2 = concentricCoordinates.get(concentricCoordinates.size() - 1);
-        final ChunkCoordinate loop2Point1 = loop2Coordinates.get(0);
-        final ChunkCoordinate loop2Point2 = loop2Coordinates.get(loop2Coordinates.size() - 1);
-        final ChunkCoordinate spiralPoint1 = spiralCoordinates.get(0);
-        final ChunkCoordinate spiralPoint2 = spiralCoordinates.get(spiralCoordinates.size() - 1);
-        final ChunkCoordinate regionPoint1 = regionCoordinates.get(0);
-        final ChunkCoordinate regionPoint2 = regionCoordinates.get(regionCoordinates.size() - 1);
+        ChunkCoordinate concentricPoint1 = concentricCoordinates.get(0);
+        ChunkCoordinate concentricPoint2 = concentricCoordinates.get(concentricCoordinates.size() - 1);
+        ChunkCoordinate loop2Point1 = loop2Coordinates.get(0);
+        ChunkCoordinate loop2Point2 = loop2Coordinates.get(loop2Coordinates.size() - 1);
+        ChunkCoordinate spiralPoint1 = spiralCoordinates.get(0);
+        ChunkCoordinate spiralPoint2 = spiralCoordinates.get(spiralCoordinates.size() - 1);
+        ChunkCoordinate regionPoint1 = regionCoordinates.get(0);
+        ChunkCoordinate regionPoint2 = regionCoordinates.get(regionCoordinates.size() - 1);
         assertEquals(concentricPoint1.x(), loop2Point1.x());
         assertEquals(concentricPoint1.z(), loop2Point1.z());
         assertEquals(loop2Point1.x(), spiralPoint1.x());

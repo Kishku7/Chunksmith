@@ -162,11 +162,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         // ours is left pending for a re-entrant pump to apply underneath it.
         this.chunksmith$drainTicketSafePoint();
         this.chunksmith$keepAwakeWhileGenerating();
-        final boolean wgRunning = ChunksmithProvider.isLoaded() && !ChunksmithProvider.get().getGenerationTasks().isEmpty();
+        boolean wgRunning = ChunksmithProvider.isLoaded() && !ChunksmithProvider.get().getGenerationTasks().isEmpty();
         // Residency is published every tick, running or not. 3.5.0 cleared it the moment a task ended,
         // which is precisely when the backlog that task left behind most needed watching.
         this.chunksmith$reportChunkResidency();
-        final int players = this.getPlayerCount();
+        int players = this.getPlayerCount();
         // Tell the drain whether it is being given a real budget, so a no-progress verdict can only be
         // reached when it actually had a chance to make progress.
         ChunkResidency.noteDrainBudget(players == 0);
@@ -221,11 +221,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         // on a server whose idle baseline already sits at the configured target; the run that measured
         // 85.2 ms while generating never showed the governor a healthy tick; see TickBudget for the
         // paused reading beside it. Hence: sample unconditionally.
-        final long now = System.nanoTime();
-        final long prev = this.chunksmith$lastTickNanos;
+        long now = System.nanoTime();
+        long prev = this.chunksmith$lastTickNanos;
         this.chunksmith$lastTickNanos = now;
         if (prev != 0L) {
-            final double dtMs = (now - prev) / 1.0e6D;
+            double dtMs = (now - prev) / 1.0e6D;
             // Ignore absurd gaps (first tick after a pause, GC stalls) so one outlier cannot poison
             // the average.
             if (dtMs > 0.0D && dtMs < 10_000.0D) {
@@ -270,7 +270,7 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // UnloadDiagnostics: toDrop == 0 while chunks are resident means nothing is eligible to
             // unload, which is a ticket problem, not a throughput one. The two were
             // indistinguishable from outside for three releases.
-            final ChunkMapMixin chunkMap = (ChunkMapMixin) level.getChunkSource().chunkMap;
+            ChunkMapMixin chunkMap = (ChunkMapMixin) level.getChunkSource().chunkMap;
             toDrop += chunkMap.getToDrop().size();
             unloadQueue += chunkMap.getUnloadQueue().size();
             pendingUnloads += chunkMap.getPendingUnloads().size();
@@ -296,19 +296,19 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         if (!AutoPause.isAutoPaused() || generationRunning) {
             return;
         }
-        final long now = System.currentTimeMillis();
-        final double heap = HeapPressure.usedPercent();
-        final boolean healthy = this.chunksmith$mspt <= 55.0D && heap >= 0.0D && heap < 70.0D;
+        long now = System.currentTimeMillis();
+        double heap = HeapPressure.usedPercent();
+        boolean healthy = this.chunksmith$mspt <= 55.0D && heap >= 0.0D && heap < 70.0D;
         AutoPause.noteHealthy(healthy, now);
         if (!AutoPause.shouldResume(now)) {
             return;
         }
-        final String world = AutoPause.pausedWorld();
+        String world = AutoPause.pausedWorld();
         AutoPause.clearAutoPaused();
         if (!ChunksmithProvider.isLoaded()) {
             return;
         }
-        final Chunksmith chunky = ChunksmithProvider.get();
+        Chunksmith chunky = ChunksmithProvider.get();
         chunky.getServer().getConsole().sendMessagePrefixed(
                 TranslationKey.TASK_AUTO_RESUMED,
                 AutoPause.graceMillis() / 1000L, world);
@@ -351,12 +351,12 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             // mid-run. In both cases the tick is free and unloading is the only thing that can end the
             // situation. 3.5.3 gated this on the drain alone, so a mid-run hold got 2 ms and the
             // resident count did not fall at all across a 120-second hold.
-            final long floor = this.getPlayerCount() == 0
+            long floor = this.getPlayerCount() == 0
                     && (ChunkResidency.isDraining() || ChunkResidency.isGenerationHeld())
                     ? CHUNKSMITH$IDLE_UNLOAD_BUDGET_NANOS
                     : CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS;
-            final long deadline = System.nanoTime() + floor;
-            final BooleanSupplier budget = () -> haveTime.getAsBoolean() || System.nanoTime() < deadline;
+            long deadline = System.nanoTime() + floor;
+            BooleanSupplier budget = () -> haveTime.getAsBoolean() || System.nanoTime() < deadline;
             for (ServerLevel level : this.getAllLevels()) {
                 // Deliberately not guarded on C2ME (mod_support #16). Server_Tests/cs-c2me-cancel-gate
                 // reproduced the crash with the guard in place, arriving instead through vanilla

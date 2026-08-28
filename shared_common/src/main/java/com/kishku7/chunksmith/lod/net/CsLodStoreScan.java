@@ -75,7 +75,7 @@ public final class CsLodStoreScan {
      * store writes, so the client can turn one straight back into a request path.
      */
     public static List<String> servable(List<Path> dimensionDirs, long nowMillis) {
-        final List<String> names = new ArrayList<>();
+        List<String> names = new ArrayList<>();
         if (dimensionDirs == null) {
             return names;
         }

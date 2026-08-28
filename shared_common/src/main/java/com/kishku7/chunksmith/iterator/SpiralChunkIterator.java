@@ -26,7 +26,7 @@ public class SpiralChunkIterator implements ChunkIterator {
         this.span = diameterFinished;
         this.spanCount = 1;
         this.direction = DOWN;
-        final int radiusFinished = diameterFinished / 2;
+        int radiusFinished = diameterFinished / 2;
         this.x += radiusFinished + 1;
         this.z += radiusFinished;
         long perimeterCount = count - (long) diameterFinished * diameterFinished;
@@ -74,12 +74,12 @@ public class SpiralChunkIterator implements ChunkIterator {
     }
 
     public SpiralChunkIterator(Selection selection) {
-        final int radiusChunks = selection.radiusChunksX();
+        int radiusChunks = selection.radiusChunksX();
         this.x = selection.centerChunkX();
         this.z = selection.centerChunkZ();
         this.stopX = x + radiusChunks;
         this.stopZ = z + radiusChunks;
-        final long diameter = selection.diameterChunksX();
+        long diameter = selection.diameterChunksX();
         this.total = diameter * diameter;
     }
 
@@ -93,7 +93,7 @@ public class SpiralChunkIterator implements ChunkIterator {
         if (!hasNext) {
             throw new NoSuchElementException();
         }
-        final ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
+        ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
         if (x == stopX && z == stopZ) {
             hasNext = false;
         }

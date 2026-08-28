@@ -41,18 +41,18 @@ public class HelpCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final List<String> visibleCommands = new ArrayList<>();
+        List<String> visibleCommands = new ArrayList<>();
         for (String command : helpCommands) {
             if (chunky.getCommands().containsKey(command)) {
                 visibleCommands.add(command);
             }
         }
-        final int visibleCommandCount = visibleCommands.size();
-        final StringBuilder help = new StringBuilder();
-        final int pageIndexLast = visibleCommandCount / 8;
-        final int pageIndex = (arguments.size() < 1 ? 0 : Math.max(0, arguments.next().flatMap(Input::tryInteger).orElse(1) - 1)) % (pageIndexLast + 1);
-        final int helpIndexFirst;
-        final int helpIndexLast;
+        int visibleCommandCount = visibleCommands.size();
+        StringBuilder help = new StringBuilder();
+        int pageIndexLast = visibleCommandCount / 8;
+        int pageIndex = (arguments.size() < 1 ? 0 : Math.max(0, arguments.next().flatMap(Input::tryInteger).orElse(1) - 1)) % (pageIndexLast + 1);
+        int helpIndexFirst;
+        int helpIndexLast;
         if (sender.isPlayer()) {
             helpIndexFirst = 8 * pageIndex;
             helpIndexLast = Math.min(helpIndexFirst + 8, visibleCommandCount);

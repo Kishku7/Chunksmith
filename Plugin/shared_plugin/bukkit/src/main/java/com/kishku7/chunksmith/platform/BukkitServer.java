@@ -26,13 +26,13 @@ public class BukkitServer implements Server {
 
     @Override
     public Optional<World> getWorld(String name) {
-        final org.bukkit.World world = plugin.getServer().getWorld(name);
+        org.bukkit.World world = plugin.getServer().getWorld(name);
         return Optional.ofNullable(world == null ? null : new BukkitWorld(world));
     }
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         plugin.getServer().getWorlds().forEach(world -> worlds.add(new BukkitWorld(world)));
         return worlds;
     }
@@ -49,7 +49,7 @@ public class BukkitServer implements Server {
 
     @Override
     public Collection<Player> getPlayers() {
-        final Collection<Player> players = new ArrayList<>();
+        Collection<Player> players = new ArrayList<>();
         plugin.getServer().getOnlinePlayers().forEach(player -> players.add(new BukkitPlayer(player)));
         return players;
     }

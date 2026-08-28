@@ -13,29 +13,29 @@ public abstract class Tag {
     }
 
     public static Tag load(DataInput input) throws IOException {
-        final byte type = input.readByte();
+        byte type = input.readByte();
         if (TagType.END == type) {
             return new EndTag();
         }
-        final String name = input.readUTF();
-        final Tag tag = create(type, name);
+        String name = input.readUTF();
+        Tag tag = create(type, name);
         tag.read(input);
         return tag;
     }
 
     public static byte pass(DataInput input) throws IOException {
-        final byte type = input.readByte();
+        byte type = input.readByte();
         if (TagType.END == type) {
             return type;
         }
-        final int size = input.readUnsignedShort();
+        int size = input.readUnsignedShort();
         input.skipBytes(size);
         create(type, "").skip(input);
         return type;
     }
 
     public static void save(DataOutput output, Tag tag) throws IOException {
-        final byte type = tag.type();
+        byte type = tag.type();
         output.writeByte(type);
         if (TagType.END == type) {
             return;
@@ -45,12 +45,12 @@ public abstract class Tag {
     }
 
     public static Tag find(DataInput input, byte type, String name) throws IOException {
-        final byte t = input.readByte();
+        byte t = input.readByte();
         if (TagType.END == t) {
             return new EndTag();
         }
-        final String n = input.readUTF();
-        final Tag tag = create(t, n);
+        String n = input.readUTF();
+        Tag tag = create(t, n);
         if (type == t && name.equals(n)) {
             tag.read(input);
             return tag;

@@ -82,22 +82,22 @@ public final class CsLodIndexScan {
      */
     public static Result scan(Path dimensionDir, Request request, long nowMillis)
             throws IOException {
-        final List<CsLodMessages.RegionEntry> found = new ArrayList<>();
+        List<CsLodMessages.RegionEntry> found = new ArrayList<>();
         if (dimensionDir == null || !Files.isDirectory(dimensionDir)) {
             return new Result(List.of(), 0, 0L);
         }
         try (var files = Files.list(dimensionDir)) {
             for (Path file : files.toList()) {
-                final String name = file.getFileName().toString();
+                String name = file.getFileName().toString();
                 if (!name.endsWith(CsLodStoreScan.REGION_SUFFIX)) {
                     continue;
                 }
-                final String[] parts = name.split("\\.");
+                String[] parts = name.split("\\.");
                 if (parts.length != 4) {
                     continue;
                 }
-                final int regionX;
-                final int regionZ;
+                int regionX;
+                int regionZ;
                 try {
                     regionX = Integer.parseInt(parts[1]);
                     regionZ = Integer.parseInt(parts[2]);
@@ -107,7 +107,7 @@ public final class CsLodIndexScan {
                 if (!inRange(request, regionX, regionZ)) {
                     continue;
                 }
-                final BasicFileAttributes attrs;
+                BasicFileAttributes attrs;
                 try {
                     attrs = Files.readAttributes(file, BasicFileAttributes.class);
                 } catch (IOException e) {
@@ -149,7 +149,7 @@ public final class CsLodIndexScan {
     private static Result cap(List<CsLodMessages.RegionEntry> found) {
         long bytes = 0L;
         for (int i = 0; i < found.size(); i++) {
-            final long next = bytes + found.get(i).sizeBytes();
+            long next = bytes + found.get(i).sizeBytes();
             if (i >= MAX_REGIONS || next > MAX_BYTES) {
                 return new Result(List.copyOf(found.subList(0, i)), found.size(), bytes);
             }
@@ -172,13 +172,13 @@ public final class CsLodIndexScan {
 
     /** Squared distance from the player to the nearest point of a region's box. Also the sort key. */
     public static long distanceSquared(Request request, int regionX, int regionZ) {
-        final int minX = regionX * REGION_BLOCKS;
-        final int minZ = regionZ * REGION_BLOCKS;
-        final int maxX = minX + REGION_BLOCKS - 1;
-        final int maxZ = minZ + REGION_BLOCKS - 1;
+        int minX = regionX * REGION_BLOCKS;
+        int minZ = regionZ * REGION_BLOCKS;
+        int maxX = minX + REGION_BLOCKS - 1;
+        int maxZ = minZ + REGION_BLOCKS - 1;
 
-        final int dx = Math.max(0, Math.max(minX - request.px(), request.px() - maxX));
-        final int dz = Math.max(0, Math.max(minZ - request.pz(), request.pz() - maxZ));
+        int dx = Math.max(0, Math.max(minX - request.px(), request.px() - maxX));
+        int dz = Math.max(0, Math.max(minZ - request.pz(), request.pz() - maxZ));
         return (long) dx * dx + (long) dz * dz;
     }
 }

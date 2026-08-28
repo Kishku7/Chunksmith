@@ -61,7 +61,7 @@ public class CsLodStoreScanTest {
 
     @Test
     public void emptyIsNotServable() throws IOException {
-        final Path dir = temp.newFolder("minecraft_overworld").toPath();
+        Path dir = temp.newFolder("minecraft_overworld").toPath();
         assertTrue(Files.isDirectory(dir));
         assertFalse("an empty store directory",
                 CsLodStoreScan.hasData(dir, settled()));
@@ -69,7 +69,7 @@ public class CsLodStoreScanTest {
 
     @Test
     public void aPartialRegionIsNotServable() throws IOException {
-        final Path dir = temp.newFolder("minecraft_overworld").toPath();
+        Path dir = temp.newFolder("minecraft_overworld").toPath();
         Files.write(dir.resolve("r.0.0.cslod.part"), new byte[]{1, 2, 3});
         Files.write(dir.resolve("readme.txt"), new byte[]{1});
         assertFalse(CsLodStoreScan.hasData(dir, settled()));
@@ -77,11 +77,11 @@ public class CsLodStoreScanTest {
 
     @Test
     public void anUnsettledRegionIsNotServable() throws IOException {
-        final Path dir = temp.newFolder("minecraft_overworld").toPath();
-        final Path region = dir.resolve("r.0.0.cslod");
+        Path dir = temp.newFolder("minecraft_overworld").toPath();
+        Path region = dir.resolve("r.0.0.cslod");
         Files.write(region, new byte[]{1, 2, 3});
 
-        final long justWritten = Files.getLastModifiedTime(region).toMillis();
+        long justWritten = Files.getLastModifiedTime(region).toMillis();
 
         assertFalse("a region touched a moment ago",
                 CsLodStoreScan.isSettled(region, justWritten));
@@ -95,7 +95,7 @@ public class CsLodStoreScanTest {
 
     @Test
     public void oneRegionIsEnough() throws IOException {
-        final Path dir = temp.newFolder("minecraft_overworld").toPath();
+        Path dir = temp.newFolder("minecraft_overworld").toPath();
         assertFalse(CsLodStoreScan.hasData(dir, settled()));
 
         Files.write(dir.resolve("r.0.0.cslod"), new byte[]{1, 2, 3});
@@ -106,9 +106,9 @@ public class CsLodStoreScanTest {
 
     @Test
     public void servableNamesWhatIsFinished() throws IOException {
-        final Path overworld = temp.newFolder("minecraft_overworld").toPath();
-        final Path nether = temp.newFolder("minecraft_the_nether").toPath();
-        final Path end = temp.newFolder("minecraft_the_end").toPath();
+        Path overworld = temp.newFolder("minecraft_overworld").toPath();
+        Path nether = temp.newFolder("minecraft_the_nether").toPath();
+        Path end = temp.newFolder("minecraft_the_end").toPath();
 
         Files.write(overworld.resolve("r.0.0.cslod"), new byte[]{1});
         Files.write(end.resolve("r.-1.4.cslod"), new byte[]{1});
@@ -120,10 +120,10 @@ public class CsLodStoreScanTest {
 
     @Test
     public void servableSkipsAnUnsettledDimension() throws IOException {
-        final Path overworld = temp.newFolder("minecraft_overworld").toPath();
-        final Path region = overworld.resolve("r.0.0.cslod");
+        Path overworld = temp.newFolder("minecraft_overworld").toPath();
+        Path region = overworld.resolve("r.0.0.cslod");
         Files.write(region, new byte[]{1});
-        final long justWritten = Files.getLastModifiedTime(region).toMillis();
+        long justWritten = Files.getLastModifiedTime(region).toMillis();
 
         assertTrue(CsLodStoreScan.servable(List.of(overworld), justWritten).isEmpty());
         assertEquals(List.of("minecraft_overworld"),
@@ -132,16 +132,16 @@ public class CsLodStoreScanTest {
 
     @Test
     public void aRewrittenRegionGoesHotAgain() throws IOException {
-        final Path dir = temp.newFolder("minecraft_overworld").toPath();
-        final Path region = dir.resolve("r.0.0.cslod");
+        Path dir = temp.newFolder("minecraft_overworld").toPath();
+        Path region = dir.resolve("r.0.0.cslod");
         Files.write(region, new byte[]{1});
 
-        final long oldWrite = System.currentTimeMillis() - CsLodStoreScan.SETTLE_MILLIS * 5L;
+        long oldWrite = System.currentTimeMillis() - CsLodStoreScan.SETTLE_MILLIS * 5L;
         Files.setLastModifiedTime(region, FileTime.fromMillis(oldWrite));
         assertTrue(CsLodStoreScan.hasData(dir, System.currentTimeMillis()));
 
         // The pregen touches it again.
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         Files.setLastModifiedTime(region, FileTime.fromMillis(now));
         assertFalse(CsLodStoreScan.hasData(dir, now));
         assertTrue(CsLodStoreScan.hasData(dir, now + CsLodStoreScan.SETTLE_MILLIS));
@@ -149,7 +149,7 @@ public class CsLodStoreScanTest {
 
     @Test
     public void servableIsEmpty() throws IOException {
-        final Path overworld = temp.newFolder("minecraft_overworld").toPath();
+        Path overworld = temp.newFolder("minecraft_overworld").toPath();
         assertTrue(CsLodStoreScan.servable(List.of(overworld), settled()).isEmpty());
         assertTrue(CsLodStoreScan.servable(List.of(), settled()).isEmpty());
         assertTrue(CsLodStoreScan.servable(null, settled()).isEmpty());

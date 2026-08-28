@@ -24,8 +24,8 @@ public final class CsLodStore {
                 || !DIM_DIR.matcher(dimension).matches()) {
             return null;
         }
-        final Path root = storeRoot.normalize();
-        final Path dir = root.resolve(dimension).normalize();
+        Path root = storeRoot.normalize();
+        Path dir = root.resolve(dimension).normalize();
         return dir.startsWith(root) ? dir : null;
     }
 }

@@ -142,7 +142,7 @@ public final class CsLodChunk {
         }
 
         public static int nibble(byte[] packed, int index) {
-            final int b = packed[index >> 1] & 0xFF;
+            int b = packed[index >> 1] & 0xFF;
             return (index & 1) == 0 ? (b & 0x0F) : (b >> 4);
         }
     }

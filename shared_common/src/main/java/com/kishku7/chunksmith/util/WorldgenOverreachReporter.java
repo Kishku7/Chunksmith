@@ -51,10 +51,10 @@ public final class WorldgenOverreachReporter {
     public void record(final String feature, final String step, final String dimension,
                        final int sourceChunkX, final int sourceChunkZ,
                        final int farChunkX, final int farChunkZ, final int y, final int writeRadius) {
-        final String f = (feature == null || feature.isEmpty()) ? "<unknown>" : feature;
-        final String s = (step == null) ? "?" : step;
-        final String d = (dimension == null) ? "?" : dimension;
-        final String key = d + '|' + f + '|' + s + '|' + sourceChunkX + '|' + sourceChunkZ;
+        String f = (feature == null || feature.isEmpty()) ? "<unknown>" : feature;
+        String s = (step == null) ? "?" : step;
+        String d = (dimension == null) ? "?" : dimension;
+        String key = d + '|' + f + '|' + s + '|' + sourceChunkX + '|' + sourceChunkZ;
         accumulate(key, f, s, d, sourceChunkX, sourceChunkZ, writeRadius, false, farChunkX, farChunkZ, y);
     }
 
@@ -63,7 +63,7 @@ public final class WorldgenOverreachReporter {
             return false;
         }
         try {
-            final Matcher fc = FAR_CHUNK.matcher(message);
+            Matcher fc = FAR_CHUNK.matcher(message);
             int farX = 0;
             int farZ = 0;
             if (fc.find()) {
@@ -71,21 +71,21 @@ public final class WorldgenOverreachReporter {
                 farZ = Integer.parseInt(fc.group(2));
             }
             int y = Integer.MIN_VALUE;
-            final Matcher my = POS_Y.matcher(message);
+            Matcher my = POS_Y.matcher(message);
             if (my.find()) {
                 y = Integer.parseInt(my.group(1));
             }
             String step = "?";
-            final Matcher ms = STATUS.matcher(message);
+            Matcher ms = STATUS.matcher(message);
             if (ms.find()) {
                 step = ms.group(1).trim();
             }
             String feature = "<unknown>";
-            final Matcher mf = FEATURE.matcher(message);
+            Matcher mf = FEATURE.matcher(message);
             if (mf.find()) {
                 feature = mf.group(1).trim();
             }
-            final String key = "best|" + feature + '|' + step;
+            String key = "best|" + feature + '|' + step;
             accumulate(key, feature, step, null, Integer.MIN_VALUE, Integer.MIN_VALUE, -1, true, farX, farZ, y);
         } catch (RuntimeException ignored) {
         }
@@ -98,7 +98,7 @@ public final class WorldgenOverreachReporter {
         if (!enabled) {
             return;
         }
-        final Bucket b = active.computeIfAbsent(key,
+        Bucket b = active.computeIfAbsent(key,
                 k -> new Bucket(feature, step, dimension, sourceChunkX, sourceChunkZ, writeRadius, bestEffort));
         synchronized (b) {
             b.count++;
@@ -121,7 +121,7 @@ public final class WorldgenOverreachReporter {
         if (taskRunning && !wasRunning) {
             log.info("[Chunksmith] worldgen overreach diagnostic active - watching this run for worldgen features writing outside their chunk.");
         }
-        final long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         flushIdle(now, false);
         emitRollups(now);
         if (wasRunning && !taskRunning) {
@@ -133,8 +133,8 @@ public final class WorldgenOverreachReporter {
 
     private void flushIdle(long now, boolean force) {
         for (Iterator<Map.Entry<String, Bucket>> it = active.entrySet().iterator(); it.hasNext(); ) {
-            final Bucket b = it.next().getValue();
-            final Bucket snap;
+            Bucket b = it.next().getValue();
+            Bucket snap;
             synchronized (b) {
                 if (!force && now - b.lastUpdate < debounceMillis) {
                     continue;
@@ -142,7 +142,7 @@ public final class WorldgenOverreachReporter {
                 snap = b.copy();
             }
             it.remove();
-            final FeatureStats fs = features.computeIfAbsent(b.feature, k -> new FeatureStats());
+            FeatureStats fs = features.computeIfAbsent(b.feature, k -> new FeatureStats());
             fs.totalChunks++;
             fs.totalBlocks += snap.count;
             if (!fs.firstEmitted) {
@@ -156,9 +156,9 @@ public final class WorldgenOverreachReporter {
 
     private void emitRollups(long now) {
         for (Map.Entry<String, FeatureStats> e : features.entrySet()) {
-            final FeatureStats fs = e.getValue();
+            FeatureStats fs = e.getValue();
             if (fs.firstEmitted && now - fs.lastRollupAt >= rollupMillis && fs.totalBlocks > fs.lastRollupBlocks) {
-                final long delta = fs.totalBlocks - fs.lastRollupBlocks;
+                long delta = fs.totalBlocks - fs.lastRollupBlocks;
                 log.warn(String.format(
                         "[Chunksmith] overreach (cont.): %s - +%d more blocks refused; now %d chunks / %d blocks this run.",
                         e.getKey(), delta, fs.totalChunks, fs.totalBlocks));
@@ -170,7 +170,7 @@ public final class WorldgenOverreachReporter {
 
     private void summarizeAndReset() {
         for (Map.Entry<String, FeatureStats> e : features.entrySet()) {
-            final FeatureStats fs = e.getValue();
+            FeatureStats fs = e.getValue();
             log.warn(String.format(
                     "[Chunksmith] overreach summary: %s - clipped in %d chunks (%d blocks refused) this run. "
                             + "Likely a multi-chunk structure placed as a feature; report to the owning mod.",
@@ -181,7 +181,7 @@ public final class WorldgenOverreachReporter {
     }
 
     private String detailedLine(Bucket b) {
-        final String yRange = (b.minY == Integer.MAX_VALUE) ? "Y ?" : String.format("Y %d..%d", b.minY, b.maxY);
+        String yRange = (b.minY == Integer.MAX_VALUE) ? "Y ?" : String.format("Y %d..%d", b.minY, b.maxY);
         if (b.bestEffort) {
             return String.format(
                     "[Chunksmith] worldgen overreach: %s (step %s) - %d blocks refused into far chunks "
@@ -198,13 +198,13 @@ public final class WorldgenOverreachReporter {
     }
 
     private static final class Bucket {
-        final String feature;
-        final String step;
-        final String dimension;
-        final int sourceChunkX;
-        final int sourceChunkZ;
-        final int writeRadius;
-        final boolean bestEffort;
+        String feature;
+        String step;
+        String dimension;
+        int sourceChunkX;
+        int sourceChunkZ;
+        int writeRadius;
+        boolean bestEffort;
         long count;
         int minFarX = Integer.MAX_VALUE, maxFarX = Integer.MIN_VALUE;
         int minFarZ = Integer.MAX_VALUE, maxFarZ = Integer.MIN_VALUE;
@@ -223,7 +223,7 @@ public final class WorldgenOverreachReporter {
         }
 
         Bucket copy() {
-            final Bucket c = new Bucket(feature, step, dimension, sourceChunkX, sourceChunkZ, writeRadius, bestEffort);
+            Bucket c = new Bucket(feature, step, dimension, sourceChunkX, sourceChunkZ, writeRadius, bestEffort);
             c.count = count;
             c.minFarX = minFarX;
             c.maxFarX = maxFarX;

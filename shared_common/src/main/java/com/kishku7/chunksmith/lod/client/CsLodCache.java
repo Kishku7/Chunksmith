@@ -28,7 +28,7 @@ public final class CsLodCache {
         }
         // The dimension is server-supplied; gate it before it becomes a path (D20: every consumer, not
         // one). A malformed id is treated as "not cached", and the caller's fetch path refuses it too.
-        final Path dimDir = CsLodStore.dimensionDir(storeRoot, dimension);
+        Path dimDir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dimDir == null) {
             return false;
         }

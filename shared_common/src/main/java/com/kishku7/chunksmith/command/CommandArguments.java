@@ -10,16 +10,16 @@ public final class CommandArguments {
     private final int size;
     private final Queue<String> args = new LinkedList<>();
 
-    private CommandArguments(final List<String> arguments) {
+    private CommandArguments(List<String> arguments) {
         this.size = arguments.size();
         this.args.addAll(arguments);
     }
 
-    public static CommandArguments of(final List<String> arguments) {
+    public static CommandArguments of(List<String> arguments) {
         return new CommandArguments(arguments);
     }
 
-    public static CommandArguments of(final String... arguments) {
+    public static CommandArguments of(String... arguments) {
         return new CommandArguments(List.of(arguments));
     }
 

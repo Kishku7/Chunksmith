@@ -116,7 +116,7 @@ public class VoxyConfigReaderTest {
 
     @Test
     public void fractionalSectionsRoundToBlocks() {
-        final UpstreamConfig cfg = new UpstreamConfig();
+        UpstreamConfig cfg = new UpstreamConfig();
         cfg.sectionRenderDistance = 4.5f;
         assertEquals(2304, VoxyConfigReader.radiusBlocks(cfg));
     }
@@ -157,7 +157,7 @@ public class VoxyConfigReaderTest {
 
     @Test
     public void nonPositiveDistanceIsAQuietZero() {
-        final IntConfig cfg = new IntConfig();
+        IntConfig cfg = new IntConfig();
         cfg.sectionRenderDistance = 0;
         assertEquals(0, VoxyConfigReader.radiusBlocks(cfg));
         assertFalse(LodWarnings.saidAlready("voxy-render-distance-field"));

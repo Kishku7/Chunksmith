@@ -105,9 +105,9 @@ public final class LodInjector {
                                      final Consumer<String> progress) {
         // Captured together with the level, and for the same reason: both are "the world this batch of
         // records belongs to", and both are re-checked per region below.
-        final int session = SESSION.get();
-        final Minecraft client = Minecraft.getInstance();
-        final Level level = client.level;
+        int session = SESSION.get();
+        Minecraft client = Minecraft.getInstance();
+        Level level = client.level;
         if (level == null) {
             LOGGER.info("Chunksmith: no world loaded; nothing to inject");
             return;
@@ -115,7 +115,7 @@ public final class LodInjector {
 
         // A download that was in flight when the player stepped through a portal lands here with the
         // dimension it was fetched for, and the level is now somewhere else entirely.
-        final String levelDimension = CsLodDimension.of(level);
+        String levelDimension = CsLodDimension.of(level);
         if (!levelDimension.equals(dimension)) {
             LOGGER.info("Chunksmith: not injecting {} LOD data. The player is now in {}. (Terrain from"
                             + " another dimension is not a substitute for this one's; the data for {} will"
@@ -127,10 +127,10 @@ public final class LodInjector {
         // What did the last session hand this renderer? Seeded before the first claim of this dimension,
         // so the claims below start from the truth on disk rather than an empty map; without it the
         // whole in-range store is "new" at every join. Null means a malformed dimension id; do not persist.
-        final boolean voxyInstalled = Renderers.hasVoxy();
-        final boolean dhInstalled = Renderers.hasDh();
-        final InjectedIndex index = PERSISTED.computeIfAbsent(dimension, dim -> {
-            final InjectedIndex opened = InjectedIndex.open(storeRoot, dim,
+        boolean voxyInstalled = Renderers.hasVoxy();
+        boolean dhInstalled = Renderers.hasDh();
+        InjectedIndex index = PERSISTED.computeIfAbsent(dimension, dim -> {
+            InjectedIndex opened = InjectedIndex.open(storeRoot, dim,
                     InjectedIndex.epochFor(voxyInstalled, dhInstalled, CsLodCodec.VERSION),
                     CsLodClientConfig.reinjectOnJoin());
             if (opened != null && opened.size() > 0) {
@@ -146,7 +146,7 @@ public final class LodInjector {
         // Claim by (dimension, region, token). An already-drawn region is skipped, unless the server is
         // advertising a different version of it, which during a pregen is the normal case under the
         // player's feet. Keying on coordinates alone threw a re-downloaded, grown region away.
-        final List<CsLodMessages.RegionEntry> fresh = new ArrayList<>();
+        List<CsLodMessages.RegionEntry> fresh = new ArrayList<>();
         for (CsLodMessages.RegionEntry region : regions) {
             if (INJECTED.claim(dimension, region.regionX(), region.regionZ(), region.hash())) {
                 fresh.add(region);
@@ -172,32 +172,32 @@ public final class LodInjector {
             return;
         }
 
-        final boolean voxy = voxyInstalled && VoxyTarget.available();
-        final boolean dh = dhInstalled && DhTarget.available(level);
+        boolean voxy = voxyInstalled && VoxyTarget.available();
+        boolean dh = dhInstalled && DhTarget.available(level);
 
         // Only write a claim down when we are injecting into every renderer the player has. If one is
         // installed but not ready, this pass feeds the other and the session-only claim still suppresses a
         // re-push during this session, but nothing goes on disk, because a persisted claim would tell
         // the next join that the renderer which never received the data already has it.
-        final boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled;
+        boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled;
 
         // Name the dimension. It is the one fact that made the difference between "it works" and "there is
         // an ocean in the Nether", and it costs nothing to print.
         progress.accept("injecting " + fresh.size() + " new region(s) of " + dimension + " into "
                 + (voxy ? "voxy " : "") + (dh ? "distant-horizons" : ""));
 
-        final Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
+        Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dir == null) {
             LOGGER.warn("Chunksmith: refusing to inject a malformed dimension id");
             return;
         }
         for (int i = 0; i < fresh.size(); i++) {
-            final CsLodMessages.RegionEntry region = fresh.get(i);
+            CsLodMessages.RegionEntry region = fresh.get(i);
 
             // A large store is minutes of work and the player can walk into a portal half way through.
             // The level we were handed is then not the level on screen, and DH/voxy would take the rest of
             // this dimension's records into the new one. Stop, and give the untouched regions back.
-            final boolean sessionEnded = SESSION.get() != session;
+            boolean sessionEnded = SESSION.get() != session;
             if (sessionEnded || Minecraft.getInstance().level != level) {
                 for (int j = i; j < fresh.size(); j++) {
                     INJECTED.release(dimension, fresh.get(j).regionX(), fresh.get(j).regionZ());
@@ -224,7 +224,7 @@ public final class LodInjector {
                     if (dh && DhTarget.inject(level, record)) {
                         dhChunks.incrementAndGet();
                     }
-                    final long done = chunks.incrementAndGet();
+                    long done = chunks.incrementAndGet();
                     if (done % 500 == 0) {
                         progress.accept("injected " + done + " chunks");
                     }
@@ -313,7 +313,7 @@ public final class LodInjector {
      * world loads, and on a fast connection our download beats them.
      */
     private static boolean awaitRenderer(Level level) {
-        final long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;
+        long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;
         while (System.currentTimeMillis() < deadline) {
             if ((Renderers.hasVoxy() && VoxyTarget.available())
                     || (Renderers.hasDh() && DhTarget.available(level))) {

@@ -17,7 +17,7 @@ public class ReloadCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final String type = arguments.next().orElse(null);
+        String type = arguments.next().orElse(null);
         if ("tasks".equals(type)) {
             if (!chunky.getGenerationTasks().isEmpty()) {
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_RELOAD_TASKS_RUNNING);
@@ -25,7 +25,7 @@ public class ReloadCommand implements ChunksmithCommand {
             }
             chunky.getTaskLoader().reload();
         } else {
-            final Config config = chunky.getServer().getConfig();
+            Config config = chunky.getServer().getConfig();
             config.reload();
             chunky.setLanguage(config.getLanguage());
             chunky.getEventBus().call(new ReloadCommandEvent());

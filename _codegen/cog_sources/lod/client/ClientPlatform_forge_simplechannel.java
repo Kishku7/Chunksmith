@@ -67,7 +67,7 @@ public final class ClientPlatform {
 
     /** Silently does nothing on the many servers that do not speak our channel. */
     public static void sendToServer(byte[] data) {
-        final ClientPacketListener listener = Minecraft.getInstance().getConnection();
+        ClientPacketListener listener = Minecraft.getInstance().getConnection();
         if (listener == null || !CsLodChannel.isRemotePresent(listener.getConnection())) {
             return;
         }

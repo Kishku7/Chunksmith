@@ -21,9 +21,9 @@ public class ContinueCommand implements ChunksmithCommand {
 
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
-        final List<GenerationTask> loadTasks;
+        List<GenerationTask> loadTasks;
         if (arguments.size() > 0) {
-            final Optional<World> world = Input.tryWorld(chunky, arguments.joined());
+            Optional<World> world = Input.tryWorld(chunky, arguments.joined());
             if (world.isEmpty()) {
                 sender.sendMessage(TranslationKey.HELP_CONTINUE);
                 return;
@@ -36,9 +36,9 @@ public class ContinueCommand implements ChunksmithCommand {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_CONTINUE_NO_TASKS);
             return;
         }
-        final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
+        Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         loadTasks.stream().filter(task -> !task.isCancelled()).forEach(generationTask -> {
-            final World world = generationTask.getSelection().world();
+            World world = generationTask.getSelection().world();
             if (!generationTasks.containsKey(world.getName())) {
                 generationTasks.put(world.getName(), generationTask);
                 chunky.getScheduler().runTask(generationTask);
@@ -58,7 +58,7 @@ public class ContinueCommand implements ChunksmithCommand {
     @Override
     public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
-            final List<String> suggestions = new ArrayList<>();
+            List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
             return suggestions;
         }

@@ -29,7 +29,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
         ACTION_BAR_SUPPORTED = barSupported;
     }
 
-    final org.bukkit.entity.Player player;
+    org.bukkit.entity.Player player;
 
     public BukkitPlayer(org.bukkit.entity.Player player) {
         super(player);
@@ -53,7 +53,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
 
     @Override
     public Location getLocation() {
-        final org.bukkit.Location location = player.getLocation();
+        org.bukkit.Location location = player.getLocation();
         return new Location(getWorld(), location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
     }
 
@@ -64,9 +64,9 @@ public class BukkitPlayer extends BukkitSender implements Player {
 
     @Override
     public void teleport(Location location) {
-        final org.bukkit.World world = Bukkit.getWorld(location.getWorld().getName());
-        final org.bukkit.Location loc = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-        final Entity vehicle = player.getVehicle();
+        org.bukkit.World world = Bukkit.getWorld(location.getWorld().getName());
+        org.bukkit.Location loc = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        Entity vehicle = player.getVehicle();
         if (vehicle == null) {
             teleportAsync(player, loc);
         } else if (Paper.isPaper() && player.getWorld().equals(loc.getWorld())) {
@@ -74,7 +74,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
         } else if (Folia.isFolia() && !Folia.isTickThread(player.getLocation())) {
             Folia.schedule(plugin, player, () -> teleport(location), 1);
         } else {
-            final List<Entity> passengers = vehicle.getPassengers();
+            List<Entity> passengers = vehicle.getPassengers();
             if (Folia.isFolia()) {
                 Folia.schedule(plugin, vehicle, vehicle::eject, 1);
             } else {
@@ -119,7 +119,7 @@ public class BukkitPlayer extends BukkitSender implements Player {
     @SuppressWarnings("deprecation")
     public void sendActionBar(String key) {
         if (ACTION_BAR_SUPPORTED) {
-            final String message = formatColored(translateKey(key, false));
+            String message = formatColored(translateKey(key, false));
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
         } else {
             this.sendMessage(key);

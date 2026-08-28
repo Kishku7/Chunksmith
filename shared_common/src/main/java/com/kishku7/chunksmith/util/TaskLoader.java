@@ -40,9 +40,9 @@ public final class TaskLoader {
             taskWalker.forEach(task -> {
                 if (task.getFileName().toString().endsWith(".properties")) {
                     try (final InputStream input = Files.newInputStream(task)) {
-                        final Properties properties = new Properties();
+                        Properties properties = new Properties();
                         properties.load(input);
-                        final String world = properties.getProperty("world");
+                        String world = properties.getProperty("world");
                         if (world != null) {
                             tasks.put(world, properties);
                         }
@@ -57,32 +57,32 @@ public final class TaskLoader {
     }
 
     public Optional<GenerationTask> loadTask(World world) {
-        final Properties task = tasks.get(world.getName());
+        Properties task = tasks.get(world.getName());
         if (task == null) {
             return Optional.empty();
         }
-        final boolean cancelled = Input.tryBoolean(task.getProperty(TaskProperty.CANCELLED.key())).orElse(false);
-        final double centerX = Input.tryDouble(task.getProperty(TaskProperty.CENTER_X.key())).orElse(Selection.DEFAULT_CENTER_X);
-        final double centerZ = Input.tryDouble(task.getProperty(TaskProperty.CENTER_Z.key())).orElse(Selection.DEFAULT_CENTER_Z);
-        final double radiusX = Input.tryDouble(task.getProperty(TaskProperty.RADIUS_X.key())).orElse(Selection.DEFAULT_RADIUS);
-        final double radiusZ = Input.tryDouble(task.getProperty(TaskProperty.RADIUS_Z.key())).orElse(radiusX);
-        final String pattern = task.getProperty(TaskProperty.PATTERN.key(), PatternType.REGION);
-        final String file = task.getProperty(TaskProperty.CSV.key());
-        final String shape = task.getProperty(TaskProperty.SHAPE.key(), ShapeType.SQUARE);
-        final Selection.Builder selection = Selection.builder(chunky, world)
+        boolean cancelled = Input.tryBoolean(task.getProperty(TaskProperty.CANCELLED.key())).orElse(false);
+        double centerX = Input.tryDouble(task.getProperty(TaskProperty.CENTER_X.key())).orElse(Selection.DEFAULT_CENTER_X);
+        double centerZ = Input.tryDouble(task.getProperty(TaskProperty.CENTER_Z.key())).orElse(Selection.DEFAULT_CENTER_Z);
+        double radiusX = Input.tryDouble(task.getProperty(TaskProperty.RADIUS_X.key())).orElse(Selection.DEFAULT_RADIUS);
+        double radiusZ = Input.tryDouble(task.getProperty(TaskProperty.RADIUS_Z.key())).orElse(radiusX);
+        String pattern = task.getProperty(TaskProperty.PATTERN.key(), PatternType.REGION);
+        String file = task.getProperty(TaskProperty.CSV.key());
+        String shape = task.getProperty(TaskProperty.SHAPE.key(), ShapeType.SQUARE);
+        Selection.Builder selection = Selection.builder(chunky, world)
                 .centerX(centerX)
                 .centerZ(centerZ)
                 .radiusX(radiusX)
                 .radiusZ(radiusZ)
                 .pattern(Parameter.of(pattern, file))
                 .shape(shape);
-        final long chunks = Input.tryLong(task.getProperty(TaskProperty.CHUNKS.key())).orElse(0L);
-        final long time = Input.tryLong(task.getProperty(TaskProperty.TIME.key())).orElse(0L);
+        long chunks = Input.tryLong(task.getProperty(TaskProperty.CHUNKS.key())).orElse(0L);
+        long time = Input.tryLong(task.getProperty(TaskProperty.TIME.key())).orElse(0L);
         return Optional.of(new GenerationTask(chunky, selection.build(), chunks, time, cancelled));
     }
 
     public List<GenerationTask> loadTasks() {
-        final List<GenerationTask> generationTasks = new ArrayList<>();
+        List<GenerationTask> generationTasks = new ArrayList<>();
         for (World world : chunky.getServer().getWorlds()) {
             loadTask(world).ifPresent(generationTasks::add);
         }
@@ -90,19 +90,19 @@ public final class TaskLoader {
     }
 
     public void saveTask(GenerationTask task) {
-        final Selection selection = task.getSelection();
-        final String world = selection.world().getName();
-        final Properties properties = tasks.getOrDefault(world, new Properties());
+        Selection selection = task.getSelection();
+        String world = selection.world().getName();
+        Properties properties = tasks.getOrDefault(world, new Properties());
         properties.setProperty(TaskProperty.WORLD.key(), world);
         properties.setProperty(TaskProperty.CANCELLED.key(), String.valueOf(task.isCancelled()));
         properties.setProperty(TaskProperty.CENTER_X.key(), String.valueOf(selection.centerX()));
         properties.setProperty(TaskProperty.CENTER_Z.key(), String.valueOf(selection.centerZ()));
         properties.setProperty(TaskProperty.RADIUS_X.key(), String.valueOf(selection.radiusX()));
-        final String shape = task.getShape().name();
+        String shape = task.getShape().name();
         if (ShapeType.RECTANGLE.equals(shape) || ShapeType.ELLIPSE.equals(shape)) {
             properties.setProperty(TaskProperty.RADIUS_Z.key(), String.valueOf(selection.radiusZ()));
         }
-        final Parameter pattern = Parameter.of(task.getChunkIterator().name());
+        Parameter pattern = Parameter.of(task.getChunkIterator().name());
         properties.setProperty(TaskProperty.PATTERN.key(), pattern.getType());
         if (PatternType.CSV.equals(pattern.getType())) {
             pattern.getValue().ifPresent(file -> properties.setProperty(TaskProperty.CSV.key(), file));
@@ -132,15 +132,15 @@ public final class TaskLoader {
     }
 
     private void writeTask(String world, Properties properties) {
-        final StringBuilder propertiesBuilder = new StringBuilder();
+        StringBuilder propertiesBuilder = new StringBuilder();
         for (TaskProperty taskProperty : TaskProperty.values()) {
-            final String propertyValue = properties.getProperty(taskProperty.key());
+            String propertyValue = properties.getProperty(taskProperty.key());
             if (propertyValue != null) {
                 propertiesBuilder.append(taskProperty.key()).append('=').append(propertyValue).append('\n');
             }
         }
-        final String taskFileName = world.replace(':', '/') + ".properties";
-        final Path taskPath = savePath.resolve(taskFileName);
+        String taskFileName = world.replace(':', '/') + ".properties";
+        Path taskPath = savePath.resolve(taskFileName);
         try {
             Files.createDirectories(taskPath.getParent());
             Files.write(taskPath, propertiesBuilder.toString().getBytes());

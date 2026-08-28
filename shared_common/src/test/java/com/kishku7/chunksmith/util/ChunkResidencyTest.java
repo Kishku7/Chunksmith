@@ -207,7 +207,7 @@ public class ChunkResidencyTest {
 
     @Test
     public void describeSaysUnknownNotZero() {
-        final String snapshot = ChunkResidency.describe();
+        String snapshot = ChunkResidency.describe();
         assertTrue(snapshot, snapshot.contains("resident=unknown"));
         assertTrue(snapshot, snapshot.contains("baseline=unset"));
         assertTrue(snapshot, snapshot.contains("added=unknown"));
@@ -222,7 +222,7 @@ public class ChunkResidencyTest {
         // catch it, because the bug lived in the seam between describe() and the sender.
         ChunkResidency.report(1_000L);
         ChunkResidency.noteTaskStart();
-        final String snapshot = ChunkResidency.describe();
+        String snapshot = ChunkResidency.describe();
         assertFalse("no literal % may appear; see the class javadoc", snapshot.contains("%"));
         // The real proof: it survives the thing that actually happens to it.
         assertTrue(String.format(snapshot).length() > 0);
@@ -237,7 +237,7 @@ public class ChunkResidencyTest {
         assertTrue(ChunkResidency.describe().contains("draining=true"));
 
         ChunkResidency.report(5_100L, T0 + 3_000L);
-        final String snapshot = ChunkResidency.describe();
+        String snapshot = ChunkResidency.describe();
         assertTrue(snapshot, snapshot.contains("draining=false"));
         assertTrue("describe names why it stopped",
                 snapshot.contains("back to where the run started"));

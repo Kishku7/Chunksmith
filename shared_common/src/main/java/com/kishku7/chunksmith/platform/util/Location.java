@@ -38,9 +38,9 @@ public class Location {
     }
 
     public Location setDirection(Vector3 direction) {
-        final double dirX = direction.getX();
-        final double dirY = direction.getY();
-        final double dirZ = direction.getZ();
+        double dirX = direction.getX();
+        double dirY = direction.getY();
+        double dirZ = direction.getZ();
         if (dirX == 0 && dirZ == 0) {
             if (dirY == 0) {
                 pitch = 0;

@@ -107,7 +107,7 @@ public final class CsLodHttpServer {
      */
     public int start(String bindAddress, int gamePort, int configuredPort) {
         derived = configuredPort == 0;
-        final int wanted = CsLodProtocol.httpPort(gamePort, configuredPort);
+        int wanted = CsLodProtocol.httpPort(gamePort, configuredPort);
         if (wanted == 0) {
             if (derived) {
                 LOGGER.warn("Chunksmith: no room for a LOD backchannel port above " + gamePort
@@ -125,7 +125,7 @@ public final class CsLodHttpServer {
             return 0;
         }
         try {
-            final InetSocketAddress address = (bindAddress == null || bindAddress.isBlank())
+            InetSocketAddress address = (bindAddress == null || bindAddress.isBlank())
                     ? new InetSocketAddress(wanted)
                     : new InetSocketAddress(InetAddress.getByName(bindAddress), wanted);
 
@@ -133,7 +133,7 @@ public final class CsLodHttpServer {
             // A small bounded pool: this serves files, and it must never become the reason a game server
             // runs out of threads.
             pool = Executors.newFixedThreadPool(4, runnable -> {
-                final Thread thread = new Thread(runnable, "chunksmith-lod-http");
+                Thread thread = new Thread(runnable, "chunksmith-lod-http");
                 thread.setDaemon(true);
                 return thread;
             });
@@ -190,22 +190,22 @@ public final class CsLodHttpServer {
     }
 
     private void handle(HttpExchange exchange) throws IOException {
-        final String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
+        String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         try {
-            final String method = exchange.getRequestMethod();
+            String method = exchange.getRequestMethod();
             if (!"GET".equals(method) && !"HEAD".equals(method)) {
                 fail(exchange);
                 return;
             }
 
-            final UUID player = tokens.validate(
+            UUID player = tokens.validate(
                     exchange.getRequestHeaders().getFirst(CsLodProtocol.HEADER_TOKEN), ip, onlineCheck);
             if (player == null) {
                 fail(exchange);
                 return;
             }
 
-            final Path file = resolve(exchange.getRequestURI().getPath());
+            Path file = resolve(exchange.getRequestURI().getPath());
             if (file == null || !Files.isRegularFile(file)) {
                 fail(exchange);
                 return;
@@ -240,8 +240,8 @@ public final class CsLodHttpServer {
         if (requestPath == null || !requestPath.startsWith(CsLodProtocol.HTTP_PREFIX)) {
             return null;
         }
-        final String relative = requestPath.substring(CsLodProtocol.HTTP_PREFIX.length());
-        final String[] parts = relative.split("/");
+        String relative = requestPath.substring(CsLodProtocol.HTTP_PREFIX.length());
+        String[] parts = relative.split("/");
         if (parts.length != 2) {
             return null;
         }
@@ -250,25 +250,25 @@ public final class CsLodHttpServer {
         }
         // Resolve the dimension first, then containment-check against that dimension's own root. Both
         // gates are unchanged in strength.
-        final Path dimensionRoot = roots.rootFor(parts[0]);
+        Path dimensionRoot = roots.rootFor(parts[0]);
         if (dimensionRoot == null) {
             return null;
         }
-        final Path base = dimensionRoot.toAbsolutePath().normalize();
-        final Path candidate = base.resolve(parts[1]).toAbsolutePath().normalize();
+        Path base = dimensionRoot.toAbsolutePath().normalize();
+        Path candidate = base.resolve(parts[1]).toAbsolutePath().normalize();
         return candidate.startsWith(base) ? candidate : null;
     }
 
     private void sendFile(HttpExchange exchange, Path file, boolean headOnly) throws IOException {
-        final long size = Files.size(file);
-        final long[] range = parseRange(exchange.getRequestHeaders().getFirst("Range"), size);
+        long size = Files.size(file);
+        long[] range = parseRange(exchange.getRequestHeaders().getFirst("Range"), size);
 
         exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
         exchange.getResponseHeaders().set("Accept-Ranges", "bytes");
 
-        final long offset = range[0];
-        final long length = range[1];
-        final int status;
+        long offset = range[0];
+        long length = range[1];
+        int status;
         if (offset > 0 || length != size) {
             exchange.getResponseHeaders().set("Content-Range",
                     "bytes " + offset + "-" + (offset + length - 1) + "/" + size);
@@ -286,10 +286,10 @@ public final class CsLodHttpServer {
         exchange.sendResponseHeaders(status, length);
         try (InputStream in = Files.newInputStream(file); OutputStream out = exchange.getResponseBody()) {
             in.skipNBytes(offset);
-            final byte[] buffer = new byte[64 * 1024];
+            byte[] buffer = new byte[64 * 1024];
             long remaining = length;
             while (remaining > 0) {
-                final int read = in.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                int read = in.read(buffer, 0, (int) Math.min(buffer.length, remaining));
                 if (read < 0) {
                     break;
                 }
@@ -306,23 +306,23 @@ public final class CsLodHttpServer {
         if (header == null || !header.startsWith("bytes=") || header.indexOf(',') >= 0) {
             return new long[]{0L, size};
         }
-        final String spec = header.substring("bytes=".length()).trim();
-        final int dash = spec.indexOf('-');
+        String spec = header.substring("bytes=".length()).trim();
+        int dash = spec.indexOf('-');
         if (dash < 0) {
             return new long[]{0L, size};
         }
         try {
-            final String from = spec.substring(0, dash).trim();
-            final String to = spec.substring(dash + 1).trim();
+            String from = spec.substring(0, dash).trim();
+            String to = spec.substring(dash + 1).trim();
             if (from.isEmpty()) {
-                final long suffix = Math.min(Long.parseLong(to), size);
+                long suffix = Math.min(Long.parseLong(to), size);
                 return new long[]{size - suffix, suffix};
             }
-            final long start = Long.parseLong(from);
+            long start = Long.parseLong(from);
             if (start < 0 || start >= size) {
                 return new long[]{0L, size};
             }
-            final long end = to.isEmpty() ? size - 1 : Math.min(Long.parseLong(to), size - 1);
+            long end = to.isEmpty() ? size - 1 : Math.min(Long.parseLong(to), size - 1);
             if (end < start) {
                 return new long[]{0L, size};
             }
@@ -334,9 +334,9 @@ public final class CsLodHttpServer {
 
     /** Reserve a slot for this address, atomically. Returns false when the address is already at the cap. */
     private boolean acquire(String ip) {
-        final boolean[] admitted = {false};
+        boolean[] admitted = {false};
         inFlightByIp.compute(ip, (key, current) -> {
-            final int inFlight = current == null ? 0 : current;
+            int inFlight = current == null ? 0 : current;
             if (inFlight >= MAX_CONCURRENT_PER_IP) {
                 return inFlight;
             }

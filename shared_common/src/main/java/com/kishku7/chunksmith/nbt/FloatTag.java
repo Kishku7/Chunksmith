@@ -7,32 +7,32 @@ import java.io.IOException;
 public class FloatTag extends Tag {
     private float value;
 
-    protected FloatTag(final String name) {
+    protected FloatTag(String name) {
         super(name);
     }
 
-    public FloatTag(final String name, final float value) {
+    public FloatTag(String name, float value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public void read(final DataInput input) throws IOException {
+    public void read(DataInput input) throws IOException {
         this.value = input.readFloat();
     }
 
     @Override
-    public void skip(final DataInput input) throws IOException {
+    public void skip(DataInput input) throws IOException {
         input.skipBytes(4);
     }
 
     @Override
-    public void write(final DataOutput output) throws IOException {
+    public void write(DataOutput output) throws IOException {
         output.writeFloat(value);
     }
 
     @Override
-    public Tag search(final DataInput input, final byte type, final String name) throws IOException {
+    public Tag search(DataInput input, byte type, String name) throws IOException {
         skip(input);
         return null;
     }
@@ -48,7 +48,7 @@ public class FloatTag extends Tag {
     }
 
     @Override
-    public String print(final int level) {
+    public String print(int level) {
         return "%s%s('%s'): %f".formatted(" ".repeat(level * Tag.INDENT), typeName(), name, value);
     }
 
@@ -56,7 +56,7 @@ public class FloatTag extends Tag {
         return value;
     }
 
-    public void value(final float value) {
+    public void value(float value) {
         this.value = value;
     }
 }

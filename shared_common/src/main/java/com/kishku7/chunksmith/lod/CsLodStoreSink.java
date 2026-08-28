@@ -82,7 +82,7 @@ public final class CsLodStoreSink implements LodSink {
     private void drain() {
         while (running || !queue.isEmpty()) {
             try {
-                final CsLodChunk record = queue.take();
+                CsLodChunk record = queue.take();
                 persist(record);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -93,7 +93,7 @@ public final class CsLodStoreSink implements LodSink {
 
     private void persist(CsLodChunk record) {
         try {
-            final int size = store.write(record);
+            int size = store.write(record);
             written.incrementAndGet();
             bytes.addAndGet(size);
         } catch (IOException e) {

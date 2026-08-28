@@ -35,7 +35,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void theNetherIsNotTheOverworld() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue("the overworld's region (0,0) is new", injected.claim(OVERWORLD, 0, 0, V1));
         assertFalse("...and is not claimed twice", injected.claim(OVERWORLD, 0, 0, V1));
@@ -50,7 +50,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void changedRegionIsInjectedAgain() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue("first sight of the region", injected.claim(OVERWORLD, 4, -2, V1));
         assertFalse("the same version is never re-injected", injected.claim(OVERWORLD, 4, -2, V1));
@@ -68,7 +68,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void anyDifferentTokenCounts() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, 0, 0, V1));
         assertTrue(injected.claim(OVERWORLD, 0, 0, V2));
@@ -78,7 +78,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void claimedOncePerDimension() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(NETHER, -3, 7, V1));
         assertFalse(injected.claim(NETHER, -3, 7, V1));
@@ -91,7 +91,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void releaseAllowsAReclaim() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, 5, 5, V1));
         injected.release(OVERWORLD, 5, 5);
@@ -107,7 +107,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void releaseForgetsEveryVersion() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, 2, 2, V1));
         assertTrue("the region grew", injected.claim(OVERWORLD, 2, 2, V2));
@@ -119,7 +119,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void negativeCoordinatesRoundTrip() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
 
         assertTrue(injected.claim(OVERWORLD, -1, -1, V1));
         assertFalse(injected.claim(OVERWORLD, -1, -1, V1));
@@ -138,7 +138,7 @@ public class InjectedRegionsTest {
 
     @Test
     public void clearForgetsAll() {
-        final InjectedRegions injected = new InjectedRegions();
+        InjectedRegions injected = new InjectedRegions();
         injected.claim(OVERWORLD, 0, 0, V1);
         injected.claim(NETHER, 0, 0, V1);
         assertEquals(2, injected.size());

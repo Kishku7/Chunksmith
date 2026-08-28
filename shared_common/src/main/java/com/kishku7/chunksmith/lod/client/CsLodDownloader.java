@@ -77,7 +77,7 @@ public final class CsLodDownloader {
         // The dimension came off the wire from a server we do not trust to be honest. Gate it before it
         // becomes a path, exactly as the in-band and cache consumers do. A "../.." here would write
         // region files outside the client's store. If it is malformed we refuse the whole transfer.
-        final Path dimDir = CsLodStore.dimensionDir(storeRoot, index.dimension());
+        Path dimDir = CsLodStore.dimensionDir(storeRoot, index.dimension());
         if (dimDir == null) {
             progress.accept("LOD: refusing a malformed dimension id from the server");
             return;
@@ -86,7 +86,7 @@ public final class CsLodDownloader {
         // CsLodManifest for the client-side half of the bug that killed the server.
         this.manifest = CsLodManifest.open(storeRoot, index.dimension());
 
-        final List<CsLodMessages.RegionEntry> wanted = index.regions().stream()
+        List<CsLodMessages.RegionEntry> wanted = index.regions().stream()
                 .filter(entry -> {
                     if (haveAlready(dimDir, entry)) {
                         skipped.incrementAndGet();
@@ -107,7 +107,7 @@ public final class CsLodDownloader {
         }
 
         pool = Executors.newFixedThreadPool(WORKERS, runnable -> {
-            final Thread thread = new Thread(runnable, "chunksmith-lod-download");
+            Thread thread = new Thread(runnable, "chunksmith-lod-download");
             thread.setDaemon(true);
             return thread;
         });
@@ -118,7 +118,7 @@ public final class CsLodDownloader {
                 }
                 try {
                     fetch(host, port, token, index.dimension(), entry);
-                    final long done = downloaded.incrementAndGet();
+                    long done = downloaded.incrementAndGet();
                     if (done % 25 == 0) {
                         progress.accept("LOD: fetched " + done + "/" + wanted.size()
                                 + " regions (" + (bytes.get() / 1024 / 1024) + " MB)");
@@ -164,7 +164,7 @@ public final class CsLodDownloader {
     /** Stop. Immediately. */
     public void cancel() {
         cancelled.set(true);
-        final ExecutorService current = pool;
+        ExecutorService current = pool;
         if (current != null) {
             current.shutdownNow();
         }
@@ -197,21 +197,21 @@ public final class CsLodDownloader {
             throws IOException, InterruptedException {
         // Re-gate here too: this is a distinct consumer of the wire dimension, so it validates rather than
         // trusting that the caller did (D20: harden every consumer, not one).
-        final Path dimDir = CsLodStore.dimensionDir(storeRoot, dimension);
+        Path dimDir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dimDir == null) {
             throw new IOException("refusing a malformed dimension id: " + dimension);
         }
-        final String name = "r." + entry.regionX() + "." + entry.regionZ() + ".cslod";
-        final URI uri = URI.create("http://" + host + ":" + port + CsLodProtocol.HTTP_PREFIX
+        String name = "r." + entry.regionX() + "." + entry.regionZ() + ".cslod";
+        URI uri = URI.create("http://" + host + ":" + port + CsLodProtocol.HTTP_PREFIX
                 + dimension + "/" + name);
 
-        final HttpRequest request = HttpRequest.newBuilder(uri)
+        HttpRequest request = HttpRequest.newBuilder(uri)
                 .header(CsLodProtocol.HEADER_TOKEN, token)
                 .timeout(Duration.ofSeconds(60))
                 .GET()
                 .build();
 
-        final HttpResponse<InputStream> response =
+        HttpResponse<InputStream> response =
                 http.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() != 200) {
             throw new IOException("HTTP " + response.statusCode() + " for " + name);
@@ -219,14 +219,14 @@ public final class CsLodDownloader {
 
         // Write to a temp file and move into place, so a half-finished download can never be mistaken for
         // a cached region on the next join.
-        final Path target = dimDir.resolve(name);
+        Path target = dimDir.resolve(name);
         Files.createDirectories(target.getParent());
-        final Path temp = target.resolveSibling(name + ".part");
+        Path temp = target.resolveSibling(name + ".part");
         try (InputStream in = response.body()) {
             Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
         }
         Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-        final long stored = Files.size(target);
+        long stored = Files.size(target);
         bytes.addAndGet(stored);
 
         // The region is on disk. Record the server's token and the size we actually received rather than the
@@ -239,7 +239,7 @@ public final class CsLodDownloader {
      * {@link CsLodManifest}. Since beta-4 this no longer reads the client's own store.
      */
     private boolean haveAlready(Path dimDir, CsLodMessages.RegionEntry entry) {
-        final CsLodManifest current = this.manifest;
+        CsLodManifest current = this.manifest;
         return current != null && current.holds(dimDir, entry);
     }
 }

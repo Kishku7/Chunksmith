@@ -48,7 +48,7 @@ public final class ChunkSettleSupport {
         if (!enabled) {
             return null;
         }
-        final ChunkSettleWindow window = new ChunkSettleWindow(delayTicks, maxHeld);
+        ChunkSettleWindow window = new ChunkSettleWindow(delayTicks, maxHeld);
         LIVE.add(window);
         return window;
     }

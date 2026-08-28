@@ -47,7 +47,7 @@ public final class ServerSideRendererAdvisory {
         if (!dedicated) {
             return Optional.empty();
         }
-        final List<String> found = new ArrayList<>();
+        List<String> found = new ArrayList<>();
         for (String id : RENDERER_IDS) {
             if (modPresent.test(id)) {
                 found.add(id);
@@ -56,9 +56,9 @@ public final class ServerSideRendererAdvisory {
         if (found.isEmpty()) {
             return Optional.empty();
         }
-        final String names = String.join(" and ", found);
-        final String subject = found.size() == 1 ? "is" : "are";
-        final String pronoun = found.size() == 1 ? "it" : "them";
+        String names = String.join(" and ", found);
+        String subject = found.size() == 1 ? "is" : "are";
+        String pronoun = found.size() == 1 ? "it" : "them";
         return Optional.of(names + " " + subject + " installed on this DEDICATED SERVER, where Chunksmith"
                 + " does not need " + pronoun + ". Chunksmith builds its own LOD data while it"
                 + " pregenerates and serves that to each player's client, which injects it into the"

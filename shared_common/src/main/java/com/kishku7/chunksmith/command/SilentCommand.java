@@ -18,7 +18,7 @@ public class SilentCommand implements ChunksmithCommand {
     @Override
     public void execute(Sender sender, CommandArguments arguments) {
         chunky.getConfig().setSilent(!chunky.getConfig().isSilent());
-        final String status = translate(chunky.getConfig().isSilent() ? TranslationKey.ENABLED : TranslationKey.DISABLED);
+        String status = translate(chunky.getConfig().isSilent() ? TranslationKey.ENABLED : TranslationKey.DISABLED);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SILENT, status);
     }
 

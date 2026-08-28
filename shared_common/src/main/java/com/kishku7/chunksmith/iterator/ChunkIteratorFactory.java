@@ -11,7 +11,7 @@ public final class ChunkIteratorFactory {
         if (selection.pattern().getType().equals(PatternType.WORLD)) {
             return new WorldChunkIterator(selection);
         }
-        final String shape = selection.shape();
+        String shape = selection.shape();
         if (ShapeType.RECTANGLE.equals(shape) || ShapeType.ELLIPSE.equals(shape) || ShapeType.OVAL.equals(shape)) {
             return new Loop2ChunkIterator(selection, count);
         }

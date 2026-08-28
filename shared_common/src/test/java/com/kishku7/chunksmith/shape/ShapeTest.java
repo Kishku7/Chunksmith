@@ -55,14 +55,14 @@ public class ShapeTest {
     }
 
     private void testShape(String type, int expected) {
-        final Selection s = SELECTION.shape(type).build();
-        final ChunkIterator chunkIterator = ChunkIteratorFactory.getChunkIterator(s);
-        final Shape shape = ShapeFactory.getShape(s);
+        Selection s = SELECTION.shape(type).build();
+        ChunkIterator chunkIterator = ChunkIteratorFactory.getChunkIterator(s);
+        Shape shape = ShapeFactory.getShape(s);
         int generated = 0;
         while (chunkIterator.hasNext()) {
-            final ChunkCoordinate chunkCoordinate = chunkIterator.next();
-            final int xChunkCenter = (chunkCoordinate.x() << 4) + 8;
-            final int zChunkCenter = (chunkCoordinate.z() << 4) + 8;
+            ChunkCoordinate chunkCoordinate = chunkIterator.next();
+            int xChunkCenter = (chunkCoordinate.x() << 4) + 8;
+            int zChunkCenter = (chunkCoordinate.z() << 4) + 8;
             if (shape.isBounding(xChunkCenter, zChunkCenter)) {
                 ++generated;
             }

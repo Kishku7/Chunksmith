@@ -71,7 +71,7 @@ public abstract class WorldGenRegionMixin {
     )
     private void chunksmith$captureFarWrite(String message, BlockPos pos) {
         try {
-            final String feature = this.currentlyGenerating == null ? null : String.valueOf(this.currentlyGenerating.get());
+            String feature = this.currentlyGenerating == null ? null : String.valueOf(this.currentlyGenerating.get());
             //[[[cog
             // import cog, compat
             // if compat.worldgen_uses_chunkstep(mcver):
@@ -85,7 +85,7 @@ public abstract class WorldGenRegionMixin {
             // cog.outl('final String dimension = this.level.dimension().%s().toString();' % compat.dimension_identifier_call(mcver))
             //]]]
             //[[[end]]]
-            final ChunkPos center = this.getCenter();
+            ChunkPos center = this.getCenter();
             //[[[cog
             // import cog, compat
             // if compat.worldgen_uses_chunkstep(mcver):

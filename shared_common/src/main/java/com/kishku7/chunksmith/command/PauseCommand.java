@@ -26,13 +26,13 @@ public class PauseCommand implements ChunksmithCommand {
         // watcher, and it clears any outstanding auto-pause so a later recovery does not restart a
         // run the operator deliberately stopped.
         AutoPause.clear();
-        final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
+        Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         if (generationTasks.isEmpty()) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_PAUSE_NO_TASKS);
             return;
         }
         if (arguments.size() > 0) {
-            final Optional<World> world = Input.tryWorld(chunky, arguments.joined());
+            Optional<World> world = Input.tryWorld(chunky, arguments.joined());
             if (world.isEmpty() || !generationTasks.containsKey(world.get().getName())) {
                 sender.sendMessage(TranslationKey.HELP_PAUSE);
             } else {
@@ -50,7 +50,7 @@ public class PauseCommand implements ChunksmithCommand {
     @Override
     public List<String> suggestions(CommandArguments arguments) {
         if (arguments.size() == 1) {
-            final List<String> suggestions = new ArrayList<>();
+            List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
             return suggestions;
         }

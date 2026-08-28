@@ -89,7 +89,7 @@ public final class ClientPlatform {
 
     /** Silently does nothing on the many servers that do not speak our channel. */
     public static void sendToServer(byte[] data) {
-        final ClientPacketListener connection = Minecraft.getInstance().getConnection();
+        ClientPacketListener connection = Minecraft.getInstance().getConnection();
         if (connection != null && NetworkRegistry.hasChannel(connection, CsLodChannel.Payload.TYPE.id())) {
             //[[[cog
             // import cog, compat

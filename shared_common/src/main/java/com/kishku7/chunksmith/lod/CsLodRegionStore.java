@@ -58,13 +58,13 @@ public final class CsLodRegionStore {
      * @return the number of compressed bytes written, so callers can account size without re-encoding
      */
     public synchronized int write(CsLodChunk chunk) throws IOException {
-        final byte[] payload = CsLodCodec.encode(chunk);
-        final int rx = Math.floorDiv(chunk.getChunkX(), REGION_CHUNKS);
-        final int rz = Math.floorDiv(chunk.getChunkZ(), REGION_CHUNKS);
-        final RandomAccessFile file = region(rx, rz);
+        byte[] payload = CsLodCodec.encode(chunk);
+        int rx = Math.floorDiv(chunk.getChunkX(), REGION_CHUNKS);
+        int rz = Math.floorDiv(chunk.getChunkZ(), REGION_CHUNKS);
+        RandomAccessFile file = region(rx, rz);
 
-        final int slot = slotIndex(chunk.getChunkX(), chunk.getChunkZ());
-        final long offset = file.length();
+        int slot = slotIndex(chunk.getChunkX(), chunk.getChunkZ());
+        long offset = file.length();
 
         // Append the payload FIRST, then point the header slot at it. A crash between the two leaves
         // orphaned bytes (harmless) rather than a slot pointing at a half-written record.
@@ -79,17 +79,17 @@ public final class CsLodRegionStore {
 
     /** Read one chunk record back, or null if this chunk was never written. */
     public synchronized CsLodChunk read(int chunkX, int chunkZ) throws IOException {
-        final int rx = Math.floorDiv(chunkX, REGION_CHUNKS);
-        final int rz = Math.floorDiv(chunkZ, REGION_CHUNKS);
-        final Path path = regionPath(rx, rz);
+        int rx = Math.floorDiv(chunkX, REGION_CHUNKS);
+        int rz = Math.floorDiv(chunkZ, REGION_CHUNKS);
+        Path path = regionPath(rx, rz);
         if (!Files.exists(path)) {
             return null;
         }
-        final RandomAccessFile file = region(rx, rz);
-        final int slot = slotIndex(chunkX, chunkZ);
+        RandomAccessFile file = region(rx, rz);
+        int slot = slotIndex(chunkX, chunkZ);
         file.seek((long) slot * SLOT_BYTES);
-        final int offset = file.readInt();
-        final int length = file.readInt();
+        int offset = file.readInt();
+        int length = file.readInt();
         if (offset <= 0 || length <= 0) {
             return null;
         }
@@ -99,7 +99,7 @@ public final class CsLodRegionStore {
             throw new IOException("CSLOD region " + path.getFileName() + " slot " + slot
                     + ": record length " + length + " exceeds " + CsLodProtocol.MAX_RECORD_BYTES);
         }
-        final byte[] payload = new byte[length];
+        byte[] payload = new byte[length];
         file.seek(offset);
         file.readFully(payload);
         return CsLodCodec.decode(payload);
@@ -118,7 +118,7 @@ public final class CsLodRegionStore {
         }
         int visited = 0;
         try (Stream<Path> walk = Files.walk(root)) {
-            final List<Path> regions = walk
+            List<Path> regions = walk
                     .filter(path -> path.getFileName().toString().endsWith(".cslod"))
                     .sorted()
                     .toList();
@@ -139,7 +139,7 @@ public final class CsLodRegionStore {
      */
     public static int forEachChunkInRegion(final Path root, final int regionX, final int regionZ,
                                            final ChunkVisitor visitor) throws IOException {
-        final Path region = root.resolve("r." + regionX + "." + regionZ + ".cslod");
+        Path region = root.resolve("r." + regionX + "." + regionZ + ".cslod");
         if (!Files.isRegularFile(region)) {
             return 0;
         }
@@ -151,8 +151,8 @@ public final class CsLodRegionStore {
         try (RandomAccessFile file = new RandomAccessFile(region.toFile(), "r")) {
             for (int slot = 0; slot < SLOTS; slot++) {
                 file.seek((long) slot * SLOT_BYTES);
-                final int offset = file.readInt();
-                final int length = file.readInt();
+                int offset = file.readInt();
+                int length = file.readInt();
                 if (offset <= 0 || length <= 0) {
                     continue;
                 }
@@ -161,7 +161,7 @@ public final class CsLodRegionStore {
                     throw new IOException("CSLOD region " + region.getFileName() + " slot " + slot
                             + ": record length " + length + " exceeds " + CsLodProtocol.MAX_RECORD_BYTES);
                 }
-                final byte[] payload = new byte[length];
+                byte[] payload = new byte[length];
                 file.seek(offset);
                 file.readFully(payload);
                 visitor.visit(CsLodCodec.decode(payload));
@@ -196,12 +196,12 @@ public final class CsLodRegionStore {
     }
 
     private RandomAccessFile region(int rx, int rz) throws IOException {
-        final long key = ((long) rx << 32) ^ (rz & 0xFFFFFFFFL);
+        long key = ((long) rx << 32) ^ (rz & 0xFFFFFFFFL);
         RandomAccessFile file = open.get(key);
         if (file != null) {
             return file;
         }
-        final Path path = regionPath(rx, rz);
+        Path path = regionPath(rx, rz);
         Files.createDirectories(path.getParent());
         file = new RandomAccessFile(path.toFile(), "rw");
         if (file.length() < HEADER_BYTES) {
@@ -216,8 +216,8 @@ public final class CsLodRegionStore {
     }
 
     private static int slotIndex(int chunkX, int chunkZ) {
-        final int localX = Math.floorMod(chunkX, REGION_CHUNKS);
-        final int localZ = Math.floorMod(chunkZ, REGION_CHUNKS);
+        int localX = Math.floorMod(chunkX, REGION_CHUNKS);
+        int localZ = Math.floorMod(chunkZ, REGION_CHUNKS);
         return localZ * REGION_CHUNKS + localX;
     }
 }

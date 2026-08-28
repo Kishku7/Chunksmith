@@ -51,7 +51,7 @@ public class CsLodIndexScanTest {
     }
 
     private Path region(int x, int z, int bytes) throws IOException {
-        final Path file = temp.getRoot().toPath().resolve("r." + x + "." + z + ".cslod");
+        Path file = temp.getRoot().toPath().resolve("r." + x + "." + z + ".cslod");
         Files.write(file, new byte[bytes]);
         return file;
     }
@@ -60,7 +60,7 @@ public class CsLodIndexScanTest {
 
     @Test
     public void aMissingDirectoryScansToNothing() throws IOException {
-        final CsLodIndexScan.Result result =
+        CsLodIndexScan.Result result =
                 CsLodIndexScan.scan(temp.getRoot().toPath().resolve("nope"), at(0, 0, 4096), settled());
         assertTrue(result.regions().isEmpty());
         assertEquals(0, result.found());
@@ -88,7 +88,7 @@ public class CsLodIndexScanTest {
         Files.write(temp.getRoot().toPath().resolve("r.0.cslod"), new byte[16]);
         Files.write(temp.getRoot().toPath().resolve("r.x.0.cslod"), new byte[16]);
 
-        final List<CsLodMessages.RegionEntry> regions =
+        List<CsLodMessages.RegionEntry> regions =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 4096), settled()).regions();
         assertEquals(1, regions.size());
         assertEquals(0, regions.get(0).regionX());
@@ -98,7 +98,7 @@ public class CsLodIndexScanTest {
     @Test
     public void negativeCoordinatesParse() throws IOException {
         region(-3, -4, 16);
-        final List<CsLodMessages.RegionEntry> regions =
+        List<CsLodMessages.RegionEntry> regions =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(-1536, -2048, 4096), settled()).regions();
         assertEquals(1, regions.size());
         assertEquals(-3, regions.get(0).regionX());
@@ -159,7 +159,7 @@ public class CsLodIndexScanTest {
         region(2, 0, 16);
         region(0, 0, 16);
 
-        final List<CsLodMessages.RegionEntry> regions =
+        List<CsLodMessages.RegionEntry> regions =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 8192), settled()).regions();
         assertEquals(4, regions.size());
         assertEquals(0, regions.get(0).regionX());
@@ -175,9 +175,9 @@ public class CsLodIndexScanTest {
         region(0, 1, 16);
         region(0, -1, 16);
 
-        final List<CsLodMessages.RegionEntry> first =
+        List<CsLodMessages.RegionEntry> first =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(255, 255, 8192), settled()).regions();
-        final List<CsLodMessages.RegionEntry> again =
+        List<CsLodMessages.RegionEntry> again =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(255, 255, 8192), settled()).regions();
         assertEquals(first, again);
     }
@@ -190,7 +190,7 @@ public class CsLodIndexScanTest {
         for (int x = 0; x <= CsLodIndexScan.MAX_REGIONS; x++) {
             region(x, 0, 0);
         }
-        final CsLodIndexScan.Result result =
+        CsLodIndexScan.Result result =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, Integer.MAX_VALUE / 2), settled());
         assertEquals(CsLodIndexScan.MAX_REGIONS, result.regions().size());
         assertEquals(CsLodIndexScan.MAX_REGIONS + 1, result.found());
@@ -203,7 +203,7 @@ public class CsLodIndexScanTest {
     @Test
     public void anUncappedScanIsNotCapped() throws IOException {
         region(0, 0, 16);
-        final CsLodIndexScan.Result result =
+        CsLodIndexScan.Result result =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 8192), settled());
         assertFalse(result.capped());
         assertEquals(1, result.found());
@@ -218,8 +218,8 @@ public class CsLodIndexScanTest {
         region(1, 0, 32);
         region(9, 9, 64);   // outside the radius below, so it must be in NEITHER answer
 
-        final CsLodIndexScan.Request request = at(0, 0, 1024);
-        final List<CsLodMessages.RegionEntry> regions =
+        CsLodIndexScan.Request request = at(0, 0, 1024);
+        List<CsLodMessages.RegionEntry> regions =
                 CsLodIndexScan.scan(temp.getRoot().toPath(), request, settled()).regions();
         assertEquals(2, regions.size());
 

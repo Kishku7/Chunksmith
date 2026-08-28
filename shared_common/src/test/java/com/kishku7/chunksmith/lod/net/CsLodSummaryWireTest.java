@@ -26,7 +26,7 @@ public class CsLodSummaryWireTest {
     // id (1) + UTF length prefix (2) + "minecraft_overworld" (19) = 22 bytes.
     @Test
     public void askingCosts22Bytes() throws IOException {
-        final byte[] request = CsLodMessages.requestSummary(OVERWORLD);
+        byte[] request = CsLodMessages.requestSummary(OVERWORLD);
         assertEquals("a sync poll must stay tiny", 22, request.length);
         assertEquals(CsLodProtocol.C2S_REQUEST_SUMMARY, request[0]);
     }
@@ -34,7 +34,7 @@ public class CsLodSummaryWireTest {
     // id (1) + UTF (2 + 19) + count (4) + aggregate (8) = 34 bytes.
     @Test
     public void answeringCosts34Bytes() throws IOException {
-        final byte[] reply = CsLodMessages.encode(
+        byte[] reply = CsLodMessages.encode(
                 new CsLodMessages.RegionSummary(OVERWORLD, 81, 0x0BAD_C0FFEE_1234L));
         assertEquals("a sync answer must stay tiny", 34, reply.length);
         assertEquals(CsLodProtocol.S2C_SUMMARY, reply[0]);
@@ -47,12 +47,12 @@ public class CsLodSummaryWireTest {
      */
     @Test
     public void anIndexIsMuchBiggerThanASummary() throws IOException {
-        final List<CsLodMessages.RegionEntry> regions = new ArrayList<>();
+        List<CsLodMessages.RegionEntry> regions = new ArrayList<>();
         for (int i = 0; i < 81; i++) {
             regions.add(new CsLodMessages.RegionEntry(i % 9, i / 9, 0x1234_5678L + i, 4_800_000L));
         }
-        final byte[] index = CsLodMessages.encode(new CsLodMessages.RegionIndex(OVERWORLD, regions));
-        final byte[] summary = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 81, 7L));
+        byte[] index = CsLodMessages.encode(new CsLodMessages.RegionIndex(OVERWORLD, regions));
+        byte[] summary = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 81, 7L));
 
         assertTrue("an 81-region index is over a kilobyte", index.length > 1_000);
         assertTrue("and the summary that stands in for it is under 40 bytes", summary.length < 40);
@@ -60,13 +60,13 @@ public class CsLodSummaryWireTest {
 
     @Test
     public void aSummaryRoundTrips() throws IOException {
-        final CsLodMessages.RegionSummary sent =
+        CsLodMessages.RegionSummary sent =
                 new CsLodMessages.RegionSummary("minecraft_the_nether", 340, -1L);
-        final byte[] wire = CsLodMessages.encode(sent);
+        byte[] wire = CsLodMessages.encode(sent);
 
         try (DataInputStream in = CsLodMessages.reader(wire)) {
             assertEquals(CsLodProtocol.S2C_SUMMARY, in.readByte());
-            final CsLodMessages.RegionSummary back = CsLodMessages.decodeRegionSummary(in);
+            CsLodMessages.RegionSummary back = CsLodMessages.decodeRegionSummary(in);
             assertEquals(sent, back);
             assertEquals(-1L, back.aggregate());
         }
@@ -74,10 +74,10 @@ public class CsLodSummaryWireTest {
 
     @Test
     public void anEmptySummaryRoundTrips() throws IOException {
-        final byte[] wire = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 0, 0L));
+        byte[] wire = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 0, 0L));
         try (DataInputStream in = CsLodMessages.reader(wire)) {
             in.readByte();
-            final CsLodMessages.RegionSummary back = CsLodMessages.decodeRegionSummary(in);
+            CsLodMessages.RegionSummary back = CsLodMessages.decodeRegionSummary(in);
             assertEquals(0, back.count());
             assertEquals(0L, back.aggregate());
         }
@@ -85,7 +85,7 @@ public class CsLodSummaryWireTest {
 
     @Test
     public void aNonsenseCountIsRefused() throws IOException {
-        final byte[] wire = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 0, 0L));
+        byte[] wire = CsLodMessages.encode(new CsLodMessages.RegionSummary(OVERWORLD, 0, 0L));
         // Stamp a negative count over the wire bytes: id(1) + len(2) + name(19) = offset 22.
         wire[22] = (byte) 0xFF;
         wire[23] = (byte) 0xFF;

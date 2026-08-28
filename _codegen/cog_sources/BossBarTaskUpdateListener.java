@@ -59,9 +59,9 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
 
     @Override
     public void accept(GenerationTaskUpdateEvent event) {
-        final GenerationTask task = event.generationTask();
-        final Chunksmith chunky = task.getChunky();
-        final World world = task.getSelection().world();
+        GenerationTask task = event.generationTask();
+        Chunksmith chunky = task.getChunky();
+        World world = task.getSelection().world();
         //[[[cog
         // import cog, compat
         // t = compat.identifier_type(mcver)
@@ -71,12 +71,12 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
         if (worldIdentifier == null || !(world instanceof final ServerLevelHolder serverWorld)) {
             return;
         }
-        final ServerBossEvent bossBar = bossBars.computeIfAbsent(worldIdentifier, x -> createNewBossBar(worldIdentifier));
-        final boolean silent = chunky.getConfig().isSilent();
+        ServerBossEvent bossBar = bossBars.computeIfAbsent(worldIdentifier, x -> createNewBossBar(worldIdentifier));
+        boolean silent = chunky.getConfig().isSilent();
         if (silent == bossBar.isVisible()) {
             bossBar.setVisible(!silent);
         }
-        final MinecraftServer server = serverWorld.getWorld().getServer();
+        MinecraftServer server = serverWorld.getWorld().getServer();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             //[[[cog
             // import cog, compat
@@ -88,7 +88,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
                 bossBar.removePlayer(player);
             }
         }
-        final GenerationTask.Progress progress = task.getProgress();
+        GenerationTask.Progress progress = task.getProgress();
         bossBar.setName(Component.nullToEmpty(String.format("%s | %s%% | %s:%s:%s",
                 worldIdentifier,
                 String.format("%.2f", progress.getPercentComplete()),
@@ -137,7 +137,7 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
     // cog.outl("private static BossEvent.BossBarColor bossBarColor(%s worldIdentifier) {" % t)
     //]]]
     //[[[end]]]
-        final BossEvent.BossBarColor bossBarColor;
+        BossEvent.BossBarColor bossBarColor;
         //[[[cog
         // import cog, compat
         // idc = compat.dimension_identifier_call(mcver)

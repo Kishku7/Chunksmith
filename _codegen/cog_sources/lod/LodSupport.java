@@ -68,7 +68,7 @@ public final class LodSupport {
         if (server == null || !lodEnabled(server)) {
             return null;
         }
-        final ServerLevel level = levelByName(server, worldName);
+        ServerLevel level = levelByName(server, worldName);
         if (level == null) {
             return null;
         }
@@ -94,7 +94,7 @@ public final class LodSupport {
         if (!lodEnabled(level.getServer())) {
             return;
         }
-        final LodSink sink = sinkFor(level);
+        LodSink sink = sinkFor(level);
         if (sink == LodSink.NOOP) {
             return;
         }
@@ -104,7 +104,7 @@ public final class LodSupport {
         sink.offer(chunk);
 
         if (hasStore(sink)) {
-            final CsLodChunk record = CsLodExtractor.extract(chunk);
+            CsLodChunk record = CsLodExtractor.extract(chunk);
             if (record != null) {
                 sink.offer(record);
             }
@@ -113,7 +113,7 @@ public final class LodSupport {
 
     /** The active sink for a world, resolved once. Never null. */
     public static LodSink sinkFor(ServerLevel level) {
-        final String key = dimensionId(level);
+        String key = dimensionId(level);
         return SINKS.computeIfAbsent(key, ignored -> create(level));
     }
 
@@ -144,9 +144,9 @@ public final class LodSupport {
     }
 
     private static LodSink create(ServerLevel level) {
-        final List<LodSink> sinks = new ArrayList<>(2);
+        List<LodSink> sinks = new ArrayList<>(2);
 
-        final Path root = storeRoot(level);
+        Path root = storeRoot(level);
         sinks.add(new CsLodStoreSink(root, WRITE_QUEUE_CAPACITY));
         LOGGER.info("Chunksmith: LOD store enabled -> {}", root);
 
@@ -169,7 +169,7 @@ public final class LodSupport {
         //]]]
         //[[[end]]]
 
-        final LodSink sink = sinks.size() == 1 ? sinks.get(0) : new CompositeLodSink(sinks);
+        LodSink sink = sinks.size() == 1 ? sinks.get(0) : new CompositeLodSink(sinks);
         LodSinks.set(sink);
         return sink;
     }
@@ -184,7 +184,7 @@ public final class LodSupport {
 
     /** {@code <world>/chunksmith/lod/<dim>}: our own tree; we never touch voxy's or DH's store. */
     public static Path storeRoot(ServerLevel level) {
-        final Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
+        Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
         return worldRoot.resolve("chunksmith").resolve("lod").resolve(dimensionKey(level)).normalize();
     }
 
@@ -310,10 +310,10 @@ public final class LodSupport {
         if (!ChunksmithProvider.isLoaded()) {
             return;
         }
-        final Config config = ChunksmithProvider.get().getConfig();
-        final LodMode mode = config.getLodMode();
-        final String found = detectRenderer();
-        final boolean on = decide(config, server);
+        Config config = ChunksmithProvider.get().getConfig();
+        LodMode mode = config.getLodMode();
+        String found = detectRenderer();
+        boolean on = decide(config, server);
 
         if (mode != LodMode.AUTO) {
             LOGGER.info("Chunksmith: LOD generation {} (lodEnabled={} set explicitly in the config{})",
@@ -343,9 +343,9 @@ public final class LodSupport {
         if (!ChunksmithProvider.isLoaded()) {
             return "lod: unknown (chunksmith not loaded)";
         }
-        final Config config = ChunksmithProvider.get().getConfig();
-        final String found = detectRenderer();
-        final String why;
+        Config config = ChunksmithProvider.get().getConfig();
+        String found = detectRenderer();
+        String why;
         switch (config.getLodMode()) {
             case ON:
                 why = "forced on";

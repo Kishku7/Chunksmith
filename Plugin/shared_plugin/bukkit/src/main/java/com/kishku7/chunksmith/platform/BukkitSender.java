@@ -75,9 +75,9 @@ public class BukkitSender implements Sender {
         if (RGB_COLORS_SUPPORTED) {
             Matcher rgbMatcher = RGB_PATTERN.matcher(message);
             while (rgbMatcher.find()) {
-                final ChatColor rgbColor = ChatColor.of(rgbMatcher.group().substring(1));
-                final String messageStart = coloredMessage.substring(0, rgbMatcher.start());
-                final String messageEnd = coloredMessage.substring(rgbMatcher.end());
+                ChatColor rgbColor = ChatColor.of(rgbMatcher.group().substring(1));
+                String messageStart = coloredMessage.substring(0, rgbMatcher.start());
+                String messageEnd = coloredMessage.substring(rgbMatcher.end());
                 coloredMessage = messageStart + rgbColor + messageEnd;
                 rgbMatcher = RGB_PATTERN.matcher(coloredMessage);
             }

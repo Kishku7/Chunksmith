@@ -57,12 +57,12 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        final Plugin existingChunky = getServer().getPluginManager().getPlugin("Chunksmith");
+        Plugin existingChunky = getServer().getPluginManager().getPlugin("Chunksmith");
         if (existingChunky != null && existingChunky != this) {
             getLogger().warning("Chunksmith supersedes Chunksmith. Disabling the Chunksmith plugin - please remove its jar from the plugins folder.");
             getServer().getPluginManager().disablePlugin(existingChunky);
         }
-        final File legacyData = new File(getDataFolder().getParentFile(), "Chunksmith");
+        File legacyData = new File(getDataFolder().getParentFile(), "Chunksmith");
         if (!getDataFolder().exists() && legacyData.isDirectory()) {
             if (legacyData.renameTo(getDataFolder())) {
                 getLogger().info("Migrated existing Chunksmith data folder to Chunksmith.");
@@ -71,7 +71,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
             }
         }
         this.chunky = new Chunksmith(new BukkitServer(this), new BukkitConfig(this));
-        final Version currentVersion = new Version(Bukkit.getBukkitVersion(), true);
+        Version currentVersion = new Version(Bukkit.getBukkitVersion(), true);
         if (currentVersion.isValid() && Version.MINECRAFT_1_13_2.isHigherThan(currentVersion)) {
             getLogger().severe(() -> translate(TranslationKey.ERROR_VERSION));
             getServer().getPluginManager().disablePlugin(this);
@@ -82,7 +82,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         getServer().getServicesManager().register(Chunksmith.class, chunky, this, ServicePriority.Normal);
         getServer().getServicesManager().register(ChunksmithAPI.class, chunky.getApi(), this, ServicePriority.Normal);
         if (chunky.getConfig().getContinueOnRestart()) {
-            final Runnable continueTask = () -> chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
+            Runnable continueTask = () -> chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
             if (Folia.isFolia()) {
                 Folia.onServerInit(this, continueTask);
             } else {
@@ -92,7 +92,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         if (getServer().getPluginManager().getPlugin("WorldBorder") != null) {
             chunky.getServer().getIntegrations().put("border", new WorldBorderIntegration());
         }
-        final Metrics metrics = new Metrics(this, 8211);
+        Metrics metrics = new Metrics(this, 8211);
         metrics.addCustomChart(new SimplePie("language", () -> chunky.getConfig().getLanguage()));
         getServer().getPluginManager().registerEvents(this, this);
         if (!Paper.isPaper()) {
@@ -132,8 +132,8 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         if (this.overreachFilter == null) {
             getLogger().info("Worldgen overreach diagnostic unavailable here (non-Log4j2 logging); continuing without it.");
         }
-        final Runnable tick = () -> {
-            final boolean wgRunning = chunky != null && !chunky.getGenerationTasks().isEmpty();
+        Runnable tick = () -> {
+            boolean wgRunning = chunky != null && !chunky.getGenerationTasks().isEmpty();
             WorldgenOverreachReporter.get().tick(wgRunning);
             StructureFaultReporter.get().tick(wgRunning);
         };
@@ -154,12 +154,12 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
     @SuppressWarnings("NullableProblems")
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        final Sender bukkitSender = sender instanceof final Player player ? new BukkitPlayer(player) : new BukkitSender(sender);
+        Sender bukkitSender = sender instanceof final Player player ? new BukkitPlayer(player) : new BukkitSender(sender);
         if (CommandLiteral.CHUNKY.equalsIgnoreCase(label) || CommandLiteral.CY.equalsIgnoreCase(label)) {
             bukkitSender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
         }
-        final Map<String, ChunksmithCommand> commands = chunky.getCommands();
-        final CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
+        Map<String, ChunksmithCommand> commands = chunky.getCommands();
+        CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
         if (args.length > 0 && commands.containsKey(args[0].toLowerCase())) {
             if (hasCommandPermission(sender, args[0].toLowerCase())) {
                 commands.get(args[0].toLowerCase()).execute(bukkitSender, arguments);
@@ -178,12 +178,12 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         if (args.length < 1) {
             return List.of();
         }
-        final List<String> suggestions = new ArrayList<>();
-        final Map<String, ChunksmithCommand> commands = chunky.getCommands();
+        List<String> suggestions = new ArrayList<>();
+        Map<String, ChunksmithCommand> commands = chunky.getCommands();
         if (args.length == 1) {
             commands.keySet().stream().filter(name -> hasCommandPermission(sender, name)).forEach(suggestions::add);
         } else if (commands.containsKey(args[0].toLowerCase()) && hasCommandPermission(sender, args[0].toLowerCase())) {
-            final CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, 1, args.length));
+            CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, 1, args.length));
             suggestions.addAll(commands.get(args[0].toLowerCase()).suggestions(arguments));
         }
         return suggestions.stream()
@@ -207,12 +207,12 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
     }
 
     private void disablePauseWhenEmptySeconds() {
-        final Path serverPropertiesPath = Path.of(".").resolve("server.properties");
-        final File serverPropertiesFile = serverPropertiesPath.toFile();
-        final Properties serverProperties = new Properties();
+        Path serverPropertiesPath = Path.of(".").resolve("server.properties");
+        File serverPropertiesFile = serverPropertiesPath.toFile();
+        Properties serverProperties = new Properties();
         try (final FileInputStream serverPropertiesFileInputStream = new FileInputStream(serverPropertiesFile)) {
             serverProperties.load(serverPropertiesFileInputStream);
-            final Optional<Integer> pauseWhenEmptySeconds = Input.tryInteger(serverProperties.getProperty("pause-when-empty-seconds"));
+            Optional<Integer> pauseWhenEmptySeconds = Input.tryInteger(serverProperties.getProperty("pause-when-empty-seconds"));
             if (pauseWhenEmptySeconds.isPresent() && pauseWhenEmptySeconds.get() > 0) {
                 serverProperties.setProperty("pause-when-empty-seconds", "0");
                 try (final FileOutputStream serverPropertiesFileOutputStream = new FileOutputStream(serverPropertiesFile)) {

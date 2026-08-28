@@ -34,17 +34,17 @@ public final class CsLodControl {
     }
 
     public static OptionalInt apply() {
-        final Action current = action;
+        Action current = action;
         return current == null ? OptionalInt.empty() : OptionalInt.of(current.rebind());
     }
 
     public static OptionalInt gamePort() {
-        final IntSupplier current = gamePort;
+        IntSupplier current = gamePort;
         return current == null ? OptionalInt.empty() : OptionalInt.of(current.getAsInt());
     }
 
     public static Optional<String> describe() {
-        final Supplier<String> current = describe;
+        Supplier<String> current = describe;
         return current == null ? Optional.empty() : Optional.ofNullable(current.get());
     }
 }

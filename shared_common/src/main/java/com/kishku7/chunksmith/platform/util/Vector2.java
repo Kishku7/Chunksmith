@@ -26,7 +26,7 @@ public class Vector2 {
     }
 
     public Vector2 normalize() {
-        final double length = length();
+        double length = length();
         x /= length;
         z /= length;
         return this;
@@ -37,8 +37,8 @@ public class Vector2 {
     }
 
     public double distanceSquared(Vector2 other) {
-        final double dx = this.x - other.x;
-        final double dz = this.z - other.z;
+        double dx = this.x - other.x;
+        double dz = this.z - other.z;
         return dx * dx + dz * dz;
     }
 

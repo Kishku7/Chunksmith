@@ -21,12 +21,12 @@ public class StatusCommand implements ChunksmithCommand {
     public void execute(Sender sender, CommandArguments arguments) {
         sender.sendMessagePrefixed(TranslationKey.FORMAT_STATUS_VERSION, chunky.getVersion().toString());
 
-        final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
+        Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         if (generationTasks.isEmpty()) {
             sender.sendMessage(TranslationKey.FORMAT_STATUS_NO_TASKS);
         } else {
             for (World world : chunky.getServer().getWorlds()) {
-                final GenerationTask task = generationTasks.get(world.getName());
+                GenerationTask task = generationTasks.get(world.getName());
                 if (task != null) {
                     task.getProgress().sendUpdate(sender);
                 }

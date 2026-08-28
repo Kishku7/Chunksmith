@@ -17,7 +17,7 @@ public final class LodPresence {
     }
 
     public static CsLodPresenceIndex indexFor(String worldName) {
-        final Provider current = provider;
+        Provider current = provider;
         return current == null ? null : current.indexFor(worldName);
     }
 }
