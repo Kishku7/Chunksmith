@@ -40,7 +40,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class FabricPlayer extends FabricSender implements Player {
     private final ServerPlayer player;
 
-    public FabricPlayer(final ServerPlayer player) {
+    public FabricPlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -66,7 +66,7 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -76,16 +76,16 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((FabricWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), Collections.emptySet(), location.getYaw(), location.getPitch(), false);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -104,7 +104,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class FabricPlayer extends FabricSender implements Player {
     private final ServerPlayer player;
 
-    public FabricPlayer(final ServerPlayer player) {
+    public FabricPlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -130,7 +130,7 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -140,16 +140,16 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((FabricWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -170,7 +170,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class FabricPlayer extends FabricSender implements Player {
     private final ServerPlayer player;
 
-    public FabricPlayer(final ServerPlayer player) {
+    public FabricPlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -196,7 +196,7 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -206,16 +206,16 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((FabricWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), EnumSet.noneOf(Relative.class), location.getYaw(), location.getPitch(), true);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.sendOverlayMessage(formatColored(translateKey(key, false)));
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -235,7 +235,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class FabricPlayer extends FabricSender implements Player {
     private final ServerPlayer player;
 
-    public FabricPlayer(final ServerPlayer player) {
+    public FabricPlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -263,7 +263,7 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -273,16 +273,16 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((FabricWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), Collections.emptySet(), location.getYaw(), location.getPitch(), false);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -303,7 +303,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class FabricPlayer extends FabricSender implements Player {
     private final ServerPlayer player;
 
-    public FabricPlayer(final ServerPlayer player) {
+    public FabricPlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -329,7 +329,7 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -339,16 +339,16 @@ public class FabricPlayer extends FabricSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((FabricWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), Collections.emptySet(), location.getYaw(), location.getPitch(), false);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -388,7 +388,7 @@ public class FabricSender implements Sender {
 
     private final CommandSourceStack source;
 
-    public FabricSender(final CommandSourceStack source) {
+    public FabricSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -409,17 +409,17 @@ public class FabricSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         return hasPermission(permission, false);
     }
 
-    public boolean hasPermission(final String permission, final boolean defaultOp) {
+    public boolean hasPermission(String permission, boolean defaultOp) {
         if (HAS_PERMISSIONS) {
             if (defaultOp) {
                 return Permissions.check(source, permission, 2);
@@ -432,7 +432,7 @@ public class FabricSender implements Sender {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -466,7 +466,7 @@ public class FabricSender implements Sender {
 
     private final CommandSourceStack source;
 
-    public FabricSender(final CommandSourceStack source) {
+    public FabricSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -487,17 +487,17 @@ public class FabricSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         return hasPermission(permission, false);
     }
 
-    public boolean hasPermission(final String permission, final boolean defaultOp) {
+    public boolean hasPermission(String permission, boolean defaultOp) {
         if (HAS_PERMISSIONS) {
             if (defaultOp) {
                 return Permissions.check(source, permission, 2);
@@ -510,7 +510,7 @@ public class FabricSender implements Sender {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -544,7 +544,7 @@ public class FabricSender implements Sender {
 
     private final CommandSourceStack source;
 
-    public FabricSender(final CommandSourceStack source) {
+    public FabricSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -565,17 +565,17 @@ public class FabricSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         return hasPermission(permission, false);
     }
 
-    public boolean hasPermission(final String permission, final boolean defaultOp) {
+    public boolean hasPermission(String permission, boolean defaultOp) {
         if (HAS_PERMISSIONS) {
             if (defaultOp) {
                 return Permissions.check(source, permission, source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
@@ -588,7 +588,7 @@ public class FabricSender implements Sender {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -623,7 +623,7 @@ public class FabricServer implements Server {
     private final ChunksmithFabric plugin;
     private final MinecraftServer server;
 
-    public FabricServer(final ChunksmithFabric plugin, final MinecraftServer server) {
+    public FabricServer(ChunksmithFabric plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -634,11 +634,11 @@ public class FabricServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(Identifier.tryParse(name))
                 .map(resourceLocation -> server.getLevel(ResourceKey.create(Registries.DIMENSION, resourceLocation)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().identifier().getPath())) {
                             return Optional.of(level);
                         }
@@ -650,7 +650,7 @@ public class FabricServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new FabricWorld(world)));
         return worlds;
     }
@@ -675,7 +675,7 @@ public class FabricServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(FabricPlayer::new);
     }
 
@@ -714,7 +714,7 @@ public class FabricServer implements Server {
     private final ChunksmithFabric plugin;
     private final MinecraftServer server;
 
-    public FabricServer(final ChunksmithFabric plugin, final MinecraftServer server) {
+    public FabricServer(ChunksmithFabric plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -725,11 +725,11 @@ public class FabricServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(ResourceLocation.tryParse(name))
                 .map(resourceLocation -> server.getLevel(ResourceKey.create(Registries.DIMENSION, resourceLocation)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().location().getPath())) {
                             return Optional.of(level);
                         }
@@ -741,7 +741,7 @@ public class FabricServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new FabricWorld(world)));
         return worlds;
     }
@@ -766,7 +766,7 @@ public class FabricServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(FabricPlayer::new);
     }
 
@@ -805,7 +805,7 @@ public class FabricServer implements Server {
     private final ChunksmithFabric plugin;
     private final MinecraftServer server;
 
-    public FabricServer(final ChunksmithFabric plugin, final MinecraftServer server) {
+    public FabricServer(ChunksmithFabric plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -816,11 +816,11 @@ public class FabricServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(Identifier.tryParse(name))
                 .map(identifier -> server.getLevel(ResourceKey.create(Registries.DIMENSION, identifier)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().identifier().getPath())) {
                             return Optional.of(level);
                         }
@@ -832,7 +832,7 @@ public class FabricServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new FabricWorld(world)));
         return worlds;
     }
@@ -857,7 +857,7 @@ public class FabricServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(FabricPlayer::new);
     }
 
@@ -939,7 +939,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -955,15 +955,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -975,12 +975,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -1010,7 +1010,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -1022,8 +1022,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -1044,7 +1044,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -1067,7 +1067,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -1088,13 +1088,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -1106,8 +1106,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -1120,15 +1120,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -1144,16 +1144,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -1165,12 +1165,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -1178,14 +1178,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -1255,7 +1255,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -1271,15 +1271,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -1291,12 +1291,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -1326,7 +1326,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -1338,8 +1338,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -1360,7 +1360,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -1383,7 +1383,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -1404,13 +1404,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -1422,8 +1422,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -1436,15 +1436,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -1460,16 +1460,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -1481,12 +1481,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -1494,14 +1494,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -1574,7 +1574,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -1590,15 +1590,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -1610,12 +1610,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -1645,7 +1645,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -1657,8 +1657,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -1679,7 +1679,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -1712,7 +1712,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -1733,13 +1733,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -1751,8 +1751,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -1765,15 +1765,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -1789,16 +1789,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -1810,12 +1810,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -1823,14 +1823,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -1901,7 +1901,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -1917,15 +1917,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -1937,12 +1937,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -1972,7 +1972,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -1984,8 +1984,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -2006,7 +2006,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -2029,7 +2029,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -2050,13 +2050,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -2068,8 +2068,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -2082,15 +2082,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -2106,16 +2106,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -2127,12 +2127,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -2140,14 +2140,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -2218,7 +2218,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -2234,15 +2234,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -2254,12 +2254,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -2289,7 +2289,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -2301,8 +2301,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -2323,7 +2323,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -2346,7 +2346,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -2367,13 +2367,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -2385,8 +2385,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -2399,15 +2399,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -2423,16 +2423,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -2444,12 +2444,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -2457,14 +2457,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -2538,7 +2538,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -2554,15 +2554,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -2574,12 +2574,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -2609,7 +2609,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -2621,8 +2621,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -2650,7 +2650,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -2687,7 +2687,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -2708,14 +2708,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
         TicketLedger.noteAdd();
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
         TicketLedger.noteRemove();
@@ -2728,8 +2728,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final LevelData.RespawnData respawn = world.getRespawnData();
-        final BlockPos pos = respawn.pos();
+        LevelData.RespawnData respawn = world.getRespawnData();
+        BlockPos pos = respawn.pos();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), respawn.yaw(), respawn.pitch());
     }
 
@@ -2742,15 +2742,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -2766,16 +2766,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final Identifier soundId = Identifier.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        Identifier soundId = Identifier.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -2787,12 +2787,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -2800,14 +2800,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // 1.21.11: ChunkMap extends SimpleRegionStorage (ChunkStorage removed), which holds the IOWorker.
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -2880,7 +2880,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -2896,15 +2896,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.pack());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.pack());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -2916,12 +2916,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse(null);
+                            String status = chunkNbt.getString("Status").orElse(null);
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -2951,7 +2951,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -2963,8 +2963,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -3027,7 +3027,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -3048,13 +3048,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -3066,9 +3066,9 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getRespawnData().pos();
-        final float yaw = world.getRespawnData().yaw();
-        final float pitch = world.getRespawnData().pitch();
+        BlockPos pos = world.getRespawnData().pos();
+        float yaw = world.getRespawnData().yaw();
+        float pitch = world.getRespawnData().pitch();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
     }
 
@@ -3081,15 +3081,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -3105,15 +3105,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
         world.getServer()
                 .registryAccess()
                 .get(Registries.SOUND_EVENT)
@@ -3122,25 +3122,25 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
     @Override
     public long getQueuedChunkWrites() {
         try {
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -3211,7 +3211,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -3227,15 +3227,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -3247,12 +3247,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -3282,7 +3282,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -3294,8 +3294,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -3316,7 +3316,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -3339,7 +3339,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -3360,13 +3360,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -3378,8 +3378,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final LevelData.RespawnData respawn = world.getRespawnData();
-        final BlockPos pos = respawn.pos();
+        LevelData.RespawnData respawn = world.getRespawnData();
+        BlockPos pos = respawn.pos();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), respawn.yaw(), respawn.pitch());
     }
 
@@ -3392,15 +3392,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -3416,16 +3416,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -3437,12 +3437,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -3450,14 +3450,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -3530,7 +3530,7 @@ public class FabricWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public FabricWorld(final ServerLevel world) {
+    public FabricWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new FabricBorder(world.getWorldBorder());
     }
@@ -3546,15 +3546,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -3566,12 +3566,12 @@ public class FabricWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -3601,7 +3601,7 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -3613,8 +3613,8 @@ public class FabricWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -3635,7 +3635,7 @@ public class FabricWorld implements World, ServerLevelHolder {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -3669,7 +3669,7 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -3690,13 +3690,13 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -3708,8 +3708,8 @@ public class FabricWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -3722,15 +3722,15 @@ public class FabricWorld implements World, ServerLevelHolder {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -3746,16 +3746,16 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -3767,12 +3767,12 @@ public class FabricWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -3780,14 +3780,14 @@ public class FabricWorld implements World, ServerLevelHolder {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -3818,7 +3818,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgePlayer extends NeoForgeSender implements Player {
     private final ServerPlayer player;
 
-    public NeoForgePlayer(final ServerPlayer player) {
+    public NeoForgePlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -3844,7 +3844,7 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -3854,16 +3854,16 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((NeoForgeWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), Collections.emptySet(), location.getYaw(), location.getPitch(), false);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -3882,7 +3882,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgePlayer extends NeoForgeSender implements Player {
     private final ServerPlayer player;
 
-    public NeoForgePlayer(final ServerPlayer player) {
+    public NeoForgePlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -3908,7 +3908,7 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -3918,16 +3918,16 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((NeoForgeWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -3947,7 +3947,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgePlayer extends NeoForgeSender implements Player {
     private final ServerPlayer player;
 
-    public NeoForgePlayer(final ServerPlayer player) {
+    public NeoForgePlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -3973,7 +3973,7 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -3983,16 +3983,16 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((NeoForgeWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), Collections.emptySet(), location.getYaw(), location.getPitch(), false);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -4013,7 +4013,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgePlayer extends NeoForgeSender implements Player {
     private final ServerPlayer player;
 
-    public NeoForgePlayer(final ServerPlayer player) {
+    public NeoForgePlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -4039,7 +4039,7 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -4049,16 +4049,16 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((NeoForgeWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), EnumSet.noneOf(Relative.class), location.getYaw(), location.getPitch(), true);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.sendOverlayMessage(formatColored(translateKey(key, false)));
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -4078,7 +4078,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgePlayer extends NeoForgeSender implements Player {
     private final ServerPlayer player;
 
-    public NeoForgePlayer(final ServerPlayer player) {
+    public NeoForgePlayer(ServerPlayer player) {
         super(player.createCommandSourceStack());
         this.player = player;
     }
@@ -4106,7 +4106,7 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         player.sendSystemMessage(formatColored(translateKey(key, prefixed, args)));
     }
 
@@ -4116,16 +4116,16 @@ public class NeoForgePlayer extends NeoForgeSender implements Player {
     }
 
     @Override
-    public void teleport(final Location location) {
+    public void teleport(Location location) {
         player.teleportTo(((NeoForgeWorld) location.getWorld()).getWorld(), location.getX(), location.getY(), location.getZ(), Collections.emptySet(), location.getYaw(), location.getPitch(), false);
     }
 
     @Override
-    public void sendActionBar(final String key) {
+    public void sendActionBar(String key) {
         player.displayClientMessage(formatColored(translateKey(key, false)), true);
     }
 
-    private Component formatColored(final String message) {
+    private Component formatColored(String message) {
         return Component.nullToEmpty(message.replaceAll("&(?=[0-9a-fk-orA-FK-OR])", "\u00A7"));
     }
 }
@@ -4151,7 +4151,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgeSender implements Sender {
     private final CommandSourceStack source;
 
-    public NeoForgeSender(final CommandSourceStack source) {
+    public NeoForgeSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -4172,20 +4172,20 @@ public class NeoForgeSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         // 1.20.1 mojmap: gate on the vanilla operator level (op level 2 == gamemaster),
         // matching the fabric variant's default permission behavior.
         return source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -4205,7 +4205,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgeSender implements Sender {
     private final CommandSourceStack source;
 
-    public NeoForgeSender(final CommandSourceStack source) {
+    public NeoForgeSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -4226,20 +4226,20 @@ public class NeoForgeSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         // 1.20.1 mojmap: gate on the vanilla operator level (op level 2 == gamemaster),
         // matching the fabric variant's default permission behavior.
         return source.hasPermission(2);
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -4259,7 +4259,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgeSender implements Sender {
     private final CommandSourceStack source;
 
-    public NeoForgeSender(final CommandSourceStack source) {
+    public NeoForgeSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -4280,20 +4280,20 @@ public class NeoForgeSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         // 1.21.1 mojmap: gate on the vanilla operator level (op level 2 == gamemaster),
         // matching the fabric variant's default permission behavior.
         return source.hasPermission(2);
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -4313,7 +4313,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgeSender implements Sender {
     private final CommandSourceStack source;
 
-    public NeoForgeSender(final CommandSourceStack source) {
+    public NeoForgeSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -4334,20 +4334,20 @@ public class NeoForgeSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         // 1.20.6 mojmap: gate on the vanilla operator level (op level 2 == gamemaster),
         // matching the fabric variant's default permission behavior.
         return source.hasPermission(2);
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -4368,7 +4368,7 @@ import static com.kishku7.chunksmith.util.Translator.translateKey;
 public class NeoForgeSender implements Sender {
     private final CommandSourceStack source;
 
-    public NeoForgeSender(final CommandSourceStack source) {
+    public NeoForgeSender(CommandSourceStack source) {
         this.source = source;
     }
 
@@ -4389,18 +4389,18 @@ public class NeoForgeSender implements Sender {
 
     @Override
     public Location getLocation() {
-        final Vec3 pos = source.getPosition();
-        final Vec2 rot = source.getRotation();
+        Vec3 pos = source.getPosition();
+        Vec2 rot = source.getRotation();
         return new Location(getWorld(), pos.x(), pos.y(), pos.z(), rot.x, rot.y);
     }
 
     @Override
-    public boolean hasPermission(final String permission) {
+    public boolean hasPermission(String permission) {
         return source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
     }
 
     @Override
-    public void sendMessage(final String key, final boolean prefixed, final Object... args) {
+    public void sendMessage(String key, boolean prefixed, Object... args) {
         source.sendSuccess(() -> Component.nullToEmpty(translateKey(key, prefixed, args).replaceAll("&[0-9a-fk-orA-FK-OR]", "")), false);
     }
 }
@@ -4435,7 +4435,7 @@ public class NeoForgeServer implements Server {
     private final ChunksmithForge plugin;
     private final MinecraftServer server;
 
-    public NeoForgeServer(final ChunksmithForge plugin, final MinecraftServer server) {
+    public NeoForgeServer(ChunksmithForge plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -4446,11 +4446,11 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(Identifier.tryParse(name))
                 .map(Identifier -> server.getLevel(ResourceKey.create(Registries.DIMENSION, Identifier)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().identifier().getPath())) {
                             return Optional.of(level);
                         }
@@ -4462,7 +4462,7 @@ public class NeoForgeServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new NeoForgeWorld(world)));
         return worlds;
     }
@@ -4487,7 +4487,7 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(NeoForgePlayer::new);
     }
 
@@ -4526,7 +4526,7 @@ public class NeoForgeServer implements Server {
     private final ChunksmithNeoForge plugin;
     private final MinecraftServer server;
 
-    public NeoForgeServer(final ChunksmithNeoForge plugin, final MinecraftServer server) {
+    public NeoForgeServer(ChunksmithNeoForge plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -4537,11 +4537,11 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(ResourceLocation.tryParse(name))
                 .map(resourceLocation -> server.getLevel(ResourceKey.create(Registries.DIMENSION, resourceLocation)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().location().getPath())) {
                             return Optional.of(level);
                         }
@@ -4553,7 +4553,7 @@ public class NeoForgeServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new NeoForgeWorld(world)));
         return worlds;
     }
@@ -4578,7 +4578,7 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(NeoForgePlayer::new);
     }
 
@@ -4617,7 +4617,7 @@ public class NeoForgeServer implements Server {
     private final ChunksmithNeoForge plugin;
     private final MinecraftServer server;
 
-    public NeoForgeServer(final ChunksmithNeoForge plugin, final MinecraftServer server) {
+    public NeoForgeServer(ChunksmithNeoForge plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -4628,11 +4628,11 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(Identifier.tryParse(name))
                 .map(Identifier -> server.getLevel(ResourceKey.create(Registries.DIMENSION, Identifier)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().identifier().getPath())) {
                             return Optional.of(level);
                         }
@@ -4644,7 +4644,7 @@ public class NeoForgeServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new NeoForgeWorld(world)));
         return worlds;
     }
@@ -4669,7 +4669,7 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(NeoForgePlayer::new);
     }
 
@@ -4708,7 +4708,7 @@ public class NeoForgeServer implements Server {
     private final ChunksmithForge plugin;
     private final MinecraftServer server;
 
-    public NeoForgeServer(final ChunksmithForge plugin, final MinecraftServer server) {
+    public NeoForgeServer(ChunksmithForge plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -4719,11 +4719,11 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(ResourceLocation.tryParse(name))
                 .map(resourceLocation -> server.getLevel(ResourceKey.create(Registries.DIMENSION, resourceLocation)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().location().getPath())) {
                             return Optional.of(level);
                         }
@@ -4735,7 +4735,7 @@ public class NeoForgeServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new NeoForgeWorld(world)));
         return worlds;
     }
@@ -4760,7 +4760,7 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(NeoForgePlayer::new);
     }
 
@@ -4799,7 +4799,7 @@ public class NeoForgeServer implements Server {
     private final ChunksmithNeoForge plugin;
     private final MinecraftServer server;
 
-    public NeoForgeServer(final ChunksmithNeoForge plugin, final MinecraftServer server) {
+    public NeoForgeServer(ChunksmithNeoForge plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
     }
@@ -4810,11 +4810,11 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<World> getWorld(final String name) {
+    public Optional<World> getWorld(String name) {
         return Optional.ofNullable(Identifier.tryParse(name))
                 .map(resourceLocation -> server.getLevel(ResourceKey.create(Registries.DIMENSION, resourceLocation)))
                 .or(() -> {
-                    for (final ServerLevel level : server.getAllLevels()) {
+                    for (ServerLevel level : server.getAllLevels()) {
                         if (name.equals(level.dimension().identifier().getPath())) {
                             return Optional.of(level);
                         }
@@ -4826,7 +4826,7 @@ public class NeoForgeServer implements Server {
 
     @Override
     public List<World> getWorlds() {
-        final List<World> worlds = new ArrayList<>();
+        List<World> worlds = new ArrayList<>();
         server.getAllLevels().forEach(world -> worlds.add(new NeoForgeWorld(world)));
         return worlds;
     }
@@ -4851,7 +4851,7 @@ public class NeoForgeServer implements Server {
     }
 
     @Override
-    public Optional<Player> getPlayer(final String name) {
+    public Optional<Player> getPlayer(String name) {
         return Optional.ofNullable(server.getPlayerList().getPlayerByName(name)).map(NeoForgePlayer::new);
     }
 
@@ -4934,7 +4934,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -4950,15 +4950,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -4970,12 +4970,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -5005,7 +5005,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -5017,8 +5017,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -5039,7 +5039,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -5062,7 +5062,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -5083,13 +5083,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -5101,8 +5101,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final LevelData.RespawnData respawn = world.getRespawnData();
-        final BlockPos pos = respawn.pos();
+        LevelData.RespawnData respawn = world.getRespawnData();
+        BlockPos pos = respawn.pos();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), respawn.yaw(), respawn.pitch());
     }
 
@@ -5115,15 +5115,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -5139,16 +5139,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final Identifier soundId = Identifier.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        Identifier soundId = Identifier.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -5160,12 +5160,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -5173,14 +5173,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.21.11: ChunkMap extends SimpleRegionStorage (ChunkStorage removed), which holds the IOWorker.
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -5253,7 +5253,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -5269,15 +5269,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -5289,12 +5289,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -5324,7 +5324,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -5336,8 +5336,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -5358,7 +5358,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -5392,7 +5392,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -5413,13 +5413,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -5431,8 +5431,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -5445,15 +5445,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -5469,16 +5469,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -5490,12 +5490,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -5503,14 +5503,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.20.6: ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -5581,7 +5581,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -5597,15 +5597,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -5617,12 +5617,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -5652,7 +5652,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -5664,8 +5664,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -5686,7 +5686,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -5709,7 +5709,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -5730,13 +5730,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -5748,8 +5748,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -5762,15 +5762,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -5786,16 +5786,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -5807,12 +5807,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -5820,14 +5820,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.20.6: ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -5897,7 +5897,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -5913,15 +5913,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -5933,12 +5933,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -5968,7 +5968,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -5980,8 +5980,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -6002,7 +6002,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -6025,7 +6025,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -6046,13 +6046,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -6064,8 +6064,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -6078,15 +6078,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -6102,16 +6102,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -6123,12 +6123,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -6136,14 +6136,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -6217,7 +6217,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -6233,15 +6233,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -6253,12 +6253,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -6288,7 +6288,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -6300,8 +6300,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -6322,7 +6322,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -6355,7 +6355,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -6376,13 +6376,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -6394,8 +6394,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final LevelData.RespawnData respawn = world.getRespawnData();
-        final BlockPos pos = respawn.pos();
+        LevelData.RespawnData respawn = world.getRespawnData();
+        BlockPos pos = respawn.pos();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), respawn.yaw(), respawn.pitch());
     }
 
@@ -6408,15 +6408,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -6432,16 +6432,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final Identifier soundId = Identifier.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        Identifier soundId = Identifier.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -6453,12 +6453,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -6466,14 +6466,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.21.11: ChunkMap extends SimpleRegionStorage (ChunkStorage removed), which holds the IOWorker.
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -6544,7 +6544,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -6560,15 +6560,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -6580,12 +6580,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -6615,7 +6615,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -6627,8 +6627,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -6649,7 +6649,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -6672,7 +6672,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -6693,13 +6693,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -6711,8 +6711,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -6725,15 +6725,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -6749,16 +6749,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -6770,12 +6770,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -6783,14 +6783,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -6861,7 +6861,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -6877,15 +6877,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -6897,12 +6897,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -6932,7 +6932,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -6944,8 +6944,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -6966,7 +6966,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -6989,7 +6989,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -7010,13 +7010,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -7028,8 +7028,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -7042,15 +7042,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -7066,16 +7066,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -7087,12 +7087,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -7100,14 +7100,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.21.1: ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -7180,7 +7180,7 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -7196,15 +7196,15 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.pack());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.pack());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -7216,12 +7216,12 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse(null);
+                            String status = chunkNbt.getString("Status").orElse(null);
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -7251,7 +7251,7 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -7263,8 +7263,8 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -7325,7 +7325,7 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -7346,13 +7346,13 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -7364,9 +7364,9 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getRespawnData().pos();
-        final float yaw = world.getRespawnData().yaw();
-        final float pitch = world.getRespawnData().pitch();
+        BlockPos pos = world.getRespawnData().pos();
+        float yaw = world.getRespawnData().yaw();
+        float pitch = world.getRespawnData().pitch();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
     }
 
@@ -7379,15 +7379,15 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @Override
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -7403,15 +7403,15 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
         world.getServer()
                 .registryAccess()
                 .get(Registries.SOUND_EVENT)
@@ -7420,25 +7420,25 @@ public class NeoForgeWorld implements World, ServerLevelHolder {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
     @Override
     public long getQueuedChunkWrites() {
         try {
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((SimpleRegionStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -7509,7 +7509,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -7525,15 +7525,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -7545,12 +7545,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status").orElse("");
+                            String status = chunkNbt.getString("Status").orElse("");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -7580,7 +7580,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -7592,8 +7592,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -7614,7 +7614,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -7637,7 +7637,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -7658,13 +7658,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeTicketWithRadius(CHUNKY, new ChunkPos(chunkX, chunkZ), radius));
     }
@@ -7676,8 +7676,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final LevelData.RespawnData respawn = world.getRespawnData();
-        final BlockPos pos = respawn.pos();
+        LevelData.RespawnData respawn = world.getRespawnData();
+        BlockPos pos = respawn.pos();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), respawn.yaw(), respawn.pitch());
     }
 
@@ -7690,15 +7690,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinY()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -7714,16 +7714,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -7735,12 +7735,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -7748,14 +7748,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            SequencedMap<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -7826,7 +7826,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -7842,15 +7842,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -7862,12 +7862,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -7897,7 +7897,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -7909,8 +7909,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -7931,7 +7931,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((ignored, throwable) -> {
@@ -7954,7 +7954,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -7975,13 +7975,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -7993,8 +7993,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -8007,15 +8007,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -8031,16 +8031,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -8052,12 +8052,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -8065,14 +8065,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.20.6: ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }
@@ -8145,7 +8145,7 @@ public class NeoForgeWorld implements World {
      */
     private ChunkSettleWindow settleWindow;
 
-    public NeoForgeWorld(final ServerLevel world) {
+    public NeoForgeWorld(ServerLevel world) {
         this.world = world;
         this.worldBorder = new NeoForgeBorder(world.getWorldBorder());
     }
@@ -8161,15 +8161,15 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
-            final ChunkMap chunkStorage = serverChunkCache.chunkMap;
-            final ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
-            final ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkMap chunkStorage = serverChunkCache.chunkMap;
+            ChunkMapMixin chunkMapMixin = (ChunkMapMixin) chunkStorage;
+            ChunkHolder loadedChunkHolder = chunkMapMixin.invokeGetVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLatestStatus() == ChunkStatus.FULL) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -8181,12 +8181,12 @@ public class NeoForgeWorld implements World {
                                 .map(status -> "minecraft:full".equals(status) || "full".equals(status))
                                 .orElse(false));
             }
-            final FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
-            final CollectFields statusCollector = new CollectFields(statusSelector);
+            FieldSelector statusSelector = new FieldSelector(StringTag.TYPE, "Status");
+            CollectFields statusCollector = new CollectFields(statusSelector);
             return serverChunkCache.chunkScanner().scanChunk(chunkPos, statusCollector)
                     .thenApply(ignored -> {
                         if (statusCollector.getResult() instanceof final CompoundTag chunkNbt) {
-                            final String status = chunkNbt.getString("Status");
+                            String status = chunkNbt.getString("Status");
                             return "minecraft:full".equals(status) || "full".equals(status);
                         }
                         return false;
@@ -8216,7 +8216,7 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
+    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         // ORDERING (mod_support #13 / #16): the CHUNKY ticket must exist before the chunk future
         // is requested, so nothing here is split apart -- the add and the
         // invokeGetChunkFutureMainThread call beside it stay adjacent and inline in the SAME task.
@@ -8228,8 +8228,8 @@ public class NeoForgeWorld implements World {
         if (!((MinecraftServerExtension) world.getServer()).chunksmith$onTicketSafePoint()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), ticketSafePoint()).thenCompose(Function.identity());
         } else {
-            final ChunkPos chunkPos = new ChunkPos(x, z);
-            final ServerChunkCache serverChunkCache = world.getChunkSource();
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            ServerChunkCache serverChunkCache = world.getChunkSource();
             if (this.settleWindow == null) {
                 this.settleWindow = ChunkSettleSupport.newWindow();
             }
@@ -8250,7 +8250,7 @@ public class NeoForgeWorld implements World {
             // ChunkResult (unloaded chunk). That is not an exception, so the pregen counted every
             // chunk as done and generated nothing -- mod_support #13. Scoped to these two mods
             // only: forcing create=true unconditionally breaks pausing for everyone else.
-            final boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
+            boolean create = PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS || PlatformCompat.ENABLE_C2ME_TICKET_COMPAT;
             return ((ServerChunkCacheMixin) world.getChunkSource()).invokeGetChunkFutureMainThread(x, z, ChunkStatus.FULL, create)
                     .thenApplyAsync(Function.identity(), ((ChunkMapMixin) serverChunkCache.chunkMap).getMainThreadExecutor()) // workaround to prevent memory leaks in vanilla chunk system when racing with entity chunks
                     .whenCompleteAsync((result, throwable) -> {
@@ -8283,7 +8283,7 @@ public class NeoForgeWorld implements World {
 
     @Override
     public void settleDrain() {
-        final ChunkSettleWindow window = this.settleWindow;
+        ChunkSettleWindow window = this.settleWindow;
         if (window == null) {
             return;
         }
@@ -8304,13 +8304,13 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void settleLoad(final int chunkX, final int chunkZ, final int radius) {
+    public void settleLoad(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .addRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
 
     @Override
-    public void settleRelease(final int chunkX, final int chunkZ, final int radius) {
+    public void settleRelease(int chunkX, int chunkZ, int radius) {
         ticketSafePoint().execute(() -> world.getChunkSource()
                 .removeRegionTicket(CHUNKY, new ChunkPos(chunkX, chunkZ), radius, Unit.INSTANCE));
     }
@@ -8322,8 +8322,8 @@ public class NeoForgeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        final BlockPos pos = world.getSharedSpawnPos();
-        final float yaw = world.getSharedSpawnAngle();
+        BlockPos pos = world.getSharedSpawnPos();
+        float yaw = world.getSharedSpawnAngle();
         return new Location(this, pos.getX(), pos.getY(), pos.getZ(), yaw, 0);
     }
 
@@ -8336,15 +8336,15 @@ public class NeoForgeWorld implements World {
     // isSolid() is @Deprecated in vanilla but has no public non-deprecated equivalent: it uniquely
     // exposes the cached legacySolid value (isSolidRender() is a different field). Kept intentionally.
     @SuppressWarnings("deprecation")
-    public int getElevation(final int x, final int z) {
-        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
-        final int logicalHeight = world.getLogicalHeight();
+    public int getElevation(int x, int z) {
+        int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        int logicalHeight = world.getLogicalHeight();
         if (height >= logicalHeight) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
             int air = 0;
             while (pos.getY() > world.getMinBuildHeight()) {
                 pos = pos.move(Direction.DOWN);
-                final BlockState blockState = world.getBlockState(pos);
+                BlockState blockState = world.getBlockState(pos);
                 if (blockState.isSolid() && air > 1) {
                     return pos.getY() + 1;
                 }
@@ -8360,16 +8360,16 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public void playEffect(final Player player, final String effect) {
-        final Location location = player.getLocation();
-        final BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
+    public void playEffect(Player player, String effect) {
+        Location location = player.getLocation();
+        BlockPos pos = BlockPos.containing(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(final Player player, final String sound) {
-        final Location location = player.getLocation();
-        final ResourceLocation soundId = ResourceLocation.tryParse(sound);
+    public void playSound(Player player, String sound) {
+        Location location = player.getLocation();
+        ResourceLocation soundId = ResourceLocation.tryParse(sound);
         if (soundId == null) {
             return;
         }
@@ -8381,12 +8381,12 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        final ResourceKey<Level> dimension = world.dimension();
-        final Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        ResourceKey<Level> dimension = world.dimension();
+        Path directory = DimensionType.getStorageFolder(dimension, world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 
@@ -8394,14 +8394,14 @@ public class NeoForgeWorld implements World {
     public long getQueuedChunkWrites() {
         try {
             // 1.21.1: ChunkMap extends ChunkStorage, which holds the IOWorker (SimpleRegionStorage is the 26.x rename).
-            final ChunkMap chunkMap = world.getChunkSource().chunkMap;
-            final IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
+            ChunkMap chunkMap = world.getChunkSource().chunkMap;
+            IOWorker worker = ((ChunkStorageAccessor) (Object) chunkMap).chunksmith$getWorker();
             if (worker == null) {
                 return -1;
             }
-            final Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
+            Map<?, ?> pendingWrites = ((IOWorkerAccessor) (Object) worker).chunksmith$getPendingWrites();
             return pendingWrites == null ? -1 : pendingWrites.size();
-        } catch (final Throwable t) {
+        } catch (Throwable t) {
             return -1;
         }
     }

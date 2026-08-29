@@ -46,7 +46,6 @@ foreach ($v in $targets) {
   & $cogGen -Cell "$loader/$v" -McVer $v -Loader $loader
   if ($LASTEXITCODE -ne 0) { throw "cog-gen FAILED for $loader/$v" }
   Push-Location $cellPath
-  # TODO: FG6 plugin stopped resolving, forge maven is missing from pluginManagement
   & ".\gradlew.bat" clean build --no-daemon
   $rc = $LASTEXITCODE; Pop-Location
   if ($rc -ne 0) { throw "Build FAILED for $loader/$v" }
