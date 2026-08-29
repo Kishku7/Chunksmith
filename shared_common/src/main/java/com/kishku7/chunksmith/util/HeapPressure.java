@@ -3,17 +3,19 @@ package com.kishku7.chunksmith.util;
 /**
  * Reads heap occupancy off {@link Runtime} and decides whether a pregen may keep dispatching.
  *
- * <p>Three releases went into bounding a pregen by counting proxies: queued writes, LOD-sink depth,
- * resident chunks, chunks added since the run started. Every one was wrong on a real server. An absolute
- * chunk cap fired on chunks that were never ours; a delta cap did not fire at all while the heap filled
- * on a run resumed on an already-loaded server. What actually ends a pregen badly is running out of
- * memory, and a chunk is worth wildly different amounts of heap.
+ * <p>Three releases went into bounding a pregen by counting proxies: queued writes,
+ * LOD-sink depth, resident chunks, chunks added since the run started. Every one was
+ * wrong on a real server. An absolute chunk cap fired on chunks that were never ours;
+ * a delta cap did not fire at all while the heap filled on a run resumed on an
+ * already-loaded server. What actually ends a pregen badly is running out of memory,
+ * and a chunk is worth wildly different amounts of heap.
  *
- * <p>{@code used = total - free} counts garbage not yet collected, so one sample can read high on a
- * healthy server, but a collector always runs before the heap fills, so a heap that stays high for
- * several seconds holds live data. And the gate only pauses dispatch, so a false positive costs seconds
- * of throughput while a false negative costs the server: {@link #CONFIRM_SAMPLES} samples close it, and
- * it opens well below the threshold.
+ * <p>{@code used = total - free} counts garbage not yet collected, so one sample can
+ * read high on a healthy server, but a collector always runs before the heap fills, so
+ * a heap that stays high for several seconds holds live data. And the gate only pauses
+ * dispatch, so a false positive costs seconds of throughput while a false negative
+ * costs the server: {@link #CONFIRM_SAMPLES} samples close it, and it opens well below
+ * the threshold.
  */
 public final class HeapPressure {
 
@@ -60,8 +62,9 @@ public final class HeapPressure {
     }
 
     /**
-     * Reading-injecting overload. The confirmation streak and the resume margin are the whole point of
-     * this class and cannot be tested against a live heap, since a test cannot make the JVM sit at 90 percent.
+     * Reading-injecting overload. The confirmation streak and the resume margin are
+     * the whole point of this class and cannot be tested against a live heap, since a
+     * test cannot make the JVM sit at 90 percent.
      */
     static boolean shouldHold(boolean currentlyHeld, long thresholdPercent, double used) {
         if (thresholdPercent <= 0L) {

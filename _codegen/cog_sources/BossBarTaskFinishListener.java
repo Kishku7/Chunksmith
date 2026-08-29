@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * One source, every runtime: the MC resource-id class was renamed ResourceLocation -> Identifier at
- * 26, and Cog emits the correct type and import here.
+ * One source, every runtime: the MC resource-id class was renamed ResourceLocation ->
+ * Identifier at 26, and Cog emits the correct type and import here.
  */
 public class BossBarTaskFinishListener implements Consumer<GenerationTaskFinishEvent> {
     //[[[cog

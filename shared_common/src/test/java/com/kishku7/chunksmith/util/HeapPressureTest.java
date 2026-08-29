@@ -9,11 +9,14 @@ import static org.junit.Assert.assertTrue;
 /**
  * The gate that must not cry wolf and must not sleep through a fire.
  *
- * <p>{@code used = total - free} includes garbage nobody has collected yet, so one high sample proves
- * nothing; hence the confirmation streak. And releasing the moment the heap dips back under the
- * threshold would put the run straight back over it -- hence the resume margin. Both are tested here
- * against the real {@link Runtime}, because the point of this class is that it has no seams to fake:
- * a threshold of 0 and a threshold of 1 bracket every possible live reading.
+ * <p>{@code used = total - free} includes garbage nobody has
+ * collected yet, so one high sample proves nothing; hence the
+ * confirmation streak. And releasing the moment the heap dips
+ * back under the threshold would put the run straight back
+ * over it -- hence the resume margin. Both are tested here
+ * against the real {@link Runtime}, because the point of this
+ * class is that it has no seams to fake: a threshold of 0 and
+ * a threshold of 1 bracket every possible live reading.
  */
 public class HeapPressureTest {
 

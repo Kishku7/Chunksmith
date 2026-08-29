@@ -90,18 +90,19 @@ public final class GsonConfig implements Config {
     /**
      * Default pipeline width, scaled to the box.
      *
-     * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated server,
-     * 50 gave 31.6 cps while 200 gave 43.9 (a 39 percent gain) with residency and heap no worse, and
-     * no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because the real ceiling past
-     * that point is vanilla promoting roughly 2.2 chunks per tick at 20 tps.
+     * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated
+     * server, 50 gave 31.6 cps while 200 gave 43.9 (a 39 percent gain) with residency and heap
+     * no worse, and no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because
+     * the real ceiling past that point is vanilla promoting roughly 2.2 chunks per tick at 20
+     * tps.
      *
-     * <p>So the knee is around 25 per core rather than a fixed number, and a fixed 200 would be wrong
-     * on a 2-core VPS for the same reason 50 was wrong on an 8-core box. Floor stays at the historic 50
-     * so no machine gets slower than it was; ceiling at 400 because nothing above the knee helps and
-     * every extra slot costs resident chunks.
+     * <p>So the knee is around 25 per core rather than a fixed number, and a fixed 200 would
+     * be wrong on a 2-core VPS for the same reason 50 was wrong on an 8-core box. Floor stays
+     * at the historic 50 so no machine gets slower than it was; ceiling at 400 because nothing
+     * above the knee helps and every extra slot costs resident chunks.
      *
-     * <p>The original {@code chunksmith.maxWorkingCount} system property still wins when set, so an
-     * operator who already tuned this on the command line is never silently overridden.
+     * <p>The original {@code chunksmith.maxWorkingCount} system property still wins when set,
+     * so an operator who already tuned this on the command line is never silently overridden.
      */
     private static final long DISPATCH_MAX_CONCURRENT_DEFAULT =
             Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"))

@@ -12,25 +12,28 @@ import java.util.Map;
 import org.bukkit.Keyed;
 
 /**
- * Bukkit-native counterpart to the Fabric/Forge/NeoForge CsLodExtractor (canonical algorithm:
- * _codegen/cog_sources/lod/CsLodExtractor.java). Produces the identical neutral {@link CsLodChunk}
- * format from a Bukkit {@link ChunkSnapshot} instead of a live NMS LevelChunk, since this platform
- * has no mixin access to LevelChunkSection / LevelLightEngine. Every method used here (getBlockData,
- * getBlockSkyLight, getBlockEmittedLight, getBiome(x,y,z), World#getMinHeight/getMaxHeight,
- * BlockData#getAsString, Biome#getKey) was confirmed with javap against the actual folia-api jar this
- * cell compiles against, not assumed.
+ * Bukkit-native counterpart to the Fabric/Forge/NeoForge CsLodExtractor (canonical
+ * algorithm: _codegen/cog_sources/lod/CsLodExtractor.java). Produces the identical neutral
+ * {@link CsLodChunk} format from a Bukkit {@link ChunkSnapshot} instead of a live NMS
+ * LevelChunk, since this platform has no mixin access to LevelChunkSection /
+ * LevelLightEngine. Every method used here (getBlockData, getBlockSkyLight,
+ * getBlockEmittedLight, getBiome(x,y,z), World#getMinHeight/getMaxHeight,
+ * BlockData#getAsString, Biome#getKey) was confirmed with javap against the actual folia-api
+ * jar this cell compiles against, not assumed.
  *
- * <p>Server-side generation only (mod_support #9 follow-up): no renderer adapter and no client-streaming
- * channel here yet; that is Chunksmith-Client's job on Fabric/Forge/NeoForge. The store this produces is
- * written to disk and nothing else, deliberately, as a separate and later phase. See LodSupport (Bukkit).
+ * <p>Server-side generation only (mod_support #9 follow-up): no renderer adapter and no
+ * client-streaming channel here yet; that is Chunksmith-Client's job on
+ * Fabric/Forge/NeoForge. The store this produces is written to disk and nothing else,
+ * deliberately, as a separate and later phase. See LodSupport (Bukkit).
  *
- * <p>ChunkSnapshot's x/z are chunk-relative (0-15); y is world-absolute (can be negative on 1.18+ worlds),
- * matching {@link World#getMinHeight()} / {@link World#getMaxHeight()} (max is exclusive). Sections are
- * always 16 blocks tall starting at a multiple of 16.
+ * <p>ChunkSnapshot's x/z are chunk-relative (0-15); y is world-absolute (can be negative on
+ * 1.18+ worlds), matching {@link World#getMinHeight()} / {@link World#getMaxHeight()} (max
+ * is exclusive). Sections are always 16 blocks tall starting at a multiple of 16.
  *
- * <p>Bukkit exposes only a per-voxel {@code getBiome(x,y,z)} read, not Minecraft's native 4x4x4 quantized
- * storage. Sampling at each 4x4x4 cell's center reproduces the same granularity the vanilla format
- * actually carries, rather than paying for (and mildly misrepresenting) a full per-voxel array.
+ * <p>Bukkit exposes only a per-voxel {@code getBiome(x,y,z)} read, not Minecraft's native
+ * 4x4x4 quantized storage. Sampling at each 4x4x4 cell's center reproduces the same
+ * granularity the vanilla format actually carries, rather than paying for (and mildly
+ * misrepresenting) a full per-voxel array.
  */
 public final class CsLodExtractor {
 

@@ -25,14 +25,17 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import java.util.function.Supplier;
 
 /**
- * Captures vanilla "Detected setBlock in a far chunk" worldgen overreaches and routes them to
- * {@link WorldgenOverreachReporter} as aggregated single-line reports. The block is still refused
- * exactly as vanilla does (ensureCanWrite still returns false) - only the logging is intercepted.
+ * Captures vanilla "Detected setBlock in a far chunk" worldgen overreaches
+ * and routes them to {@link WorldgenOverreachReporter} as aggregated
+ * single-line reports. The block is still refused exactly as vanilla does
+ * (ensureCanWrite still returns false) - only the logging is intercepted.
  *
- * <p>COG DRIFT: the far-write log call is Util.logAndPauseIfInIde(String), whose owning class moved
- * package at 1.21.11 (net.minecraft.Util -> net.minecraft.util.Util). That is a STRING inside a
- * mixin annotation, so a reflection facade cannot touch it; the @At target descriptor is Cog-emitted
- * (compat.util_at_target), as are the dimension-id accessor and the ChunkPos coord access.
+ * <p>COG DRIFT: the far-write log call is Util.logAndPauseIfInIde(String),
+ * whose owning class moved package at 1.21.11 (net.minecraft.Util ->
+ * net.minecraft.util.Util). That is a STRING inside a mixin annotation, so a
+ * reflection facade cannot touch it; the @At target descriptor is Cog-emitted
+ * (compat.util_at_target), as are the dimension-id accessor and the ChunkPos
+ * coord access.
  */
 @Mixin(WorldGenRegion.class)
 public abstract class WorldGenRegionMixin {

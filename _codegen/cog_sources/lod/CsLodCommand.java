@@ -39,15 +39,17 @@ import java.io.IOException;
  *       (Fabric 1.21.11 + Fabric 26).</li>
  * </ul>
  *
- * <p>Both backfills are singleplayer-only: the renderer engines are client-side, so on a dedicated server
- * they report "not available" and the store is served over the backchannel to Chunksmith-Client instead.
+ * <p>Both backfills are singleplayer-only: the renderer engines are client-side, so on a
+ * dedicated server they report "not available" and the store is served over the
+ * backchannel to Chunksmith-Client instead.
  *
- * <p>Loader-blind: this class only builds the brigadier node; each loader's {@code LodInit} registers it
- * (Fabric via CommandRegistrationCallback, NeoForge/Forge via RegisterCommandsEvent).
+ * <p>Loader-blind: this class only builds the brigadier node; each loader's {@code
+ * LodInit} registers it (Fabric via CommandRegistrationCallback, NeoForge/Forge via
+ * RegisterCommandsEvent).
  *
- * <p>Its own root command rather than folded into {@code /chunksmith}: the shared command tree lives in
- * shared_common and is wired to TranslationKey + the lang files, which the LOD feature has no business
- * reaching into.
+ * <p>Its own root command rather than folded into {@code /chunksmith}: the shared command
+ * tree lives in shared_common and is wired to TranslationKey + the lang files, which the
+ * LOD feature has no business reaching into.
  */
 public final class CsLodCommand {
 
@@ -236,12 +238,14 @@ public final class CsLodCommand {
     }
 
     /**
-     * Forward a client-settings request to the player's own client. Deliberately silent on success: the
-     * client prints the answer, because it is the side that reads and writes the file.
+     * Forward a client-settings request to the player's own client. Deliberately silent
+     * on success: the client prints the answer, because it is the side that reads and
+     * writes the file.
      *
-     * <p>{@link CsLodServerNet#hasLodClient} exists for the refusal path. An unknown message id is dropped
-     * silently at the far end, so without the check a player on a vanilla client would type the command,
-     * see nothing, and have no way to tell success from an empty room.
+     * <p>{@link CsLodServerNet#hasLodClient} exists for the refusal path. An unknown
+     * message id is dropped silently at the far end, so without the check a player on a
+     * vanilla client would type the command, see nothing, and have no way to tell success
+     * from an empty room.
      */
     private static int clientSetting(final CommandSourceStack source,
                                      final byte action,
@@ -271,9 +275,9 @@ public final class CsLodCommand {
     }
 
     /**
-     * Returns the renderer fields of the status line. A cell reports only the renderers it can actually feed.
-     * Where voxy has no build the line says so, rather than "not available" for something that could never be
-     * available.
+     * Returns the renderer fields of the status line. A cell reports only the renderers
+     * it can actually feed. Where voxy has no build the line says so, rather than "not
+     * available" for something that could never be available.
      *
      * @return the renderer fields, ready to drop into the status line
      */

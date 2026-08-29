@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Starts the mod proper, the same way on every loader.
  *
- * <p>Each loader's entrypoint does exactly two things: hand the Platform facade whatever the loader gives
- * it (NeoForge's mod event bus; Fabric has nothing to hand over), then call {@link #init()}. Everything the
- * mod DOES lives below this line and is loader-blind.
+ * <p>Each loader's entrypoint does exactly two things: hand the Platform facade whatever the
+ * loader gives it (NeoForge's mod event bus; Fabric has nothing to hand over), then call {@link
+ * #init()}. Everything the mod DOES lives below this line and is loader-blind.
  */
 public final class CsLodClientBoot {
 
@@ -30,9 +30,9 @@ public final class CsLodClientBoot {
     /**
      * Bind to Distant Horizons before it can announce a level.
      *
-     * <p>DH fires its level-load event during world load, so the listener has to exist before then --
-     * binding it lazily would miss the only announcement we get. {@link DhTarget} hard-references DH types,
-     * so it is only class-loaded once DH is known present.
+     * <p>DH fires its level-load event during world load, so the listener has to exist before
+     * then -- binding it lazily would miss the only announcement we get. {@link DhTarget}
+     * hard-references DH types, so it is only class-loaded once DH is known present.
      */
     private static void bindRenderers() {
         if (!Renderers.hasDh()) {

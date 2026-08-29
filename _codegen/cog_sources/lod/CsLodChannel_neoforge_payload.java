@@ -16,20 +16,22 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import java.util.function.Consumer;
 
 /**
- * Registers the {@code chunksmith:lod} payload on NeoForge (MC 1.21+). Same wire as every other cell,
- * different registration door: NeoForge hands out a {@link PayloadRegistrar} from a mod-bus event rather
- * than a static registry. The mod bus is reachable only from the {@code @Mod} constructor (NeoForge
- * injects it), and {@code @EventBusSubscriber(bus = MOD)} is deprecated for removal as of NeoForge 21.1 --
- * so {@link #registerPayloads(IEventBus)} is called from {@code ChunksmithNeoForge}'s constructor instead,
- * and this class carries no bus annotation at all.
+ * Registers the {@code chunksmith:lod} payload on NeoForge (MC 1.21+). Same wire as every
+ * other cell, different registration door: NeoForge hands out a {@link PayloadRegistrar}
+ * from a mod-bus event rather than a static registry. The mod bus is reachable only from
+ * the {@code @Mod} constructor (NeoForge injects it), and {@code @EventBusSubscriber(bus =
+ * MOD)} is deprecated for removal as of NeoForge 21.1 -- so {@link
+ * #registerPayloads(IEventBus)} is called from {@code ChunksmithNeoForge}'s constructor
+ * instead, and this class carries no bus annotation at all.
  */
 public final class CsLodChannel {
 
     /**
-     * Where an inbound clientbound payload goes, set by the client half at client setup, {@code null}
-     * everywhere else. The side-guard: the clientbound handler below is registered on both sides (it must
-     * be; see the 4-arg note), but its body names no client class. On a dedicated server nothing ever
-     * sets this, the branch is dead, and {@code lod.client.*} is never class-loaded.
+     * Where an inbound clientbound payload goes, set by the client half at client setup,
+     * {@code null} everywhere else. The side-guard: the clientbound handler below is
+     * registered on both sides (it must be; see the 4-arg note), but its body names no
+     * client class. On a dedicated server nothing ever sets this, the branch is dead, and
+     * {@code lod.client.*} is never class-loaded.
      */
     private static volatile Consumer<byte[]> clientSink;
 
@@ -49,16 +51,17 @@ public final class CsLodChannel {
     }
 
     /**
-     * No-op on NeoForge: the payload is registered from the mod bus (see
-     * {@link #registerPayloads(IEventBus)}) and the disconnect hook is a game-bus event owned by
-     * {@code LodInit}. Kept so the loader-blind {@code CsLodServerNet.register()} call site is identical.
+     * No-op on NeoForge: the payload is registered from the mod bus (see {@link
+     * #registerPayloads(IEventBus)}) and the disconnect hook is a game-bus event owned by
+     * {@code LodInit}. Kept so the loader-blind {@code CsLodServerNet.register()} call site
+     * is identical.
      */
     public static void register() {
     }
 
     /**
-     * Registers the payload types on the mod bus. Called from the {@code @Mod} constructor (the only place
-     * the mod bus is handed out).
+     * Registers the payload types on the mod bus. Called from the {@code @Mod} constructor
+     * (the only place the mod bus is handed out).
      */
     public static void registerPayloads(IEventBus modBus) {
         modBus.addListener(CsLodChannel::onRegisterPayloads);

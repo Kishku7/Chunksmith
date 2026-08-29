@@ -14,14 +14,16 @@ import static org.junit.Assert.assertTrue;
 /**
  * The type-tolerant read of voxy's render-distance setting.
  *
- * <p>These fakes are the fork matrix: upstream voxy declares {@code float sectionRenderDistance}, the
- * srjefers fork (rebased from 0.2.8-alpha) declares {@code int}, and a hypothetical future fork could
- * declare {@code double}, {@code long}, or drop the field altogether. Every one of those must produce the
- * right radius -- or, when it truly cannot be read, a 0 AND a warning, never a silent 0.
+ * <p>These fakes are the fork matrix: upstream voxy declares {@code float
+ * sectionRenderDistance}, the srjefers fork (rebased from 0.2.8-alpha) declares {@code
+ * int}, and a hypothetical future fork could declare {@code double}, {@code long}, or
+ * drop the field altogether. Every one of those must produce the right radius -- or,
+ * when it truly cannot be read, a 0 AND a warning, never a silent 0.
  *
- * <p>The old code compiled {@code cfg.sectionRenderDistance} as a getfield with descriptor {@code F}, so
- * the {@code int} fork threw {@code NoSuchFieldError} at runtime and the radius silently collapsed 8192 ->
- * 256. That regression is what {@link #intFieldReadsTheSameRadiusAsFloat()} pins down.
+ * <p>The old code compiled {@code cfg.sectionRenderDistance} as a getfield with
+ * descriptor {@code F}, so the {@code int} fork threw {@code NoSuchFieldError} at
+ * runtime and the radius silently collapsed 8192 -> 256. That regression is what {@link
+ * #intFieldReadsTheSameRadiusAsFloat()} pins down.
  */
 public class VoxyConfigReaderTest {
 

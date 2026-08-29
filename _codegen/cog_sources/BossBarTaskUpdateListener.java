@@ -35,10 +35,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * COG DRIFT: resource-id type (ResourceLocation -> Identifier at 26), Level dimension-id accessor
- * (location() -> identifier() at 26), the player permission gate (classic hasPermissions(2) pre-26
- * vs the 26 permissions() API), and the ServerBossEvent constructor's added UUID arg. All emitted by
- * Cog so one source compiles + runs on every MC version.
+ * COG DRIFT: resource-id type (ResourceLocation -> Identifier at 26),
+ * Level dimension-id accessor (location() -> identifier() at 26), the
+ * player permission gate (classic hasPermissions(2) pre-26 vs the 26
+ * permissions() API), and the ServerBossEvent constructor's added UUID
+ * arg. All emitted by Cog so one source compiles + runs on every MC
+ * version.
  */
 public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateEvent> {
     //[[[cog

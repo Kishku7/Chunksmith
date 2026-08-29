@@ -11,16 +11,17 @@ import static org.junit.Assert.assertTrue;
 /**
  * The frontier cap: the guard against the failure the neighbourhood rule alone does not cover.
  *
- * <p>{@link ChunkSettleWindowTest} proves the rule itself. These prove what happens when the rule's
- * assumption is false: chunks whose neighbourhood never closes, because the run skipped the ground next
- * to them. Without a cap those are held for the whole run, the leak behind the residency runaway
- * {@link ChunkResidency} documents.
+ * <p>{@link ChunkSettleWindowTest} proves the rule itself. These prove what
+ * happens when the rule's assumption is false: chunks whose neighbourhood never
+ * closes, because the run skipped the ground next to them. Without a cap those
+ * are held for the whole run, the leak behind the residency runaway {@link
+ * ChunkResidency} documents.
  */
 public class ChunkSettleWindowCapTest {
 
     /**
-     * Offers a straight line of chunks and returns what the window released. No chunk in a line ever
-     * gets all nine of its neighbours.
+     * Offers a straight line of chunks and returns what the window released. No
+     * chunk in a line ever gets all nine of its neighbours.
      *
      * @return the chunk x values released, in release order
      */

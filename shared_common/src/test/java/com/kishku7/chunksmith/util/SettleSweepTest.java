@@ -15,9 +15,10 @@ import java.util.HashSet;
 /**
  * Where the settle sweep is allowed to stop -- and, more importantly, where it is not.
  *
- * <p>The dangerous mistake here is not stopping too rarely, it is stopping too early: loading a window
- * that overlaps ungenerated ground does not re-read that ground, it generates it, off-pattern and outside
- * the task's own accounting. Every eligibility test below exists to pin that shut.
+ * <p>The dangerous mistake here is not stopping too rarely, it is stopping too
+ * early: loading a window that overlaps ungenerated ground does not re-read
+ * that ground, it generates it, off-pattern and outside the task's own
+ * accounting. Every eligibility test below exists to pin that shut.
  */
 public class SettleSweepTest {
 

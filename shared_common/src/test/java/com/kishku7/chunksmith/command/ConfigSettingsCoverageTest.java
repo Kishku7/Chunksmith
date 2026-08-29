@@ -15,21 +15,23 @@ import java.util.Locale;
 /**
  * The guard that keeps the house rule true over time.
  *
- * <p>Rule (2026-08-11): every setting in the config file is settable from a command. It was broken the
- * moment it was written (nine of eleven keys had no command) because nothing checked.
+ * <p>Rule (2026-08-11): every setting in the config file is settable from a command. It
+ * was broken the moment it was written (nine of eleven keys had no command) because
+ * nothing checked.
  *
- * <p>So this test reads the config MODEL by reflection and asserts that every field in it is either
- * reachable through {@code /cs set} or on a short, explicit exclusion list. Add a key to the config and
- * forget the command, and this fails by name.
+ * <p>So this test reads the config MODEL by reflection and asserts that every field in
+ * it is either reachable through {@code /cs set} or on a short, explicit exclusion
+ * list. Add a key to the config and forget the command, and this fails by name.
  */
 public class ConfigSettingsCoverageTest {
 
     /**
      * Fields that are deliberately NOT operator settings.
      *
-     * <p>{@code version} is the config schema number. Letting it be set would invite a file claiming to
-     * be a shape it is not. {@code tasks} is the saved task list, which has its own commands
-     * ({@code /cs start}, {@code /cs cancel}, {@code /cs continue}) and is not a scalar setting.
+     * <p>{@code version} is the config schema number. Letting it be set would invite a
+     * file claiming to be a shape it is not. {@code tasks} is the saved task list,
+     * which has its own commands ({@code /cs start}, {@code /cs cancel}, {@code /cs
+     * continue}) and is not a scalar setting.
      */
     private static final Set<String> NOT_SETTINGS = Set.of("version", "tasks");
 

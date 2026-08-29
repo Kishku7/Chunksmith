@@ -5,33 +5,45 @@ import me.cortex.voxy.commonImpl.VoxyCommon;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
- * Compiled against voxy 0.2.16-beta; feeds freshly generated chunks into its ingest service. Hard-references
- * voxy types, so it MUST NOT be class-loaded unless voxy is present ({@link LodSupport} gates that).
- * Generated only where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x; voxy is
- * Fabric-only and upstream has never published a 1.20.1 or a 1.21.1 build, so on every other cell this class
- * does not exist at all, a compile-time-absent seam. Singleplayer / integrated server only: voxy's instance
- * factory is installed by VoxyClient, so on a dedicated server {@code VoxyCommon.getInstance()} is null and
- * the streaming path handles that case instead.
+ * Compiled against voxy 0.2.16-beta; feeds freshly generated
+ * chunks into its ingest service. Hard-references voxy types,
+ * so it MUST NOT be class-loaded unless voxy is present
+ * ({@link LodSupport} gates that). Generated only where a
+ * voxy jar exists to compile against: Fabric 1.21.11 and
+ * Fabric 26.x; voxy is Fabric-only and upstream has never
+ * published a 1.20.1 or a 1.21.1 build, so on every other
+ * cell this class does not exist at all, a
+ * compile-time-absent seam. Singleplayer / integrated server
+ * only: voxy's instance factory is installed by VoxyClient,
+ * so on a dedicated server {@code VoxyCommon.getInstance()}
+ * is null and the streaming path handles that case instead.
  *
- * <p>voxy is forked constantly, and a fork that changed {@code tryAutoIngestChunk} would throw a
- * {@code NoSuchMethodError} (an Error, straight through every {@code catch (Exception)} in the pregen
- * pipeline) on the first chunk. So the sink absorbs a {@link LinkageError} once, says out loud what
- * happened, and stands down for the session: the pregen keeps running and still writes the CSLOD store.
+ * <p>voxy is forked constantly, and a fork that changed
+ * {@code tryAutoIngestChunk} would throw a {@code
+ * NoSuchMethodError} (an Error, straight through every {@code
+ * catch (Exception)} in the pregen pipeline) on the first
+ * chunk. So the sink absorbs a {@link LinkageError} once,
+ * says out loud what happened, and stands down for the
+ * session: the pregen keeps running and still writes the
+ * CSLOD store.
  */
 public final class VoxyLodSink implements LodSink {
 
     private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
 
     /**
-     * A LinkageError is structural -- the member is not in the jar that is loaded -- so it cannot heal, and
-     * retrying it per chunk would spam the log for a result that cannot change.
+     * A LinkageError is structural -- the member is not in
+     * the jar that is loaded -- so it cannot heal, and
+     * retrying it per chunk would spam the log for a result
+     * that cannot change.
      */
     private volatile boolean broken;
 
     /**
-     * Voxy's ingest gate requires the chunk's light to be real (sections must report LIGHT_AND_DATA).
-     * ChunkSmith generates at ChunkStatus.FULL, downstream of LIGHT, so the server light engine has
-     * already run and this holds.
+     * Voxy's ingest gate requires the chunk's light to be
+     * real (sections must report LIGHT_AND_DATA). ChunkSmith
+     * generates at ChunkStatus.FULL, downstream of LIGHT, so
+     * the server light engine has already run and this holds.
      */
     @Override
     public boolean offer(Object chunk) {

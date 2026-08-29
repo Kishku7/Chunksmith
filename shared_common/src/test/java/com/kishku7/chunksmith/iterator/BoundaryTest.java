@@ -11,8 +11,8 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 /**
- * This test compares the boundaries of the generated region for each iterator to make sure they are consistent
- * with one another.
+ * This test compares the boundaries of the generated region for each
+ * iterator to make sure they are consistent with one another.
  */
 public class BoundaryTest {
     private static final Selection SELECTION = Selection.builder(null, null).center(-25, 25).radius(50).build();

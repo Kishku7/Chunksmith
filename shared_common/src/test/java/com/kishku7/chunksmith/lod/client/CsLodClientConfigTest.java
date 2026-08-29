@@ -15,10 +15,12 @@ import static org.junit.Assert.assertTrue;
 /**
  * The sync interval, its default, and the clamp.
  *
- * <p>The floor is enforced in code, not in the file, and that is the point of these tests. A config value is
- * a suggestion from whoever last edited the file; {@code sync-interval-seconds=1} must not be able to turn
- * the self-healing sync into a poll storm against a server that is trying to run a pregen, which is the
- * exact class of problem this release exists to fix.
+ * <p>The floor is enforced in code, not in the file, and that is
+ * the point of these tests. A config value is a suggestion from
+ * whoever last edited the file; {@code sync-interval-seconds=1}
+ * must not be able to turn the self-healing sync into a poll
+ * storm against a server that is trying to run a pregen, which is
+ * the exact class of problem this release exists to fix.
  */
 public class CsLodClientConfigTest {
 

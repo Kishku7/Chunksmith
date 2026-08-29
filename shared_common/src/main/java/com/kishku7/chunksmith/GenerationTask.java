@@ -46,9 +46,11 @@ public class GenerationTask implements Runnable {
     // diagnostic can run and be invisible (same trap the config layer hit).
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
     /**
-     * Fallback width when the config cannot answer. The system property is retained so an operator who
-     * already set {@code -Dchunksmith.maxWorkingCount} on the command line keeps that value as their
-     * default; the {@code dispatchMaxConcurrent} config key overrides it and is settable live.
+     * Fallback width when the config cannot answer. The system property
+     * is retained so an operator who already set {@code
+     * -Dchunksmith.maxWorkingCount} on the command line keeps that value
+     * as their default; the {@code dispatchMaxConcurrent} config key
+     * overrides it and is settable live.
      */
     private static final int DEFAULT_WORKING_COUNT = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount")).orElse(50);
     private static final double SAMPLE_INTERVAL = 1000d * Math.max(Input.tryInteger(System.getProperty("chunksmith.sampleInterval")).orElse(30), 30);
@@ -56,14 +58,17 @@ public class GenerationTask implements Runnable {
     /**
      * Never average a rate over less than this many seconds (mod_support #17).
      *
-     * <p>The sample window starts empty, so the first few updates divide a handful of chunks by a
-     * fraction of a second and publish a number in the thousands. It then decays toward the real
-     * rate as the window fills. To anyone watching, that reads as the pre-gen getting slower
-     * and slower. It is not: it is an average converging after starting from a fiction. Measured
-     * on a resumed selection: 7310 cps in the first update against a true 39 cps.
+     * <p>The sample window starts empty, so the first few updates divide
+     * a handful of chunks by a fraction of a second and publish a number
+     * in the thousands. It then decays toward the real rate as the
+     * window fills. To anyone watching, that reads as the pre-gen
+     * getting slower and slower. It is not: it is an average converging
+     * after starting from a fiction. Measured on a resumed selection:
+     * 7310 cps in the first update against a true 39 cps.
      *
-     * <p>Five seconds costs nothing once a run is underway: the window is 30 seconds, so this
-     * floor only ever bites at the very start, which is exactly where the lie was.
+     * <p>Five seconds costs nothing once a run is underway: the window
+     * is 30 seconds, so this floor only ever bites at the very start,
+     * which is exactly where the lie was.
      */
     private static final double RATE_MIN_WINDOW_SECONDS = 5.0d;
     private static final long NOTICE_INTERVAL_MS = 10_000L;
@@ -160,10 +165,12 @@ public class GenerationTask implements Runnable {
     /**
      * The trailing settle sweep, or null when settling is off.
      *
-     * <p>Holds a single window at a time, a few chunks behind the generation front, so mods that build on
-     * new land get a moment with their footprint loaded (mod_support #14). Driven from chunk completions
-     * rather than from a tick, because that is the clock this class already has; at typical pregen rates
-     * the hold below works out at roughly a second.
+     * <p>Holds a single window at a time, a few chunks behind the
+     * generation front, so mods that build on new land get a moment with
+     * their footprint loaded (mod_support #14). Driven from chunk
+     * completions rather than from a tick, because that is the clock
+     * this class already has; at typical pregen rates the hold below
+     * works out at roughly a second.
      */
     private final SettleSweep settleSweep;
     private int[] settleStop;
@@ -225,18 +232,22 @@ public class GenerationTask implements Runnable {
     /**
      * Primes the in-memory generated-chunk bitmap from the region files, once, before dispatching.
      *
-     * <p>{@code worldState} starts cold on a fresh boot, so without this every already-generated
-     * chunk in a resumed selection takes an asynchronous per-chunk round-trip just to be told it
-     * exists, measured at about seven seconds per 5929 chunks, and linear
-     * (mod_support #17). One read per region file answers the same question.
+     * <p>{@code worldState} starts cold on a fresh boot, so without this
+     * every already-generated chunk in a resumed selection takes an
+     * asynchronous per-chunk round-trip just to be told it exists,
+     * measured at about seven seconds per 5929 chunks, and linear
+     * (mod_support #17). One read per region file answers the same
+     * question.
      *
-     * <p>Skipped entirely when {@code forceLoadExistingChunks} is set, because then every chunk is
-     * being reprocessed on purpose and there is nothing to skip; and when the platform cannot tell
-     * us where its region files are (Bukkit worlds that expose no directory), where the old path
-     * remains correct and simply stays slower.
+     * <p>Skipped entirely when {@code forceLoadExistingChunks} is set,
+     * because then every chunk is being reprocessed on purpose and there
+     * is nothing to skip; and when the platform cannot tell us where its
+     * region files are (Bukkit worlds that expose no directory), where
+     * the old path remains correct and simply stays slower.
      *
-     * <p>Never fatal. A failure here leaves the bitmap however far it got, and every unseeded chunk
-     * takes exactly the path it took before.
+     * <p>Never fatal. A failure here leaves the bitmap however far it
+     * got, and every unseeded chunk takes exactly the path it took
+     * before.
      */
     private void preScanExistingChunks(boolean forceLoadExistingChunks) {
         if (forceLoadExistingChunks) {
@@ -336,11 +347,12 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Primary throttle signal. Evaluated on a fixed cadence (even while completions are
-     * stalled) so concurrency can fall under sustained load. When the server main thread
-     * falls behind its tick budget we back off; when it is comfortably keeping up we ramp
-     * back up. On platforms that cannot report tick time this is a no-op and the per-chunk
-     * latency backstop carries the throttle instead.
+     * Primary throttle signal. Evaluated on a fixed cadence (even while
+     * completions are stalled) so concurrency can fall under sustained
+     * load. When the server main thread falls behind its tick budget we
+     * back off; when it is comfortably keeping up we ramp back up. On
+     * platforms that cannot report tick time this is a no-op and the
+     * per-chunk latency backstop carries the throttle instead.
      */
     private void adjustFromTickHealth() {
         long now = System.currentTimeMillis();
@@ -382,14 +394,18 @@ public class GenerationTask implements Runnable {
     /**
      * Returns the tick cost this run should steer to.
      *
-     * <p>An absolute target cannot work on a busy server, and this was not theoretical. See
-     * {@link TickBudget} for the server it was measured on. The governor backs off above target+band and
-     * only ramps below target-band, so where the server's own idle cost already sits at the target it never
-     * observes a healthy tick: dispatch pins at 1 permanently, however little the run is actually costing.
+     * <p>An absolute target cannot work on a busy server, and this was
+     * not theoretical. See {@link TickBudget} for the server it was
+     * measured on. The governor backs off above target+band and only
+     * ramps below target-band, so where the server's own idle cost
+     * already sits at the target it never observes a healthy tick:
+     * dispatch pins at 1 permanently, however little the run is actually
+     * costing.
      *
-     * <p>So the target is whichever is higher, the operator's absolute figure or what the server
-     * already costs plus the budget this run is allowed to add. That bounds what Chunksmith costs
-     * instead of demanding the whole server be healthy in absolute terms, the same
+     * <p>So the target is whichever is higher, the operator's absolute
+     * figure or what the server already costs plus the budget this run
+     * is allowed to add. That bounds what Chunksmith costs instead of
+     * demanding the whole server be healthy in absolute terms, the same
      * delta-not-absolute correction already applied to chunk residency.
      *
      * @return the tick cost, in milliseconds, this run should steer to
@@ -409,8 +425,9 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Backstop signal. A single chunk load exceeding the absolute latency cap means the
-     * disk is stalling regardless of what the tick average has done; back off immediately.
+     * Backstop signal. A single chunk load exceeding the absolute
+     * latency cap means the disk is stalling regardless of what the tick
+     * average has done; back off immediately.
      */
     private void adjustFromChunkLatency(long elapsed) {
         if (elapsed > maxChunkMillis) {
@@ -419,9 +436,10 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * LOD-sink governor. The LOD sink (voxy) queues ingest work on an unbounded queue and never
-     * reports saturation, so it cannot push back on us -- we have to watch it. When its backlog
-     * exceeds the configured bound, back off dispatch until it drains.
+     * LOD-sink governor. The LOD sink (voxy) queues ingest work on an
+     * unbounded queue and never reports saturation, so it cannot push
+     * back on us -- we have to watch it. When its backlog exceeds the
+     * configured bound, back off dispatch until it drains.
      */
     private void adjustFromLodQueue() {
         if (maxLodQueue <= 0L) {
@@ -486,20 +504,23 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * Write-queue backpressure. Tick-health and per-chunk latency react to the server thread
-     * and to load completion, but the deferred region-write backlog can still grow unbounded
-     * when chunks finish generating faster than the disk can flush them (async I/O does not
-     * raise tick time). This samples that backlog on a fixed cadence and, once it exceeds the
-     * configured cap, holds off all new dispatches until it drains back below half the cap
-     * (hysteresis), directly bounding the unflushed-write window so a slow disk paces
-     * generation instead of being buried.
-     * <p>
-     * Absolute depth alone, though, misses the worst case: a single-threaded region writer
-     * blocked in fsync during region-file eviction keeps the queue <em>shallow</em> while each
-     * flush blocks for seconds, so depth never reaches the cap even as the disk pegs and an
-     * autosave {@code synchronize()} on the main thread eventually overruns the watchdog. So it
-     * also trips on <em>drain-stall</em>: queued work that shows no progress for
-     * {@code WRITE_STALL_MILLIS}. No-op when the platform cannot report the depth.
+     * Write-queue backpressure. Tick-health and per-chunk latency react
+     * to the server thread and to load completion, but the deferred
+     * region-write backlog can still grow unbounded when chunks finish
+     * generating faster than the disk can flush them (async I/O does not
+     * raise tick time). This samples that backlog on a fixed cadence
+     * and, once it exceeds the configured cap, holds off all new
+     * dispatches until it drains back below half the cap (hysteresis),
+     * directly bounding the unflushed-write window so a slow disk paces
+     * generation instead of being buried. <p> Absolute depth alone,
+     * though, misses the worst case: a single-threaded region writer
+     * blocked in fsync during region-file eviction keeps the queue
+     * <em>shallow</em> while each flush blocks for seconds, so depth
+     * never reaches the cap even as the disk pegs and an autosave {@code
+     * synchronize()} on the main thread eventually overruns the
+     * watchdog. So it also trips on <em>drain-stall</em>: queued work
+     * that shows no progress for {@code WRITE_STALL_MILLIS}. No-op when
+     * the platform cannot report the depth.
      */
     private void evaluateWriteBackpressure() {
         long now = System.currentTimeMillis();
@@ -548,17 +569,21 @@ public class GenerationTask implements Runnable {
     /**
      * Chunk-residency backpressure. The bound on what is already in memory.
      *
-     * <p>Tick time, per-chunk latency, the write queue and the LOD sink all measure how fast work
-     * arrives. None of them can see the resident chunk set, and on the run {@link ChunkResidency}
-     * documents every one of them read "slow down" while the set grew to many times the sweep frontier,
-     * which is precisely what stopped it draining.
+     * <p>Tick time, per-chunk latency, the write queue and the LOD sink
+     * all measure how fast work arrives. None of them can see the
+     * resident chunk set, and on the run {@link ChunkResidency}
+     * documents every one of them read "slow down" while the set grew to
+     * many times the sweep frontier, which is precisely what stopped it
+     * draining.
      *
-     * <p>It is a feedback loop rather than a threshold. Vanilla's unload pass is budgeted by the
-     * server's own per-tick time allowance, so a server that has fallen behind unloads almost nothing;
-     * a bigger resident set costs more to tick; it falls further behind. Backing dispatch off feeds the
-     * loop instead of breaking it, because a settle window's releases are driven by new arrivals. Hence
-     * a signal of its own and a hard gate. Past the cap, dispatch nothing at all until the server has
-     * unloaded back to half of it.
+     * <p>It is a feedback loop rather than a threshold. Vanilla's unload
+     * pass is budgeted by the server's own per-tick time allowance, so a
+     * server that has fallen behind unloads almost nothing; a bigger
+     * resident set costs more to tick; it falls further behind. Backing
+     * dispatch off feeds the loop instead of breaking it, because a
+     * settle window's releases are driven by new arrivals. Hence a
+     * signal of its own and a hard gate. Past the cap, dispatch nothing
+     * at all until the server has unloaded back to half of it.
      *
      * <p>No-op when the platform does not report residency, and when the operator has set the cap to 0.
      */
@@ -610,12 +635,15 @@ public class GenerationTask implements Runnable {
     /**
      * Pauses dispatch when the heap is close to full.
      *
-     * <p>Three releases of this mod have tried to bound a pregen by counting proxies (queued writes,
-     * LOD queue depth, resident chunks, chunks added since the run started), and each has been wrong
-     * on a real server in a different way. A chunk is worth wildly different amounts of heap depending
-     * on the entities and block entities that came with it, so no chunk count can be tuned to mean the
-     * same thing on two worlds. What actually ends a pregen badly is running out of memory. Measure
-     * that instead, and let the counters handle the cases they are genuinely good at.
+     * <p>Three releases of this mod have tried to bound a pregen by
+     * counting proxies (queued writes, LOD queue depth, resident chunks,
+     * chunks added since the run started), and each has been wrong on a
+     * real server in a different way. A chunk is worth wildly different
+     * amounts of heap depending on the entities and block entities that
+     * came with it, so no chunk count can be tuned to mean the same
+     * thing on two worlds. What actually ends a pregen badly is running
+     * out of memory. Measure that instead, and let the counters handle
+     * the cases they are genuinely good at.
      */
     private void evaluateHeapPressure() {
         if (maxHeapPercent <= 0L) {
@@ -978,9 +1006,11 @@ public class GenerationTask implements Runnable {
     /**
      * Advances the trailing settle window as chunks land.
      *
-     * <p>One window at a time. Hold it for a while so the server can tick with that ground loaded, then
-     * let it go and take the next eligible stop. Eligibility is the sweep's business; it only offers a
-     * window whose chunks are all already generated, so nothing here can trigger worldgen.
+     * <p>One window at a time. Hold it for a while so the server can
+     * tick with that ground loaded, then let it go and take the next
+     * eligible stop. Eligibility is the sweep's business; it only offers
+     * a window whose chunks are all already generated, so nothing here
+     * can trigger worldgen.
      */
     private synchronized void driveSettleSweep(int chunkX, int chunkZ) {
         if (settleSweep == null || stopped) {
@@ -1005,8 +1035,9 @@ public class GenerationTask implements Runnable {
     /**
      * Sweeps whatever the trailing pass could not reach while generation was still running.
      *
-     * <p>The last band is only eligible once the final chunks land, so it is necessarily swept here. It
-     * is bounded by the width of that band, not by the size of the run, since everything behind it was
+     * <p>The last band is only eligible once the final chunks land, so
+     * it is necessarily swept here. It is bounded by the width of that
+     * band, not by the size of the run, since everything behind it was
      * already settled on the way past.
      */
     private void finishSettleSweep() {
@@ -1070,11 +1101,13 @@ public class GenerationTask implements Runnable {
     /**
      * Returns true from the moment a stop was requested until the run loop actually exits.
      *
-     * <p>Stopping is not instant, and the task drains its chunks first, which takes several seconds. The
-     * task stays in Chunksmith's live-task map for that whole window, so a `continue` issued during it
-     * used to be answered with "Task already started!" and then do nothing, leaving the operator with a
-     * stopped run and a message saying the opposite. Callers check this so they can say what is really
-     * happening instead.
+     * <p>Stopping is not instant, and the task drains its chunks first,
+     * which takes several seconds. The task stays in Chunksmith's
+     * live-task map for that whole window, so a `continue` issued during
+     * it used to be answered with "Task already started!" and then do
+     * nothing, leaving the operator with a stopped run and a message
+     * saying the opposite. Callers check this so they can say what is
+     * really happening instead.
      *
      * @return true once a stop has been requested and the run loop has not yet exited
      */

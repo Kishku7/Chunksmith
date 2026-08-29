@@ -9,12 +9,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The state machine behind the auto-pause policy: pause when the server cannot sustain a run, resume when it
- * can, and never undo a decision a human made.
+ * The state machine behind the auto-pause policy: pause when the server cannot
+ * sustain a run, resume when it can, and never undo a decision a human made.
  *
- * <p>Both directions need patience, and the tests care most about the impatient failures: pausing on
- * a blip stops a healthy run for an autosave, and resuming on a blip walks straight back into the
- * wall that caused the pause.
+ * <p>Both directions need patience, and the tests care most about the
+ * impatient failures: pausing on a blip stops a healthy run for an autosave,
+ * and resuming on a blip walks straight back into the wall that caused the
+ * pause.
  */
 public class AutoPauseTest {
 

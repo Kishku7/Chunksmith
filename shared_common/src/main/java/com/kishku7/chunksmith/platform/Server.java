@@ -25,11 +25,12 @@ public interface Server {
     Config getConfig();
 
     /**
-     * Returns the smoothed mean milliseconds-per-tick of the server main thread, used as the
-     * primary feedback signal for the adaptive I/O throttle. ~50 ms means a healthy
-     * 20 TPS; higher means the server is falling behind. Returns a negative value on
-     * platforms that cannot report it, in which case the throttle falls back to its
-     * absolute per-chunk latency backstop.
+     * Returns the smoothed mean milliseconds-per-tick of the server
+     * main thread, used as the primary feedback signal for the
+     * adaptive I/O throttle. ~50 ms means a healthy 20 TPS; higher
+     * means the server is falling behind. Returns a negative value on
+     * platforms that cannot report it, in which case the throttle
+     * falls back to its absolute per-chunk latency backstop.
      */
     default double getMillisPerTick() {
         return -1.0D;

@@ -3,11 +3,11 @@ package com.kishku7.chunksmith.platform;
 import com.kishku7.chunksmith.util.Reflection;
 
 /**
- * Single, cached server-platform detection - resolved once at class load, most-specific
- * first. Folia is a fork of Paper, which is a fork of Spigot, which is a fork of Bukkit, so
- * the membership is nested. Use this everywhere instead of re-probing at each call site, and
- * always test the more specific platform first (e.g. Folia before Paper) for behaviour that
- * differs between them - otherwise Folia silently falls into the Paper path, which is how the
+ * Single, cached server-platform detection - resolved once at class load, most-specific first.
+ * Folia is a fork of Paper, which is a fork of Spigot, which is a fork of Bukkit, so the
+ * membership is nested. Use this everywhere instead of re-probing at each call site, and always
+ * test the more specific platform first (e.g. Folia before Paper) for behaviour that differs
+ * between them - otherwise Folia silently falls into the Paper path, which is how the
  * getAverageTickTime() "Not on any region" crash slipped through.
  */
 public enum Platform {

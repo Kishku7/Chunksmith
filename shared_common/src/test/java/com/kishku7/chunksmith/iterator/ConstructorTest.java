@@ -11,8 +11,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * This test compares the default and continuation constructors of chunk iterator to ensure that the results they
- * return are consistent with each other.
+ * This test compares the default and continuation constructors of chunk iterator to
+ * ensure that the results they return are consistent with each other.
  */
 public class ConstructorTest {
     private static final Selection SELECTION = Selection.builder(null, null).center(-25, 25).radiusX(50).build();

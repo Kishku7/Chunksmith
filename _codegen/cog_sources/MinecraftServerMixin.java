@@ -38,15 +38,20 @@ import com.kishku7.chunksmith.util.TranslationKey;
 /**
  * Keep-awake + tick-health telemetry + chunk-system housekeeping for the pre-gen path.
  *
- * <p>Cog drift: the idle-pause reset differs - MC 1.21.2..1.21.11 zero the @Shadow emptyTicks field
- * directly, 26 routes through the MinecraftServerAccess seam accessor (setEmptyTicks), and <1.21.2
- * (the field does not exist yet) emits a no-op (keep-awake N/A).
- * The housekeeping @Inject binds at tickServer TAIL on every version. (3.4.0: the 26 line used to
- * bind at INVOKE tickConnection()V, a call site tickServer only reaches inside the empty-server
- * pause branch that returns early, so housekeeping never actually ran there. See
- * compat.housekeeping_inject_at for the bytecode.) 26 also runs an extra
- * ServerChunkCache.broadcastChangedChunks(ProfilerFiller) invoker that older lines lack.
- * All three are Cog-emitted from compat.py.
+ * <p>Cog drift: the idle-pause reset differs - MC
+ * 1.21.2..1.21.11 zero the @Shadow emptyTicks field directly,
+ * 26 routes through the MinecraftServerAccess seam accessor
+ * (setEmptyTicks), and <1.21.2 (the field does not exist yet)
+ * emits a no-op (keep-awake N/A). The housekeeping @Inject
+ * binds at tickServer TAIL on every version. (3.4.0: the 26
+ * line used to bind at INVOKE tickConnection()V, a call site
+ * tickServer only reaches inside the empty-server pause branch
+ * that returns early, so housekeeping never actually ran
+ * there. See compat.housekeeping_inject_at for the bytecode.)
+ * 26 also runs an extra
+ * ServerChunkCache.broadcastChangedChunks(ProfilerFiller)
+ * invoker that older lines lack. All three are Cog-emitted
+ * from compat.py.
  */
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin implements MinecraftServerExtension {
@@ -74,14 +79,19 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      *
      * <p>3.2.0 fixed a 60-minute CPU pin by passing vanilla's own {@code haveTime} into the unload pass
      * instead of a hardcoded true. That was right, and it introduced the opposite failure: {@code
-     * haveTime} is false for the whole tick once the server is behind, so a server that has fallen behind
-     * unloads nothing, its resident set grows, ticking it costs more, and it falls further behind. The
-     * runaway ChunkResidency was added to measure.
+     * haveTime} is false for the whole tick once the server is
+     * behind, so a server that has fallen behind unloads
+     * nothing, its resident set grows, ticking it costs more,
+     * and it falls further behind. The runaway ChunkResidency
+     * was added to measure.
      *
-     * <p>So the budget is "vanilla's allowance, or this much, whichever is greater". A healthy server
-     * behaves exactly as it did in 3.2.0; haveTime is true and this is never consulted. A starved one
-     * gets a small, fixed, bounded slice per tick, which is enough to drain a backlog steadily and far
-     * too little to pin a core. 2 ms of a 50 ms tick is 4%.
+     * <p>So the budget is "vanilla's allowance, or this much,
+     * whichever is greater". A healthy server behaves exactly
+     * as it did in 3.2.0; haveTime is true and this is never
+     * consulted. A starved one gets a small, fixed, bounded
+     * slice per tick, which is enough to drain a backlog
+     * steadily and far too little to pin a core. 2 ms of a 50
+     * ms tick is 4%.
      */
     @Unique
     private static final long CHUNKSMITH$MIN_UNLOAD_BUDGET_NANOS = 2_000_000L;
@@ -89,28 +99,37 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     /**
      * The floor used when nobody is playing and a run has left a backlog behind.
      *
-     * <p>2 ms is tuned for "do not disturb a live server", which is the wrong constraint for an empty
-     * one. An idle server has the whole tick to spare and a backlog it must clear before the next run
-     * (or the next player) arrives, so it may spend a fifth of a tick on it. Still bounded, still
-     * self-limiting (the drain ends when the chunks are gone), so this cannot become the 3.2.0
-     * unbounded pin, which had no ceiling at all.
+     * <p>2 ms is tuned for "do not disturb a live server",
+     * which is the wrong constraint for an empty one. An idle
+     * server has the whole tick to spare and a backlog it must
+     * clear before the next run (or the next player) arrives,
+     * so it may spend a fifth of a tick on it. Still bounded,
+     * still self-limiting (the drain ends when the chunks are
+     * gone), so this cannot become the 3.2.0 unbounded pin,
+     * which had no ceiling at all.
      */
     @Unique
     private static final long CHUNKSMITH$IDLE_UNLOAD_BUDGET_NANOS = 10_000_000L;
 
     /**
-     * Chunk-ticket work waiting for the safe point. See MinecraftServerExtension#chunksmith$atTicketSafePoint
-     * for the whole argument; the short version is that a ticket mutation run from the server executor
-     * lands inside ServerChunkCache.tickChunks' iteration of the simulation chunk tracker, and the
-     * distance-manager flush that the next executor pump performs then writes the map being iterated.
+     * Chunk-ticket work waiting for the safe point. See
+     * MinecraftServerExtension#chunksmith$atTicketSafePoint
+     * for the whole argument; the short version is that a
+     * ticket mutation run from the server executor lands
+     * inside ServerChunkCache.tickChunks' iteration of the
+     * simulation chunk tracker, and the distance-manager flush
+     * that the next executor pump performs then writes the map
+     * being iterated.
      */
     @Unique
     private final Queue<Runnable> chunksmith$ticketSafePointQueue = new ConcurrentLinkedQueue<>();
 
     /**
-     * The thread currently draining the safe-point queue, or null. Volatile and identity-compared
-     * rather than a boolean flag: it answers "am I the drain?" correctly for every thread, with no
-     * chance of a stale true letting an off-thread caller mutate tickets inline.
+     * The thread currently draining the safe-point queue, or
+     * null. Volatile and identity-compared rather than a
+     * boolean flag: it answers "am I the drain?" correctly for
+     * every thread, with no chance of a stale true letting an
+     * off-thread caller mutate tickets inline.
      */
     @Unique
     private volatile Thread chunksmith$ticketSafePointThread;
@@ -126,10 +145,13 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     /**
      * Player count as of the previous tick, so the moment the server becomes empty can be noticed.
      *
-     * <p>That transition is when a stalled drain deserves another go: the unload floor jumps to the
-     * idle budget, and whatever a player was doing to keep chunks resident has stopped. Without this a
-     * drain that gave up while somebody was online stays given-up for ever, and the server sits degraded
-     * until it is restarted. See ChunkResidency#noteDrainBudget for the measurement.
+     * <p>That transition is when a stalled drain deserves
+     * another go: the unload floor jumps to the idle budget,
+     * and whatever a player was doing to keep chunks resident
+     * has stopped. Without this a drain that gave up while
+     * somebody was online stays given-up for ever, and the
+     * server sits degraded until it is restarted. See
+     * ChunkResidency#noteDrainBudget for the measurement.
      */
     @Unique
     private int chunksmith$lastPlayerCount = -1;
@@ -237,9 +259,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     /**
      * Returns a monotonic tick clock for the settle window, taken from the overworld's game time.
      *
-     * <p>The window is given the same clock {@code offer()} uses, so a delay measured in ticks means
-     * the same thing on both paths. Falls back to zero on a server with no levels, which cannot happen
-     * in practice but must not throw if it ever does.
+     * <p>The window is given the same clock {@code offer()}
+     * uses, so a delay measured in ticks means the same thing
+     * on both paths. Falls back to zero on a server with no
+     * levels, which cannot happen in practice but must not
+     * throw if it ever does.
      */
     @Unique
     private long chunksmith$gameTimeForSettle() {
@@ -253,9 +277,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
      * Publishes how many chunks the server is holding, for the generation throttle to gate on.
      *
      * <p>{@code getLoadedChunksCount()} is the same number the crash report prints as {@code Chunks[S]
-     * W:}, public and unchanged on every MC version from 1.20.1 through 26.x, so this needs no Cog
-     * drift handling. Summed across dimensions because memory is, and a pregen in one dimension is
-     * perfectly capable of being starved by chunks resident in another.
+     * W:}, public and unchanged on every MC version from
+     * 1.20.1 through 26.x, so this needs no Cog drift
+     * handling. Summed across dimensions because memory is,
+     * and a pregen in one dimension is perfectly capable of
+     * being starved by chunks resident in another.
      */
     @Unique
     private void chunksmith$reportChunkResidency() {
@@ -283,13 +309,18 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     /**
      * Watch for the server recovering, and restart a run we paused.
      *
-     * <p>Deliberately outside {@code GenerationTask}: the task is gone by the time this matters, so
-     * the thing that restarts it cannot live inside it. Only a run auto-paused by Chunksmith is ever
-     * resumed -- a human {@code /cs pause} is a decision, not a fault, and must stay paused.
+     * <p>Deliberately outside {@code GenerationTask}: the task
+     * is gone by the time this matters, so the thing that
+     * restarts it cannot live inside it. Only a run
+     * auto-paused by Chunksmith is ever resumed -- a human
+     * {@code /cs pause} is a decision, not a fault, and must
+     * stay paused.
      *
-     * <p>"Healthy" is the tick keeping up and the heap having real headroom. Both, because either one
-     * alone comes back before the other and a resume on half the evidence just walks into the same
-     * wall. The grace period then requires it to hold.
+     * <p>"Healthy" is the tick keeping up and the heap having
+     * real headroom. Both, because either one alone comes back
+     * before the other and a resume on half the evidence just
+     * walks into the same wall. The grace period then requires
+     * it to hold.
      */
     @Unique
     private void chunksmith$tickAutoResume(boolean generationRunning) {
@@ -387,10 +418,13 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
     /**
      * Runs the queued chunk-ticket work. The one place Chunksmith mutates a chunk ticket.
      *
-     * <p>Bounded by the queue size on entry. A task may enqueue another -- a chunk future completing
-     * during the drain hands its ticket release straight back -- and running those in the same pass
-     * would let a busy pre-gen extend the drain indefinitely inside a single tick. Whatever arrives
-     * mid-drain is picked up by the next tick's drain.
+     * <p>Bounded by the queue size on entry. A task may
+     * enqueue another -- a chunk future completing during the
+     * drain hands its ticket release straight back -- and
+     * running those in the same pass would let a busy pre-gen
+     * extend the drain indefinitely inside a single tick.
+     * Whatever arrives mid-drain is picked up by the next
+     * tick's drain.
      */
     @Unique
     private void chunksmith$drainTicketSafePoint() {

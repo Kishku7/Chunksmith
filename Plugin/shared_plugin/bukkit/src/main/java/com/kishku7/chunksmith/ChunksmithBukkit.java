@@ -120,11 +120,13 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
     }
 
     /**
-     * Install the best-effort worldgen-overreach diagnostic. There is no Mixin on a Bukkit server, so
-     * a Log4j2 filter captures + suppresses vanilla's "Detected setBlock in a far chunk" spam and routes
-     * it to {@link WorldgenOverreachReporter}, which collapses each burst into a single aggregated line.
-     * A once-per-second scheduler tick drives the reporter's debounce/rollup/end-of-run summary. Both the
-     * filter and the tick fail soft - the diagnostic never interferes with generation or normal logging.
+     * Install the best-effort worldgen-overreach diagnostic. There is no Mixin on a
+     * Bukkit server, so a Log4j2 filter captures + suppresses vanilla's "Detected
+     * setBlock in a far chunk" spam and routes it to {@link WorldgenOverreachReporter},
+     * which collapses each burst into a single aggregated line. A once-per-second
+     * scheduler tick drives the reporter's debounce/rollup/end-of-run summary. Both the
+     * filter and the tick fail soft - the diagnostic never interferes with generation or
+     * normal logging.
      */
     private void installOverreachDiagnostic() {
         StructureFaultReporter.get().setReportFile(getDataFolder().toPath().resolve("worldgen-faults.txt"));

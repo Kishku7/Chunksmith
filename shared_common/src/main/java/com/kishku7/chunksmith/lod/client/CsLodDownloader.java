@@ -22,17 +22,22 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Pulls CSLOD region files from a Chunksmith server's HTTP backchannel into the local store. Plain HTTP and
- * plain files, so it is testable without a game.
+ * Pulls CSLOD region files from a Chunksmith server's HTTP
+ * backchannel into the local store. Plain HTTP and plain files, so
+ * it is testable without a game.
  *
- * <p><b>The local store IS the cache.</b> The server sends a freshness token per region; we compare each
- * against the token we recorded when we stored our copy ({@link CsLodManifest}) and download only what is
- * missing or changed, so a re-join downloads nothing. We do not re-hash our own files to find out: that
- * read the whole store on every index, and it was half of the bug that killed the server.
+ * <p><b>The local store IS the cache.</b> The server sends a
+ * freshness token per region; we compare each against the token we
+ * recorded when we stored our copy ({@link CsLodManifest}) and
+ * download only what is missing or changed, so a re-join downloads
+ * nothing. We do not re-hash our own files to find out: that read
+ * the whole store on every index, and it was half of the bug that
+ * killed the server.
  *
- * <p>{@link #cancel()} halts the flow immediately. Downloads run on their own threads, in parallel, because
- * the server proved it serves them fairly: ~55 MB/s per client with no starvation, even with another client
- * hammering it at the same time.
+ * <p>{@link #cancel()} halts the flow immediately. Downloads run on
+ * their own threads, in parallel, because the server proved it
+ * serves them fairly: ~55 MB/s per client with no starvation, even
+ * with another client hammering it at the same time.
  */
 public final class CsLodDownloader {
 
@@ -53,9 +58,11 @@ public final class CsLodDownloader {
     private volatile ExecutorService pool;
 
     /**
-     * What the server said about each region we hold, for the dimension of the current download. Opened at
-     * the top of {@link #download}, written by the four fetch threads as regions land, and saved once at the
-     * end -- one file write per download, not one per region.
+     * What the server said about each region we hold, for the
+     * dimension of the current download. Opened at the top of {@link
+     * #download}, written by the four fetch threads as regions land,
+     * and saved once at the end -- one file write per download, not
+     * one per region.
      */
     private volatile CsLodManifest manifest;
 
@@ -157,8 +164,8 @@ public final class CsLodDownloader {
     }
 
     /**
-     * Returns how many regions this run failed to fetch. Nonzero with {@link #fetched()} == 0 means
-     * the fast path is dead.
+     * Returns how many regions this run failed to fetch. Nonzero
+     * with {@link #fetched()} == 0 means the fast path is dead.
      */
     public long failed() {
         return failed.get();
@@ -238,8 +245,9 @@ public final class CsLodDownloader {
     }
 
     /**
-     * Checks whether we already hold what the server is advertising. A manifest lookup and one stat. See
-     * {@link CsLodManifest}. Since beta-4 this no longer reads the client's own store.
+     * Checks whether we already hold what the server is advertising.
+     * A manifest lookup and one stat. See {@link CsLodManifest}.
+     * Since beta-4 this no longer reads the client's own store.
      */
     private boolean haveAlready(Path dimDir, CsLodMessages.RegionEntry entry) {
         CsLodManifest current = this.manifest;

@@ -38,35 +38,37 @@ import java.util.Arrays;
 /**
  * Serves the CSLOD store to clients from a Bukkit/Paper server.
  *
- * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for sending it
- * (the wire format, the token store, the HTTP backchannel) has shipped inside the plugin jar all
- * along, because those classes live in {@code shared_common}. What was missing was the code that
- * connects them: nothing registered a channel, nothing started the HTTP server, nothing answered a
- * client (mod_support #18). This is that missing connection.
+ * <p>The plugin has generated LOD data since 3.2.0, and every piece of the machinery for
+ * sending it (the wire format, the token store, the HTTP backchannel) has shipped inside the
+ * plugin jar all along, because those classes live in {@code shared_common}. What was missing
+ * was the code that connects them: nothing registered a channel, nothing started the HTTP
+ * server, nothing answered a client (mod_support #18). This is that missing connection.
  *
- * <p>The client drives the exchange: hello, then ask for the region index, then fetch over HTTP whatever
- * the index says it lacks. A server that answers only the hello looks completely healthy. It logs the
- * greeting, mints a token, names its port, and serves nothing at all, because the client is waiting on
- * an index that never comes. The first cut of this class did exactly that, with the counters reading
- * {@code 0 files} beside a live token. Both requests are answered here now.
+ * <p>The client drives the exchange: hello, then ask for the region index, then fetch over HTTP
+ * whatever the index says it lacks. A server that answers only the hello looks completely
+ * healthy. It logs the greeting, mints a token, names its port, and serves nothing at all,
+ * because the client is waiting on an index that never comes. The first cut of this class did
+ * exactly that, with the counters reading {@code 0 files} beside a live token. Both requests
+ * are answered here now.
  *
- * <p><b>Bukkit will not let us reply unless we ask it to.</b> Bukkit keeps a per-player set of the
- * channels the client announced with a {@code minecraft:register} plugin message, and
- * {@code sendPluginMessage} does nothing at all for a channel outside that set: no exception, no
- * log line, no packet. A modern Fabric client negotiates the other direction perfectly (its hello
- * reaches us) but puts nothing in that set, so the server hears the client and the client never hears
- * the server. See {@link #ensureChannel(Player)}.
+ * <p><b>Bukkit will not let us reply unless we ask it to.</b> Bukkit keeps a per-player set of
+ * the channels the client announced with a {@code minecraft:register} plugin message, and
+ * {@code sendPluginMessage} does nothing at all for a channel outside that set: no exception,
+ * no log line, no packet. A modern Fabric client negotiates the other direction perfectly (its
+ * hello reaches us) but puts nothing in that set, so the server hears the client and the client
+ * never hears the server. See {@link #ensureChannel(Player)}.
  *
- * <p>Not implemented here: the in-band fallback, streaming region data down the plugin channel when the
- * HTTP port is unreachable. On the mod that path exists because a firewalled port must not mean no LOD at
- * all; here a client that cannot reach the port gets nothing, and the log names the port it should have
- * been able to reach. Open the port, or set {@code lod-backchannel-port} to one the host allows.
+ * <p>Not implemented here: the in-band fallback, streaming region data down the plugin channel
+ * when the HTTP port is unreachable. On the mod that path exists because a firewalled port must
+ * not mean no LOD at all; here a client that cannot reach the port gets nothing, and the log
+ * names the port it should have been able to reach. Open the port, or set {@code
+ * lod-backchannel-port} to one the host allows.
  *
- * <p>Dimension roots differ from the mod. A mod-loader server keeps every dimension under one save root;
- * Bukkit gives each world its own folder, so this hands {@link CsLodHttpServer} a resolver rather than a
- * single path, and nobody's existing store has to move. That resolver is also what makes the wire
- * dimension id safe: it is matched against the keys of the worlds that are actually loaded, so a
- * malformed or hostile id resolves to nothing rather than to a path.
+ * <p>Dimension roots differ from the mod. A mod-loader server keeps every dimension under one
+ * save root; Bukkit gives each world its own folder, so this hands {@link CsLodHttpServer} a
+ * resolver rather than a single path, and nobody's existing store has to move. That resolver is
+ * also what makes the wire dimension id safe: it is matched against the keys of the worlds that
+ * are actually loaded, so a malformed or hostile id resolves to nothing rather than to a path.
  */
 public final class CsLodServerBukkit implements PluginMessageListener {
 
@@ -74,8 +76,9 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     private static final String CHANNEL = CsLodProtocol.NAMESPACE + ":" + CsLodProtocol.CHANNEL;
 
     /**
-     * Ceiling on the radius a client may ask us to scan, mirroring the mod. A client that claims a
-     * draw distance of two million blocks gets the largest one we are prepared to walk the store for.
+     * Ceiling on the radius a client may ask us to scan, mirroring the mod. A client that
+     * claims a draw distance of two million blocks gets the largest one we are prepared to walk
+     * the store for.
      */
     private static final int MAX_RADIUS_BLOCKS = 16384;
 
@@ -84,9 +87,10 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Players who have actually spoken to us on {@link #CHANNEL}.
      *
-     * <p>This is the only warrant for {@link #ensureChannel(Player)} forcing a channel registration,
-     * and the reason a re-advertise does not spray a payload at every vanilla player on the server.
-     * A player lands here because they sent us a hello, which is proof they understand the channel.
+     * <p>This is the only warrant for {@link #ensureChannel(Player)} forcing a channel
+     * registration, and the reason a re-advertise does not spray a payload at every vanilla
+     * player on the server. A player lands here because they sent us a hello, which is proof
+     * they understand the channel.
      */
     private static final Set<UUID> SPOKEN = ConcurrentHashMap.newKeySet();
 
@@ -260,16 +264,16 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Answer "what have you got near me?" -- the request that actually starts a download.
      *
-     * <p>Snapshot on the calling (main) thread, scan on ours. A readdir plus one stat per region has
-     * no business on a tick, and the snapshot is the thread boundary: after this method returns, the
-     * scan never touches a game object again.
+     * <p>Snapshot on the calling (main) thread, scan on ours. A readdir plus one stat per
+     * region has no business on a tick, and the snapshot is the thread boundary: after this
+     * method returns, the scan never touches a game object again.
      *
-     * <p>The index is served for the dimension the player is standing in, not the one they asked about.
-     * An index is a set of regions filtered by a radius measured from a position, and a position only
-     * means something in one world; answering the overworld's index to somebody in the Nether returns
-     * overworld regions selected by Nether coordinates, which the client will then draw. A 3.1.0-beta-2
-     * client asks exactly that way, and no patch to this server can change what is already in a player's
-     * mods folder.
+     * <p>The index is served for the dimension the player is standing in, not the one they
+     * asked about. An index is a set of regions filtered by a radius measured from a position,
+     * and a position only means something in one world; answering the overworld's index to
+     * somebody in the Nether returns overworld regions selected by Nether coordinates, which
+     * the client will then draw. A 3.1.0-beta-2 client asks exactly that way, and no patch to
+     * this server can change what is already in a player's mods folder.
      */
     private static void dispatch(Player player, String requested, boolean summaryOnly) {
         String dimension = LodSupport.dimensionKey(player.getWorld());
@@ -307,9 +311,10 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      *
      * <p>The mod hops back to the tick to send, because a loader's channel API is not obviously
      * thread-safe. Bukkit's is: a plugin message becomes a packet write on the player's Netty
-     * channel, which is what every scheduler-async plugin in existence already relies on. Sending
-     * from here keeps this class off the Bukkit scheduler entirely, which is also what lets it behave
-     * the same way on Folia, where there is no single main thread to hop back to.
+     * channel, which is what every scheduler-async plugin in existence already relies on.
+     * Sending from here keeps this class off the Bukkit scheduler entirely, which is also what
+     * lets it behave the same way on Folia, where there is no single main thread to hop back
+     * to.
      */
     private static void scan(final UUID uuid, final String name, final String dimension,
                              final Path dir, final int px, final int pz, final int radius,
@@ -356,21 +361,22 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Make sure Bukkit will actually deliver our messages to this player.
      *
-     * <p>Bukkit only sends a plugin message on a channel the player announced with
-     * {@code minecraft:register}; for anything else {@code sendPluginMessage} returns having done
+     * <p>Bukkit only sends a plugin message on a channel the player announced with {@code
+     * minecraft:register}; for anything else {@code sendPluginMessage} returns having done
      * nothing whatsoever. A modern Fabric client does not put our channel in that set. Its own
-     * networking API negotiates capability separately and the register packet either never goes out
-     * or goes out during the CONFIGURATION phase, where the play-phase set does not see it. The
-     * result is a server that receives the hello, logs it, answers it, and delivers nothing.
+     * networking API negotiates capability separately and the register packet either never goes
+     * out or goes out during the CONFIGURATION phase, where the play-phase set does not see it.
+     * The result is a server that receives the hello, logs it, answers it, and delivers
+     * nothing.
      *
-     * <p>Only ever called for a player who has already SPOKEN to us on this channel, so this is not
-     * a guess about what the client understands: it is a correction of a bookkeeping gap between two
-     * mod platforms, applied to a client that has demonstrated it speaks the protocol. A client that
-     * never says hello is never touched.
+     * <p>Only ever called for a player who has already SPOKEN to us on this channel, so this is
+     * not a guess about what the client understands: it is a correction of a bookkeeping gap
+     * between two mod platforms, applied to a client that has demonstrated it speaks the
+     * protocol. A client that never says hello is never touched.
      *
-     * <p>Falls back to the warning it replaces if the registration cannot be forced, because the
-     * alternative (Bukkit's silence) costs an hour to diagnose the first time and this warning is
-     * the only thing in the log that names the real cause.
+     * <p>Falls back to the warning it replaces if the registration cannot be forced, because
+     * the alternative (Bukkit's silence) costs an hour to diagnose the first time and this
+     * warning is the only thing in the log that names the real cause.
      */
     private static void ensureChannel(Player player) {
         if (player.getListeningPluginChannels().contains(CHANNEL)) {
@@ -391,19 +397,19 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     }
 
     /**
-     * Adds the channel to the server's per-player set the same way an incoming
-     * {@code minecraft:register} would.
+     * Adds the channel to the server's per-player set the same way an incoming {@code
+     * minecraft:register} would.
      *
-     * <p>Reflective because Bukkit's {@code Player} interface exposes the set read-only
-     * ({@code getListeningPluginChannels}) and offers no way to add to it; the implementation class
-     * has always had a public {@code addChannel(String)} and that is what the vanilla register path
+     * <p>Reflective because Bukkit's {@code Player} interface exposes the set read-only ({@code
+     * getListeningPluginChannels}) and offers no way to add to it; the implementation class has
+     * always had a public {@code addChannel(String)} and that is what the vanilla register path
      * itself calls. Looked up by name off the live object, so no server package is named and no
-     * relocated or version-stamped class has to be guessed at. Nothing here touches
-     * {@code net.minecraft}.
+     * relocated or version-stamped class has to be guessed at. Nothing here touches {@code
+     * net.minecraft}.
      *
-     * <p>Every failure returns false rather than throwing. A server whose implementation has moved on
-     * must keep running and keep generating, and the caller has a plain-language warning ready for
-     * exactly that case.
+     * <p>Every failure returns false rather than throwing. A server whose implementation has
+     * moved on must keep running and keep generating, and the caller has a plain-language
+     * warning ready for exactly that case.
      *
      * @return true if the channel was added
      */
@@ -433,9 +439,10 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     }
 
     /**
-     * Re-tell every client that has spoken to us the new port, with a fresh token. Mirrors the mod's
-     * readvertise. Players who never said hello are skipped. They have no client to tell, and the
-     * count in the log should mean "clients that will act on this", not "bodies on the server".
+     * Re-tell every client that has spoken to us the new port, with a fresh token. Mirrors the
+     * mod's readvertise. Players who never said hello are skipped. They have no client to tell,
+     * and the count in the log should mean "clients that will act on this", not "bodies on the
+     * server".
      */
     private static void readvertise(int port) {
         int told = 0;
@@ -467,9 +474,9 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Bukkit worlds do not share a parent, so each dimension resolves to its own world folder.
      *
-     * <p>Also the containment check for a dimension id that came off the wire. It is compared against
-     * the keys of the loaded worlds, so there is no string to sanitise and nothing to escape from.
-     * An id we do not recognise resolves to null and is answered with silence.
+     * <p>Also the containment check for a dimension id that came off the wire. It is compared
+     * against the keys of the loaded worlds, so there is no string to sanitise and nothing to
+     * escape from. An id we do not recognise resolves to null and is answered with silence.
      */
     private static Path rootFor(String dimension) {
         for (World world : Bukkit.getWorlds()) {
@@ -483,10 +490,10 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /**
      * Removes the VarInt length prefix Fabric's payload codec put on the front.
      *
-     * <p>Tolerant on purpose. If the prefix does not describe the rest of the buffer, the message is
-     * assumed to be unframed and returned as-is. A future loader that frames differently then still
-     * works rather than being silently dropped, which is the failure this whole function exists to
-     * undo.
+     * <p>Tolerant on purpose. If the prefix does not describe the rest of the buffer, the
+     * message is assumed to be unframed and returned as-is. A future loader that frames
+     * differently then still works rather than being silently dropped, which is the failure
+     * this whole function exists to undo.
      *
      * @return the message body, with any length prefix stripped
      */

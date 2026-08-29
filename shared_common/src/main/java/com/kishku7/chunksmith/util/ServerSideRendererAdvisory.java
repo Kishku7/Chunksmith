@@ -8,24 +8,29 @@ import java.util.function.Predicate;
 /**
  * Says so when a dedicated server is carrying an LOD renderer it does not need.
  *
- * <p>Chunksmith builds its own LOD data as it pregenerates and serves it to the player's client, which
- * injects it into whichever renderer the player has. An LOD renderer is a client-side mod, and a
- * dedicated server does not render anything.
+ * <p>Chunksmith builds its own LOD data as it pregenerates and serves it to
+ * the player's client, which injects it into whichever renderer the player
+ * has. An LOD renderer is a client-side mod, and a dedicated server does not
+ * render anything.
  *
- * <p>Installing Distant Horizons server-side is a reasonable-looking mistake (it is the mod the
- * feature is "about" and it has a server half) and it is not free. On a live server a server-side
- * Distant Horizons ran 43 threads, its own world-gen queues, a delayed save cache and a per-dimension
- * update propagator alongside a Chunksmith pregen already generating the same terrain, and with
- * {@code synchronizeOnLoad} on it re-sent LODs the client already had.
+ * <p>Installing Distant Horizons server-side is a reasonable-looking mistake
+ * (it is the mod the feature is "about" and it has a server half) and it is
+ * not free. On a live server a server-side Distant Horizons ran 43 threads,
+ * its own world-gen queues, a delayed save cache and a per-dimension update
+ * propagator alongside a Chunksmith pregen already generating the same
+ * terrain, and with {@code synchronizeOnLoad} on it re-sent LODs the client
+ * already had.
  *
- * <p>Still not a refusal and not a {@code breaks} declaration: Distant Horizons is a renderer we feed,
- * and an operator serving vanilla DH clients is entitled to run it. One line, once, at startup.
+ * <p>Still not a refusal and not a {@code breaks} declaration: Distant
+ * Horizons is a renderer we feed, and an operator serving vanilla DH clients
+ * is entitled to run it. One line, once, at startup.
  */
 public final class ServerSideRendererAdvisory {
 
     /**
-     * Renderer mod ids worth mentioning: the ones Chunksmith can actually feed on the client. Same id on
-     * every loader that ships them; anything not on this list is somebody else's mod.
+     * Renderer mod ids worth mentioning: the ones Chunksmith can actually
+     * feed on the client. Same id on every loader that ships them; anything
+     * not on this list is somebody else's mod.
      */
     private static final List<String> RENDERER_IDS = List.of("distanthorizons", "voxy");
 

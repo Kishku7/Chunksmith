@@ -12,22 +12,25 @@ import com.kishku7.chunksmith.util.WorldgenOverreachReporter;
 import org.apache.logging.log4j.Marker;
 
 /**
- * Best-effort plugin (Spigot/Paper/Folia) counterpart to the Fabric/NeoForge mixins. There is no
- * Mixin on a Bukkit server, so vanilla worldgen spam is captured the only way available: a Log4j2
- * filter on the root logger that watches for the relevant vanilla ERROR lines, routes each into the
- * matching Chunksmith reporter, and {@code DENY}s the event to suppress the raw spam.
- * <p>
- * Two vanilla faults are handled:
+ * Best-effort plugin (Spigot/Paper/Folia) counterpart to the
+ * Fabric/NeoForge mixins. There is no Mixin on a Bukkit server, so
+ * vanilla worldgen spam is captured the only way available: a
+ * Log4j2 filter on the root logger that watches for the relevant
+ * vanilla ERROR lines, routes each into the matching Chunksmith
+ * reporter, and {@code DENY}s the event to suppress the raw spam.
+ * <p> Two vanilla faults are handled:
  * <ul>
  *   <li>{@code Detected setBlock in a far chunk} -> {@link WorldgenOverreachReporter} (collapsed
  *       single-line overreach reports in the server log).</li>
  *   <li>{@code Block-attached entity at invalid position} -> {@link StructureFaultReporter} (counted
- *       into the periodic worldgen-fault sub-report file). Best-effort only: the plugin path has no
- *       structure context, so the culprit/chunk cannot be attributed here.</li>
+ * into the periodic worldgen-fault sub-report file). Best-effort
+ * only: the plugin path has no structure context, so the
+ * culprit/chunk cannot be attributed here.</li>
  * </ul>
- * Both lines are logged at {@code ERROR}, so the filter short-circuits anything below {@code WARN}
- * and never touches the text of ordinary logs. Any failure is swallowed: a diagnostic must never
- * interfere with normal logging.
+ * Both lines are logged at {@code ERROR}, so the filter
+ * short-circuits anything below {@code WARN} and never touches the
+ * text of ordinary logs. Any failure is swallowed: a diagnostic
+ * must never interfere with normal logging.
  */
 public final class WorldgenOverreachLogFilter extends AbstractFilter {
     private final WorldgenOverreachReporter reporter = WorldgenOverreachReporter.get();
@@ -37,9 +40,10 @@ public final class WorldgenOverreachLogFilter extends AbstractFilter {
     }
 
     /**
-     * Installs the filter on the root logger of the running Log4j2 context and returns it (or
-     * {@code null} if the environment is not Log4j2-core, e.g. an unusual server). Caller should
-     * keep the reference to {@link #uninstall} on disable.
+     * Installs the filter on the root logger of the running Log4j2
+     * context and returns it (or {@code null} if the environment is
+     * not Log4j2-core, e.g. an unusual server). Caller should keep
+     * the reference to {@link #uninstall} on disable.
      *
      * @return the installed filter, or {@code null} if the environment is not Log4j2-core
      */

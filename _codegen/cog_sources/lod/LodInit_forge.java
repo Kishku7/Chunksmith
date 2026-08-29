@@ -15,14 +15,16 @@ import org.slf4j.LoggerFactory;
 /**
  * The classic-Forge LOD entrypoint (MC 1.20.1 / Forge 47): everything LOD, and nothing else.
  *
- * <p>A GAME-bus {@code @Mod.EventBusSubscriber} rather than a hook inside {@code ChunksmithForge}: FML
- * registers every subscriber automatically, so a cell without the LOD feature simply does not ship this
- * class and the general entrypoint never learns that LOD exists. The channel is built by
- * {@code CsLodChannel}'s static initializer (a MOD-bus subscriber), because Forge's network registry only
- * accepts a new channel during mod construction.
+ * <p>A GAME-bus {@code @Mod.EventBusSubscriber} rather than a hook inside {@code
+ * ChunksmithForge}: FML registers every subscriber automatically, so a cell without
+ * the LOD feature simply does not ship this class and the general entrypoint never
+ * learns that LOD exists. The channel is built by {@code CsLodChannel}'s static
+ * initializer (a MOD-bus subscriber), because Forge's network registry only accepts a
+ * new channel during mod construction.
  *
- * <p>{@code TickEvent.ServerTickEvent} did not carry a {@link MinecraftServer} on every Forge 47 build, so
- * the server is captured on start rather than read off the tick event.
+ * <p>{@code TickEvent.ServerTickEvent} did not carry a {@link MinecraftServer} on
+ * every Forge 47 build, so the server is captured on start rather than read off the
+ * tick event.
  */
 @Mod.EventBusSubscriber(modid = "chunksmith")
 public final class LodInit {
@@ -38,9 +40,10 @@ public final class LodInit {
     }
 
     /**
-     * Binds Distant Horizons at the last point before it reports its levels. {@code ServerAboutToStartEvent}
-     * fires BEFORE {@code initServer()}, so before {@code createLevels()} and therefore before DH's
-     * level-load event. {@code ServerStartedEvent} would already be too late to override its generator.
+     * Binds Distant Horizons at the last point before it reports its levels. {@code
+     * ServerAboutToStartEvent} fires BEFORE {@code initServer()}, so before {@code
+     * createLevels()} and therefore before DH's level-load event. {@code
+     * ServerStartedEvent} would already be too late to override its generator.
      */
     @SubscribeEvent
     public static void onServerAboutToStart(ServerAboutToStartEvent event) {
@@ -81,8 +84,9 @@ public final class LodInit {
     /**
      * The LOD-streamer conflict check, done at runtime on this cell only: Forge 47's {@code mods.toml} has
      * no incompatible dependency type (only {@code mandatory = true|false}), so the incompatibility every
-     * other cell declares in its manifest (Fabric {@code breaks}, NeoForge {@code type = "incompatible"})
-     * is not expressible here and has to be surfaced in the log instead.
+     * other cell declares in its manifest (Fabric {@code breaks}, NeoForge {@code type
+     * = "incompatible"}) is not expressible here and has to be surfaced in the log
+     * instead.
      */
     private static void warnOnConflicts() {
         for (String other : new String[] {"lss", "voxyserver", "lodserver"}) {

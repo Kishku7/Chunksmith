@@ -14,17 +14,19 @@ import static org.junit.Assert.assertTrue;
 import java.util.stream.Stream;
 
 /**
- * Tests for the CSLOD presence bitmap that decides, per chunk, whether a pregen re-run has anything
- * left to do.
+ * Tests for the CSLOD presence bitmap that decides, per chunk, whether a pregen
+ * re-run has anything left to do.
  *
- * <p>This is worth pinning down precisely because getting it wrong is silent in both directions. A
- * false "present" makes the pregen skip a chunk that has no LOD, and the hole never gets filled (the
- * exact bug this feature exists to kill). A false "absent" makes it reload and rewrite chunks that
- * were already done, which is the wasteful behaviour we are replacing. Neither shows up as an error.
+ * <p>This is worth pinning down precisely because getting it wrong is silent in
+ * both directions. A false "present" makes the pregen skip a chunk that has no LOD,
+ * and the hole never gets filled (the exact bug this feature exists to kill). A
+ * false "absent" makes it reload and rewrite chunks that were already done, which
+ * is the wasteful behaviour we are replacing. Neither shows up as an error.
  *
- * <p>The bitmap is read out of the region file header, so these tests write through the real
- * {@link CsLodRegionStore} and then read back through {@link CsLodPresenceIndex}. If the two ever
- * disagree about what a slot means, that is what fails here.
+ * <p>The bitmap is read out of the region file header, so these tests write through
+ * the real {@link CsLodRegionStore} and then read back through {@link
+ * CsLodPresenceIndex}. If the two ever disagree about what a slot means, that is
+ * what fails here.
  */
 public class CsLodPresenceIndexTest {
 

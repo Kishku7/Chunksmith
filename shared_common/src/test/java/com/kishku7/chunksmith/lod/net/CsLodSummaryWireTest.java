@@ -12,11 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The two new v2 messages, on the wire. That includes the number the whole design rests on: one idle
- * sync poll is 22 bytes out and 34 bytes back.
+ * The two new v2 messages, on the wire. That includes the number the whole design rests on: one
+ * idle sync poll is 22 bytes out and 34 bytes back.
  *
- * <p>That is the reason a 30-second poll from a hundred clients is affordable, so it is asserted here
- * rather than merely claimed in a comment.
+ * <p>That is the reason a 30-second poll from a hundred clients is affordable, so it is asserted
+ * here rather than merely claimed in a comment.
  */
 public class CsLodSummaryWireTest {
 
@@ -41,9 +41,10 @@ public class CsLodSummaryWireTest {
     }
 
     /**
-     * And for scale: the INDEX the poll exists to avoid, for the same 81 regions, is ~1.7 KB on the wire --
-     * and used to cost the server hundreds of megabytes of humongous heap to produce (see
-     * {@code CsLodServerNet}). The poll is ~50x smaller on the wire and unboundedly cheaper to compute.
+     * And for scale: the INDEX the poll exists to avoid, for the same 81 regions, is ~1.7 KB on
+     * the wire -- and used to cost the server hundreds of megabytes of humongous heap to produce
+     * (see {@code CsLodServerNet}). The poll is ~50x smaller on the wire and unboundedly cheaper
+     * to compute.
      */
     @Test
     public void anIndexIsMuchBiggerThanASummary() throws IOException {

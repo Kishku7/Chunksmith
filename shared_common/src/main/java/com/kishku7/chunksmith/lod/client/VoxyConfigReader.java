@@ -10,24 +10,26 @@ import java.util.OptionalDouble;
 /**
  * Reads a voxy config object (upstream's or any fork's) without compiling against its field types.
  *
- * <p><b>The one place Chunksmith uses reflection on voxy, and it is deliberate.</b> Everything else we touch
- * ({@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()}, {@code WorldIdentifier.of}) was
- * verified identical across upstream and all six forks with {@code javap}, so it is called directly. The
- * config is the one place fork drift has actually been observed.
+ * <p><b>The one place Chunksmith uses reflection on voxy, and it is deliberate.</b> Everything
+ * else we touch ({@code VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()},
+ * {@code WorldIdentifier.of}) was verified identical across upstream and all six forks with
+ * {@code javap}, so it is called directly. The config is the one place fork drift has actually
+ * been observed.
  *
- * <p><b>The observed drift.</b> Upstream voxy declares {@code public float sectionRenderDistance}. The
- * srjefers fork (rebased from voxy 0.2.8-alpha, which typed it as an {@code int}) ships
- * {@code public int sectionRenderDistance}. A field's type is part of its JVM resolution: our compiled
- * {@code getfield ... : F} does not match a field declared {@code I}, so the JVM throws
- * {@code NoSuchFieldError}, a {@link LinkageError}. We used to catch that and return 0, so the server fell
- * back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS} (256 blocks) for a player whose voxy was set to draw
+ * <p><b>The observed drift.</b> Upstream voxy declares {@code public float
+ * sectionRenderDistance}. The srjefers fork (rebased from voxy 0.2.8-alpha, which typed it as
+ * an {@code int}) ships {@code public int sectionRenderDistance}. A field's type is part of
+ * its JVM resolution: our compiled {@code getfield ... : F} does not match a field declared
+ * {@code I}, so the JVM throws {@code NoSuchFieldError}, a {@link LinkageError}. We used to
+ * catch that and return 0, so the server fell back to {@link
+ * CsLodProtocol#DEFAULT_RADIUS_BLOCKS} (256 blocks) for a player whose voxy was set to draw
  * 8192. A 32x collapse, in silence.
  *
- * <p>So: look the field up by name, ask it what type it actually is, and read it as whatever it is. The
- * units are the same in every version of voxy (the field counts voxy sections; a section is 32 chunks = 512
- * blocks), only the storage type drifted. If the field is genuinely gone, say so; see {@link LodWarnings}.
- * It names no voxy type (it takes an {@code Object}), which is what makes the int/float/absent cases
- * testable without a Minecraft runtime.
+ * <p>So: look the field up by name, ask it what type it actually is, and read it as whatever
+ * it is. The units are the same in every version of voxy (the field counts voxy sections; a
+ * section is 32 chunks = 512 blocks), only the storage type drifted. If the field is genuinely
+ * gone, say so; see {@link LodWarnings}. It names no voxy type (it takes an {@code Object}),
+ * which is what makes the int/float/absent cases testable without a Minecraft runtime.
  */
 public final class VoxyConfigReader {
 
@@ -46,10 +48,11 @@ public final class VoxyConfigReader {
     /**
      * Returns voxy's configured render distance in blocks, or 0 when there is nothing to read.
      *
-     * <p>0 quietly when the config is not there yet or the player has switched voxy's renderer off, and
-     * those are not faults. 0 loudly, once, when voxy is there and configured on but its render-distance
-     * field cannot be found or is not a number, which is fork drift, and the player deserves to know their
-     * radius just fell back to {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}.
+     * <p>0 quietly when the config is not there yet or the player has switched voxy's renderer
+     * off, and those are not faults. 0 loudly, once, when voxy is there and configured on but
+     * its render-distance field cannot be found or is not a number, which is fork drift, and
+     * the player deserves to know their radius just fell back to {@link
+     * CsLodProtocol#DEFAULT_RADIUS_BLOCKS}.
      *
      * @param config the voxy {@code VoxyConfig.CONFIG} instance, or null
      * @return the radius in blocks, or 0 when there is nothing to read
@@ -130,9 +133,10 @@ public final class VoxyConfigReader {
     }
 
     /**
-     * Reads a static field off a class, by name. Null when it is absent, not static, or unreadable. Used
-     * for {@code VoxyConfig.CONFIG} itself, where even the holder is fetched by name, so a fork that
-     * renamed it degrades to "no config" instead of throwing {@code NoSuchFieldError} out of our bytecode.
+     * Reads a static field off a class, by name. Null when it is absent, not static, or
+     * unreadable. Used for {@code VoxyConfig.CONFIG} itself, where even the holder is fetched
+     * by name, so a fork that renamed it degrades to "no config" instead of throwing {@code
+     * NoSuchFieldError} out of our bytecode.
      */
     public static Object staticField(Class<?> owner, String name) {
         try {

@@ -10,23 +10,25 @@ import com.kishku7.chunksmith.lod.client.render.VoxyTarget;
 /**
  * Detects which LOD renderer(s) the player actually has, and how far they are set to draw.
  *
- * <p>Mod ids: {@code voxy} (upstream and every fork) and {@code distanthorizons} (Fabric and NeoForge,
- * ships for 26.1.2 and 26.2). Every voxy fork we could reach keeps the id {@code voxy} and is identical to
- * upstream on the voxel layout, mapper scheme, section key, storage version, package root and ingest
- * signatures, so one adapter covers them all. That is a snapshot of the fork field as it stood on
- * 2026-07-13, and it is the roster the other voxy classes lean on: upstream, ggonzaDNG mia-edition,
- * NHblock714, Paulem79, srjefers and Vulkan-Voxy, each one run as a real jar. New forks keep appearing;
- * re-run the set before trusting the claim. The one place they did drift (the type of voxy's
- * render-distance config field) is now read type-tolerantly; see {@code VoxyConfigReader}.
+ * <p>Mod ids: {@code voxy} (upstream and every fork) and {@code distanthorizons} (Fabric and
+ * NeoForge, ships for 26.1.2 and 26.2). Every voxy fork we could reach keeps the id {@code
+ * voxy} and is identical to upstream on the voxel layout, mapper scheme, section key,
+ * storage version, package root and ingest signatures, so one adapter covers them all. That
+ * is a snapshot of the fork field as it stood on 2026-07-13, and it is the roster the other
+ * voxy classes lean on: upstream, ggonzaDNG mia-edition, NHblock714, Paulem79, srjefers and
+ * Vulkan-Voxy, each one run as a real jar. New forks keep appearing; re-run the set before
+ * trusting the claim. The one place they did drift (the type of voxy's render-distance
+ * config field) is now read type-tolerantly; see {@code VoxyConfigReader}.
  *
- * <p><b>voxy is Fabric-only.</b> Its {@code VoxyCommon} implements {@code net.fabricmc.api.ModInitializer},
- * so the adapter cannot even compile against a NeoForge build, and no fork has ever shipped for any 26.x
- * NeoForge. {@code VoxyTarget}/{@code VoxyRadius} are therefore per-loader SEAM classes, and
- * {@link #hasVoxy()} is gated on {@code VoxyTarget.supported()} so the NeoForge build never announces a
- * voxy it cannot feed.
+ * <p><b>voxy is Fabric-only.</b> Its {@code VoxyCommon} implements {@code
+ * net.fabricmc.api.ModInitializer}, so the adapter cannot even compile against a NeoForge
+ * build, and no fork has ever shipped for any 26.x NeoForge. {@code VoxyTarget}/{@code
+ * VoxyRadius} are therefore per-loader SEAM classes, and {@link #hasVoxy()} is gated on
+ * {@code VoxyTarget.supported()} so the NeoForge build never announces a voxy it cannot
+ * feed.
  *
- * <p>Neither is bundled: voxy is All-Rights-Reserved and Distant Horizons is LGPL, so we compile against
- * them and never ship them.
+ * <p>Neither is bundled: voxy is All-Rights-Reserved and Distant Horizons is LGPL, so we
+ * compile against them and never ship them.
  */
 public final class Renderers {
 
@@ -55,16 +57,17 @@ public final class Renderers {
      * Returns how far the player's renderer is actually configured to draw, in blocks.
      *
      * <p>Use the renderer's configured LOD distance, whether it is lower or higher than
-     * {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}, and fall back to that default only if neither renderer
-     * can be read. With both installed, take the larger: the smaller renderer ignores what it cannot draw,
-     * whereas shipping only the smaller radius leaves the further-drawing one with holes. DH reports
-     * {@code graphics().chunkRenderDistance()} in chunks, voxy
-     * {@code VoxyConfig.CONFIG.sectionRenderDistance} in 512-block sections.
+     * {@link CsLodProtocol#DEFAULT_RADIUS_BLOCKS}, and fall back to that default only if
+     * neither renderer can be read. With both installed, take the larger: the smaller
+     * renderer ignores what it cannot draw, whereas shipping only the smaller radius leaves
+     * the further-drawing one with holes. DH reports {@code
+     * graphics().chunkRenderDistance()} in chunks, voxy {@code
+     * VoxyConfig.CONFIG.sectionRenderDistance} in 512-block sections.
      *
-     * <p>The {@code LinkageError} catches below used to be silent {@code ignored} blocks, which is how a
-     * re-typed voxy config field collapsed a player's radius from 8192 blocks to 256 with nothing in the
-     * log (see {@code VoxyRadius}). Both readers announce their own failures now; these catches are the
-     * last net, for our own seam class failing.
+     * <p>The {@code LinkageError} catches below used to be silent {@code ignored} blocks,
+     * which is how a re-typed voxy config field collapsed a player's radius from 8192 blocks
+     * to 256 with nothing in the log (see {@code VoxyRadius}). Both readers announce their
+     * own failures now; these catches are the last net, for our own seam class failing.
      *
      * @return the configured draw radius in blocks
      */
@@ -97,10 +100,11 @@ public final class Renderers {
     }
 
     /**
-     * For the status line at INIT. Deliberately does not read the radius: this line is logged from the
-     * mod-init entrypoint, and asking voxy for its radius there class-loads {@code VoxyConfig} before voxy
-     * has initialized, which leaves voxy permanently inert (see
-     * {@link com.kishku7.chunksmith.lod.client.render.VoxyRadius}). The radius is logged at handshake time.
+     * For the status line at INIT. Deliberately does not read the radius: this line is
+     * logged from the mod-init entrypoint, and asking voxy for its radius there class-loads
+     * {@code VoxyConfig} before voxy has initialized, which leaves voxy permanently inert
+     * (see {@link com.kishku7.chunksmith.lod.client.render.VoxyRadius}). The radius is
+     * logged at handshake time.
      */
     public static String describe() {
         if (!any()) {

@@ -55,8 +55,9 @@ public final class ShapeUtil {
     }
 
     /**
-     * Returns the point on the perimeter of an ellipse, defined by its center and radii, that corresponds
-     * to a specific angle.
+     * Returns the point on the perimeter of an ellipse,
+     * defined by its center and radii, that corresponds to a
+     * specific angle.
      *
      * @param centerX Ellipse center x
      * @param centerZ Ellipse center z

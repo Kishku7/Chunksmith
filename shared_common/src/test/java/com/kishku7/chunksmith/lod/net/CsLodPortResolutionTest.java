@@ -15,10 +15,11 @@ import java.lang.reflect.Proxy;
 /**
  * The backchannel port an operator actually gets (mod_support #19).
  *
- * <p>Before 3.14.0 the port was {@code gamePort + 1} and nothing else, which is unusable on a managed
- * host that will not rent you the port next to your game port. The rules that replaced it are small but
- * every one of them decides whether somebody's server can serve LODs at all, so they are pinned here
- * rather than left to be re-derived from the code each time somebody touches it.
+ * <p>Before 3.14.0 the port was {@code gamePort + 1} and nothing else, which is unusable on a
+ * managed host that will not rent you the port next to your game port. The rules that replaced
+ * it are small but every one of them decides whether somebody's server can serve LODs at all,
+ * so they are pinned here rather than left to be re-derived from the code each time somebody
+ * touches it.
  */
 public class CsLodPortResolutionTest {
 
@@ -183,9 +184,9 @@ public class CsLodPortResolutionTest {
     /**
      * A Config that records only what this test cares about.
      *
-     * <p>A proxy rather than a hand-written stub. Config carries around forty methods and none of
-     * the other thirty-nine have anything to do with a port, so implementing them would be noise
-     * that has to be maintained every time the interface grows.
+     * <p>A proxy rather than a hand-written stub. Config carries around forty methods and none
+     * of the other thirty-nine have anything to do with a port, so implementing them would be
+     * noise that has to be maintained every time the interface grows.
      *
      * @param seen {@code [writeCount, lastPortWritten]}
      */

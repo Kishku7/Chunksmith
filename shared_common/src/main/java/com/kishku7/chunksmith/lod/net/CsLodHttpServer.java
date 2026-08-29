@@ -23,19 +23,23 @@ import java.util.regex.Pattern;
 /**
  * The LOD backchannel: a small, read-only HTTP server that hands out CSLOD region files.
  *
- * <p><b>Why this exists.</b> A plugin channel rides the same connection as gameplay, so pushing hundreds of
- * megabytes through it starves the game loop, and it re-compresses payloads that are already compressed.
- * The CSLOD store is already plain region files, so the server does not stream anything: it serves them,
- * with range requests, resume and parallel connections, and the game pipeline untouched.
+ * <p><b>Why this exists.</b> A plugin channel rides the same connection as
+ * gameplay, so pushing hundreds of megabytes through it starves the game loop, and
+ * it re-compresses payloads that are already compressed. The CSLOD store is
+ * already plain region files, so the server does not stream anything: it serves
+ * them, with range requests, resume and parallel connections, and the game
+ * pipeline untouched.
  *
- * <p><b>The address follows the game; the port is the operator's if they want it.</b> The interface is
- * always the one the game is bound to; a client is already connected to that host. The port defaults to
- * game port + 1 and can be set explicitly, because a managed host rents a fixed set of ports and will not
- * hand out the one next to the game just because it is tidy (mod_support #19). If it cannot be bound the mod
- * still runs (the client falls back in-band) but it says so at WARN, naming the port.
+ * <p><b>The address follows the game; the port is the operator's if they want
+ * it.</b> The interface is always the one the game is bound to; a client is
+ * already connected to that host. The port defaults to game port + 1 and can be
+ * set explicitly, because a managed host rents a fixed set of ports and will not
+ * hand out the one next to the game just because it is tidy (mod_support #19). If
+ * it cannot be bound the mod still runs (the client falls back in-band) but it
+ * says so at WARN, naming the port.
  *
- * <p>Uses the JDK's own {@link HttpServer}: zero dependencies, consistent with the rest of the LOD stack
- * (no native DB, no native compressor).
+ * <p>Uses the JDK's own {@link HttpServer}: zero dependencies, consistent with the
+ * rest of the LOD stack (no native DB, no native compressor).
  *
  * <p><b>Hardening.</b> This is a port opened on someone's game server, so:
  * <ul>
@@ -61,9 +65,10 @@ public final class CsLodHttpServer {
     private static final int STOP_GRACE_SECONDS = 2;
 
     /**
-     * Where a given dimension's region files live. A mod-loader server keeps every dimension under one save
-     * root, so the default is {@code root.resolve(dimension)}; Bukkit gives each world its own folder, so
-     * there is no single parent to point at and it supplies its own resolver.
+     * Where a given dimension's region files live. A mod-loader server keeps every
+     * dimension under one save root, so the default is {@code
+     * root.resolve(dimension)}; Bukkit gives each world its own folder, so there
+     * is no single parent to point at and it supplies its own resolver.
      */
     @FunctionalInterface
     public interface RootResolver {
@@ -232,9 +237,10 @@ public final class CsLodHttpServer {
     }
 
     /**
-     * Maps a request path to a file inside the store, or null. Two independent gates apply. The shape must
-     * match {@code /lod/<dim>/r.<x>.<z>.cslod} exactly, and the canonicalized result must still live under
-     * the store root. Either alone would probably do; both are cheap.
+     * Maps a request path to a file inside the store, or null. Two independent
+     * gates apply. The shape must match {@code /lod/<dim>/r.<x>.<z>.cslod}
+     * exactly, and the canonicalized result must still live under the store root.
+     * Either alone would probably do; both are cheap.
      */
     private Path resolve(String requestPath) {
         if (requestPath == null || !requestPath.startsWith(CsLodProtocol.HTTP_PREFIX)) {

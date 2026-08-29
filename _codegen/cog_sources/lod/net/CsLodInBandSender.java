@@ -15,24 +15,30 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A few hundred KB/s, against the backchannel's ~55 MB/s. That is the point. This is the fallback for
- * a server with no open backchannel port: region files sent IN-BAND, a few slices per tick.
+ * A few hundred KB/s, against the backchannel's ~55 MB/s. That is
+ * the point. This is the fallback for a server with no open
+ * backchannel port: region files sent IN-BAND, a few slices per
+ * tick.
  *
- * <p>Slow on purpose. It rides the same connection as gameplay, so every byte competes with movement,
- * chunks and entities, while the backchannel moves its 55 MB/s with the game connection untouched. Hard cap
- * of a few slices per tick, never a burst, and the client can stop it at any moment.
+ * <p>Slow on purpose. It rides the same connection as gameplay,
+ * so every byte competes with movement, chunks and entities,
+ * while the backchannel moves its 55 MB/s with the game
+ * connection untouched. Hard cap of a few slices per tick, never
+ * a burst, and the client can stop it at any moment.
  */
 public final class CsLodInBandSender {
 
     /**
-     * Bytes per slice. Comfortably inside the packet ceiling, and small enough that one slice is never a
-     * spike in the middle of a tick.
+     * Bytes per slice. Comfortably inside the packet ceiling, and
+     * small enough that one slice is never a spike in the middle
+     * of a tick.
      */
     private static final int SLICE_BYTES = 24 * 1024;
 
     /**
-     * Slices per player per tick. 4 x 24 KB x 20 tps = ~1.9 MB/s: fast enough to be useful, slow enough
-     * that nobody's game stutters because someone else is fetching terrain.
+     * Slices per player per tick. 4 x 24 KB x 20 tps = ~1.9 MB/s:
+     * fast enough to be useful, slow enough that nobody's game
+     * stutters because someone else is fetching terrain.
      */
     private static final int SLICES_PER_TICK = 4;
 
@@ -44,12 +50,16 @@ public final class CsLodInBandSender {
     /**
      * Queues a set of regions for a player. Replaces anything already queued for them.
      *
-     * <p>Nothing is read here beyond the file list; the bytes are pulled a slice at a time in
-     * {@link #tick}, straight off disk. The obvious implementation, slurping every wanted region with
-     * {@code readAllBytes} and pre-slicing it, put the entire requested set on the heap, on the server
-     * thread, before a single byte went out: a legitimate client asking for a few hundred region files (a
-     * normal first join against a pregenerated world) is hundreds of megabytes and a multi-second
-     * main-thread stall, and a hostile one is a free OOM. A cursor costs one open file per player instead.
+     * <p>Nothing is read here beyond the file list; the bytes are
+     * pulled a slice at a time in {@link #tick}, straight off
+     * disk. The obvious implementation, slurping every wanted
+     * region with {@code readAllBytes} and pre-slicing it, put
+     * the entire requested set on the heap, on the server thread,
+     * before a single byte went out: a legitimate client asking
+     * for a few hundred region files (a normal first join against
+     * a pregenerated world) is hundreds of megabytes and a
+     * multi-second main-thread stall, and a hostile one is a free
+     * OOM. A cursor costs one open file per player instead.
      */
     public static void queue(final ServerPlayer player, final Path storeRoot, final String dimension,
                              final List<CsLodMessages.RegionEntry> wanted) throws IOException {
@@ -113,8 +123,9 @@ public final class CsLodInBandSender {
     }
 
     /**
-     * A player's in-flight transfer: the regions still owed, plus a cursor into the one currently being
-     * sent. Touched only from the server thread (queue/tick/cancel all run there).
+     * A player's in-flight transfer: the regions still owed, plus
+     * a cursor into the one currently being sent. Touched only
+     * from the server thread (queue/tick/cancel all run there).
      */
     private static final class Transfer {
 

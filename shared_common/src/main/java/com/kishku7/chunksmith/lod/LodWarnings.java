@@ -8,11 +8,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Says out loud, ONCE, when a renderer we detected turns out not to work the way we expected.
- * <p>That happened for real: a fork that declares {@code int sectionRenderDistance} where upstream voxy
- * declares {@code float} produced a {@code NoSuchFieldError}, which was swallowed, which silently
- * collapsed the LOD radius from 8192 blocks to the 256-block protocol default -- a 32x collapse, reported
- * as success. Never again: a renderer that fails to accept our data, or whose settings we cannot read, is
- * a thing the player must be told about, in words, naming what broke and what we did instead.
+ * <p>That happened for real: a fork that declares {@code int sectionRenderDistance} where upstream
+ * voxy declares {@code float} produced a {@code NoSuchFieldError}, which was swallowed, which
+ * silently collapsed the LOD radius from 8192 blocks to the 256-block protocol default -- a 32x
+ * collapse, reported as success. Never again: a renderer that fails to accept our data, or whose
+ * settings we cannot read, is a thing the player must be told about, in words, naming what broke and
+ * what we did instead.
  */
 public final class LodWarnings {
 

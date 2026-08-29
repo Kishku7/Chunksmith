@@ -8,15 +8,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
- * Suppresses vanilla's "Block-attached entity at invalid position: {}" error and routes it to
- * {@link StructureFaultReporter} instead. The log call is in
- * {@code BlockAttachedEntity.readAdditionalSaveData}; item frames / paintings / leash knots baked
- * into structure templates without a modern {@code block_pos} tag (e.g. legacy {@code TileX/TileY/TileZ})
- * trigger it once each on fresh worldgen, flooding the log. The entity is still placed correctly by
- * {@code setPos} after load, so this is cosmetic noise - we intercept only the logging.
- * <p>
- * A {@code null} stored position is the missing-anchor (legacy-format) case; a non-null BlockPos
- * means the saved anchor is more than 16 blocks from the entity.
+ * Suppresses vanilla's "Block-attached entity at invalid
+ * position: {}" error and routes it to {@link
+ * StructureFaultReporter} instead. The log call is in {@code
+ * BlockAttachedEntity.readAdditionalSaveData}; item frames /
+ * paintings / leash knots baked into structure templates
+ * without a modern {@code block_pos} tag (e.g. legacy {@code
+ * TileX/TileY/TileZ}) trigger it once each on fresh worldgen,
+ * flooding the log. The entity is still placed correctly by
+ * {@code setPos} after load, so this is cosmetic noise - we
+ * intercept only the logging. <p> A {@code null} stored
+ * position is the missing-anchor (legacy-format) case; a
+ * non-null BlockPos means the saved anchor is more than 16
+ * blocks from the entity.
  */
 @Mixin(BlockAttachedEntity.class)
 public abstract class BlockAttachedEntityMixin {

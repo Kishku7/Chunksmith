@@ -16,15 +16,19 @@ import java.util.function.Consumer;
 /**
  * Attaches the client's LOD handlers on Fabric before MC 1.20.2 (our 1.20.1 cell).
  *
- * <p>{@code CustomPacketPayload} does not exist here, so there is no payload object and no type registry:
- * the channel is a plain {@code (ResourceLocation, FriendlyByteBuf)} pair, and registering a receiver on the
- * CLIENT side is entirely independent of the server-side receiver {@link CsLodChannel#register()} installs.
- * There is therefore nothing that could be double-registered on this cell, but the merged shape is the
- * same as every other cell's anyway: the channel id lives in exactly one place ({@link CsLodChannel#ID}) and
- * this class only ever attaches handlers to it.
+ * <p>{@code CustomPacketPayload} does not exist here, so there is no
+ * payload object and no type registry: the channel is a plain {@code
+ * (ResourceLocation, FriendlyByteBuf)} pair, and registering a receiver on
+ * the CLIENT side is entirely independent of the server-side receiver
+ * {@link CsLodChannel#register()} installs. There is therefore nothing
+ * that could be double-registered on this cell, but the merged shape is
+ * the same as every other cell's anyway: the channel id lives in exactly
+ * one place ({@link CsLodChannel#ID}) and this class only ever attaches
+ * handlers to it.
  *
- * <p>The wire is byte-identical to the payload-era cells: a length-prefixed byte array on
- * {@code chunksmith:lod}. {@code writeByteArray} is the same varint+bytes encoding the modern StreamCodec
+ * <p>The wire is byte-identical to the payload-era cells: a
+ * length-prefixed byte array on {@code chunksmith:lod}. {@code
+ * writeByteArray} is the same varint+bytes encoding the modern StreamCodec
  * emits.
  */
 @Environment(EnvType.CLIENT)
@@ -61,8 +65,8 @@ public final class ClientPlatform {
     }
 
     /**
-     * Sends raw protocol bytes to the connected server. Silently does nothing on the many servers that do not
-     * speak our channel.
+     * Sends raw protocol bytes to the connected server. Silently does
+     * nothing on the many servers that do not speak our channel.
      */
     public static void sendToServer(byte[] data) {
         if (!ClientPlayNetworking.canSend(CsLodChannel.ID)) {

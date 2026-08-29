@@ -15,10 +15,10 @@ import org.slf4j.LoggerFactory;
 /**
  * The NeoForge LOD entrypoint: everything LOD, and nothing else.
  *
- * <p>A GAME-bus {@code @EventBusSubscriber} rather than a hook inside {@code ChunksmithNeoForge}: FML
- * registers every subscriber automatically, so a cell without the LOD feature simply does not ship this
- * class and the general entrypoint never learns that LOD exists. The payload registration is a MOD-bus
- * event and lives in {@code CsLodChannel}.
+ * <p>A GAME-bus {@code @EventBusSubscriber} rather than a hook inside {@code ChunksmithNeoForge}:
+ * FML registers every subscriber automatically, so a cell without the LOD feature simply does not
+ * ship this class and the general entrypoint never learns that LOD exists. The payload
+ * registration is a MOD-bus event and lives in {@code CsLodChannel}.
  *
  * <p>Shared source: canonical location _codegen/cog_sources/lod; the gen/ copy is overwritten each build.
  */
@@ -36,10 +36,10 @@ public final class LodInit {
     }
 
     /**
-     * Binds Distant Horizons at the last point before it reports its levels. {@code ServerAboutToStartEvent}
-     * fires from {@code MinecraftServer.runServer} BEFORE {@code initServer()}, so before
-     * {@code createLevels()} and therefore before DH's level-load event. {@code ServerStartedEvent} would
-     * already be too late to override its generator.
+     * Binds Distant Horizons at the last point before it reports its levels. {@code
+     * ServerAboutToStartEvent} fires from {@code MinecraftServer.runServer} BEFORE {@code
+     * initServer()}, so before {@code createLevels()} and therefore before DH's level-load event.
+     * {@code ServerStartedEvent} would already be too late to override its generator.
      */
     @SubscribeEvent
     public static void onServerAboutToStart(ServerAboutToStartEvent event) {

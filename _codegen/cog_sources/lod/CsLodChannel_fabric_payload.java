@@ -14,15 +14,16 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * Fabric's payload-era registration door for {@code chunksmith:lod} (MC 1.20.5+), and nothing more than
- * that. All the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in shared_common, which
- * know nothing about Minecraft, so the Chunksmith server and Chunksmith-Client (a different mod, in a
- * different repo, possibly on a different loader) share one implementation of the wire format instead of
- * maintaining two that drift. The same bytes also travel over the HTTP backchannel and sit on disk in the
- * store: one format, three uses.
+ * Fabric's payload-era registration door for {@code chunksmith:lod} (MC 1.20.5+), and nothing more
+ * than that. All the protocol lives in {@code CsLodMessages} / {@code CsLodProtocol} in
+ * shared_common, which know nothing about Minecraft, so the Chunksmith server and Chunksmith-Client
+ * (a different mod, in a different repo, possibly on a different loader) share one implementation of
+ * the wire format instead of maintaining two that drift. The same bytes also travel over the HTTP
+ * backchannel and sit on disk in the store: one format, three uses.
  *
- * <p>The channel id ({@code chunksmith:lod}) and the payload shape (one raw byte block) are identical on
- * every loader and every MC version -- only the registration API differs, and that difference stops here.
+ * <p>The channel id ({@code chunksmith:lod}) and the payload shape (one raw byte block) are
+ * identical on every loader and every MC version -- only the registration API differs, and that
+ * difference stops here.
  */
 public final class CsLodChannel {
 

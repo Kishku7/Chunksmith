@@ -11,25 +11,30 @@ import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
 /**
- * Downloaded CSLOD records go into the player's voxy from here. Hard-references voxy, so it is only ever
- * class-loaded once {@code isModLoaded("voxy")} has passed.
+ * Downloaded CSLOD records go into the player's voxy from here. Hard-references
+ * voxy, so it is only ever class-loaded once {@code isModLoaded("voxy")} has
+ * passed.
  *
- * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the section and its light
- * directly, so voxy gets the real light captured on the server at generation time: the whole point of
- * storing sky and block light separately in CSLOD. <b>rawIngest has NO light gate</b>: hand it wrong light
+ * <p>Uses {@code rawIngest}, not {@code tryAutoIngestChunk}: rawIngest takes the
+ * section and its light directly, so voxy gets the real light captured on the
+ * server at generation time: the whole point of storing sky and block light
+ * separately in CSLOD. <b>rawIngest has NO light gate</b>: hand it wrong light
  * and it will cheerfully produce BLACK LODs and report success.
  *
- * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never reports saturation, so an
- * unthrottled replay of a large store would drive the heap into an OOM. (That is the failure that OOMed
- * Voxy WorldGen V2 badly enough that upstream voxy ships a hard `breaks` against it.)
+ * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never
+ * reports saturation, so an unthrottled replay of a large store would drive the
+ * heap into an OOM. (That is the failure that OOMed Voxy WorldGen V2 badly
+ * enough that upstream voxy ships a hard `breaks` against it.)
  *
- * <p>These calls are direct, not reflective. {@code VoxelIngestService.rawIngest},
- * {@code VoxyCommon.getInstance()}, {@code getIngestService().getTaskCount()} and
- * {@code WorldIdentifier.of} have identical signatures in every fork jar the {@code Renderers} roster
- * names, all checked with {@code javap}, so a reflective per-chunk call would cost real time and absorb
- * nothing. The one place fork drift has been observed is voxy's config field, and that is the one place we
- * reflect; see {@link VoxyRadius}. If that stops being true, a {@code LinkageError} out of any of these
- * calls disables the voxy sink for the session and says so once.
+ * <p>These calls are direct, not reflective. {@code
+ * VoxelIngestService.rawIngest}, {@code VoxyCommon.getInstance()}, {@code
+ * getIngestService().getTaskCount()} and {@code WorldIdentifier.of} have
+ * identical signatures in every fork jar the {@code Renderers} roster names, all
+ * checked with {@code javap}, so a reflective per-chunk call would cost real
+ * time and absorb nothing. The one place fork drift has been observed is voxy's
+ * config field, and that is the one place we reflect; see {@link VoxyRadius}. If
+ * that stops being true, a {@code LinkageError} out of any of these calls
+ * disables the voxy sink for the session and says so once.
  */
 public final class VoxyTarget {
 
@@ -39,9 +44,10 @@ public final class VoxyTarget {
     private static final String CAUSE_INCOMPATIBLE = "voxy-incompatible";
 
     /**
-     * Set once voxy has proved it cannot accept our data. Not a "retry later" flag: a LinkageError is a
-     * permanent, structural mismatch, so retrying per chunk would burn CPU and spam the log for a result
-     * that cannot change until the player changes their mods.
+     * Set once voxy has proved it cannot accept our data. Not a "retry later"
+     * flag: a LinkageError is a permanent, structural mismatch, so retrying per
+     * chunk would burn CPU and spam the log for a result that cannot change
+     * until the player changes their mods.
      */
     private static volatile boolean broken;
 
@@ -51,8 +57,9 @@ public final class VoxyTarget {
     /**
      * Returns whether this loader has a voxy adapter at all. True here; false in the NeoForge copy.
      *
-     * <p>{@link com.kishku7.chunksmith.lod.client.Renderers#hasVoxy()} is gated on this, so a NeoForge
-     * client that somehow has a mod called {@code voxy} is not announced as one we can then feed.
+     * <p>{@link com.kishku7.chunksmith.lod.client.Renderers#hasVoxy()} is gated
+     * on this, so a NeoForge client that somehow has a mod called {@code voxy}
+     * is not announced as one we can then feed.
      *
      * @return true on a loader that ships a voxy adapter
      */

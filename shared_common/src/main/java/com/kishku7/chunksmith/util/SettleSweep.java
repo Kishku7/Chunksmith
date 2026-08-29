@@ -3,27 +3,32 @@ package com.kishku7.chunksmith.util;
 import java.util.BitSet;
 
 /**
- * Decides where, just behind the generation front, to briefly re-load a neighbourhood so that other mods
- * can finish work they could not do while the pregen was racing past.
+ * Decides where, just behind the generation front, to briefly re-load a neighbourhood
+ * so that other mods can finish work they could not do while the pregen was racing
+ * past.
  *
- * <p>{@link ChunkSettleWindow} keeps a chunk loaded until its eight neighbours exist, which is enough
- * for a small structure and nowhere near enough for a big one: Millenaire villages want a 90-block
- * radius, and on a real run 5,482 village placements were still refused for want of loaded ground.
- * Widening the hold does not scale: the held band follows the whole sweep edge, so at a seven-chunk
- * radius a modest pregen would hold some 11,000 chunks.
+ * <p>{@link ChunkSettleWindow} keeps a chunk loaded until its eight neighbours exist,
+ * which is enough for a small structure and nowhere near enough for a big one:
+ * Millenaire villages want a 90-block radius, and on a real run 5,482 village
+ * placements were still refused for want of loaded ground. Widening the hold does not
+ * scale: the held band follows the whole sweep edge, so at a seven-chunk radius a
+ * modest pregen would hold some 11,000 chunks.
  *
- * <p>So instead we let it go and come back: a small window slides along behind the front, loads a
- * neighbourhood, gives the server a moment to tick, and moves on. Peak cost is one window and does not
- * grow with the size of the run. Chunks are re-read from disk rather than regenerated, so this is I/O,
- * not worldgen. It trails rather than waiting for the end because ground more than a radius behind the
- * front is finished and will never change, and the square and spiral patterns have no clean rings.
+ * <p>So instead we let it go and come back: a small window slides along behind the
+ * front, loads a neighbourhood, gives the server a moment to tick, and moves on. Peak
+ * cost is one window and does not grow with the size of the run. Chunks are re-read
+ * from disk rather than regenerated, so this is I/O, not worldgen. It trails rather
+ * than waiting for the end because ground more than a radius behind the front is
+ * finished and will never change, and the square and spiral patterns have no clean
+ * rings.
  *
- * <p>Stops sit on a grid rather than at every chunk; a window centred every {@code radius} chunks
- * covers the whole area at a fraction of the visits: for a 36,000-chunk run at radius 7, roughly 700
- * stops. A stop becomes eligible only once its whole window is generated, because loading a window that
- * overlaps ungenerated ground would GENERATE it, off-pattern and outside the task's accounting.
- * Generated chunks live in a {@link BitSet} over the task bounds: exact, one bit per chunk, a few kB for
- * a large pregen.
+ * <p>Stops sit on a grid rather than at every chunk; a window centred every {@code
+ * radius} chunks covers the whole area at a fraction of the visits: for a
+ * 36,000-chunk run at radius 7, roughly 700 stops. A stop becomes eligible only once
+ * its whole window is generated, because loading a window that overlaps ungenerated
+ * ground would GENERATE it, off-pattern and outside the task's accounting. Generated
+ * chunks live in a {@link BitSet} over the task bounds: exact, one bit per chunk, a
+ * few kB for a large pregen.
  *
  * <p>The caller owns the tickets. This says where and when; it never loads a chunk itself.
  */
@@ -67,9 +72,10 @@ public final class SettleSweep {
     }
 
     /**
-     * Returns the next window centre as {@code {chunkX, chunkZ}}, or {@code null} if none is ready yet. Ready
-     * means every chunk in the window has been generated. See the class doc on why a partially
-     * generated window must never be loaded. Returns each stop at most once.
+     * Returns the next window centre as {@code {chunkX, chunkZ}}, or {@code null} if
+     * none is ready yet. Ready means every chunk in the window has been generated.
+     * See the class doc on why a partially generated window must never be loaded.
+     * Returns each stop at most once.
      *
      * @return the next window centre, or {@code null} when none is ready
      */
@@ -97,9 +103,10 @@ public final class SettleSweep {
     }
 
     /**
-     * Checks whether every chunk of this window is generated. Clamped to the task bounds, since an edge
-     * window legitimately hangs over ground the task was never asked to generate, and waiting for chunks
-     * nobody will make would strand every edge stop forever.
+     * Checks whether every chunk of this window is generated. Clamped to the task
+     * bounds, since an edge window legitimately hangs over ground the task was never
+     * asked to generate, and waiting for chunks nobody will make would strand every
+     * edge stop forever.
      *
      * @return true when every chunk of the window has been generated
      */

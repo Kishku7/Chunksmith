@@ -16,14 +16,17 @@ import static org.junit.Assert.assertNull;
 /**
  * Round-trip tests for the CSLOD format.
  *
- * <p>The format is the disk format is the wire format: the same bytes are written into the region store,
- * served over the HTTP backchannel, dripped through the in-band fallback, and decoded by a completely
- * separate mod (Chunksmith-Client). Nothing else in the codebase pins that contract down, so an encoding
- * bug would surface only as corrupt terrain on somebody else's screen.
+ * <p>The format is the disk format is the wire format: the same bytes are
+ * written into the region store, served over the HTTP backchannel, dripped
+ * through the in-band fallback, and decoded by a completely separate mod
+ * (Chunksmith-Client). Nothing else in the codebase pins that contract down, so
+ * an encoding bug would surface only as corrupt terrain on somebody else's
+ * screen.
  *
- * <p>Both shapes of section are exercised on purpose: the dense one (explicit per-voxel arrays) and the
- * uniform one (a single palette index standing in for 4096 voxels). The uniform path is what makes
- * carrying light to the build ceiling affordable, and it is the one with something to get wrong.
+ * <p>Both shapes of section are exercised on purpose: the dense one (explicit
+ * per-voxel arrays) and the uniform one (a single palette index standing in for
+ * 4096 voxels). The uniform path is what makes carrying light to the build
+ * ceiling affordable, and it is the one with something to get wrong.
  */
 public class CsLodCodecTest {
 

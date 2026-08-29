@@ -8,22 +8,24 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * The LOD client's own settings: how often to ask the server whether anything changed, and whether to
- * re-inject everything on the next join.
+ * The LOD client's own settings: how often to ask the server whether anything changed,
+ * and whether to re-inject everything on the next join.
  *
  * <p>No settings screen, deliberately; a config UI is 3.2's problem. This is a plain
- * {@code config/chunksmith-lod.properties} the client writes with its defaults and comments on first run,
- * discoverable by anyone who opens the folder and editable without a mod menu.
+ * {@code config/chunksmith-lod.properties} the client writes with its defaults and
+ * comments on first run, discoverable by anyone who opens the folder and editable without
+ * a mod menu.
  *
- * <p><b>Both settings are also reachable from {@code /cslod set}</b> (3.3.0): a setting you can only change
- * by editing a file and restarting is not a setting on a running game. The command writes through
- * {@link #setSyncSeconds(int)} / {@link #setReinjectOnJoin(boolean)}, which apply the value to the running
- * client and save the file, so the two can never disagree. {@link CsLodClientSettings} is the registry that
+ * <p><b>Both settings are also reachable from {@code /cslod set}</b> (3.3.0): a setting
+ * you can only change by editing a file and restarting is not a setting on a running
+ * game. The command writes through {@link #setSyncSeconds(int)} / {@link
+ * #setReinjectOnJoin(boolean)}, which apply the value to the running client and save the
+ * file, so the two can never disagree. {@link CsLodClientSettings} is the registry that
  * exposes them, and a coverage test fails by name if a key here is not in it.
  *
  * <p><b>The floor is enforced in code, not in the file.</b> The value is clamped to
- * {@link #MIN_SYNC_SECONDS} every time it is read AND on the way in when set by command, so nothing
- * downstream can see a smaller number whatever the file says.
+ * {@link #MIN_SYNC_SECONDS} every time it is read AND on the way in when set by command,
+ * so nothing downstream can see a smaller number whatever the file says.
  */
 public final class CsLodClientConfig {
 
@@ -36,30 +38,32 @@ public final class CsLodClientConfig {
     /**
      * Throw away what we remember having injected, and inject it all again.
      *
-     * <p>The escape hatch for the one case the injected index cannot detect: the player emptying the
-     * renderer's own database underneath it. voxy's storage and DH's sqlite are theirs, and nothing we can
-     * read says "this was reset", so our record would honestly describe data that is gone and we would skip
-     * it forever. Set it true, join once, set it back; {@code /cslod set reinject-on-join true} does that
-     * without leaving the game, and deleting the {@code .injected} files does the same.
+     * <p>The escape hatch for the one case the injected index cannot detect: the player
+     * emptying the renderer's own database underneath it. voxy's storage and DH's sqlite
+     * are theirs, and nothing we can read says "this was reset", so our record would
+     * honestly describe data that is gone and we would skip it forever. Set it true, join
+     * once, set it back; {@code /cslod set reinject-on-join true} does that without
+     * leaving the game, and deleting the {@code .injected} files does the same.
      */
     public static final String KEY_REINJECT = "reinject-on-join";
 
     /**
      * How often the client asks "has anything changed?" by default. Five minutes.
      *
-     * <p>The poll costs 22 bytes out and 34 bytes back and opens no file on either side, so the interval is
-     * not chosen to protect the server: it is chosen so a player standing in a base sees their horizon
-     * extend every few minutes while an operator's pregen fills the world in behind them.
+     * <p>The poll costs 22 bytes out and 34 bytes back and opens no file on either side,
+     * so the interval is not chosen to protect the server: it is chosen so a player
+     * standing in a base sees their horizon extend every few minutes while an operator's
+     * pregen fills the world in behind them.
      */
     public static final int DEFAULT_SYNC_SECONDS = 300;
 
     /**
      * Thirty seconds -- the sync floor.
      *
-     * <p>One poll is one readdir plus one stat per in-range region, on a background thread: for a
-     * 340-region store with a 4-region radius, ~86 syscalls and zero bytes of file content. At 30 s a
-     * hundred clients cost the server about three of those per second. Below that the sync starts
-     * becoming the problem it solves.
+     * <p>One poll is one readdir plus one stat per in-range region, on a background
+     * thread: for a 340-region store with a 4-region radius, ~86 syscalls and zero bytes
+     * of file content. At 30 s a hundred clients cost the server about three of those per
+     * second. Below that the sync starts becoming the problem it solves.
      */
     public static final int MIN_SYNC_SECONDS = 30;
 
@@ -88,9 +92,10 @@ public final class CsLodClientConfig {
     private static volatile boolean loaded;
 
     /**
-     * Where the file lives, remembered from {@link #load} so a later {@code /cslod set} can save without
-     * being handed the config directory again. Null until load() has run. On a dedicated server this class
-     * is never touched. A save with no path applies the value in memory and writes nothing.
+     * Where the file lives, remembered from {@link #load} so a later {@code /cslod set}
+     * can save without being handed the config directory again. Null until load() has
+     * run. On a dedicated server this class is never touched. A save with no path applies
+     * the value in memory and writes nothing.
      */
     private static volatile Path file;
 
@@ -98,9 +103,9 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Reads the config, writing it with defaults if it is not there yet. Every failure mode ends at the
-     * default (an unreadable file, a missing key, a value that is not a number) because a config
-     * problem must never be the reason a player gets no terrain.
+     * Reads the config, writing it with defaults if it is not there yet. Every failure
+     * mode ends at the default (an unreadable file, a missing key, a value that is not a
+     * number) because a config problem must never be the reason a player gets no terrain.
      *
      * @return the message to log; one line, said once, and it names the clamp when the clamp bit
      */
@@ -179,8 +184,8 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Sets the sync interval and saves it. Clamped on write as well as on read, so the file can never hold a
-     * number the client would refuse to honour.
+     * Sets the sync interval and saves it. Clamped on write as well as on read, so the
+     * file can never hold a number the client would refuse to honour.
      *
      * @return the value actually stored, which is what the command reports rather than echoing the input
      */
@@ -212,8 +217,9 @@ public final class CsLodClientConfig {
     }
 
     /**
-     * Writes the values currently in force, not the defaults. A failure is swallowed, since the value is
-     * in effect in memory, and a player who cannot write their own config directory has a bigger problem.
+     * Writes the values currently in force, not the defaults. A failure is swallowed,
+     * since the value is in effect in memory, and a player who cannot write their own
+     * config directory has a bigger problem.
      */
     private static void save() {
         Path path = file;

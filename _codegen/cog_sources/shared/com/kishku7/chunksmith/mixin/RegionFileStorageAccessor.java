@@ -9,9 +9,10 @@ import java.nio.file.Path;
 /**
  * Exposes the on-disk region folder. RegionFileStorage is final, so callers must
  * cast through (Object). The folder is read-only metadata; resolving a region file
- * path from it and reading the 4096-byte offset table directly lets the entity-unload
- * fix determine "does this chunk have persisted entities?" without going through the
- * IO executor or touching the (IO-thread-owned, non-thread-safe) RegionFile cache.
+ * path from it and reading the 4096-byte offset table directly lets the
+ * entity-unload fix determine "does this chunk have persisted entities?" without
+ * going through the IO executor or touching the (IO-thread-owned, non-thread-safe)
+ * RegionFile cache.
  */
 @Mixin(RegionFileStorage.class)
 public interface RegionFileStorageAccessor {

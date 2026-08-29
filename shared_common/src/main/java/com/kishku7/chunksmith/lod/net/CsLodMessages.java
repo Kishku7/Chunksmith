@@ -11,14 +11,14 @@ import java.util.List;
 /**
  * Encoding for the in-band messages.
  *
- * <p>Plain bytes, no Minecraft types: the payload class on each side is a one-line wrapper around a
- * {@code byte[]} and all the protocol lives here, so the Chunksmith server and Chunksmith-Client (two
- * mods in two repos) share one implementation without sharing a loader.
+ * <p>Plain bytes, no Minecraft types: the payload class on each side is a one-line wrapper around
+ * a {@code byte[]} and all the protocol lives here, so the Chunksmith server and Chunksmith-Client
+ * (two mods in two repos) share one implementation without sharing a loader.
  *
  * <p>Every decoder below validates each count/length it reads off the wire against the ceilings in
- * {@link CsLodProtocol} before allocating anything: a tiny hostile packet claiming a huge count would
- * otherwise OOM the receiver on the first allocation. On a violation it throws {@link IOException}, which
- * the callers already log-and-drop as a malformed message.
+ * {@link CsLodProtocol} before allocating anything: a tiny hostile packet claiming a huge count
+ * would otherwise OOM the receiver on the first allocation. On a violation it throws {@link
+ * IOException}, which the callers already log-and-drop as a malformed message.
  */
 public final class CsLodMessages {
 
@@ -142,10 +142,10 @@ public final class CsLodMessages {
     // the periodic sync (v2)
 
     /**
-     * The server's whole in-range index, folded to two numbers -- what a sync poll costs. On the wire: the
-     * id (1) + the dimension as a UTF string (2 + 19 for {@code minecraft_overworld}) + the count (4) + the
-     * aggregate (8) = <b>34 bytes</b>. The request that asks for it is <b>22 bytes</b>, and neither side
-     * opens a region file.
+     * The server's whole in-range index, folded to two numbers -- what a sync poll costs. On the
+     * wire: the id (1) + the dimension as a UTF string (2 + 19 for {@code minecraft_overworld}) +
+     * the count (4) + the aggregate (8) = <b>34 bytes</b>. The request that asks for it is <b>22
+     * bytes</b>, and neither side opens a region file.
      */
     public record RegionSummary(String dimension, int count, long aggregate) {
     }
@@ -172,9 +172,9 @@ public final class CsLodMessages {
     }
 
     /**
-     * Decodes a summary. Nothing here is allocated from the wire (the count is a number we compare, never a
-     * size) so unlike the index there is no ceiling to enforce. It is still range-checked, because a
-     * negative count is not a thing an honest server sends.
+     * Decodes a summary. Nothing here is allocated from the wire (the count is a number we
+     * compare, never a size) so unlike the index there is no ceiling to enforce. It is still
+     * range-checked, because a negative count is not a thing an honest server sends.
      */
     public static RegionSummary decodeRegionSummary(DataInputStream in) throws IOException {
         String dimension = in.readUTF();
@@ -216,9 +216,9 @@ public final class CsLodMessages {
     // in-band region data (the fallback)
 
     /**
-     * One slice of a region file, sent in-band: the fallback for a server with no open backchannel port. It
-     * rides the same connection as gameplay, so the server drips a bounded number of slices per tick and a
-     * player on this path waits longer.
+     * One slice of a region file, sent in-band: the fallback for a server with no open backchannel
+     * port. It rides the same connection as gameplay, so the server drips a bounded number of
+     * slices per tick and a player on this path waits longer.
      */
     public record RegionSlice(String dimension, int regionX, int regionZ, boolean last, byte[] data) {
     }
@@ -265,8 +265,8 @@ public final class CsLodMessages {
     /**
      * A request to act on the player's own LOD-client settings, forwarded from {@code /cslod set}.
      *
-     * <p>Three fields and no list, so there is nothing to bound at decode time beyond what
-     * {@code readUTF} already bounds. {@code name} and {@code value} are empty strings, never null, for
+     * <p>Three fields and no list, so there is nothing to bound at decode time beyond what {@code
+     * readUTF} already bounds. {@code name} and {@code value} are empty strings, never null, for
      * the actions that do not use them.
      *
      * @param action one of CsLodProtocol.SETTING_LIST / SETTING_SHOW / SETTING_SET

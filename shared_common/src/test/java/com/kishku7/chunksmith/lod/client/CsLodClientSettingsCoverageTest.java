@@ -17,23 +17,26 @@ import static org.junit.Assert.fail;
 /**
  * The guard for the LOD CLIENT's config file: every setting in a config file is settable from a command.
  *
- * <p>{@code ConfigSettingsCoverageTest} enforces that rule for {@code config/chunksmith/config.json} by
- * reflecting over the JSON config model. It was green while these two keys had no command at all,
- * because the client's {@code chunksmith-lod.properties} is a different file that its reflection can
- * never see. Hence a second test rather than a line added to the first: a registry per config file, a
- * coverage test per registry, each naming the surface it covers.
+ * <p>{@code ConfigSettingsCoverageTest} enforces that rule for {@code
+ * config/chunksmith/config.json} by reflecting over the JSON config model. It
+ * was green while these two keys had no command at all, because the client's
+ * {@code chunksmith-lod.properties} is a different file that its reflection can
+ * never see. Hence a second test rather than a line added to the first: a
+ * registry per config file, a coverage test per registry, each naming the
+ * surface it covers.
  *
- * <p>It reads the {@code KEY_*} constants off {@link CsLodClientConfig} by reflection and asserts each
- * one is reachable through {@code /cslod set}. Add a key to the client config and forget the command,
- * and this fails by name.
+ * <p>It reads the {@code KEY_*} constants off {@link CsLodClientConfig} by
+ * reflection and asserts each one is reachable through {@code /cslod set}. Add a
+ * key to the client config and forget the command, and this fails by name.
  */
 public class CsLodClientSettingsCoverageTest {
 
     /**
      * {@code KEY_*} constants that are deliberately NOT settings.
      *
-     * <p>Empty today, and that is the point: the exclusion list is explicit, so excluding something is a
-     * visible decision with a reason next to it rather than an omission.
+     * <p>Empty today, and that is the point: the exclusion list is explicit, so
+     * excluding something is a visible decision with a reason next to it rather
+     * than an omission.
      */
     private static final Set<String> NOT_SETTINGS = Set.of();
 

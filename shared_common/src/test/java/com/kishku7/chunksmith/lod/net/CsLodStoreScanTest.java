@@ -21,11 +21,15 @@ import static org.junit.Assert.assertTrue;
  *
  * <ul>
  *   <li>A false "yes, the directory is there" is what the old code gave: a pregen creates the dimension
- *       directory the moment it starts, the server advertised it before a single region was written, minted
- *       a backchannel token for it, and the client downloaded nothing -- the "1 live token, 0 files" report.</li>
+ * directory the moment it starts, the server advertised it before
+ * a single region was written, minted a backchannel token for it,
+ * and the client downloaded nothing -- the "1 live token, 0 files"
+ * report.</li>
  *   <li>A false "yes, that region is ready" is the one this fix nearly introduced: the store keeps region
- *       files OPEN and appends to them, so a region served mid-write has header slots pointing past the end
- *       of the bytes the client receives. It recovers, but it eats an EOF and gets a fraction of the region.</li>
+ * files OPEN and appends to them, so a region served mid-write has
+ * header slots pointing past the end of the bytes the client
+ * receives. It recovers, but it eats an EOF and gets a fraction of
+ * the region.</li>
  *   <li>And a false "no" is the whole bug: the client is told there is no data, stands down, and never asks
  *       again for the rest of the session.</li>
  * </ul>

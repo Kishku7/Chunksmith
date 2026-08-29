@@ -19,14 +19,17 @@ import static org.junit.Assert.assertTrue;
 /**
  * The on-disk injected record -- and the bug it exists to fix (mod_support #15).
  *
- * <p>Which regions had been handed to voxy / Distant Horizons was remembered in memory only, and cleared on
- * disconnect. Every world join therefore started from nothing and re-decoded and re-pushed the whole
- * in-range store into renderers that had persisted every bit of it since the last session. The reporter's
- * two-core machine made it obvious; on a fast machine it was merely invisible waste.
+ * <p>Which regions had been handed to voxy / Distant Horizons was remembered in
+ * memory only, and cleared on disconnect. Every world join therefore started from
+ * nothing and re-decoded and re-pushed the whole in-range store into renderers
+ * that had persisted every bit of it since the last session. The reporter's
+ * two-core machine made it obvious; on a fast machine it was merely invisible
+ * waste.
  *
- * <p>The tests below pin both directions, because the dangerous failure is not the slow one. Skipping a
- * region the renderer does not have leaves a permanent hole in the horizon and reports success while it
- * does it. So every ambiguity here has to resolve towards injecting again.
+ * <p>The tests below pin both directions, because the dangerous failure is not
+ * the slow one. Skipping a region the renderer does not have leaves a permanent
+ * hole in the horizon and reports success while it does it. So every ambiguity
+ * here has to resolve towards injecting again.
  */
 public class InjectedIndexTest {
 

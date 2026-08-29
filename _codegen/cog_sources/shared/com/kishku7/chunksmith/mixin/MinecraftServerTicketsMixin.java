@@ -23,19 +23,22 @@ import java.util.Map;
 /**
  * Ticket-level diagnostics, presence-gated to versions that actually have a TicketStorage.
  *
- * <p>Split out of {@code MinecraftServerMixin} on 2026-08-20. It was written straight against the
- * live server that had the residency bug, against {@code net.minecraft.world.level.TicketStorage}
- * and {@code net.minecraft.world.level.chunk.status.ChunkStatus}, both of which are 1.21.11-and-newer
- * shapes. Sitting in the shared mixin it broke the build of every older cell, which is how the whole
- * 3.5-3.13 line ended up with no jars outside 1.21.11 and therefore no critical smoketest coverage.
+ * <p>Split out of {@code MinecraftServerMixin} on 2026-08-20. It was written straight
+ * against the live server that had the residency bug, against {@code
+ * net.minecraft.world.level.TicketStorage} and {@code
+ * net.minecraft.world.level.chunk.status.ChunkStatus}, both of which are
+ * 1.21.11-and-newer shapes. Sitting in the shared mixin it broke the build of every
+ * older cell, which is how the whole 3.5-3.13 line ended up with no jars outside
+ * 1.21.11 and therefore no critical smoketest coverage.
  *
- * <p>{@code compat.has_ticket_storage()} decides whether this file is generated at all, so on older
- * versions the class does not exist rather than existing as a stub: the same compile-time-absent
- * seam {@code ChunkStorageAccessor} uses.
+ * <p>{@code compat.has_ticket_storage()} decides whether this file is generated at
+ * all, so on older versions the class does not exist rather than existing as a stub:
+ * the same compile-time-absent seam {@code ChunkStorageAccessor} uses.
  *
- * <p>Diagnostics only: it reads and reports, it never mutates a ticket. The one thing here that did
- * mutate (the stale-ticket purge) was deleted the same day, because a controlled A/B showed it
- * changed residency by 0.1 percent while evicting over ten thousand tickets.
+ * <p>Diagnostics only: it reads and reports, it never mutates a ticket. The one thing
+ * here that did mutate (the stale-ticket purge) was deleted the same day, because a
+ * controlled A/B showed it changed residency by 0.1 percent while evicting over ten
+ * thousand tickets.
  */
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerTicketsMixin {
@@ -63,14 +66,15 @@ public abstract class MinecraftServerTicketsMixin {
     /**
      * Buckets every resident chunk by its ticket level.
      *
-     * <p>The last question standing. Chunksmith's own ledger has ruled our tickets out (a few
-     * hundred outstanding while eleven thousand chunks sat resident), so either something ELSE holds
-     * these chunks at a live level, or nothing holds them and vanilla is simply not dropping them.
-     * The level is what decides, and {@code DistanceManager.getChunkLevel} is public on every
-     * supported version, so this needs no new plumbing beyond the resident map itself.
+     * <p>The last question standing. Chunksmith's own ledger has ruled our tickets out
+     * (a few hundred outstanding while eleven thousand chunks sat resident), so either
+     * something ELSE holds these chunks at a live level, or nothing holds them and
+     * vanilla is simply not dropping them. The level is what decides, and {@code
+     * DistanceManager.getChunkLevel} is public on every supported version, so this
+     * needs no new plumbing beyond the resident map itself.
      *
-     * <p>Thresholds follow {@code ChunkLevel}: 33 is FULL, and 44 and above is past the maximum a
-     * loaded chunk may have, which is precisely "nothing wants this".
+     * <p>Thresholds follow {@code ChunkLevel}: 33 is FULL, and 44 and above is past
+     * the maximum a loaded chunk may have, which is precisely "nothing wants this".
      */
     @Unique
     private void chunksmith$sampleChunkLevels() {

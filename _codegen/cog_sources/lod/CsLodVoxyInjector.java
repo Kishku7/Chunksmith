@@ -15,16 +15,18 @@ import java.util.function.Consumer;
 /**
  * The {@code /cslod inject} backfill: replays a CSLOD store into voxy.
  *
- * <p>Injection goes through {@link VoxelIngestService#rawIngest}, not {@code tryAutoIngestChunk}:
- * rawIngest takes the section and its light directly, so we hand voxy the real light captured at
- * generation time. rawIngest has no light gate at all, which is precisely why the light we stored has to
- * be right; a mistake here yields silently black LODs rather than an error.
+ * <p>Injection goes through {@link VoxelIngestService#rawIngest}, not {@code
+ * tryAutoIngestChunk}: rawIngest takes the section and its light directly, so we hand
+ * voxy the real light captured at generation time. rawIngest has no light gate at all,
+ * which is precisely why the light we stored has to be right; a mistake here yields
+ * silently black LODs rather than an error.
  *
- * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never reports saturation, so a
- * backfill that just hammered it would OOM. We watch {@code getTaskCount()} and wait.
+ * <p>Throttled on voxy's own queue: its ingest deque is unbounded and never reports
+ * saturation, so a backfill that just hammered it would OOM. We watch {@code
+ * getTaskCount()} and wait.
  *
- * <p>Generated only where a voxy jar exists to compile against: Fabric 1.21.11 and Fabric 26.x. See
- * {@link VoxyLodSink}.
+ * <p>Generated only where a voxy jar exists to compile against: Fabric 1.21.11 and
+ * Fabric 26.x. See {@link VoxyLodSink}.
  */
 public final class CsLodVoxyInjector {
 
@@ -61,9 +63,10 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Announces, once, that the installed voxy does not match the one we compiled against. A
-     * {@link LinkageError} out of a voxy call is not a transient condition. The jar that is loaded does not
-     * contain the member we compiled against, which is what a drifting fork looks like from the inside.
+     * Announces, once, that the installed voxy does not match the one we compiled
+     * against. A {@link LinkageError} out of a voxy call is not a transient condition.
+     * The jar that is loaded does not contain the member we compiled against, which is
+     * what a drifting fork looks like from the inside.
      */
     private static void warnIncompatible(LinkageError error) {
         LodWarnings.once(CAUSE_INCOMPATIBLE,
@@ -74,8 +77,8 @@ public final class CsLodVoxyInjector {
     }
 
     /**
-     * Replays the whole store for one dimension into voxy. Runs on the calling thread. Callers must hand it a
-     * background thread, not the server thread.
+     * Replays the whole store for one dimension into voxy. Runs on the calling thread.
+     * Callers must hand it a background thread, not the server thread.
      *
      * @return the number of chunks replayed
      */
