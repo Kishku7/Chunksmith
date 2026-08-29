@@ -1,7 +1,5 @@
 package com.kishku7.chunksmith.platform;
 
-// platform detection centralized in Platform
-
 import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -13,7 +11,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import java.util.concurrent.CompletableFuture;
 
 public final class Paper {
-    
 
     private Paper() {
     }

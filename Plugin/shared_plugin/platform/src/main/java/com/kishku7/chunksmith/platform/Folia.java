@@ -1,7 +1,5 @@
 package com.kishku7.chunksmith.platform;
 
-// platform detection centralized in Platform
-
 import io.papermc.paper.threadedregions.RegionizedServerInitEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -13,7 +11,6 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 public final class Folia {
-    
 
     private Folia() {
     }
