@@ -201,22 +201,6 @@ public final class CsLodDownloader {
         }
     }
 
-    public long getDownloadedCount() {
-        return downloaded.get();
-    }
-
-    public long getSkippedCount() {
-        return skipped.get();
-    }
-
-    public long getFailedCount() {
-        return failed.get();
-    }
-
-    public long getBytes() {
-        return bytes.get();
-    }
-
     /** requested / fetched / cached / failed. Counters exist from commit one, deliberately. */
     public String describe() {
         return "fetched " + downloaded.get() + ", cached " + skipped.get() + ", failed " + failed.get()

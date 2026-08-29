@@ -153,6 +153,11 @@ public final class ChunkResidency {
         return value;
     }
 
+    /**
+     * Whether a residency reading is available at all on this platform.
+     * The count comes back negative when nothing could be read, so every
+     * gate that consumes it has to check this first.
+     */
     public static boolean isSupported() {
         return loadedChunks() >= 0L;
     }
