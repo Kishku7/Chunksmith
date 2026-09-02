@@ -57,23 +57,38 @@ import java.util.List;
  * slots pointing past the end of what a client would receive (ten seconds
  * untouched, see {@link CsLodStoreScan}).
  *
- * <p>Then sorted nearest first and truncated to the caps. Sorting is what makes
- * the truncation deterministic: {@code Files.list} order is whatever the
- * filesystem says, so an un-sorted cap would return a different subset on each
- * call and the summary would never match the index.
+ * <p>Then sorted nearest first, and truncated only if a cap binds. Sorting is
+ * what makes any truncation deterministic: {@code Files.list} order is whatever
+ * the filesystem says, so an un-sorted cap would return a different subset on
+ * each call and the summary would never match the index.
+ *
+ * <p><b>What limits an answer, and what does not.</b> The radius the client
+ * announced is the limit that matters, and {@link #inRange} is where it is
+ * applied. Until 3.16.0 there was a second one: a fixed two-gigabyte ceiling on
+ * the total size of the regions named. It bound at every Distant Horizons
+ * radius above about 4096 and it bound at the same distance every time, so a
+ * standing player never received the far half of what they had asked to draw
+ * (mod_support #23). It was removed because nothing downstream ever read the
+ * total it was bounding: the index message has its own region cap, the
+ * backchannel serves over HTTP at the client's pace, and the in-band sender
+ * drips fixed slices per tick rather than sending a sum. An operator who is
+ * paying for transfer can still set one ({@code lodIndexBudgetMb}), which is
+ * what a byte budget is honestly for.
  */
 public final class CsLodIndexScan {
 
     /** A region is 32 chunks square. */
     public static final int REGION_BLOCKS = 512;
 
-    /** Hard ceiling on how many regions one answer may list. */
+    /**
+     * Hard ceiling on how many regions one answer may list. This one is structural: it bounds the
+     * index message and matches the per-request fetch cap, and the client's radius is clamped such
+     * that a legitimate request stays under it.
+     */
     public static final int MAX_REGIONS = 4096;
 
-    /**
-     * Byte budget for one answer, and the cap that actually binds: 4096 regions of 4.6 MB is ~18 GB.
-     */
-    public static final long MAX_BYTES = 2L * 1024L * 1024L * 1024L;
+    /** Passed as the budget to mean "no byte limit", which is the default. */
+    public static final long NO_BUDGET = 0L;
 
     /**
      * Everything the scan needs, and nothing a game tick can mutate underneath
@@ -81,7 +96,12 @@ public final class CsLodIndexScan {
      * main thread and hand the record to a worker; the record is the thread
      * boundary.
      */
-    public record Request(String dimension, int px, int pz, int radiusBlocks) {
+    public record Request(String dimension, int px, int pz, int radiusBlocks, long budgetBytes) {
+
+        /** An unbudgeted request, which is what an operator who has set nothing gets. */
+        public Request(String dimension, int px, int pz, int radiusBlocks) {
+            this(dimension, px, pz, radiusBlocks, NO_BUDGET);
+        }
     }
 
     /**
@@ -94,9 +114,24 @@ public final class CsLodIndexScan {
      */
     public record Result(List<CsLodMessages.RegionEntry> regions, int found, long bytes) {
 
-        /** Returns true when the caps dropped something the player could otherwise have had. */
+        /** Returns true when a cap dropped something the player could otherwise have had. */
         public boolean capped() {
             return regions.size() < found;
+        }
+
+        /**
+         * True when {@link #MAX_REGIONS} is what stopped the list. Worth separating from the byte
+         * budget because the two want different things said about them: this one moves with the
+         * player, so travelling really does bring the rest in, and the operator has set nothing to
+         * cause it.
+         */
+        public boolean cappedByRegionCount() {
+            return capped() && regions.size() >= MAX_REGIONS;
+        }
+
+        /** True when an operator's byte budget is what stopped the list, rather than the region cap. */
+        public boolean cappedByBudget() {
+            return capped() && regions.size() < MAX_REGIONS;
         }
     }
 
@@ -165,7 +200,7 @@ public final class CsLodIndexScan {
                 .thenComparingInt(CsLodMessages.RegionEntry::regionX)
                 .thenComparingInt(CsLodMessages.RegionEntry::regionZ));
 
-        return cap(found);
+        return cap(found, request.budgetBytes());
     }
 
     /** Folds a scan result to the two numbers a sync poll compares. */
@@ -177,12 +212,16 @@ public final class CsLodIndexScan {
         return aggregate;
     }
 
-    /** Applies both caps (the region count and the byte budget) to a nearest-first list. */
-    private static Result cap(List<CsLodMessages.RegionEntry> found) {
+    /**
+     * Applies the region cap, and the operator's byte budget if they set one, to a nearest-first
+     * list. A budget of {@link #NO_BUDGET} is not a budget of zero bytes: it is no budget, and the
+     * region cap is then the only thing that can stop the walk.
+     */
+    private static Result cap(List<CsLodMessages.RegionEntry> found, long budgetBytes) {
         long bytes = 0L;
         for (int i = 0; i < found.size(); i++) {
             long next = bytes + found.get(i).sizeBytes();
-            if (i >= MAX_REGIONS || next > MAX_BYTES) {
+            if (i >= MAX_REGIONS || (budgetBytes > NO_BUDGET && next > budgetBytes)) {
                 return new Result(List.copyOf(found.subList(0, i)), found.size(), bytes);
             }
             bytes = next;

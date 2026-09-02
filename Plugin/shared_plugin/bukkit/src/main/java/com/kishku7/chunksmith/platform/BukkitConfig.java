@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Locale;
 
 public final class BukkitConfig implements Config {
+    /** Matches the mod's ceiling; see Config#getLodIndexBudgetMb. A terabyte, in megabytes. */
+    private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;
+
     private static final List<String> HEADER = Arrays.asList("Chunksmith Configuration", "https://github.com/pop4959/Chunksmith/wiki/Configuration");
     private final ChunksmithBukkit plugin;
 
@@ -238,6 +241,14 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public long getLodIndexBudgetMb() {
+        long raw = plugin.getConfig().getLong("lod-index-budget-mb", 0L);
+        // Out of range is no budget, not a clamped one, matching the mod. See
+        // Config#getLodIndexBudgetMb for why the ceiling is not a recommendation.
+        return (raw <= 0L || raw > LOD_INDEX_BUDGET_MB_MAX) ? 0L : raw;
+    }
+
+    @Override
     public void setLanguage(String language) {
         plugin.getConfig().set("language", Input.checkLanguage(language));
         plugin.saveConfig();
@@ -356,6 +367,13 @@ public final class BukkitConfig implements Config {
     public void setLodBackchannelPort(int port) {
         plugin.getConfig().set("lod-backchannel-port",
                 (port < 1024 || port > 65535) ? 0 : port);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodIndexBudgetMb(long megabytes) {
+        plugin.getConfig().set("lod-index-budget-mb",
+                (megabytes <= 0L || megabytes > LOD_INDEX_BUDGET_MB_MAX) ? 0L : megabytes);
         plugin.saveConfig();
     }
 

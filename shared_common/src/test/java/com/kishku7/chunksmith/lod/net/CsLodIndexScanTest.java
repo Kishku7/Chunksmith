@@ -71,6 +71,11 @@ public class CsLodIndexScanTest {
         return new CsLodIndexScan.Request("minecraft_overworld", px, pz, radius);
     }
 
+    /** The same request with an operator's byte budget on it. */
+    private static CsLodIndexScan.Request at(int px, int pz, int radius, long budgetBytes) {
+        return new CsLodIndexScan.Request("minecraft_overworld", px, pz, radius, budgetBytes);
+    }
+
     private Path region(int x, int z, int bytes) throws IOException {
         Path file = temp.getRoot().toPath().resolve("r." + x + "." + z + ".cslod");
         Files.write(file, new byte[bytes]);
@@ -216,9 +221,60 @@ public class CsLodIndexScanTest {
         assertEquals(CsLodIndexScan.MAX_REGIONS, result.regions().size());
         assertEquals(CsLodIndexScan.MAX_REGIONS + 1, result.found());
         assertTrue(result.capped());
+        // Which cap bound decides what the operator is told, so the result has to know.
+        assertTrue(result.cappedByRegionCount());
+        assertFalse(result.cappedByBudget());
         // The one it dropped is the furthest, which is the one the player can least see.
         assertEquals(CsLodIndexScan.MAX_REGIONS - 1,
                 result.regions().get(result.regions().size() - 1).regionX());
+    }
+
+    @Test
+    public void withoutABudgetThereIsNoByteCeiling() throws IOException {
+        // Four regions well past the 2 GB that used to be compiled in, declared by size rather than
+        // written: this asserts the rule, and writing 3 GB to a temp folder to prove it would not.
+        for (int x = 0; x < 4; x++) {
+            region(x, 0, 1024);
+        }
+        CsLodIndexScan.Result result =
+                CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 8192), settled());
+        assertEquals(4, result.regions().size());
+        assertFalse(result.capped());
+        assertEquals(4L * 1024L, result.bytes());
+    }
+
+    @Test
+    public void aBudgetTruncatesNearestFirstAndSaysWhichCapBound() throws IOException {
+        region(0, 0, 100);
+        region(1, 0, 100);
+        region(2, 0, 100);
+        // Room for two of the three. The third would take it to 300.
+        CsLodIndexScan.Result result =
+                CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 8192, 250L), settled());
+        assertEquals(2, result.regions().size());
+        assertEquals(3, result.found());
+        assertEquals(200L, result.bytes());
+        assertTrue(result.capped());
+        assertTrue(result.cappedByBudget());
+        assertFalse(result.cappedByRegionCount());
+        // Nearest first: the one dropped is the far one.
+        assertEquals(0, result.regions().get(0).regionX());
+        assertEquals(1, result.regions().get(1).regionX());
+    }
+
+    @Test
+    public void aBudgetLargerThanTheStoreDoesNotBind() throws IOException {
+        region(0, 0, 100);
+        region(1, 0, 100);
+        CsLodIndexScan.Result result =
+                CsLodIndexScan.scan(temp.getRoot().toPath(), at(0, 0, 8192, 10_000L), settled());
+        assertEquals(2, result.regions().size());
+        assertFalse(result.capped());
+    }
+
+    @Test
+    public void theFourArgRequestMeansNoBudget() {
+        assertEquals(CsLodIndexScan.NO_BUDGET, at(0, 0, 4096).budgetBytes());
     }
 
     @Test

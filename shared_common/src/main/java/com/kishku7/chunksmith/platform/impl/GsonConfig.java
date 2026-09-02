@@ -130,6 +130,11 @@ public final class GsonConfig implements Config {
                     .map(Long::valueOf)
                     .orElseGet(() -> Math.min(400L,
                             Math.max(50L, Runtime.getRuntime().availableProcessors() * 25L)));
+    // 0 = no ceiling, and that is the default. An upper bound exists only so a typo cannot store a
+    // number that overflows when multiplied up to bytes; it is not a recommendation.
+    private static final long LOD_INDEX_BUDGET_MB_NONE = 0L;
+    private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;   // a terabyte, in megabytes
+
     private static final long SETTLE_DELAY_DEFAULT = 40L;
     private static final long SETTLE_DELAY_MAX = 600L;
     private static final int SETTLE_RADIUS_DEFAULT = 7;
@@ -462,6 +467,22 @@ public final class GsonConfig implements Config {
         return raw;
     }
 
+    @Override
+    public long getLodIndexBudgetMb() {
+        long raw = Optional.ofNullable(configModel.lodIndexBudgetMb).orElse(LOD_INDEX_BUDGET_MB_NONE);
+        if (raw <= LOD_INDEX_BUDGET_MB_NONE) {
+            // Negative is not a smaller budget than zero, it is a typo. Both mean no ceiling here,
+            // which is also what an operator who never touched the key gets.
+            return LOD_INDEX_BUDGET_MB_NONE;
+        }
+        if (raw > LOD_INDEX_BUDGET_MB_MAX) {
+            LOGGER.warn("Chunksmith: lodIndexBudgetMb " + raw + " is above " + LOD_INDEX_BUDGET_MB_MAX
+                    + " MB; serving without a budget instead");
+            return LOD_INDEX_BUDGET_MB_NONE;
+        }
+        return raw;
+    }
+
     // Every setter below clamps to the same range its getter enforces, then saves. Clamping only on
     // read would let the file hold a number the mod refuses to honour, so the file and `/cs set` would
     // disagree about what is in force, and the file is what an operator inspects when something is wrong.
@@ -619,6 +640,18 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setLodIndexBudgetMb(long megabytes) {
+        // Same rule the getter applies, so the file and `/cs set` never disagree about what is in
+        // force: anything outside the range is stored as "no budget" rather than clamped to an edge
+        // the operator did not ask for.
+        configModel.lodIndexBudgetMb =
+                (megabytes <= LOD_INDEX_BUDGET_MB_NONE || megabytes > LOD_INDEX_BUDGET_MB_MAX)
+                        ? LOD_INDEX_BUDGET_MB_NONE
+                        : megabytes;
+        saveConfig();
+    }
+
+    @Override
     public void reload() {
         try (final Reader reader = Files.newBufferedReader(savePath)) {
             configModel = GSON.fromJson(reader, ConfigModel.class);
@@ -669,6 +702,8 @@ public final class GsonConfig implements Config {
         private Boolean lodDhOverride = false;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
+        // 0 = no ceiling. See Config#getLodIndexBudgetMb.
+        private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_NONE;
         // On by default: dropping a chunk the instant it is generated silently breaks every mod that
         // builds on newly generated land (mod_support #14). Off is for a pure terrain pregen.
         private Boolean pregenSettle = true;

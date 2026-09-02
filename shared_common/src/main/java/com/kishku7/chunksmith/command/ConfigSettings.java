@@ -115,6 +115,9 @@ public final class ConfigSettings {
                         CsLodControl.apply();
                         return true;
                     }),
+            // No CsLodControl.apply() here, unlike the port beside it: nothing is bound to a budget.
+            // It is read when the next index is built, so the next answer already honours it.
+            integer("lodIndexBudgetMb", Config::getLodIndexBudgetMb, Config::setLodIndexBudgetMb),
             settle(bool("pregenSettle", Config::isPregenSettleEnabled, Config::setPregenSettleEnabled)),
             settle(integer("pregenSettleDelayTicks",
                     Config::getPregenSettleDelayTicks, Config::setPregenSettleDelayTicks)),

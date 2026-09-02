@@ -2,6 +2,48 @@
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-09-02
+
+### Changed
+
+- The LOD index no longer truncates at a fixed 2 GB. A server used to answer "here is what is in
+  range" by listing regions nearest-first until it had named two gigabytes of them, and then
+  stopping. The number was a compile-time constant: it did not scale with the server, and it did not
+  scale with how far the client said it could draw (mod_support #23).
+
+  What that meant in practice: at a Distant Horizons radius of 8192 roughly 800 regions are in
+  range, and at about 5 MB each that is a little over 4 GB. The budget allowed about 395 of them.
+  Every answer stopped at the same distance, so terrain past that ring never arrived at all for a
+  player standing still. At radius 4096 the same world needs about 1.5 GB and never hit the ceiling,
+  which is why this only ever looked like a problem at large radii.
+
+  The budget is gone as a default. The limit that remains is the radius the client asked for, which
+  is the number that was supposed to be in charge all along. Nothing downstream needed the byte
+  ceiling: the index message is bounded by its own region cap, the backchannel serves over HTTP at
+  the client's pace, and the in-band path drips fixed 24 KB slices four to a tick rather than
+  sending a total. The ceiling was bounding a number none of them read.
+
+- The "capped at N of M regions" warning stopped promising that travelling would fix it. It only
+  appears now when the region cap actually binds, it says whether moving will help, and it is
+  logged once per player per ten minutes instead of once per scan.
+
+### Added
+
+- `lodIndexBudgetMb` (`lod-index-budget-mb` in the plugin's `config.yml`): a ceiling in megabytes on
+  how much LOD one answer may offer a client. Defaults to `0`, meaning no limit. This is for
+  operators paying for transfer, not a safety valve -- the server is not protecting itself by
+  setting it, it is protecting a bandwidth bill. Settable live with `/cs set lodIndexBudgetMb`.
+
+### Note
+
+- A client at a large radius now downloads everything in range, where the old 2 GB ceiling was
+  quietly capping it. At a Distant Horizons radius of 8192 that is roughly 4 GB per dimension per
+  server rather than 2. There is no client-side disk limit yet and there was not one before either;
+  the server's budget had been standing in for one by accident. A real one is worth having and is
+  tracked separately, because it cannot simply refuse to fetch: the client's periodic "has anything
+  changed?" check folds over the regions the server said were in range, so a client that silently
+  declined some of them would disagree with the server on every check and pull a full index forever.
+
 ## [3.15.0] - 2026-08-26
 
 ### Added

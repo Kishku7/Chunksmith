@@ -260,6 +260,21 @@ public interface Config {
      */
     int getLodBackchannelPort();
 
+    /**
+     * Returns the ceiling, in megabytes, on how much LOD one index answer may
+     * offer a client, or 0 for no ceiling.
+     *
+     * <p>0 is the default and the right answer for nearly everyone. This is a
+     * bandwidth-cost control, not a safety valve: the server does not protect
+     * itself by setting it. A fixed 2 GB version of this used to be compiled in,
+     * and because it did not scale with the radius a client asked for, it bound
+     * at the same distance on every answer and a standing player never received
+     * the far half of what they had asked to draw (mod_support #23). The limit
+     * that governs an answer is the client's announced radius; this one exists
+     * for an operator who pays per gigabyte and would rather serve less.
+     */
+    long getLodIndexBudgetMb();
+
     void setLanguage(String language);
 
     void setContinueOnRestart(boolean continueOnRestart);
@@ -303,6 +318,13 @@ public interface Config {
      * exists for.
      */
     void setLodBackchannelPort(int port);
+
+    /**
+     * Sets the index byte budget in megabytes and persists it; 0 removes the
+     * ceiling. Takes effect on the next index a client asks for, so there is
+     * nothing to restart and nothing to rebind.
+     */
+    void setLodIndexBudgetMb(long megabytes);
 
     void reload();
 }

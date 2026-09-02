@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.lod.net.CsLodCapNotice;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.lod.net.CsLodHttpServer;
 import com.kishku7.chunksmith.lod.net.CsLodIndexScan;
@@ -94,6 +95,9 @@ import java.util.Arrays;
 public final class CsLodServerBukkit implements PluginMessageListener {
 
     private static final Logger LOGGER = Logger.getLogger("Chunksmith");
+
+    /** Silences a repeated "index was capped" line per player; see CsLodCapNotice. */
+    private static final CsLodCapNotice CAP_NOTICE = new CsLodCapNotice();
     private static final String CHANNEL = CsLodProtocol.NAMESPACE + ":" + CsLodProtocol.CHANNEL;
 
     /**
@@ -200,6 +204,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /** A token must never outlive the session that earned it. Wired to PlayerQuitEvent. */
     public static void onQuit(UUID player) {
         TOKENS.revoke(player);
+        CAP_NOTICE.forget(player);
         SPOKEN.remove(player);
         RADIUS.remove(player);
         SCANNING.remove(player);
@@ -341,15 +346,17 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                              final Path dir, final int px, final int pz, final int radius,
                              final boolean summaryOnly) {
         try {
+            long budgetMb = ChunksmithProvider.get().getConfig().getLodIndexBudgetMb();
             CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
-                    new CsLodIndexScan.Request(dimension, px, pz, radius), System.currentTimeMillis());
-            if (scanned.capped()) {
+                    new CsLodIndexScan.Request(dimension, px, pz, radius, budgetMb * 1024L * 1024L),
+                    System.currentTimeMillis());
+            // Throttled the same way the mod throttles it, from the same class, so the two platforms
+            // cannot drift into saying different things about the same cap. See CsLodCapNotice.
+            if (scanned.capped() && CAP_NOTICE.shouldWarn(uuid, System.currentTimeMillis())) {
                 LOGGER.warning("Chunksmith: LOD index for " + name + " capped at "
                         + scanned.regions().size() + " of " + scanned.found() + " regions ("
-                        + (scanned.bytes() / (1024 * 1024)) + " MB of a "
-                        + (CsLodIndexScan.MAX_BYTES / (1024 * 1024)) + " MB budget, radius " + radius
-                        + "). The client re-requests as the player moves, so it gets the rest as it"
-                        + " travels; nearest regions first.");
+                        + (scanned.bytes() / (1024 * 1024)) + " MB, radius " + radius + "): "
+                        + CsLodCapNotice.explain(scanned, budgetMb));
             }
             byte[] message = summaryOnly
                     ? CsLodMessages.encode(new CsLodMessages.RegionSummary(dimension,

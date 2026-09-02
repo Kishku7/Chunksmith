@@ -81,6 +81,9 @@ public final class CsLodServerNet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
+    /** Silences a repeated "index was capped" line per player; see CsLodCapNotice. */
+    private static final CsLodCapNotice CAP_NOTICE = new CsLodCapNotice();
+
     private static final CsLodTokens TOKENS = new CsLodTokens();
 
     /** ~16k blocks: further than any LOD renderer draws, and it bounds the index we build. */
@@ -161,6 +164,7 @@ public final class CsLodServerNet {
     public static void onDisconnect(UUID player) {
         TOKENS.revoke(player);
         CsLodInBandSender.forget(player);
+        CAP_NOTICE.forget(player);
         RADIUS.remove(player);
         WAITING.remove(player);
         ANNOUNCED.remove(player);
@@ -658,16 +662,19 @@ public final class CsLodServerNet {
             if (dir == null) {
                 return;
             }
+            long budgetMb = ChunksmithProvider.get().getConfig().getLodIndexBudgetMb();
             CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
                     new CsLodIndexScan.Request(request.dimension(), request.px(), request.pz(),
-                            request.radius()), System.currentTimeMillis());
-            if (scanned.capped()) {
-                LOGGER.warn("Chunksmith: LOD index for {} capped at {} of {} regions ({} MB of a {} MB"
-                                + " budget, radius {}). The client re-requests as the player moves, so it"
-                                + " gets the rest as it travels (nearest regions first).",
+                            request.radius(), budgetMb * 1024L * 1024L), System.currentTimeMillis());
+            // Throttled, because the client asks again every time the player has travelled half a
+            // region and warning per answer said "capped" six times in seventy-three seconds without
+            // anything being wrong. See CsLodCapNotice.
+            if (scanned.capped() && CAP_NOTICE.shouldWarn(request.uuid(), System.currentTimeMillis())) {
+                LOGGER.warn("Chunksmith: LOD index for {} capped at {} of {} regions ({} MB, radius"
+                                + " {}): {}",
                         request.name(), scanned.regions().size(), scanned.found(),
-                        scanned.bytes() / (1024 * 1024), CsLodIndexScan.MAX_BYTES / (1024 * 1024),
-                        request.radius());
+                        scanned.bytes() / (1024 * 1024), request.radius(),
+                        CsLodCapNotice.explain(scanned, budgetMb));
             }
             List<CsLodMessages.RegionEntry> regions = scanned.regions();
 
