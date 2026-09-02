@@ -7,8 +7,9 @@ differences are the `neoforge` artifact version and the two `neoforge.mods.toml`
 ranges; the compiled code is identical across versions.
 
 Shared code: the MC-agnostic core is [`../shared_common`](../shared_common); the
-Minecraft-touching mod layer (Mixins/accessors that keep big pre-gens safe on vanilla) is
-[`../shared_minecraft`](../shared_minecraft). See those READMEs for feature detail.
+Minecraft-touching mod layer (Mixins and accessors that keep big pregens safe on vanilla) is
+generated per cell into `gen/` from [`../../_codegen/cog_sources`](../../_codegen/cog_sources),
+which is the single source of truth for it. Both are shaded into each jar.
 
 ## Build
 
@@ -17,5 +18,8 @@ From the repo root:
     pwsh scripts/build-neoforge.ps1          # all targets -> dist/
     pwsh scripts/build-neoforge.ps1 26.2     # one target
 
-Targets: 26.1 (neoforge 26.1.0.15-beta), 26.2 (neoforge 26.2.0.1-beta).
+Targets: 26.1 (neoforge 26.1.2.101), 26.2 (neoforge 26.2.0.75). `scripts/build-neoforge.ps1`
+is the canonical matrix; the `gradle.properties` default mirrors it for a bare `gradlew` run.
+The declared `neoforge` version RANGES are deliberately wider than the build pin, so compiling
+against the newest build does not raise the floor for existing users.
 Toolchain: net.neoforged.moddev (MDG) 2.0.141, mixin 0.8.5, Java 25, mojmap-native.

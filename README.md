@@ -109,7 +109,7 @@ Both values live in the 26.3 row of `scripts/build-fabric.ps1`.
 | `Fabric/`, `NeoForge/`, `Forge/` | Per-loader builds; one `<version>` subfolder per MC cell, plus the unified `26/` cell (Fabric and NeoForge). |
 | `Plugin/` | Bukkit/Paper plugin - one jar per line (1.20.x / 1.21.x / 26.x) built over `shared_common`, with the shared plugin code in `Plugin/shared_plugin/`. |
 | `_codegen/` | Cog generator: `compat.py` (version/era rules) + `cog_sources/` (the shared mod sources, and the Cog-instrumented drift files). |
-| `scripts/` | Build scripts (`build-<loader>.ps1`), `cog-gen.ps1`, and `prep-libs.py`. |
+| `scripts/` | Build scripts (`build-<loader>.ps1`), `cog-gen.ps1`, `prep-libs.py`, the release stager, and the verification helpers (`verify-platform.py`, `verify-pause-drain.py`, `_metadata.py`). |
 | `libs/` | Staging for optional soft-dependency jars (gitignored) - see below. |
 | `docs/` | Internal development notes (gitignored). |
 | `dist/` | Build output (generated). |

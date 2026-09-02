@@ -12,7 +12,7 @@
 // net.minecraftforge.* API namespace, so this cell is built against net.minecraftforge:forge:1.20.1-47.x
 // and is binary-compatible with both. JDK 17, official Mojang mappings at dev time.
 //
-// Single-cross-version-source model (Goal 5): compiles the Cog-generated shared_minecraft output
+// Single-cross-version-source model (Goal 5): compiles the Cog-generated output
 // (gen/, produced by cog-gen.ps1 -Loader Forge, which KEEPS the refmap key for this ancient cell) plus
 // the per-cell platform/entrypoint seam, and pulls MC-agnostic code from :chunksmith-common
 // (= ../../shared_common). Version drift in the shared mixins is resolved by Cog. -Xlint:all + zero warnings.
@@ -66,7 +66,7 @@ configurations {
     implementation.extendsFrom shade
 }
 
-// Cog-generated shared_minecraft source (produced by cog-gen.ps1 for this MC version).
+// Cog-generated source (produced by cog-gen.ps1 from _codegen/cog_sources for this MC version).
 sourceSets.main.java.srcDir 'gen/src/main/java'
 
 repositories {

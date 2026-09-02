@@ -1,7 +1,7 @@
 // ChunkSmith Fabric cell - MC 1.21.1 (single-cross-version-source model, Goal 5).
 // TRANSITIONAL era (SimpleRegionStorage + ProcessorMailbox IOWorker + ChunkResult, ChunkStorage
 // still present, net.minecraft.Util, BlockAttachedEntity target). Compiles the Cog-generated
-// shared_minecraft output (gen/) plus the per-cell platform/entrypoint seam, and pulls MC-agnostic
+// output (gen/) plus the per-cell platform/entrypoint seam, and pulls MC-agnostic
 // code from :chunksmith-common (= ../../shared_common). Version drift in the shared mixins is
 // resolved by Cog (cog-gen.ps1), NOT reflection, because pre-26 Fabric runs on the intermediary
 // runtime.
@@ -44,7 +44,7 @@ java {
     withSourcesJar()
 }
 
-// Cog-generated shared_minecraft source (produced by cog-gen.ps1 for this MC version).
+// Cog-generated source (produced by cog-gen.ps1 from _codegen/cog_sources for this MC version).
 sourceSets["main"].java.srcDir("gen/src/main/java")
 
 val shade: Configuration by configurations.creating

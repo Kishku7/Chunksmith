@@ -1,4 +1,10 @@
-# Chunksmith - Plugin (Bukkit / Paper / Folia)
+# Chunksmith - Plugin (Bukkit / Paper)
+
+> **Folia is no longer a supported or tested platform.** Plugin testing is on Paper. The jar still
+> declares `folia-supported` and still carries its Folia runtime branches, and they still work as far
+> as anyone knows -- but nothing verifies that any more, so it is not a claim this project makes.
+> The flag and those branches come out in a later release. Where Folia is named below it is
+> describing server internals (Paper and Folia share the Moonrise chunk system), not a support claim.
 
 The Chunksmith **plugin** is the Bukkit-family build. It shares the same MC-agnostic
 core as the mod (`shared_common`, included here as `chunksmith-common`), so command
@@ -10,8 +16,8 @@ same code the Fabric/NeoForge mod runs.
 - `bukkit/` (`chunksmith-bukkit`) - the plugin entrypoint and the Bukkit implementations
   of the platform interfaces (world, player, config, border, sender, server).
 - `platform/` (`chunksmith-platform`) - thin Paper/Folia helpers (async chunk loading,
-  tick-time, region schedulers) behind `Reflection.classExists` guards so one jar runs on
-  Spigot, Paper, and Folia.
+  tick-time, region schedulers) behind `Reflection.classExists` guards, so one jar runs on
+  Spigot and Paper (and on Folia, untested -- see the note at the top).
 - `chunksmith-common` -> `../shared_common` - the shared MC-agnostic core (not a copy).
 
 Build: `./gradlew build` from this folder -> `bukkit/build/libs/Chunksmith-Bukkit-<ver>.jar`.
@@ -110,4 +116,4 @@ It is logged plainly rather than failing quietly; the fix is to open the port, o
 allows.
 
 Credits: original Chunky by pop4959; the Paper/Folia chunk-system work referenced above is
-Moonrise (Spottedleaf). Findings detail: [`../docs/plugin-api-parity.md`](../docs/plugin-api-parity.md).
+Moonrise (Spottedleaf).

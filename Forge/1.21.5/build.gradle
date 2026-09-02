@@ -10,7 +10,7 @@
 // MixinConfigs manifest attribute must be wired explicitly on the jar -- FML reads it to discover
 // chunksmith.mixins.json. (Same pattern as the proven NeoForge cell + the old-branch Forge cells.)
 //
-// Single-cross-version-source model (Goal 5): compiles the Cog-generated shared_minecraft output
+// Single-cross-version-source model (Goal 5): compiles the Cog-generated output
 // (gen/, produced by cog-gen.ps1 -Loader Forge) plus the per-cell platform/entrypoint seam, and
 // pulls MC-agnostic code from :chunksmith-common (= ../../shared_common). Version drift in the
 // shared mixins is resolved by Cog, NOT reflection. -Xlint:all + zero warnings.
@@ -50,7 +50,7 @@ configurations {
     shade
 }
 
-// Cog-generated shared_minecraft source (produced by cog-gen.ps1 for this MC version).
+// Cog-generated source (produced by cog-gen.ps1 from _codegen/cog_sources for this MC version).
 sourceSets.main.java.srcDir 'gen/src/main/java'
 
 dependencies {

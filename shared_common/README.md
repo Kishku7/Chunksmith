@@ -1,8 +1,8 @@
 # Chunksmith - shared_common (chunksmith-common)
 
 The Minecraft-agnostic core of Chunksmith, and the single source of truth for everything
-that does not touch Minecraft internals. Shared verbatim by the Fabric and NeoForge mods
-AND the Bukkit/Paper/Folia plugin (where it is included as the `chunksmith-common` module).
+that does not touch Minecraft internals. Shared verbatim by the Fabric, NeoForge and Forge
+mods AND the Bukkit/Paper plugin (where it is included as the `chunksmith-common` module).
 
 ## Contents
 

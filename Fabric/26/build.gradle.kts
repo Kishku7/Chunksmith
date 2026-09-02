@@ -50,17 +50,19 @@ allprojects {
 
 val shade: Configuration by configurations.creating
 
-// Per-version dependency matrix. Defaults target the dev tip (26.3); the build-all
-// script overrides via -PmcVersion / -PfabricApiVersion for each 26.x target.
-val mcVersion = (project.findProperty("mcVersion") ?: "26.3-snapshot-3").toString()
-val fabricApiVersion = (project.findProperty("fabricApiVersion") ?: "0.154.3+26.3").toString()
-val mcDep = (System.getenv("MC_DEP") ?: ">=26.3-")
-// Resource pack_format is per-26.X (26.1=84, 26.2=88, 26.3=91); build-all overrides via
-// PACK_FORMAT so each emitted jar carries its own correct value. Above the MC 26 SERVER_DATA
+// Per-version dependency matrix. These defaults exist only so a bare `gradlew` in this cell
+// still runs; scripts/build-fabric.ps1 is the CANONICAL source and overrides every one of them
+// via -PmcVersion / -PfabricApiVersion / MC_DEP / PACK_FORMAT per 26.x target. Keep them in step
+// with that script's 26.3 row -- they had drifted three builds apart from it, and from each other.
+val mcVersion = (project.findProperty("mcVersion") ?: "26.3-pre-1").toString()
+val fabricApiVersion = (project.findProperty("fabricApiVersion") ?: "0.159.1+26.3").toString()
+val mcDep = (System.getenv("MC_DEP") ?: "26.3-pre.1")
+// Resource pack_format is per-26.X (26.1=84, 26.2=88, 26.3-pre-1=97). Above the MC 26 SERVER_DATA
 // lastPreMinorVersion (81) the strict pack.mcmeta parser REQUIRES min_format/max_format, so the
 // pack.mcmeta template declares min_format=max_format=pack_format (an exact single-format range).
-// Default = 26.3 (dev tip).
-val packFormat = (System.getenv("PACK_FORMAT") ?: "91")
+// A WRONG value here is silent: the jar builds and the client just drops its resource pack. Read it
+// out of the target build's own resources/version.json -- 26.3 went 95 -> 97 and skipped 96.
+val packFormat = (System.getenv("PACK_FORMAT") ?: "97")
 
 sourceSets["main"].java.srcDir("gen/src/main/java")
 

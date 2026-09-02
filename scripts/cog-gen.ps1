@@ -17,7 +17,7 @@
     6. Regenerate <Cell>/src/main/resources/chunksmith.mixins.json's mixins[] + compatibilityLevel
        to match the files actually present for this version.
 
-  The cell's build.gradle.kts srcDirs <Cell>/gen/ (NOT shared_minecraft directly), so it
+  The cell's build.gradle.kts srcDirs <Cell>/gen/ (NOT cog_sources directly), so it
   compiles the post-Cog output.
 
 .PARAMETER Cell
@@ -168,7 +168,7 @@ try {
 
 $chunkStorageDst = Join-Path $genJava (Join-Path $mixinPkg 'ChunkStorageAccessor.java')
 if ($hasChunkStorage -eq '1') {
-    # ChunkStorageAccessor is NOT in shared_minecraft (26-shaped); inject it for older versions.
+    # ChunkStorageAccessor is NOT in cog_sources/shared (26-shaped); inject it for older versions.
     Copy-Item -Force (Join-Path $cogSrc 'ChunkStorageAccessor.java') $chunkStorageDst
     Write-Host "[cog-gen] + ChunkStorageAccessor (present on $McVer)"
 } else {
@@ -179,7 +179,7 @@ if ($hasChunkStorage -eq '1') {
 $mcServerAccDst = Join-Path $genJava (Join-Path $mixinPkg 'MinecraftServerAccess.java')
 if ($hasMcServerAcc -eq '1') {
     Write-Host "[cog-gen] + MinecraftServerAccess (present on $McVer)"
-    # already copied from shared_minecraft; leave it.
+    # already copied from cog_sources/shared; leave it.
 } else {
     if (Test-Path $mcServerAccDst) { Remove-Item -Force $mcServerAccDst }
     Write-Host "[cog-gen] - MinecraftServerAccess (absent on $McVer)"
@@ -198,7 +198,7 @@ $ticketDiagFiles = @(
 )
 if ($hasTicketStorage -eq '1') {
     Write-Host "[cog-gen] + ticket diagnostics (TicketStorage present on $McVer)"
-    # already copied from shared_minecraft; leave them.
+    # already copied from cog_sources/shared; leave them.
 } else {
     foreach ($f in $ticketDiagFiles) { if (Test-Path $f) { Remove-Item -Force $f } }
     Write-Host "[cog-gen] - ticket diagnostics (no TicketStorage on $McVer)"
@@ -209,14 +209,14 @@ if ($hasTicketStorage -eq '1') {
 $simpleRegionStorageDst = Join-Path $genJava (Join-Path $mixinPkg 'SimpleRegionStorageAccessor.java')
 if ($hasSimpleRegionStorage -eq '1') {
     Write-Host "[cog-gen] + SimpleRegionStorageAccessor (present on $McVer)"
-    # already copied from shared_minecraft; leave it.
+    # already copied from cog_sources/shared; leave it.
 } else {
     if (Test-Path $simpleRegionStorageDst) { Remove-Item -Force $simpleRegionStorageDst }
     Write-Host "[cog-gen] - SimpleRegionStorageAccessor (absent on $McVer)"
 }
 
 # --- Hanging / BlockAttached presence swap (invalid-position log suppressor). ---
-# shared_minecraft carries the 1.21.*+ shape (BlockAttachedEntityMixin, @Mixin BlockAttachedEntity).
+# cog_sources/shared carries the 1.21.*+ shape (BlockAttachedEntityMixin, @Mixin BlockAttachedEntity).
 # On the 1.20.* line the target class is HangingEntity, so swap in the HangingEntityMixin cog_source
 # (same @Redirect body) and drop BlockAttachedEntityMixin. Both are Cog-processed (no markers today,
 # but running cog is harmless and keeps them uniform if markers are added later).
@@ -228,7 +228,7 @@ if ($hangingClass -eq 'HangingEntity') {
     Write-Host "[cog-gen] + HangingEntityMixin / - BlockAttachedEntityMixin (1.20.* target on $McVer)"
 } else {
     if (Test-Path $hangingDst) { Remove-Item -Force $hangingDst }
-    # BlockAttachedEntityMixin already present from shared_minecraft; leave it.
+    # BlockAttachedEntityMixin already present from cog_sources/shared; leave it.
     Write-Host "[cog-gen] + BlockAttachedEntityMixin (1.21.*+ target on $McVer)"
 }
 

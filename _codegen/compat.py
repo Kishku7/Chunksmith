@@ -3,7 +3,7 @@
 Given an MC version string (mcver), this module returns the correct per-era code
 fragments for each mixin/accessor drift point in the drift matrix. Cog source
 files import this module and call
-its helpers inside //[[[cog ... //]]] blocks so ONE shared_minecraft source can be
+its helpers inside //[[[cog ... //]]] blocks so ONE cog_sources file can be
 direct-compiled correctly for every MC version.
 
 Rationale for direct-compile (Cog) rather than a reflection facade: pre-26 Fabric
@@ -90,7 +90,7 @@ def _stub(name, mcver):
 
 # ---------------------------------------------------------------------------
 # Drift point helpers. Each returns a plain string that Cog inserts verbatim.
-# Prefix is uniformly chunksmith$ (shared_minecraft is already namespace-normalized).
+# Prefix is uniformly chunksmith$ (cog_sources is already namespace-normalized).
 # ---------------------------------------------------------------------------
 
 def util_at_target(mcver):
@@ -401,7 +401,7 @@ def needs_inactive_profiler_import(mcver):
 #       pendingWrites             : java.util.SequencedMap
 #       submit  executor.<Boolean>scheduleWithResult(0, result -> {...})
 #
-# These two shapes were byte-IDENTICAL from 1.21.4 through 26, so the shared_minecraft
+# These two shapes were byte-IDENTICAL from 1.21.4 through 26, so the cog_sources
 # copies (IOWorkerAccessor, PersistentEntitySectionManagerMixin) carry the MODERN form
 # verbatim and were NOT previously Cog'd. Wiring the transitional/ancient eras makes the
 # executor primitive a real Cog axis; the cog_sources copies of those two files select the
