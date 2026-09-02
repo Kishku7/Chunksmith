@@ -35,11 +35,15 @@ try {
 #   pack_format -- 89,90,91,92,93,94,95 across the snapshots and then 97 at pre-1, which is a jump of
 #   TWO, so read it out of the build's own resources/version.json rather than incrementing the last one.
 #   That is why the pin is exclusive: a jar carries one pack_format and is wrong on every other 26.3
-#   build. dep uses the Fabric-normalized prerelease form (snapshot-N -> alpha.N, pre-N -> beta.N).
+#   build. dep uses the Fabric-normalized form, which for the 26.x naming only swaps the LAST hyphen
+#   for a dot: 26.3-snapshot-7 -> 26.3-alpha.7, 26.3-pre-1 -> 26.3-pre.1. NOT beta.1 -- that was
+#   assumed from the older 1.x convention and the server refused to load the mod
+#   ("requires version 26.3-beta.1 ... but only the wrong version is present: 26.3-pre.1").
+#   Read it off a boot, never from the pattern.
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3-pre-1";      api = "0.159.1+26.3";   dep = "26.3-beta.1"; packFormat = "97" }
+  "26.3" = @{ mc = "26.3-pre-1";      api = "0.159.1+26.3";   dep = "26.3-pre.1"; packFormat = "97" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
