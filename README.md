@@ -7,7 +7,9 @@ and **safely**. On top of fast pre-generation it adds an adaptive I/O throttle (
 generating around the clock even with players online), region write-backpressure protection,
 and worldgen diagnostics (overreach detection and structure-fault attribution).
 
-Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot / Folia plugin**. Originally
+Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot plugin**. (Folia is no longer
+tested: the plugin still carries its Folia support and as far as anyone knows it still works, but
+nothing verifies that any more, so it is not a promise this project makes.) Originally
 derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
 
 **Environment:** required on the server (or in singleplayer, where "server" is the integrated
@@ -24,8 +26,12 @@ onwards. You do not need a modded server to get multiplayer LOD. (Before 3.15.0 
 LOD data but had no way to send it, so this looked broken - if you are on an older build, update the
 server.)
 
-**Source code:** [`CSv3` branch](https://github.com/Kishku7/Chunksmith/tree/CSv3) - the 3.x line, where
-current development happens. The 2.x line is frozen on
+**Documentation:** the [Chunksmith wiki](https://github.com/Kishku7/Chunksmith/wiki) - every setting
+with its default and range, the commands, and how-to walkthroughs for pregenerating, trimming, and
+getting multiplayer LOD working.
+
+**Source code:** [`CSv3-Current` branch](https://github.com/Kishku7/Chunksmith/tree/CSv3-Current) - the
+3.x line, where current development happens. The 2.x line is frozen on
 [`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
 
 ## Why Chunksmith
