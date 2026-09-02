@@ -31,8 +31,8 @@ try {
 
 # 26-line matrix (unified NeoForge/26 cell; -P + PACK_FORMAT). pack_format per Memory/knowledge/pack-formats.md.
 $m26 = [ordered]@{
-  "26.1" = @{ nf = "26.1.0.15-beta"; nfRange = "[26.1.0.0-beta,)"; mcRange = "[26.1,26.2)"; packFormat = "84" }
-  "26.2" = @{ nf = "26.2.0.1-beta";  nfRange = "[26.2.0-alpha,)"; mcRange = "[26.2,26.3)"; packFormat = "88" }
+  "26.1" = @{ nf = "26.1.2.101";      nfRange = "[26.1.0.0-beta,)"; mcRange = "[26.1,26.2)"; packFormat = "84" }
+  "26.2" = @{ nf = "26.2.0.75";       nfRange = "[26.2.0-alpha,)"; mcRange = "[26.2,26.3)"; packFormat = "88" }
 }
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
 

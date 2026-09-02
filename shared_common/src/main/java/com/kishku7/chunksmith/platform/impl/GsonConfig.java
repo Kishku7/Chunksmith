@@ -130,9 +130,10 @@ public final class GsonConfig implements Config {
                     .map(Long::valueOf)
                     .orElseGet(() -> Math.min(400L,
                             Math.max(50L, Runtime.getRuntime().availableProcessors() * 25L)));
-    // 0 = no ceiling, and that is the default. An upper bound exists only so a typo cannot store a
+    // 0 means no ceiling; 2048 is the default. An upper bound exists only so a typo cannot store a
     // number that overflows when multiplied up to bytes; it is not a recommendation.
     private static final long LOD_INDEX_BUDGET_MB_NONE = 0L;
+    private static final long LOD_INDEX_BUDGET_MB_DEFAULT = 2048L;
     private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;   // a terabyte, in megabytes
 
     private static final long SETTLE_DELAY_DEFAULT = 40L;
@@ -469,7 +470,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public long getLodIndexBudgetMb() {
-        long raw = Optional.ofNullable(configModel.lodIndexBudgetMb).orElse(LOD_INDEX_BUDGET_MB_NONE);
+        long raw = Optional.ofNullable(configModel.lodIndexBudgetMb).orElse(LOD_INDEX_BUDGET_MB_DEFAULT);
         if (raw <= LOD_INDEX_BUDGET_MB_NONE) {
             // Negative is not a smaller budget than zero, it is a typo. Both mean no ceiling here,
             // which is also what an operator who never touched the key gets.
@@ -726,8 +727,8 @@ public final class GsonConfig implements Config {
         private Boolean lodDhOverride = false;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
-        // 0 = no ceiling. See Config#getLodIndexBudgetMb.
-        private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_NONE;
+        // 2048 MB by default; 0 = no ceiling. See Config#getLodIndexBudgetMb.
+        private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_DEFAULT;
         // Empty = bind wherever the game bound. See Config#getLodBackchannelBindAddress.
         private String lodBackchannelBindAddress = "";
         // Empty = let each client use the address it connected to. See Config#getLodBackchannelHost.

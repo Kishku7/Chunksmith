@@ -36,7 +36,27 @@ public final class BukkitConfig implements Config {
     /** Matches the mod's ceiling; see Config#getLodIndexBudgetMb. A terabyte, in megabytes. */
     private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;
 
-    private static final List<String> HEADER = Arrays.asList("Chunksmith Configuration", "https://github.com/pop4959/Chunksmith/wiki/Configuration");
+    /** Matches the mod's default. */
+    private static final long LOD_INDEX_BUDGET_MB_DEFAULT = 2048L;
+
+    /** The documentation page. Kept as a constant so there is one place to correct it. */
+    private static final String CONFIG_DOCS = "https://github.com/Kishku7/Chunksmith/wiki/Server-Settings";
+
+    /**
+     * The comment written at the top of a generated config.yml.
+     *
+     * <p>The URL used to be github.com/pop4959/Chunksmith/wiki/Configuration, which never existed:
+     * it was produced by renaming the Chunky fork (pop4959's repo is Chunky, not Chunksmith) and
+     * nobody who wrote the code ever had cause to read the file it was written into. A user
+     * followed it to a 404 and asked where the documentation was, which is mod_support #24 and the
+     * reason the wiki now exists.
+     */
+    private static final List<String> HEADER = Arrays.asList(
+            "Chunksmith Configuration",
+            "Every setting here, with its default and range: " + CONFIG_DOCS,
+            "Everything is also settable in-game with /cs set <name> <value>, which applies",
+            "immediately and rewrites this file.");
+
     private final ChunksmithBukkit plugin;
 
     public BukkitConfig(ChunksmithBukkit plugin) {
@@ -242,7 +262,7 @@ public final class BukkitConfig implements Config {
 
     @Override
     public long getLodIndexBudgetMb() {
-        long raw = plugin.getConfig().getLong("lod-index-budget-mb", 0L);
+        long raw = plugin.getConfig().getLong("lod-index-budget-mb", LOD_INDEX_BUDGET_MB_DEFAULT);
         // Out of range is no budget, not a clamped one, matching the mod. See
         // Config#getLodIndexBudgetMb for why the ceiling is not a recommendation.
         return (raw <= 0L || raw > LOD_INDEX_BUDGET_MB_MAX) ? 0L : raw;

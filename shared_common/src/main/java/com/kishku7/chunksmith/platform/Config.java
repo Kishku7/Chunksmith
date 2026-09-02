@@ -262,16 +262,21 @@ public interface Config {
 
     /**
      * Returns the ceiling, in megabytes, on how much LOD one index answer may
-     * offer a client, or 0 for no ceiling.
+     * offer a client. Defaults to 2048; 0 means no ceiling.
      *
-     * <p>0 is the default and the right answer for nearly everyone. This is a
-     * bandwidth-cost control, not a safety valve: the server does not protect
-     * itself by setting it. A fixed 2 GB version of this used to be compiled in,
-     * and because it did not scale with the radius a client asked for, it bound
-     * at the same distance on every answer and a standing player never received
-     * the far half of what they had asked to draw (mod_support #23). The limit
-     * that governs an answer is the client's announced radius; this one exists
-     * for an operator who pays per gigabyte and would rather serve less.
+     * <p>Until 3.16.0 this exact number was a compile-time constant, and that
+     * was the bug (mod_support #23): not the value, but that an operator could
+     * neither raise it nor see why their players were missing terrain. It does
+     * not scale with the radius a client asks for, so it binds at the same
+     * distance on every answer, and a standing player never receives the far
+     * half of what they asked to draw.
+     *
+     * <p>The default is unchanged at 2048 deliberately, so upgrading changes no
+     * server's behaviour. What changed is that it is now a key, and that the log
+     * says which cap bound and whether travelling will help. Roughly: a Distant
+     * Horizons radius of 4096 needs about 1.5 GB and fits; a radius of 8192
+     * needs about 4 GB and does not. A server that wants to serve large radii
+     * should raise this or set it to 0.
      */
     long getLodIndexBudgetMb();
 
