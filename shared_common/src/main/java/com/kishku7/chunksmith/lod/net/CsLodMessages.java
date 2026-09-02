@@ -80,7 +80,13 @@ public final class CsLodMessages {
      *                        the player has already authenticated with Mojang.
      */
     public record ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
-                              String token, List<String> dimensions) {
+                              String token, List<String> dimensions, String advertisedHost) {
+
+        /** A hello that names no host, so the client uses the address it connected to. */
+        public ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
+                           String token, List<String> dimensions) {
+            this(protocolVersion, storeAvailable, backchannelPort, token, dimensions, "");
+        }
     }
 
     public static byte[] encode(ServerHello hello) throws IOException {
@@ -95,6 +101,11 @@ public final class CsLodMessages {
             for (String dimension : hello.dimensions()) {
                 out.writeUTF(dimension);
             }
+            // APPENDED, after everything a 3.15.0 client reads, and that placement is the whole reason
+            // CsLodProtocol.VERSION did not have to move. An older client stops after the dimension
+            // list and never sees these bytes; the message is length-prefixed, so trailing content is
+            // not a framing error to it. The decoder below handles the other direction.
+            out.writeUTF(hello.advertisedHost() == null ? "" : hello.advertisedHost());
         }
         return raw.toByteArray();
     }
@@ -116,7 +127,11 @@ public final class CsLodMessages {
         for (int i = 0; i < count; i++) {
             dimensions.add(in.readUTF());
         }
-        return new ServerHello(version, available, port, token, dimensions);
+        // The other half of the compatibility trick in encode(): a 3.15.0 server's hello simply ends
+        // here, so read the host only if there is anything left to read. available() is exact -- the
+        // stream is a ByteArrayInputStream over one already-framed message, not a socket.
+        String advertisedHost = in.available() > 0 ? in.readUTF() : "";
+        return new ServerHello(version, available, port, token, dimensions, advertisedHost);
     }
 
     // region index

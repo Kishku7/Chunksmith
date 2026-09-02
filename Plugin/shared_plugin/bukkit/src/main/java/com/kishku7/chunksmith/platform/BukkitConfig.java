@@ -249,6 +249,16 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public String getLodBackchannelBindAddress() {
+        return Input.checkHost(plugin.getConfig().getString("lod-backchannel-bind-address", ""));
+    }
+
+    @Override
+    public String getLodBackchannelHost() {
+        return Input.checkHost(plugin.getConfig().getString("lod-backchannel-host", ""));
+    }
+
+    @Override
     public void setLanguage(String language) {
         plugin.getConfig().set("language", Input.checkLanguage(language));
         plugin.saveConfig();
@@ -374,6 +384,18 @@ public final class BukkitConfig implements Config {
     public void setLodIndexBudgetMb(long megabytes) {
         plugin.getConfig().set("lod-index-budget-mb",
                 (megabytes <= 0L || megabytes > LOD_INDEX_BUDGET_MB_MAX) ? 0L : megabytes);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodBackchannelBindAddress(String address) {
+        plugin.getConfig().set("lod-backchannel-bind-address", Input.checkHost(address));
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodBackchannelHost(String host) {
+        plugin.getConfig().set("lod-backchannel-host", Input.checkHost(host));
         plugin.saveConfig();
     }
 

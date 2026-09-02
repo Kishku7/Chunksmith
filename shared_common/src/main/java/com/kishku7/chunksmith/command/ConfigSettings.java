@@ -118,6 +118,10 @@ public final class ConfigSettings {
             // No CsLodControl.apply() here, unlike the port beside it: nothing is bound to a budget.
             // It is read when the next index is built, so the next answer already honours it.
             integer("lodIndexBudgetMb", Config::getLodIndexBudgetMb, Config::setLodIndexBudgetMb),
+            host("lodBackchannelBindAddress",
+                    Config::getLodBackchannelBindAddress, Config::setLodBackchannelBindAddress),
+            host("lodBackchannelHost",
+                    Config::getLodBackchannelHost, Config::setLodBackchannelHost),
             settle(bool("pregenSettle", Config::isPregenSettleEnabled, Config::setPregenSettleEnabled)),
             settle(integer("pregenSettleDelayTicks",
                     Config::getPregenSettleDelayTicks, Config::setPregenSettleDelayTicks)),
@@ -179,6 +183,49 @@ public final class ConfigSettings {
                     }
                     return null;
                 });
+    }
+
+    /** How an operator clears a host key from a chat command, where an empty argument cannot be typed. */
+    private static final String CLEAR = "none";
+
+    /**
+     * A host or IP key that takes effect immediately.
+     *
+     * <p>Both of these change where the backchannel listens or where clients are sent, and both
+     * exist for an operator whose address has moved under them -- so, like the port beside them,
+     * they rebind and re-advertise on the spot rather than on the next restart. A setting that only
+     * applies after a restart would solve their problem in theory and not in practice.
+     */
+    private static ConfigSetting host(String name,
+                                      Function<Config, String> getter,
+                                      TextSetter setter) {
+        return new ConfigSetting(name, ConfigSetting.Kind.TEXT,
+                config -> {
+                    String value = getter.apply(config);
+                    // Read back as the word the operator would type to get here, not as a blank.
+                    return value == null || value.isEmpty() ? CLEAR : value;
+                },
+                (config, raw) -> {
+                    String asked = raw == null ? "" : raw.trim();
+                    if (asked.isEmpty() || CLEAR.equalsIgnoreCase(asked)) {
+                        setter.set(config, "");
+                        CsLodControl.apply();
+                        return true;
+                    }
+                    // Refuse rather than store the empty string the validator would fall back to.
+                    // Silently turning a typo into "unset" would answer "done" and change nothing.
+                    if (Input.checkHost(asked).isEmpty()) {
+                        return false;
+                    }
+                    setter.set(config, asked);
+                    CsLodControl.apply();
+                    return true;
+                },
+                config -> true);
+    }
+
+    private interface TextSetter {
+        void set(Config config, String value);
     }
 
     private static ConfigSetting of(final String name,

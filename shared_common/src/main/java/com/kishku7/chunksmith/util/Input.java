@@ -29,6 +29,12 @@ import com.kishku7.chunksmith.shape.ShapeType;
 import java.util.Optional;
 
 public final class Input {
+
+    /** The DNS limit, and the point past which a config value is a paste accident rather than a host. */
+    private static final int MAX_HOST_LENGTH = 253;
+
+    /** The DNS limit on one dot-separated label. */
+    private static final int MAX_LABEL_LENGTH = 63;
     private Input() {
     }
 
@@ -162,6 +168,61 @@ public final class Input {
 
     public static String checkLanguage(String language) {
         return Translator.isValidLanguage(language) ? language : "en";
+    }
+
+    /**
+     * Returns a host or IP literal fit to put in a config file, or the empty
+     * string for anything that is not one.
+     *
+     * <p>Empty is the "unset" value for both backchannel address keys, so a
+     * rejected value lands on the documented default rather than on a
+     * near-miss: an operator who typed something wrong gets the behaviour they
+     * had before they typed it, which is a working server, and the key they
+     * meant to set is visibly still empty when they go looking.
+     *
+     * <p>Deliberately a syntax check and not a resolve. {@code InetAddress}
+     * would do DNS, and this runs on the main thread from {@code /cs set} and
+     * again on every config read; a name that is slow to resolve would stall
+     * the server, and one that is temporarily unresolvable would silently erase
+     * a correct setting. Whether the address is reachable is answered by the
+     * bind attempt and by the client's own probe, both of which report it.
+     *
+     * <p>Accepts a bracketed IPv6 literal ({@code [::]}) unbracketed too, since
+     * that is how an operator writes it in a config file even though a URL
+     * needs the brackets; the caller adds them back when building a URL.
+     */
+    public static String checkHost(String host) {
+        if (host == null) {
+            return "";
+        }
+        String trimmed = host.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        if (trimmed.length() > MAX_HOST_LENGTH) {
+            return "";
+        }
+        // An IPv6 literal, bracketed or not: hex groups, colons, and a possible zone id.
+        String bare = trimmed.startsWith("[") && trimmed.endsWith("]")
+                ? trimmed.substring(1, trimmed.length() - 1)
+                : trimmed;
+        if (bare.indexOf(':') >= 0) {
+            return bare.matches("[0-9A-Fa-f:.%]+") ? bare : "";
+        }
+        // Anything else must look like a hostname or an IPv4 literal: labels of letters, digits and
+        // hyphens, separated by dots, no label starting or ending with a hyphen, no empty label.
+        for (String label : bare.split("\\.", -1)) {
+            if (label.isEmpty() || label.length() > MAX_LABEL_LENGTH) {
+                return "";
+            }
+            if (label.startsWith("-") || label.endsWith("-")) {
+                return "";
+            }
+            if (!label.matches("[0-9A-Za-z-]+")) {
+                return "";
+            }
+        }
+        return bare;
     }
 
     private static Optional<Integer> suffixValue(char suffix) {

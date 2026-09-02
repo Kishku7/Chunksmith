@@ -157,7 +157,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
         http = new CsLodHttpServer(CsLodServerBukkit::rootFor, TOKENS, CsLodServerBukkit::isOnline);
         int bound = http.start(bindAddress(owner), owner.getServer().getPort(),
-                config.getLodBackchannelPort());
+                config.getLodBackchannelPort(), config.getLodBackchannelBindAddress());
 
         if (bound == 0) {
             // Not fatal, but on this platform there is no in-band fallback to quietly succeed with,
@@ -201,6 +201,15 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         SCANNING.clear();
     }
 
+    /**
+     * Returns the host to put in a hello, or empty to let the client use the address it connected
+     * to. Read per hello, so a /cs set is in force for the re-advertisement it triggers.
+     */
+    private static String advertisedHost() {
+        Plugin owner = plugin;
+        return owner == null ? "" : ChunksmithProvider.get().getConfig().getLodBackchannelHost();
+    }
+
     /** A token must never outlive the session that earned it. Wired to PlayerQuitEvent. */
     public static void onQuit(UUID player) {
         TOKENS.revoke(player);
@@ -225,7 +234,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         }
         http = new CsLodHttpServer(CsLodServerBukkit::rootFor, TOKENS, CsLodServerBukkit::isOnline);
         int bound = http.start(bindAddress(plugin), plugin.getServer().getPort(),
-                config.getLodBackchannelPort());
+                config.getLodBackchannelPort(), config.getLodBackchannelBindAddress());
         readvertise(bound);
         return bound;
     }
@@ -280,7 +289,8 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                 : "";
         try {
             player.sendPluginMessage(plugin, CHANNEL, withLengthPrefix(CsLodMessages.encode(
-                    new CsLodMessages.ServerHello(CsLodProtocol.VERSION, available, port, token, dims))));
+                    new CsLodMessages.ServerHello(CsLodProtocol.VERSION, available, port, token, dims,
+                            advertisedHost()))));
         } catch (IOException e) {
             LOGGER.warning("Chunksmith: could not answer the LOD hello from "
                     + player.getName() + ": " + e);

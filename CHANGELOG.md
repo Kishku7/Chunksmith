@@ -29,6 +29,30 @@
 
 ### Added
 
+- `lodBackchannelBindAddress` (`lod-backchannel-bind-address`) and `lodBackchannelHost`
+  (`lod-backchannel-host`): the backchannel's address is settable now, not only its port
+  (mod_support #24).
+
+  Two keys, because they answer two different questions. The bind address is where the socket
+  LISTENS, and it exists because the backchannel followed whatever the game bound: a host that sets
+  `server-ip` to `127.0.0.1`, which is normal behind a proxy, got a backchannel on loopback that no
+  player could reach, and the only symptom was every client quietly falling back to the slow in-band
+  channel while the log said `listening on /127.0.0.1:25566`. Set `0.0.0.0` to listen everywhere
+  regardless.
+
+  Binding everywhere does not finish the job, though, which is why there is a second key. The client
+  has always worked out where to fetch from by reusing the address it connected to, and that is a
+  better answer than anything the server can guess -- it is an address that demonstrably reaches
+  this server from where that player is sitting. It is wrong in one shape: the backchannel reachable
+  at a different address from the game port. `lodBackchannelHost` is how a server says so.
+
+  Both rebind and re-advertise on the spot, the way `lodBackchannelPort` does. An address key that
+  waited for a restart would be no use to the operator it is for. Set either to `none` to clear it.
+
+  No protocol version change, and no upgrade order to worry about. The host rides after the last
+  field a 3.15.0 client reads, so an old client never sees it, and a 3.16.0 client talking to an old
+  server just finds nothing there and carries on using the connect address.
+
 - `lodIndexBudgetMb` (`lod-index-budget-mb` in the plugin's `config.yml`): a ceiling in megabytes on
   how much LOD one answer may offer a client. Defaults to `0`, meaning no limit. This is for
   operators paying for transfer, not a safety valve -- the server is not protecting itself by

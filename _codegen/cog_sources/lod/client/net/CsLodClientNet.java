@@ -106,6 +106,13 @@ public final class CsLodClientNet {
     private static volatile String host = "";
 
     /**
+     * What the server told us to fetch from, or empty when it named nothing. Kept apart from {@link
+     * #host} rather than overwriting it, so a server that stops naming a host on a later hello falls
+     * back to the connect address instead of keeping a stale override forever.
+     */
+    private static volatile String advertisedHost = "";
+
+    /**
      * The dimension we are currently pulling for. always the one the player is actually in. This field held
      * {@code hello.dimensions().get(0)} in 3.1.0-beta-2 and never changed again, which is the failure
      * {@code CsLodDimension} documents. Now re-derived from the level ({@link #dimensionTick}); a dimension
@@ -583,6 +590,14 @@ public final class CsLodClientNet {
         token = hello.token();
         tokenIssuedMillis = System.currentTimeMillis();
         backchannelPort = hello.backchannelPort();
+        // A server that names a host overrides the address we connected to. Almost no server does,
+        // and the connect address is the better answer when none is named: it demonstrably reaches
+        // this server from where this player is sitting. But it is wrong wherever the backchannel
+        // lives at a different address from the game port -- a proxy in front, or a host that maps
+        // extra ports onto another IP -- and until 3.16.0 there was no way for the server to say so
+        // (mod_support #24). Empty from every 3.15.0 server and from every server that has not set
+        // the key, which is why this reads as "override if named" rather than as a new requirement.
+        advertisedHost = hello.advertisedHost() == null ? "" : hello.advertisedHost();
         serverDimensions = hello.dimensions();
 
         // The dimension is the one the player is standing in, NEVER the first one the server listed.
@@ -633,6 +648,16 @@ public final class CsLodClientNet {
         requestIndex(mine);
     }
 
+    /**
+     * Where to fetch regions from: the host the server named, or failing that the address we
+     * connected to. One place, so the reachability probe, the download and the log line can never
+     * disagree about which of the two they meant.
+     */
+    private static String fetchHost() {
+        String named = advertisedHost;
+        return named.isEmpty() ? host : named;
+    }
+
     /** Asks what is in range right now, and remembers where we asked from. */
     private static void requestIndex(String dimension) {
         if (!busy.compareAndSet(false, true)) {
@@ -667,7 +692,8 @@ public final class CsLodClientNet {
         lastIndex = index.regions();
         lastSyncMillis = System.currentTimeMillis();
 
-        if (backchannelPort == 0 || token.isEmpty() || host.isEmpty()) {
+        String fetchHost = fetchHost();
+        if (backchannelPort == 0 || token.isEmpty() || fetchHost.isEmpty()) {
             inBand(index, root);
             return;
         }
@@ -681,7 +707,7 @@ public final class CsLodClientNet {
                 // full connect timeout per region, ~30s of dead air on a 9-region store before the
                 // fallback fires, and it scales with the store. A single socket answers the same question
                 // in 2s.
-                if (!reachable(host, backchannelPort)) {
+                if (!reachable(fetchHost, backchannelPort)) {
                     LOGGER.warn("Chunksmith: the backchannel on port {} is advertised but unreachable;"
                             + " falling back to the in-band channel (slower)", backchannelPort);
                     backchannelPort = 0;
@@ -690,7 +716,7 @@ public final class CsLodClientNet {
                 }
 
                 CsLodDownloader current = downloader;
-                current.download(host, backchannelPort, token, index,
+                current.download(fetchHost, backchannelPort, token, index,
                         line -> LOGGER.info("Chunksmith: {}", line));
 
                 // Backstop: the port answered a socket but every fetch still failed (a proxy that accepts
@@ -857,6 +883,7 @@ public final class CsLodClientNet {
         tokenIssuedMillis = 0L;
         backchannelPort = 0;
         host = "";
+        advertisedHost = "";
         activeDimension = "";
         playerDimension = "";
         serverDimensions = List.of();

@@ -128,10 +128,22 @@ public final class CsLodHttpServer {
      * Binds and starts the backchannel server.
      *
      * @param bindAddress    the address the game is bound to (empty/null = all interfaces, same as the game)
+     * @param gamePort       the game's port, which the backchannel port is derived from when none is set
      * @param configuredPort the operator's chosen port, or 0 to derive {@code gamePort + 1}
+     * @param configuredBind the operator's chosen bind address, or empty to follow the game
      * @return the bound port, or 0 if the backchannel is unavailable (in which case, fall back in-band)
      */
-    public int start(String bindAddress, int gamePort, int configuredPort) {
+    public int start(String bindAddress, int gamePort, int configuredPort, String configuredBind) {
+        // The operator's choice wins over the game's. A host that sets server-ip to 127.0.0.1 (normal
+        // behind a proxy) otherwise gets a backchannel nobody outside the box can reach, and the only
+        // symptom is every client quietly falling back to the in-band channel. mod_support #24.
+        String wantedBind = (configuredBind == null || configuredBind.isBlank())
+                ? bindAddress
+                : configuredBind;
+        return bind(wantedBind, gamePort, configuredPort);
+    }
+
+    private int bind(String bindAddress, int gamePort, int configuredPort) {
         derived = configuredPort == 0;
         int wanted = CsLodProtocol.httpPort(gamePort, configuredPort);
         if (wanted == 0) {

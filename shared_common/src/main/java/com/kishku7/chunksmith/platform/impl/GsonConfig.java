@@ -483,6 +483,16 @@ public final class GsonConfig implements Config {
         return raw;
     }
 
+    @Override
+    public String getLodBackchannelBindAddress() {
+        return Input.checkHost(configModel.lodBackchannelBindAddress);
+    }
+
+    @Override
+    public String getLodBackchannelHost() {
+        return Input.checkHost(configModel.lodBackchannelHost);
+    }
+
     // Every setter below clamps to the same range its getter enforces, then saves. Clamping only on
     // read would let the file hold a number the mod refuses to honour, so the file and `/cs set` would
     // disagree about what is in force, and the file is what an operator inspects when something is wrong.
@@ -652,6 +662,20 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setLodBackchannelBindAddress(String address) {
+        // Validated on the way in AND on the way out, like every other key here: the file is what an
+        // operator inspects when something is wrong, and it must not hold a value the mod refuses.
+        configModel.lodBackchannelBindAddress = Input.checkHost(address);
+        saveConfig();
+    }
+
+    @Override
+    public void setLodBackchannelHost(String host) {
+        configModel.lodBackchannelHost = Input.checkHost(host);
+        saveConfig();
+    }
+
+    @Override
     public void reload() {
         try (final Reader reader = Files.newBufferedReader(savePath)) {
             configModel = GSON.fromJson(reader, ConfigModel.class);
@@ -704,6 +728,10 @@ public final class GsonConfig implements Config {
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
         // 0 = no ceiling. See Config#getLodIndexBudgetMb.
         private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_NONE;
+        // Empty = bind wherever the game bound. See Config#getLodBackchannelBindAddress.
+        private String lodBackchannelBindAddress = "";
+        // Empty = let each client use the address it connected to. See Config#getLodBackchannelHost.
+        private String lodBackchannelHost = "";
         // On by default: dropping a chunk the instant it is generated silently breaks every mod that
         // builds on newly generated land (mod_support #14). Off is for a pure terrain pregen.
         private Boolean pregenSettle = true;

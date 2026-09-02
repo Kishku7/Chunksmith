@@ -200,7 +200,7 @@ public final class CsLodServerNet {
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
         // Same interface the game is bound to; the port is gamePort + 1 unless the operator named one
         // (lodBackchannelPort); mod_support #19. A bind failure is not fatal: the client falls back in-band.
-        http.start(current.getLocalIp(), current.getPort(), configuredPort());
+        http.start(current.getLocalIp(), current.getPort(), configuredPort(), configuredBind());
         // From here, `/cs set lodBackchannelPort` can move the listener without a restart.
         CsLodControl.register(
                 CsLodServerNet::rebind,
@@ -218,6 +218,27 @@ public final class CsLodServerNet {
         return ChunksmithProvider.isLoaded()
                 ? ChunksmithProvider.get().getConfig().getLodBackchannelPort()
                 : 0;
+    }
+
+    /**
+     * Returns the operator's chosen bind address, or empty to follow the game. Empty whenever the
+     * mod is not loaded, which is the same "behave as before" answer {@link #configuredPort} gives.
+     */
+    private static String configuredBind() {
+        return ChunksmithProvider.isLoaded()
+                ? ChunksmithProvider.get().getConfig().getLodBackchannelBindAddress()
+                : "";
+    }
+
+    /**
+     * Returns the host to put in a hello, or empty to let the client use the address it connected
+     * to. Read per hello rather than cached, so a {@code /cs set lodBackchannelHost} is already in
+     * force for the re-advertisement that same command triggers.
+     */
+    private static String advertisedHost() {
+        return ChunksmithProvider.isLoaded()
+                ? ChunksmithProvider.get().getConfig().getLodBackchannelHost()
+                : "";
     }
 
     /**
@@ -250,7 +271,7 @@ public final class CsLodServerNet {
             return 0;
         }
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
-        int bound = http.start(current.getLocalIp(), current.getPort(), configuredPort());
+        int bound = http.start(current.getLocalIp(), current.getPort(), configuredPort(), configuredBind());
         readvertise(current, bound);
         return bound;
     }
@@ -274,7 +295,7 @@ public final class CsLodServerNet {
                     : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                        CsLodProtocol.VERSION, available, port, token, dims)));
+                        CsLodProtocol.VERSION, available, port, token, dims, advertisedHost())));
                 told++;
             } catch (IOException e) {
                 LOGGER.warn("Chunksmith: could not tell {} about the new backchannel port: {}",
@@ -410,7 +431,7 @@ public final class CsLodServerNet {
                 : "";
 
         send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                CsLodProtocol.VERSION, available, port, token, dims)));
+                CsLodProtocol.VERSION, available, port, token, dims, advertisedHost())));
 
         RADIUS.put(player.getUUID(),
                 Math.min(MAX_RADIUS_BLOCKS, Math.max(16, hello.radiusBlocks())));
@@ -529,7 +550,7 @@ public final class CsLodServerNet {
             String token = port != 0 ? TOKENS.issue(uuid, addressOf(player)) : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                        CsLodProtocol.VERSION, true, port, token, dims)));
+                        CsLodProtocol.VERSION, true, port, token, dims, advertisedHost())));
             } catch (IOException e) {
                 LOGGER.warn("Chunksmith: could not tell {} that the LOD store is ready: {}",
                         nameOf(player), e.toString());

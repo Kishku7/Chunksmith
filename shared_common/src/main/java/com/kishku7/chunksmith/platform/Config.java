@@ -275,6 +275,35 @@ public interface Config {
      */
     long getLodIndexBudgetMb();
 
+    /**
+     * Returns the address the LOD backchannel binds, or empty to follow the game.
+     *
+     * <p>Empty means "whatever the game bound", which is right on a machine you
+     * control and wrong behind a proxy: a host that sets {@code server-ip} to
+     * 127.0.0.1 gets a backchannel on loopback that no player can reach, and the
+     * startup line says {@code listening on /127.0.0.1:25566} while everyone
+     * silently falls back to the in-band channel (mod_support #24). Set
+     * {@code 0.0.0.0} to listen on every interface regardless of what the game
+     * did. This is where the socket LISTENS; it is not what clients are told to
+     * connect to -- see {@link #getLodBackchannelHost()}.
+     */
+    String getLodBackchannelBindAddress();
+
+    /**
+     * Returns the host clients are told to fetch LOD from, or empty to let each
+     * client use the address it already connected to.
+     *
+     * <p>Empty is right almost always, and the client's own connection address
+     * is a better answer than anything the server can guess: it is the address
+     * that demonstrably reaches this server from where that player is sitting.
+     * It is wrong in exactly one shape, which is the shape that raised this --
+     * the backchannel reachable at a different address from the game port
+     * (a proxy in front, a host that maps extra ports onto another IP). Binding
+     * to {@code 0.0.0.0} does not solve that on its own: the socket then listens
+     * everywhere and the client still has to be told where to look.
+     */
+    String getLodBackchannelHost();
+
     void setLanguage(String language);
 
     void setContinueOnRestart(boolean continueOnRestart);
@@ -325,6 +354,21 @@ public interface Config {
      * nothing to restart and nothing to rebind.
      */
     void setLodIndexBudgetMb(long megabytes);
+
+    /**
+     * Sets the bind address and persists it; empty restores "follow the game".
+     * Rebinds live, the same way the port does, so an operator whose IP has
+     * moved does not have to restart to follow it.
+     */
+    void setLodBackchannelBindAddress(String address);
+
+    /**
+     * Sets the advertised host and persists it; empty restores "whatever the
+     * client connected to". Re-advertised to every connected client immediately,
+     * because a host that only reached clients on their next join would leave
+     * everybody currently playing pointed at the old one.
+     */
+    void setLodBackchannelHost(String host);
 
     void reload();
 }
