@@ -4,6 +4,41 @@
 
 ## [3.17.0] - 2026-09-02
 
+### Added
+
+- **Your world can pre-generate itself before you start playing it.** On a single-player world,
+  Chunksmith now freezes the world on entry and pre-generates a 4096-block radius behind a progress
+  screen, with a filling bar, a live estimate of the time remaining, and an **Enter World Now**
+  button. Pressing it hands the world straight back to you -- it does **not** stop the run.
+  Generation carries on in the background and yields to you from then on.
+
+  Freezing does **not** make generation faster. It stops the world moving while it runs, so nothing
+  ages, wanders off or starves while you wait.
+
+  **Once a world has finished, it never does this again.** A completed run is recorded, so loading
+  that world afterwards goes straight in. Leaving early with the button records nothing, so the next
+  load simply continues where it stopped, and raising `worldEnterPregenRadius` asks for more world
+  and starts it again.
+
+  It works in a world created without cheats -- the settings are changed directly rather than through
+  the command interpreter -- and everything it borrows is written down before it is touched, so a
+  crash mid-freeze is put back on the next start rather than leaving your world frozen.
+
+  On by default, MC 26+ on Fabric and NeoForge, single-player only. Turn it off with
+  `worldEnterPregen`, or size it with `worldEnterPregenRadius` (default 4096).
+  (mod_support #20)
+
+### Fixed
+
+- **A server whose hostname contains an underscore can now serve LOD over the backchannel.**
+  `myserver_minecraft.example.com` broke it in two places at once: the address was rejected outright
+  by the config, so `lodBackchannelHost` silently reset to empty and could not be set at all; and the
+  download itself failed on every region without ever falling back to the slower in-band channel, so
+  it looked like the mod had simply stopped. Both are fixed -- such a host is now accepted, and the
+  downloader resolves it and reports plainly in the log what it did. If a host genuinely cannot be
+  reached, it now says so and falls back instead of going quiet.
+  (mod_support #26, reported by arsenelupin0)
+
 ### Removed
 
 - The standalone Chunksmith-Client mod is gone -- the project has been retired and its repository
