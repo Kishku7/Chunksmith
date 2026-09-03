@@ -127,10 +127,15 @@ For each pre-26 mod cell, `scripts/cog-gen.ps1`:
 5. Regenerates `chunksmith.mixins.json` to match the files actually present.
 
 `_codegen/cog_sources/` is the single source of truth for the shared mod layer - there is no separate
-`shared_minecraft/` tree, and `<Cell>/gen/` is a build artifact that is never committed. The cell's
-Gradle build compiles `<Cell>/gen/`, which is why Cog must be installed before building. Cog-gen
-never touches the unified 26 cells; those build from a `-P` version matrix supplied by the build
-script.
+`shared_minecraft/` tree, and `<Cell>/gen/` is a build artifact that is never committed (it is
+gitignored). The cell's Gradle build compiles `<Cell>/gen/`, which is why Cog must be installed
+before building.
+
+**Cog-gen runs for the 26 cells too**, once per 26.X target - `scripts/build-fabric.ps1` invokes it
+as `cog-gen.ps1 -Cell <Loader>/26 -McVer 26` before each build. What is different about the 26 line
+is not that code generation is skipped, but that the per-version dependency values (`mcVersion`,
+`fabricApiVersion`, the MC range, `PACK_FORMAT`) arrive as a `-P`/env matrix from the build script
+rather than from a per-cell `gradle.properties`.
 
 ## Optional soft dependencies (voxy / Distant Horizons)
 
