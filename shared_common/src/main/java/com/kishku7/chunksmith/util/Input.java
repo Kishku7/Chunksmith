@@ -209,8 +209,16 @@ public final class Input {
         if (bare.indexOf(':') >= 0) {
             return bare.matches("[0-9A-Fa-f:.%]+") ? bare : "";
         }
+        // UNDERSCORES are accepted deliberately (mod_support #26). A strict RFC-1123 HOSTNAME may
+        // not contain one, but DNS permits it in a label and real deployments use it -- the
+        // reporter's server is literally "myserver_minecraft.mydomain.com". Rejecting it here reset
+        // the key to empty, so an operator whose server genuinely has that name could not configure
+        // the backchannel at all and was told nothing. Whether the name RESOLVES is still not this
+        // method's business -- see the note above about not doing DNS on the main thread.
+        //
         // Anything else must look like a hostname or an IPv4 literal: labels of letters, digits and
-        // hyphens, separated by dots, no label starting or ending with a hyphen, no empty label.
+        // hyphens and underscores, separated by dots, no label starting or ending with a hyphen,
+        // no empty label.
         for (String label : bare.split("\\.", -1)) {
             if (label.isEmpty() || label.length() > MAX_LABEL_LENGTH) {
                 return "";
@@ -218,7 +226,7 @@ public final class Input {
             if (label.startsWith("-") || label.endsWith("-")) {
                 return "";
             }
-            if (!label.matches("[0-9A-Za-z-]+")) {
+            if (!label.matches("[0-9A-Za-z_-]+")) {
                 return "";
             }
         }

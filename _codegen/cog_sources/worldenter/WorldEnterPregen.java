@@ -82,6 +82,7 @@ public final class WorldEnterPregen {
     private static volatile boolean frozenByUs;
     private static volatile long chunksDone;
     private static volatile float percentComplete;
+    private static volatile long radiusBlocks;
 
     private WorldEnterPregen() {
     }
@@ -110,14 +111,31 @@ public final class WorldEnterPregen {
         if (config == null || !config.isWorldEnterPregenEnabled()) {
             return;
         }
+        ServerLevel level = mcServer.overworld();
+        String dimension = dimensionId(level);
+        long radius = config.getWorldEnterPregenRadius();
+
+        // ONCE IT IS DONE, IT IS DONE (decided 2026-09-02). Without this the pregen fired on EVERY
+        // single-player load: the task skips chunks that already exist, so nothing was destroyed,
+        // but the player was put back behind the progress screen on a world they had already
+        // waited out. Continuing a PARTIAL run is still wanted -- pressing "Enter World Now" leaves
+        // no record, so the next load picks up where it stopped. Only a real completion writes one.
+        Optional<WorldEnterDone> alreadyDone = WorldEnterDone.read(worldDir(mcServer));
+        if (alreadyDone.isPresent() && alreadyDone.get().satisfies(dimension, radius)) {
+            LOGGER.info("Chunksmith: this world has already been pre-generated to {} blocks, so the"
+                    + " world-enter pregen is being skipped. Raise worldEnterPregenRadius if you"
+                    + " want more, or delete {} in the world folder to run it again.",
+                    alreadyDone.get().radiusBlocks(), WorldEnterDone.FILE_NAME);
+            return;
+        }
+
         if (!ACTIVE.compareAndSet(false, true)) {
             return;
         }
 
         server = mcServer;
-        ServerLevel level = mcServer.overworld();
-        worldKey = dimensionId(level);
-        long radius = config.getWorldEnterPregenRadius();
+        worldKey = dimension;
+        radiusBlocks = radius;
         chunksTotal = estimateChunks(radius);
         ETA.reset();
         chunksDone = 0L;
@@ -196,10 +214,33 @@ public final class WorldEnterPregen {
         });
         api.onGenerationComplete(event -> {
             if (ACTIVE.get() && event.world().equals(worldKey)) {
-                LOGGER.info("Chunksmith: world-enter pregen finished; releasing the world.");
+                recordCompletion();
+                LOGGER.info("Chunksmith: world-enter pregen finished; releasing the world."
+                        + " It will not run again on this world.");
                 release();
             }
         });
+    }
+
+    /**
+     * Marks this world as pre-generated so it is never pre-generated again.
+     *
+     * <p>A failure here is logged but NOT fatal: not recording a completion costs one redundant
+     * pregen on the next load, which the player can skip with the button. Refusing to finish
+     * because the bookkeeping failed would cost them the run they just waited for.
+     */
+    private static void recordCompletion() {
+        MinecraftServer mcServer = server;
+        if (mcServer == null) {
+            return;
+        }
+        boolean recorded = new WorldEnterDone(worldKey, radiusBlocks, System.currentTimeMillis())
+                .write(worldDir(mcServer));
+        if (!recorded) {
+            LOGGER.warn("Chunksmith: the world-enter pregen finished but its completion could not be"
+                    + " recorded, so it may run again on the next load. Nothing is wrong with the"
+                    + " generated chunks.");
+        }
     }
 
     /**

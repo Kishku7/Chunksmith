@@ -26,7 +26,9 @@ import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -134,6 +136,25 @@ public final class CsLodDownloader {
             return;
         }
 
+        // Resolve the host ONCE, here, rather than per region (mod_support #26): one clear line in
+        // the log instead of N silent failures, and the DNS lookup stays off the four fetch threads.
+        final String effectiveHost = resolvableHost(host, port);
+        if (effectiveHost == null) {
+            // Count them all as failed so the caller's "fetched 0 and failed > 0 means the fast path
+            // is dead" check fires and the in-band fallback takes over. Returning quietly is what made
+            // #26 look like a hang: nothing downloaded, and nothing fell back either.
+            failed.addAndGet(wanted.size());
+            progress.accept("LOD: cannot use the backchannel host \"" + host + "\" -- it is not a"
+                    + " usable URL host and did not resolve. Falling back to the in-band channel"
+                    + " (slower).");
+            return;
+        }
+        if (!effectiveHost.equals(host)) {
+            progress.accept("LOD: the backchannel host \"" + host + "\" cannot go in a URL directly"
+                    + " (an underscore is not legal in a hostname there), so it resolved to "
+                    + effectiveHost + ".");
+        }
+
         pool = Executors.newFixedThreadPool(WORKERS, runnable -> {
             Thread thread = new Thread(runnable, "chunksmith-lod-download");
             thread.setDaemon(true);
@@ -145,7 +166,7 @@ public final class CsLodDownloader {
                     return;
                 }
                 try {
-                    fetch(host, port, token, index.dimension(), entry);
+                    fetch(effectiveHost, port, token, index.dimension(), entry);
                     long done = downloaded.incrementAndGet();
                     if (done % 25 == 0) {
                         progress.accept("LOD: fetched " + done + "/" + wanted.size()
@@ -156,6 +177,11 @@ public final class CsLodDownloader {
                     if (e instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
                     }
+                } catch (RuntimeException e) {
+                    // submit() parks an escaping RuntimeException in a Future nobody reads, so it
+                    // vanishes: the counters stay at zero, the "fast path is dead" check never fires,
+                    // and NOTHING falls back. That silence was the whole of mod_support #26.
+                    failed.incrementAndGet();
                 }
             });
         }
@@ -177,6 +203,49 @@ public final class CsLodDownloader {
         }
         progress.accept("LOD: done. " + downloaded.get() + " fetched, " + skipped.get() + " cached, "
                 + failed.get() + " failed, " + (bytes.get() / 1024 / 1024) + " MB");
+    }
+
+    /**
+     * Is this host one that {@code java.net.http} cannot address directly? (mod_support #26)
+     *
+     * <p>Pure -- no DNS -- so it is testable without a network.
+     *
+     * <p>An UNDERSCORE in a hostname is the case that matters, and it does NOT make
+     * {@code URI.create} throw, which is what the report assumed. The URI parses fine; but an
+     * underscore is illegal in an RFC-2396 server-based authority, so Java falls back to a
+     * REGISTRY-based one. The symptom is quiet and misleading -- {@code getHost()} returns null and
+     * {@code getPort()} returns -1 -- and the exception surfaces later, out of
+     * {@code HttpRequest.newBuilder}, as "unsupported URI". A try/catch around {@code URI.create}
+     * would have caught nothing.
+     */
+    static boolean needsAddressResolution(String host, int port) {
+        try {
+            return URI.create("http://" + host + ":" + port + "/").getHost() == null;
+        } catch (IllegalArgumentException notEvenAUri) {
+            return true;
+        }
+    }
+
+    /**
+     * Returns a host string {@code java.net.http} will accept, resolving the name to a literal
+     * address when the name itself cannot sit in a URI. Null if it cannot be made usable.
+     *
+     * <p>Using the resolved IP is correct here rather than a dodge: the backchannel is our own
+     * endpoint, addressed by path and authorised by a token, so it does no name-based virtual
+     * hosting and nothing downstream depends on the Host header. (Setting Host explicitly is not an
+     * option anyway -- HttpClient treats it as restricted and it would need a JVM-wide property.)
+     */
+    static String resolvableHost(String host, int port) {
+        if (!needsAddressResolution(host, port)) {
+            return host;
+        }
+        try {
+            String literal = InetAddress.getByName(host).getHostAddress();
+            // A resolved IPv6 address still needs brackets to sit in a URL authority.
+            return literal.indexOf(':') >= 0 ? "[" + literal + "]" : literal;
+        } catch (UnknownHostException | SecurityException e) {
+            return null;
+        }
     }
 
     /** How many regions this run actually fetched. */
