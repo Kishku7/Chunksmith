@@ -294,7 +294,7 @@ public final class BukkitConfig implements Config {
 
     @Override
     public String getLodBackchannelHost() {
-        return Input.checkHost(plugin.getConfig().getString("lod-backchannel-host", ""));
+        return Input.checkAdvertisedHost(plugin.getConfig().getString("lod-backchannel-host", ""));
     }
 
     @Override
@@ -445,7 +445,7 @@ public final class BukkitConfig implements Config {
 
     @Override
     public void setLodBackchannelHost(String host) {
-        plugin.getConfig().set("lod-backchannel-host", Input.checkHost(host));
+        plugin.getConfig().set("lod-backchannel-host", Input.checkAdvertisedHost(host));
         plugin.saveConfig();
     }
 

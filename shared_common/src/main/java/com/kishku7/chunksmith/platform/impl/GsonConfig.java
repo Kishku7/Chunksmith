@@ -521,7 +521,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public String getLodBackchannelHost() {
-        return Input.checkHost(configModel.lodBackchannelHost);
+        return Input.checkAdvertisedHost(configModel.lodBackchannelHost);
     }
 
     // Every setter below clamps to the same range its getter enforces, then saves. Clamping only on
@@ -715,7 +715,7 @@ public final class GsonConfig implements Config {
 
     @Override
     public void setLodBackchannelHost(String host) {
-        configModel.lodBackchannelHost = Input.checkHost(host);
+        configModel.lodBackchannelHost = Input.checkAdvertisedHost(host);
         saveConfig();
     }
 

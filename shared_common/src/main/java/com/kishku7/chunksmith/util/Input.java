@@ -196,10 +196,7 @@ public final class Input {
             return "";
         }
         String trimmed = host.trim();
-        if (trimmed.isEmpty()) {
-            return "";
-        }
-        if (trimmed.length() > MAX_HOST_LENGTH) {
+        if (trimmed.isEmpty() || trimmed.length() > MAX_HOST_LENGTH) {
             return "";
         }
         // An IPv6 literal, bracketed or not: hex groups, colons, and a possible zone id.
@@ -209,28 +206,117 @@ public final class Input {
         if (bare.indexOf(':') >= 0) {
             return bare.matches("[0-9A-Fa-f:.%]+") ? bare : "";
         }
-        // UNDERSCORES are accepted deliberately (mod_support #26). A strict RFC-1123 HOSTNAME may
-        // not contain one, but DNS permits it in a label and real deployments use it -- the
-        // reporter's server is literally "myserver_minecraft.mydomain.com". Rejecting it here reset
-        // the key to empty, so an operator whose server genuinely has that name could not configure
-        // the backchannel at all and was told nothing. Whether the name RESOLVES is still not this
-        // method's business -- see the note above about not doing DNS on the main thread.
-        //
-        // Anything else must look like a hostname or an IPv4 literal: labels of letters, digits and
-        // hyphens and underscores, separated by dots, no label starting or ending with a hyphen,
-        // no empty label.
-        for (String label : bare.split("\\.", -1)) {
+
+        // A single TRAILING DOT is the DNS root and makes a name fully qualified. It is legal, an
+        // operator may well paste one, and InetAddress accepts it -- but it would otherwise split
+        // into an empty final label and be refused. Strip it for validation; keep it on the way out
+        // so what comes back is what they typed.
+        String labelsPart = bare.endsWith(".") ? bare.substring(0, bare.length() - 1) : bare;
+        if (labelsPart.isEmpty()) {
+            return "";
+        }
+
+        String[] labels = labelsPart.split("\\.", -1);
+        for (String label : labels) {
             if (label.isEmpty() || label.length() > MAX_LABEL_LENGTH) {
                 return "";
             }
             if (label.startsWith("-") || label.endsWith("-")) {
                 return "";
             }
+            // UNDERSCORES are accepted deliberately (mod_support #26). A strict RFC-1123 HOSTNAME may
+            // not contain one, but DNS permits it in a label and real deployments use it -- the
+            // reporter's server is literally "myserver_minecraft.mydomain.com". Rejecting it reset the
+            // key to empty and told the operator nothing.
             if (!label.matches("[0-9A-Za-z_-]+")) {
                 return "";
             }
         }
+
+        // A NAME WHOSE LAST LABEL IS ALL DIGITS IS NOT A HOSTNAME (RFC 1123 2.1) -- that shape is
+        // reserved so a name can never be confused with an address. So anything ending in digits has
+        // to BE a valid address, or it is nothing.
+        //
+        // This is what stopped "256.1.1.1" being accepted. Four numeric labels sail through every
+        // hostname rule above -- letters-digits-hyphen, no empty label, none too long -- so the
+        // validator happily stored an address that can never resolve, and the operator only found out
+        // when the backchannel silently did not work. Same for "1.2.3", "1.2.3.4.5" and "example.123".
+        if (isAllDigits(labels[labels.length - 1])) {
+            return isDottedQuad(labels) ? bare : "";
+        }
         return bare;
+    }
+
+    /**
+     * Like {@link #checkHost} but also refuses a WILDCARD address, for the key that tells clients
+     * where to connect.
+     *
+     * <p>{@code 0.0.0.0} and {@code ::} mean "every interface on this machine". That is exactly right
+     * for a BIND address and meaningless as an advertised one: a client told to connect to 0.0.0.0
+     * has been told nothing, and it will simply fail. Leaving the key EMPTY is how you say "each
+     * client should use the address it already connected on", so a wildcard here is always a mistake
+     * and never the shorthand somebody might assume it is.
+     */
+    public static String checkAdvertisedHost(String host) {
+        String checked = checkHost(host);
+        if (checked.isEmpty()) {
+            return "";
+        }
+        if (isWildcardAddress(checked)) {
+            return "";
+        }
+        return checked;
+    }
+
+    /** {@code 0.0.0.0} / {@code ::} / {@code 0:0:0:0:0:0:0:0} -- "every interface". */
+    public static boolean isWildcardAddress(String host) {
+        if (host == null) {
+            return false;
+        }
+        String bare = host.trim();
+        if (bare.startsWith("[") && bare.endsWith("]")) {
+            bare = bare.substring(1, bare.length() - 1);
+        }
+        if ("0.0.0.0".equals(bare) || "::".equals(bare)) {
+            return true;
+        }
+        // The long-hand IPv6 unspecified address, and nothing else with a colon in it.
+        return bare.indexOf(':') >= 0 && bare.replace(":", "").chars().allMatch(c -> c == '0')
+                && !bare.replace(":", "").isEmpty();
+    }
+
+    /** Exactly four labels, each a 0-255 decimal with no leading zeros. */
+    private static boolean isDottedQuad(String[] labels) {
+        if (labels.length != 4) {
+            return false;
+        }
+        for (String label : labels) {
+            if (!isAllDigits(label) || label.length() > 3) {
+                return false;
+            }
+            // "010" is rejected rather than read as 10: a leading zero means octal to some resolvers
+            // and decimal to others, so the same string denotes two different hosts depending on who
+            // parses it. An address that ambiguous is not one to store.
+            if (label.length() > 1 && label.charAt(0) == '0') {
+                return false;
+            }
+            if (Integer.parseInt(label) > 255) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isAllDigits(String value) {
+        if (value.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (!Character.isDigit(value.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static Optional<Integer> suffixValue(char suffix) {

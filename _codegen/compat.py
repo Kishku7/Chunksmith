@@ -120,6 +120,28 @@ def dimension_identifier_call(mcver):
     return _stub("dimension_identifier_call", mcver)
 
 
+def screen_holder(mcver):
+    """Where the CURRENT SCREEN lives: "minecraft" (<=26.1) or "gui" (26.2+).
+
+    MC 26.2 moved screen get/set off Minecraft and onto its `gui` field:
+        26.1.2  ->  Minecraft.screen (public field) + Minecraft.setScreen(Screen)
+        26.2+   ->  Minecraft.gui.screen()          + Minecraft.gui.setScreen(Screen)
+
+    Verified with javap against BOTH jars, not inferred: on 26.1.2 `net.minecraft.client.gui.Gui`
+    has no screen()/setScreen() at all, and Minecraft still carries them.
+
+    Keys on the 26 MINOR, so it cannot be folded into era() -- every 26.x shares one era. Found by
+    building 26.1.2 after the world-enter screen was written against 26.2 only (2026-09-03): the
+    26.2-only form compiled clean there and failed on 26.1 with "cannot find symbol: method
+    screen()". A reminder that "26.x" is not one API.
+    """
+    v = _parse(mcver)
+    minor = v[1] if len(v) > 1 else 0
+    if v[0] > 26 or (v[0] == 26 and minor >= 2):
+        return "gui"
+    return "minecraft"
+
+
 def chunkpos_x(mcver):
     """ChunkPos x coord access: field 'x' (<=1.21.11) vs method 'x()' (26+).
 

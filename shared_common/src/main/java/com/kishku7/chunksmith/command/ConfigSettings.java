@@ -122,10 +122,15 @@ public final class ConfigSettings {
                     Config::isWorldEnterPregenEnabled, Config::setWorldEnterPregenEnabled)),
             worldEnter(integer("worldEnterPregenRadius",
                     Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
+            // Different validators on purpose. A BIND address may be a wildcard (0.0.0.0 = every
+            // interface); an ADVERTISED one may not, because a client told to connect to 0.0.0.0
+            // has been told nothing at all.
             host("lodBackchannelBindAddress",
-                    Config::getLodBackchannelBindAddress, Config::setLodBackchannelBindAddress),
+                    Config::getLodBackchannelBindAddress, Config::setLodBackchannelBindAddress,
+                    Input::checkHost),
             host("lodBackchannelHost",
-                    Config::getLodBackchannelHost, Config::setLodBackchannelHost),
+                    Config::getLodBackchannelHost, Config::setLodBackchannelHost,
+                    Input::checkAdvertisedHost),
             settle(bool("pregenSettle", Config::isPregenSettleEnabled, Config::setPregenSettleEnabled)),
             settle(integer("pregenSettleDelayTicks",
                     Config::getPregenSettleDelayTicks, Config::setPregenSettleDelayTicks)),
@@ -202,7 +207,8 @@ public final class ConfigSettings {
      */
     private static ConfigSetting host(String name,
                                       Function<Config, String> getter,
-                                      TextSetter setter) {
+                                      TextSetter setter,
+                                      Function<String, String> validator) {
         return new ConfigSetting(name, ConfigSetting.Kind.TEXT,
                 config -> {
                     String value = getter.apply(config);
@@ -218,7 +224,7 @@ public final class ConfigSettings {
                     }
                     // Refuse rather than store the empty string the validator would fall back to.
                     // Silently turning a typo into "unset" would answer "done" and change nothing.
-                    if (Input.checkHost(asked).isEmpty()) {
+                    if (validator.apply(asked).isEmpty()) {
                         return false;
                     }
                     setter.set(config, asked);

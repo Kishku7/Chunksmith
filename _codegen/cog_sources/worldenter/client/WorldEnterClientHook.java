@@ -26,19 +26,50 @@ public final class WorldEnterClientHook {
         if (client == null || client.level == null) {
             return;
         }
-        Screen current = client.gui.screen();
+        Screen current = currentScreen(client);
         boolean active = WorldEnterPregen.isActive();
 
         if (active) {
             // Only when vanilla has left the screen empty -- see the class javadoc.
             if (current == null) {
-                client.gui.setScreen(new WorldEnterScreen());
+                showScreen(client, new WorldEnterScreen());
             }
             return;
         }
         // Generation finished (or something released the world) while the screen was still up.
         if (current instanceof WorldEnterScreen) {
-            client.gui.setScreen(null);
+            showScreen(client, null);
         }
     }
+
+    // The screen accessor MOVED IN 26.2, so all three call sites are generated rather than written.
+    //
+    //   26.1.2 -> Minecraft.screen (a public field) + Minecraft.setScreen(Screen)
+    //   26.2+  -> Minecraft.gui.screen()            + Minecraft.gui.setScreen(Screen)
+    //
+    // Verified with javap against both jars: on 26.1.2 `Gui` carries neither method. This was found
+    // by BUILDING 26.1.2 after the screen had been written against 26.2 only -- the 26.2 form
+    // compiles clean on 26.2 and fails on 26.1 with "cannot find symbol: method screen()". "26.x" is
+    // not one API, and an era check would not have caught it because every 26.x shares one era.
+
+    //[[[cog
+    // import cog, compat
+    // if compat.screen_holder(mcver) == "gui":
+    //     cog.outl("private static Screen currentScreen(Minecraft client) {")
+    //     cog.outl("    return client.gui.screen();")
+    //     cog.outl("}")
+    //     cog.outl("")
+    //     cog.outl("private static void showScreen(Minecraft client, Screen screen) {")
+    //     cog.outl("    client.gui.setScreen(screen);")
+    //     cog.outl("}")
+    // else:
+    //     cog.outl("private static Screen currentScreen(Minecraft client) {")
+    //     cog.outl("    return client.screen;")
+    //     cog.outl("}")
+    //     cog.outl("")
+    //     cog.outl("private static void showScreen(Minecraft client, Screen screen) {")
+    //     cog.outl("    client.setScreen(screen);")
+    //     cog.outl("}")
+    //]]]
+    //[[[end]]]
 }
