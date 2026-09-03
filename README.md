@@ -156,12 +156,6 @@ yet.
 | Playing on a Paper / Spigot / Purpur / Folia server | **The Chunksmith plugin on the server, the Chunksmith mod on your client** (plus your renderer). Supported from **3.15.0**; the plugin serves LOD to modded clients. |
 | Running a server, pre-generation only | **Chunksmith on the server.** Nothing new loads; a dedicated server never touches the client half. |
 
-> **The standalone Chunksmith-Client mod is discontinued.** Its job is now part of Chunksmith, and as of
-> `3.1.0-beta-4` an old copy of it **no longer works** - it speaks the v1 LOD protocol, and a `3.1.0-beta-4`
-> server will refuse it and tell it so. There is no reason to keep it in any case, and **you cannot run
-> both**: they register the same network channel, and the loader will refuse to start and tell you to remove
-> one. Delete Chunksmith-Client; Chunksmith does the job alone.
-
 ### A re-run fills in the missing LODs
 
 Already pregenerated your world before you installed a LOD renderer? **Just run the same pregen
