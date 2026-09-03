@@ -1,288 +1,125 @@
 # Chunksmith
 
-**Need help or found a bug?** Report it at the [Chunksmith support forum](https://github.com/Kishku7/mod_support/issues).
+**Pre-generate your world -- and see it.**
 
-Chunksmith is a Minecraft chunk pre-generator that generates chunks quickly, efficiently,
-and **safely**. On top of fast pre-generation it adds an adaptive I/O throttle (so it keeps
-generating around the clock even with players online), region write-backpressure protection,
-and worldgen diagnostics (overreach detection and structure-fault attribution).
+Chunksmith generates chunks ahead of time so players never wait on worldgen. What makes it different
+is that the *same pass* also builds the distant-horizon data for Distant Horizons or voxy. One run,
+two results: a world that loads instantly, and a world you can see to the edge of.
+
+Originally derived from [Chunky](https://github.com/pop4959/Chunky) by pop4959; developed
+independently since. Everything Chunky did, Chunksmith still does.
+
+**[Full documentation is on the wiki](https://github.com/Kishku7/Chunksmith/wiki)** -- every
+setting, every command, and walkthroughs for pregenerating, trimming, and getting multiplayer LOD
+working.
+
+**[Report a bug or ask a question](https://github.com/Kishku7/mod_support/issues)**
+
+---
+
+## What Chunksmith adds
+
+### It builds your LOD data while it pregenerates
+
+No second pass. No re-reading region files. No separate LOD pregen afterwards. Install Distant
+Horizons or voxy, run a pregen, and the distant terrain is simply there.
+
+**It turns itself on.** If a renderer is installed, LOD generation is on. There is no config key to
+hunt for.
+
+**Already pregenerated?** Run the same pregen again. Chunksmith builds LODs from the chunks it
+already has -- it does not regenerate them, and it skips everything already done. Pregenerate today,
+install a renderer next month, lose nothing.
+
+**Multiplayer LOD, with no companion mod.** Players joining your server download the pregenerated LOD
+data and see the whole world at distance without ever having walked it. The same jar is both halves --
+server and client. The Paper/Spigot plugin serves it too, so a modded client against a plugin server
+works.
+
+### It keeps generating while people are playing
+
+Most pregenerators make you choose between speed and a playable server. Chunksmith measures what it
+*adds* to tick time rather than steering on absolute tick time -- so a server already running hot for
+its own reasons doesn't throttle Chunksmith to nothing for load it didn't cause.
+
+Every online player shrinks the allowance further, so an empty server runs flat out and a busy one
+actively gives ground. If the server still can't sustain it, the run **pauses itself with a stated
+reason and resumes when things recover**. Your `/cs pause` always outranks it.
+
+### It is measurably faster
+
+`dispatchMaxConcurrent` controls how many chunk requests stay in flight, and it scales to your CPU
+instead of a fixed cap. On an 8-core dedicated server, raising it from the old fixed 50 to 200
+measured **+39% -- 31.6 to 43.9 chunks/sec**. Settable live.
+
+### Other mods' structures actually get built
+
+A pregenerator that drops each chunk the instant it's generated breaks every mod that reacts to "a
+new chunk appeared" and then builds on a later tick -- the ground is already gone by the time it
+looks. Measured with Millenaire on a 1.21.1 pregen: **309 placement attempts, 309 deferrals, zero
+villages.**
+
+Chunksmith holds each chunk until all eight neighbours exist, then releases it. Nothing here is
+mod-specific -- the rule is about chunks, so anything that builds on new land benefits.
+
+### It tells you when worldgen misbehaves
+
+Overreach detection and structure-fault attribution, so a broken worldgen mod is something you can
+identify rather than something you merely suffer.
+
+### Everything is live
+
+Every setting is readable and settable with `/cs set` -- no restart, no editing files, no server
+downtime. That's a rule the project holds itself to, with a test that fails if a setting is added
+without a command for it.
+
+---
+
+## Everything Chunky did
+
+Flexible shapes (square, circle, diamond, triangle, star, and more), centred on coordinates, world
+spawn, or the world border. Multi-world. Live progress, rate, ETA and an optional boss bar. Pause,
+continue, cancel, and continue-on-restart. World trimming. A developer API for progress and
+completion events.
+
+---
+
+## Installing
+
+**Required on the server** -- or in single-player, where your own game *is* the server. The client
+install is **optional**.
+
+You only need it on the client for **multiplayer LOD**: to see pregenerated distant terrain on a
+server you haven't walked. Pre-generation alone needs nothing on the client.
 
 Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot plugin**. (Folia is no longer
 tested: the plugin still carries its Folia support and as far as anyone knows it still works, but
-nothing verifies that any more, so it is not a promise this project makes.) Originally
-derived from Chunky by pop4959; now developed independently. Licensed GPL-3.0.
+nothing verifies that any more, so it is not a promise this project makes.)
 
-**Environment:** required on the server (or in singleplayer, where "server" is the integrated
-server running inside your own game); the client install is **optional**. Pre-generation alone
-needs nothing on the client. But if you want **multiplayer LOD** - players seeing pregenerated
-Distant Horizons / voxy terrain at a distance without having walked it - Chunksmith has to be on
-the client too, no separate mod. See [LOD: see what you pregenerated](#lod-see-what-you-pregenerated)
-below, especially [One mod, all of it](#one-mod-all-of-it).
+**Server and client should run the same Chunksmith version.** The LOD wire protocol is versioned and
+a mismatch is refused with a clear message rather than failing strangely.
 
-**Running the plugin with modded clients works.** A Paper / Spigot / Purpur / Folia server with the
-Chunksmith **plugin**, and players on Fabric or NeoForge with the Chunksmith **mod** plus Distant
-Horizons or voxy, is a supported setup: the plugin serves LOD to those clients, from **3.15.0**
-onwards. You do not need a modded server to get multiplayer LOD. (Before 3.15.0 the plugin built the
-LOD data but had no way to send it, so this looked broken - if you are on an older build, update the
-server.)
+Renderer support, per loader and Minecraft version, is on the
+**[Supported renderers](https://github.com/Kishku7/Chunksmith/wiki/Supported-Renderers)** page --
+including the voxy forks, and which mods Chunksmith refuses to load beside.
 
-**Documentation:** the [Chunksmith wiki](https://github.com/Kishku7/Chunksmith/wiki) - every setting
-with its default and range, the commands, and how-to walkthroughs for pregenerating, trimming, and
-getting multiplayer LOD working.
+## Quick start
 
-**Source code:** [`CSv3-Current` branch](https://github.com/Kishku7/Chunksmith/tree/CSv3-Current) - the
-3.x line, where current development happens. The 2.x line is frozen on
+```
+/cs world <world>     # pick the world
+/cs spawn             # centre on spawn
+/cs radius 5000       # how far out
+/cs start             # go
+```
+
+`/cs progress` to watch it, `/cs pause` and `/cs continue` as needed. The
+[wiki](https://github.com/Kishku7/Chunksmith/wiki) has the rest.
+
+## Source
+
+[`CSv3-Current`](https://github.com/Kishku7/Chunksmith/tree/CSv3-Current) -- the 3.x line, where
+current development happens. The 2.x line is frozen on
 [`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
-
-## Why Chunksmith
-
-- **Fast.** Pre-generates chunks ahead of time so they are ready before players arrive,
-  eliminating the lag of on-demand generation.
-- **Safe under load.** An adaptive throttle watches server tick-health and backs off
-  automatically, so generation can run while players are online without tanking TPS.
-- **Tunable throughput.** `dispatchMaxConcurrent` controls how many chunk requests stay in
-  flight. It defaults to a value scaled to your CPU and is settable live with `/cs set` - on an
-  8-core dedicated server, raising it from the old fixed 50 to 200 measured **+39%**
-  (31.6 to 43.9 chunks/sec).
-- **It stops when your server cannot take it, and starts again when it can.** Instead of
-  stuttering along under load, a run pauses with a stated reason and resumes once the server has
-  been healthy for a grace period. A manual `/cs pause` always outranks it.
-- **Flexible shapes.** Generate by square, circle, diamond, triangle, star, and more -
-  centered on coordinates, world spawn, or the world border, by radius or diameter.
-- **Multi-world**, with live progress, rate, ETA, and an optional boss bar.
-- **Resumable.** Pause, continue, cancel, and continue-on-restart - progress is saved.
-- **World trimming.** Delete chunks outside a selected region.
-- **LOD generation, on by default.** Install Distant Horizons or Voxy and Chunksmith builds their
-  distant-horizon data while it pregenerates. No config file to find first - see below.
-- **A re-run fills LOD holes automatically.** Pregenerated the world before you installed the renderer?
-  Run the same pregen again and Chunksmith builds the LODs from the chunks it already has - it does not
-  regenerate them, and it skips everything that is already done.
-- **Multiplayer LOD, built in.** Players joining your server download the pregenerated LOD data and see
-  the whole world at distance, without ever having walked it. **No companion mod** - the same Chunksmith
-  jar does it, on the server and on the client.
-- **Developer API** for generation progress and completion events.
-
-## LOD: see what you pregenerated
-
-Chunksmith emits level-of-detail data while it pregenerates, in its own neutral format (CSLOD), and
-hands it straight to a LOD renderer.
-
-### It turns itself on
-
-**If a LOD renderer is installed, LOD generation is ON.** Chunksmith looks for **Distant Horizons**,
-**Voxy**, or a **Voxy fork** in the game when the server starts, and if one is there it builds the LOD
-data as it pregenerates. There is no config key to find, nothing to switch on, and no "why are there no
-LODs?" - install the renderer, install Chunksmith, pregenerate, and the distant terrain is there.
-
-It is **also on for a dedicated server**, which is the one case where nothing local can draw an LOD:
-a dedicated server runs no renderer of its own, but the store it builds is exactly what it serves to
-its players (see multiplayer, below). Building it is the whole reason it is there.
-
-If nothing in the game can use LOD data - no renderer, and not a dedicated server - Chunksmith does
-not generate any, and **says so in the log** rather than leaving you guessing.
-
-**In singleplayer, Chunksmith is the only mod you need.** The integrated server runs inside your
-own game, so Chunksmith injects the LODs *directly* into your renderer - no companion mod, no
-network. It registers as **Distant Horizons**' world-generator override (`lodDhOverride`), so DH
-shows your pregenerated area without generating anything itself, and `/cslod dhpush` replays an
-existing store into DH on demand - a world pregenerated long before you installed DH gets its LODs
-after the fact, with no regeneration. Where **voxy** exists, `/cslod inject` does the same for voxy.
-
-**In multiplayer, the LOD data has to reach the player - and as of `3.1.0-beta-1`, Chunksmith does that
-itself.** Put the same jar on the server and on the client. The server keeps the CSLOD store; the client
-downloads what it needs and feeds it to that player's Distant Horizons or voxy. **There is no companion
-mod any more.**
-
-**This works on a plugin server too, from `3.15.0`.** If your server runs Paper, Spigot, Purpur or
-Folia with the Chunksmith **plugin**, and your players run Fabric or NeoForge with the Chunksmith
-**mod** and a renderer, they get the same distant terrain. The plugin registers the same network
-channel, opens the same backchannel port and answers the same requests as the modded server does -
-there is nothing extra to configure, and the server itself needs no renderer. One difference worth
-knowing: **the plugin has no in-band fallback yet.** The mod, if the backchannel port cannot be
-reached, sends the data down the game connection instead - slower, but it arrives. The plugin does
-not do that, so on a plugin server a blocked port means no LOD rather than slow LOD. It says so in
-the log. Open the port, or set one your host allows with `lod-backchannel-port` in `config.yml`.
-
-It arrives at network speed. The store is already plain region files, so the server does not stream them
-- it **serves** them, over an HTTP backchannel on the game port + 1, opened automatically with nothing for
-you to configure. If that port cannot be bound or cannot be reached, Chunksmith says so and drips the same
-bytes down the game connection instead: slower, but it always works, and it never breaks the session.
-
-- **The store is the cache.** Re-join and nothing is downloaded twice.
-- **It follows you.** Walk toward terrain the server pregenerated but had not sent, and it is fetched on
-  the way - the pull is not a one-shot at join.
-- **It only sends what you can draw.** The client tells the server its renderer's actual LOD distance, and
-  the server ships the regions inside it and no more.
-- **It keeps itself in step.** While you play, the client and the server compare a small checksum every few
-  minutes; if they differ, the client fetches only what changed. Terrain that a running pre-generation just
-  finished shows up **without a relog and without moving** (see below).
-
-### Server and client must be on the same version
-
-**From `3.1.0-beta-4` on, the server and every client must be on `3.1.0-beta-4` or later.** That release
-changed the LOD network protocol (v1 -> v2), and there is no compatibility path: the number the two sides
-compare to decide "do I already have this region?" is exactly what had to change to fix a bug that could
-take a server down.
-
-A mismatched pair does not crash and does not hang. Both sides notice, both refuse, and **both say so in
-the log** - the distant terrain is simply not delivered. If you update the server, update the clients;
-if you update your client, the server has to come with you.
-
-### It keeps up while you play
-
-The client asks the server for a one-line summary of the LOD regions in your view - a count and a single
-folded checksum - and compares it with its own. If they match, nothing happens at all. If they do not, it
-pulls the region list and downloads **only the difference**.
-
-That one mechanism covers all three ways the two sides can drift apart: the server generated more terrain,
-a region you already have changed, or you lost region files off your own disk. It costs 22 bytes out and
-34 bytes back, and the server answers it without reading a single byte of the store.
-
-| Key | Where | Default |
-|---|---|---|
-| `sync-interval-seconds` | `config/chunksmith-lod.properties` (client) | **300** |
-
-The file is written with defaults and comments the first time the client runs. **Anything below 30 is
-clamped to 30**, deliberately: a config value is a suggestion, and a one-second poll must not turn into a
-denial of service against a server that is already busy pre-generating. There is no settings screen for it
-yet.
-
-### One mod, all of it
-
-| What you are doing | What you install |
-|---|---|
-| Singleplayer | **Chunksmith.** That is all - it always was. |
-| Playing on a modded server | **Chunksmith, on the server and on the client.** Same jar. |
-| Playing on a Paper / Spigot / Purpur / Folia server | **The Chunksmith plugin on the server, the Chunksmith mod on your client** (plus your renderer). Supported from **3.15.0**; the plugin serves LOD to modded clients. |
-| Running a server, pre-generation only | **Chunksmith on the server.** Nothing new loads; a dedicated server never touches the client half. |
-
-### A re-run fills in the missing LODs
-
-Already pregenerated your world before you installed a LOD renderer? **Just run the same pregen
-again.** Chunksmith checks the CSLOD store as well as the world, chunk by chunk:
-
-| On disk | What Chunksmith does |
-|---|---|
-| No chunk | Generates it - the LOD is built on the way past |
-| Chunk, but no LOD | **Loads the chunk and builds the LOD from it** - no worldgen, nothing regenerated |
-| Chunk **and** LOD | Skips it entirely - no load, no write |
-
-So the second run builds only what is missing, and a third run does nothing at all. Delete part of the
-store and only those pieces come back. Nothing already done is redone, and nothing is rewritten.
-
-The check is a single small read per region file, so it costs nothing worth measuring - a 6,500-chunk
-selection spends under a millisecond deciding what it can skip. The pregen then tells you exactly what
-it did: how many chunks it generated, how many LODs it built from chunks that already existed, and how
-many it skipped because both were already there.
-
-### Forcing it on, or off
-
-`lodEnabled` in `config/chunksmith.json` is a **tristate**, not a switch:
-
-| `lodEnabled` | What happens |
-|---|---|
-| `"auto"` *(default)* | **ON** if Distant Horizons, Voxy, or a Voxy fork is loaded. **ON** on a dedicated server. Off otherwise. |
-| `true` | Always on, renderer or not. Useful to build the store now and install the renderer later. |
-| `false` | Always off - **even with a renderer installed**. |
-
-An explicit `true` or `false` is your decision and Chunksmith never overrides it. Whichever way it
-goes, it is stated once in the server log at startup, and `/cslod status` will tell you again.
-
-What it costs when it is on: **~5.8 KB per chunk** on disk and, measured over matched
-windows, **no measurable pre-generation slowdown** - 36.1 chunks/sec with LOD on against
-34.2 with it off. (Earlier builds claimed a ~16% cost. That was never measured and is not
-true.) Plain region files - no native database, nothing extra to install.
-
-### Where LOD is available
-
-| | Distant Horizons | voxy |
-|---|---|---|
-| **Fabric** | 1.20.1, 1.21.1, 1.21.11, 26.1, 26.2 | 1.21.11, 26.1, 26.2 |
-| **NeoForge** | 1.21.1, 1.21.11, 26.1, 26.2 | - |
-| **Forge** | 1.20.1 | - |
-
-Those are the versions the renderers themselves ship on - Chunksmith never claims a renderer it
-cannot feed. **voxy is Fabric-only** (upstream builds no NeoForge or Forge jar) and exists only on
-**1.21.11, 26.1 and 26.2**. **Distant Horizons works everywhere** on the list - Chunksmith needs **DH
-2.3.0-b or newer**, with no upper bound. **Neither renderer has shipped a 26.3 build yet**, so the 26.3
-mod carries everything except LOD; it will start feeding them the day they release, with no change
-needed here. The remaining mod versions (1.20.4, 1.20.6, 1.21.4, 1.21.5, 1.21.8, 1.21.10,
-26.3) carry everything except LOD.
-
-That table is about the **renderer**, which is a client-side thing - it says where a Chunksmith
-client can *draw* LOD. It is not a limit on what a server can *send*. **The Paper / Spigot / Purpur /
-Folia plugin generates and serves LOD on all three of its lines (1.20.x / 1.21.x / 26.x)**, from
-3.15.0 on. The server draws nothing and needs no renderer; what decides whether a given player sees
-distant terrain is that player's own client - their Minecraft version, their loader, and whether it
-is a row in the table above.
-
-### voxy forks
-
-voxy gets forked a lot, so Chunksmith feeds **upstream voxy and its forks through one adapter**: it looks
-for the mod id `voxy` (every fork keeps it), reads the fork's own render-distance setting, and hands data
-to voxy's own ingest API. There is no per-fork code and no fork-specific list to maintain.
-
-Forks are third-party builds of an All-Rights-Reserved mod. **Chunksmith does not ship, mirror, endorse or
-link any of them** - the table below is a test record, nothing more. We ran the real jars on 2026-07-13 and
-looked at the screen:
-
-| voxy build | MC | Result |
-|---|---|---|
-| **voxy** (upstream, MCRcortex) | 1.21.11, 26.1.2, 26.2 | **Works.** Detected, render distance read (8192 blocks), distant terrain drawn in singleplayer and in multiplayer. |
-| **mia-edition** (ggonzaDNG) | 1.21.11 | **Works.** Same, singleplayer and multiplayer. |
-| **voxy 26.2 branch** (NHblock714) | 26.2 | **Works.** Singleplayer verified. |
-| **voxy-26.2** (Paulem79) | 26.2 | **Works.** Detected, distance read, LODs ingested. |
-| **Vulkan-Voxy** (SpinGiantCRM) | 26.1.2 | **Chunksmith's side works** - detected, distance read, LODs ingested into its database - but its Vulkan renderer drew no distant terrain on either machine we could test it on. That is between you and the fork; Chunksmith hands it the data. |
-| **m-series support** (srjefers) | 1.21.11 | **Chunksmith reads it correctly, but the fork does not work.** Its renderer is based on an old voxy that predates MC 1.21.9's render rework, and it throws `IllegalStateException: Cannot use the default framebuffer` the moment it has anything to draw - **with Chunksmith removed as well**. Nothing we can fix from here. |
-
-If a fork ever changes something Chunksmith depends on, **Chunksmith says so in the log** - once, in plain
-words, naming what it could not read and what it fell back to. It will never quietly send you less terrain.
-
-### NeoForge and Forge: Distant Horizons only
-
-There is no voxy for NeoForge or Forge on the modern versions - not from upstream, and not from a fork.
-Every "NeoForge voxy" out there is a Fabric jar loaded through **Sinytra Connector**, and Connector only
-supports **1.20.1 / 1.21 / 1.21.1**. There is no Connector for 1.21.11 or 26.x, so there is nothing to
-repackage and nothing for Chunksmith to feed. On NeoForge and Forge, Chunksmith's LOD is **Distant
-Horizons only** - a limit of the ecosystem, not of Chunksmith.
-
-### Conflicts
-
-Do not run Chunksmith's LOD alongside another server-side LOD provider - `lss`, `voxyserver`, or
-`lodserver`. They inject into the same renderer over the same channels, and whichever gets there
-first wins; the result is missing or corrupted LODs, not an error message. Pick one. Chunksmith
-declares those three as incompatible so your loader tells you before you find out the hard way.
-
-## Usage
-
-The primary command is `/cs` (alias `/chunksmith`); `/chunky` and `/cy` are deprecated
-aliases that redirect to `/cs`. The mod/plugin is op-gated on servers; on Bukkit it uses
-the `chunksmith.command.*` permission namespace (legacy `chunky.command.*` still works).
-
-Common workflow:
-
-- `/cs world <world>` - choose the target world (defaults to the current overworld)
-- `/cs spawn` or `/cs center <x> <z>` - set the generation center
-- `/cs radius <blocks>` - set the radius (or `/cs worldborder` to use the world border)
-- `/cs start` - begin generating
-- `/cs pause` / `/cs continue` - pause and resume (progress is saved)
-- `/cs cancel` then `/cs confirm` - stop and discard the current/saved task
-
-Generation is throttled automatically against server tick-health, so it can run while
-players are online.
-
-### Tuning
-
-Every setting is readable and settable live with `/cs set <key> [value]` - no restart, no editing
-files - and persists to `config/chunksmith/config.json`.
-
-| Key | Default | What it does |
-|---|---|---|
-| `dispatchMaxConcurrent` | scales with CPU cores | How many chunk requests stay in flight. The single biggest throughput lever; 200 was the measured knee on an 8-core server. |
-| `autoPauseOnOverload` | `true` | Pause the run when the server cannot sustain it, resume when it recovers. |
-| `autoPauseGraceSeconds` | `120` | How long the condition must hold, in both directions, before acting on it. |
-| `throttleMaxHeapPercent` | `85` | Hold dispatch while the heap stays above this, resuming once there is real headroom again. |
-| `pregenSettleMaxHeld` | `256` | How many finished chunks are held open at once so neighbouring structures can finish building. This is a memory setting: each held chunk keeps a worldgen context ring resident with it. |
 
 ## License
 
