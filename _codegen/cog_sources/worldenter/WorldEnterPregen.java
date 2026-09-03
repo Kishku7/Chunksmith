@@ -80,6 +80,8 @@ public final class WorldEnterPregen {
     private static volatile String worldKey;
     private static volatile long chunksTotal;
     private static volatile boolean frozenByUs;
+    private static volatile long chunksDone;
+    private static volatile float percentComplete;
 
     private WorldEnterPregen() {
     }
@@ -118,6 +120,9 @@ public final class WorldEnterPregen {
         long radius = config.getWorldEnterPregenRadius();
         chunksTotal = estimateChunks(radius);
         ETA.reset();
+        chunksDone = 0L;
+        percentComplete = 0.0f;
+        listenForProgress();
 
         // Write the borrow record BEFORE touching anything. If it cannot be written we do not
         // proceed: changing settings we have no way to restore is worse than not running at all.
@@ -169,6 +174,32 @@ public final class WorldEnterPregen {
         ACTIVE.set(false);
         LOGGER.info("Chunksmith: world released. Any remaining pre-generation continues in the"
                 + " background and now yields to you.");
+    }
+
+    /**
+     * Subscribes to the task's own progress. Deliberately NOT a poll: ChunksmithAPI exposes no
+     * "chunks done" getter, and the event already carries the authoritative count the task itself
+     * is working from -- which is a better number than anything the screen could reassemble.
+     *
+     * <p>Subscribed on the Chunksmith instance, which is rebuilt on every server start, so these
+     * die with it rather than accumulating across world loads.
+     */
+    private static void listenForProgress() {
+        var api = ChunksmithProvider.get().getApi();
+        api.onGenerationProgress(event -> {
+            if (!ACTIVE.get() || !event.world().equals(worldKey)) {
+                return;
+            }
+            chunksDone = event.chunks();
+            percentComplete = event.progress();
+            ETA.sample(System.currentTimeMillis(), event.chunks());
+        });
+        api.onGenerationComplete(event -> {
+            if (ACTIVE.get() && event.world().equals(worldKey)) {
+                LOGGER.info("Chunksmith: world-enter pregen finished; releasing the world.");
+                release();
+            }
+        });
     }
 
     /**
@@ -263,16 +294,27 @@ public final class WorldEnterPregen {
     }
 
     /** Records progress and returns chunks done, for the bar and the estimate. */
-    public static long sample(long chunksDone) {
-        ETA.sample(System.currentTimeMillis(), chunksDone);
+    public static long chunksDone() {
         return chunksDone;
     }
 
-    public static double fraction(long chunksDone) {
+    /**
+     * The bar's fraction, 0..1.
+     *
+     * <p>Prefers the task's OWN percentage over our chunk estimate. estimateChunks() is a circle-area
+     * approximation of a square-ish chunk iteration, so it is not exact, and a bar that fills past
+     * the end -- or stops short of it -- is a bug the player can see. The estimate is only the
+     * fallback for the window before the first progress event arrives.
+     */
+    public static double fraction() {
+        float reported = percentComplete;
+        if (reported > 0.0f) {
+            return Math.max(0.0, Math.min(1.0, reported / 100.0));
+        }
         return PregenEta.fraction(chunksDone, chunksTotal);
     }
 
-    public static String eta(long chunksDone) {
+    public static String eta() {
         return ETA.describe(chunksDone, chunksTotal);
     }
 

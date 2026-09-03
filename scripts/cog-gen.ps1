@@ -299,10 +299,53 @@ if ($hasWorldEnter -eq '1') {
         # empty, and the compiler reports it as a missing return where the generated line should be.
         $cogTargets += $dst
     }
+    # The CLIENT half: the progress screen, the tick hook that shows it, and the per-loader
+    # entrypoint. Same gate as the orchestrator -- the screen IS the reason this feature is
+    # single-player-only, so there is no cell that wants one without the other.
+    #
+    # SIDE GUARD, per loader (the guard is the LOADER's, never a runtime if -- a runtime check still
+    # CLASS-LOADS the Screen, which is the crash being avoided):
+    #   Fabric   -- WorldEnterClientInit is a "client" entrypoint in fabric.mod.json.
+    #   NeoForge -- WorldEnterClientInit is @EventBusSubscriber(value = Dist.CLIENT); FML filters on
+    #               the annotation scan, before class-loading. Note FML 10 has no `bus` element at
+    #               all, so game-bus is the only bus the annotation addresses.
+    $weCliSrc = Join-Path $weSrc 'client'
+    $weCliDir = Join-Path $worldEnterDir 'client'
+    New-Item -ItemType Directory -Force -Path $weCliDir | Out-Null
+    foreach ($name in @('WorldEnterScreen.java', 'WorldEnterClientHook.java')) {
+        $src = Join-Path $weCliSrc $name
+        if (-not (Test-Path $src)) { throw "worldenter client cog_source missing: $src" }
+        $dst = Join-Path $weCliDir $name
+        Copy-Item -Force $src $dst
+        $cogTargets += $dst
+    }
+    $weInitSrc = Join-Path $weCliSrc ("WorldEnterClientInit_{0}.java" -f $Loader.ToLower())
+    if (-not (Test-Path $weInitSrc)) { throw "worldenter client entrypoint cog_source missing: $weInitSrc" }
+    $weInitDst = Join-Path $weCliDir 'WorldEnterClientInit.java'
+    Copy-Item -Force $weInitSrc $weInitDst
+    $cogTargets += $weInitDst
     Write-Host "[cog-gen] + WORLD-ENTER pregen (mod_support #20)"
 } else {
     if (Test-Path $worldEnterDir) { Remove-Item -Recurse -Force $worldEnterDir }
     Write-Host "[cog-gen] - WORLD-ENTER pregen (not gated on for $Loader/$McVer)"
+}
+
+# Cross-check the gate against the Fabric manifest. fabric.mod.json is a STATIC per-cell resource --
+# cog-gen does not generate it -- so the gate and the manifest CAN drift apart. If they do, nothing
+# fails at build time: the jar builds green and the client dies at load with a missing entrypoint
+# class. Turn that into a build error, which is where it belongs.
+if ($Loader -eq 'Fabric') {
+    $fmj = Join-Path $cellPath 'src/main/resources/fabric.mod.json'
+    if (Test-Path $fmj) {
+        $declared = (Get-Content $fmj -Raw) -match 'worldenter\.client\.WorldEnterClientInit'
+        $gated = ($hasWorldEnter -eq '1')
+        if ($declared -and -not $gated) {
+            throw "fabric.mod.json declares WorldEnterClientInit but compat.has_world_enter is false for $Loader/$McVer -- the client would crash at load. Remove the entrypoint or widen the gate."
+        }
+        if ($gated -and -not $declared) {
+            throw "compat.has_world_enter is true for $Loader/$McVer but fabric.mod.json does not declare WorldEnterClientInit -- the screen would never open. Add it to the 'client' entrypoints."
+        }
+    }
 }
 
 $lodDir = Join-Path $genJava 'com/kishku7/chunksmith/lod'

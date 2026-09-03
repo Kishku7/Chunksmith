@@ -292,6 +292,21 @@ public class ChunksmithNeoForge {
         }
     }
 
+    // WORLD-ENTER PREGEN (mod_support #20). ServerSTARTED, not ServerSTARTING: the Chunksmith
+    // instance is built in onServerStarting above, and the orchestrator calls
+    // ChunksmithProvider.get() immediately. Fully-qualified rather than imported so the gate can
+    // remove the whole hook without leaving an unused import behind on ungated cells.
+    //[[[cog
+    // import cog, compat
+    // if compat.has_world_enter(mcver, loader):
+    //     cog.outl("@SubscribeEvent")
+    //     cog.outl("public void onServerStartedWorldEnter(net.neoforged.neoforge.event.server.ServerStartedEvent event) {")
+    //     cog.outl("    net.minecraft.server.MinecraftServer server = event.getServer();")
+    //     cog.outl("    com.kishku7.chunksmith.worldenter.WorldEnterPregen.onServerStarted(server, !server.isDedicatedServer());")
+    //     cog.outl("}")
+    //]]]
+    //[[[end]]]
+
     public Chunksmith getChunky() {
         return chunky;
     }

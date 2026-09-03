@@ -121,6 +121,18 @@ public class ChunksmithFabric implements ModInitializer {
             chunky.getEventBus().subscribe(GenerationTaskFinishEvent.class, new BossBarTaskFinishListener(bossBars));
             FabricLoader.getInstance().getEntrypointContainers("chunky", ModInitializer.class)
                     .forEach(entryPoint -> entryPoint.getEntrypoint().onInitialize());
+            // WORLD-ENTER PREGEN (mod_support #20). Last inside this handler, deliberately: it calls
+            // ChunksmithProvider.get(), so it must run AFTER the Chunksmith above is constructed.
+            // Lives here rather than in LodInit because it has nothing to do with LOD -- hanging it
+            // off has_lod would silently drop the hook on any future cell that has one and not the
+            // other.
+            //[[[cog
+            // import cog, compat
+            // if compat.has_world_enter(mcver, loader):
+            //     cog.outl("com.kishku7.chunksmith.worldenter.WorldEnterPregen.onServerStarted(")
+            //     cog.outl("        minecraftServer, !minecraftServer.isDedicatedServer());")
+            //]]]
+            //[[[end]]]
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(minecraftServer -> {
             if (chunky != null) {
