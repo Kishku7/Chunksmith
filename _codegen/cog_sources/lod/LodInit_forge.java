@@ -73,7 +73,7 @@ public final class LodInit {
         // if compat.has_dh(mcver, loader):
         //     cog.outl("// CsLodDhSupport hard-references Distant Horizons types, so it must not be class-loaded")
         //     cog.outl("// unless DH is actually installed. In SINGLEPLAYER the integrated server is in the client")
-        //     cog.outl("// JVM, so this is the whole LOD path: no Chunksmith-Client and no network -- we hand the")
+        //     cog.outl("// JVM, so this is the whole LOD path: no network hop -- we hand the")
         //     cog.outl("// player's own DH its data directly. (DH ships a FORGE build on 1.20.1, not a NeoForge one.)")
         //     cog.outl('if (LodPlatform.isModLoaded("distanthorizons")) {')
         //     cog.outl("    try {")
@@ -117,15 +117,6 @@ public final class LodInit {
                                 + "Chunksmith's LOD feature means two uncoordinated writers into one LOD "
                                 + "database: duplicated downloads and corrupted renderer state. Remove one.");
             }
-        }
-        // The standalone Chunksmith-Client, DISCONTINUED at 3.1.0; its multiplayer LOD half IS this jar
-        // now. Both register the chunksmith:lod channel, so having both is a duplicate registration.
-        if (ModList.get().isLoaded("chunksmithclient")) {
-            LoggerFactory.getLogger("Chunksmith").error(
-                    "Chunksmith-Client is installed alongside Chunksmith 3.1.0+. It is DISCONTINUED: its "
-                            + "multiplayer LOD feature is now built into Chunksmith itself, and running both "
-                            + "means two mods registering the same 'chunksmith:lod' channel. Remove the "
-                            + "Chunksmith-Client jar; you lose nothing.");
         }
     }
 

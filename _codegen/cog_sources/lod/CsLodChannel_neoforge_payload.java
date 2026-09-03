@@ -99,7 +99,7 @@ public final class CsLodChannel {
         // the payload id, so the second registration throws ("UnsupportedOperationException: Cannot register
         // payload chunksmith:lod as it is already registered"), which trips the network-registry lock, and
         // the server never reaches Done. A player got exactly that with Chunksmith and the standalone
-        // Chunksmith-Client both installed. So: bidirectional, in one call, with one handler, never a
+        // both halves active. So: bidirectional, in one call, with one handler, never a
         // playToServer plus a playToClient. On Fabric it is the other way round: two directions, two
         // separate registries, both of which must be registered.
         //

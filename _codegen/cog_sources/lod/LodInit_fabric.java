@@ -78,7 +78,7 @@ public final class LodInit implements ModInitializer {
         //     cog.outl("// last point at which the MinecraftServer can be captured before that event fires.")
         //     cog.outl("//")
         //     cog.outl("// In SINGLEPLAYER the integrated server is in the client JVM, so this is the whole LOD path:")
-        //     cog.outl("// no Chunksmith-Client and no network -- we hand the player's own DH its data directly.")
+        //     cog.outl("// no network hop -- we hand the player's own DH its data directly.")
         //     cog.outl('if (LodPlatform.isModLoaded("distanthorizons")) {')
         //     cog.outl("    try {")
         //     cog.outl("        ServerLifecycleEvents.SERVER_STARTING.register(CsLodDhSupport::setServer);")

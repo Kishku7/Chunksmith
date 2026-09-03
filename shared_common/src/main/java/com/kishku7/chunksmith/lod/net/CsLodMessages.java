@@ -33,7 +33,7 @@ import java.util.List;
  * Encoding for the in-band messages.
  *
  * <p>Plain bytes, no Minecraft types: the payload class on each side is a one-line wrapper around
- * a {@code byte[]} and all the protocol lives here, so the Chunksmith server and Chunksmith-Client
+ * a {@code byte[]} and all the protocol lives here, so the Chunksmith server and client halves
  * (two mods in two repos) share one implementation without sharing a loader.
  *
  * <p>Every decoder below validates each count/length it reads off the wire against the ceilings in

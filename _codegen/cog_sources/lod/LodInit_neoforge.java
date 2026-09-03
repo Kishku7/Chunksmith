@@ -69,7 +69,7 @@ public final class LodInit {
         // if compat.has_dh(mcver, loader):
         //     cog.outl("// CsLodDhSupport hard-references Distant Horizons types, so it must not be class-loaded")
         //     cog.outl("// unless DH is actually installed. In SINGLEPLAYER the integrated server is in the client")
-        //     cog.outl("// JVM, so this is the whole LOD path: no Chunksmith-Client and no network -- we hand the")
+        //     cog.outl("// JVM, so this is the whole LOD path: no network hop -- we hand the")
         //     cog.outl("// player's own DH its data directly.")
         //     cog.outl('if (LodPlatform.isModLoaded("distanthorizons")) {')
         //     cog.outl("    try {")

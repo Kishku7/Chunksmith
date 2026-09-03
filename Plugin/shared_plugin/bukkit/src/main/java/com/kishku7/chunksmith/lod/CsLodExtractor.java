@@ -43,7 +43,7 @@ import org.bukkit.Keyed;
  * jar this cell compiles against, not assumed.
  *
  * <p>Server-side generation only (mod_support #9 follow-up): no renderer adapter and no
- * client-streaming channel here yet; that is Chunksmith-Client's job on
+ * client-streaming channel here yet; that is the mod loaders' job on
  * Fabric/Forge/NeoForge. The store this produces is written to disk and nothing else,
  * deliberately, as a separate and later phase. See LodSupport (Bukkit).
  *

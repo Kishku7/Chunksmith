@@ -38,7 +38,7 @@ import java.util.logging.Logger;
  * structure and {@code lodEnabled} tristate semantics alike, but see the scope note below.
  *
  * <p>Server-side generation only (mod_support #9 follow-up / #11 sibling work). There is no renderer
- * adapter and no client-streaming channel here yet. That is Chunksmith-Client's job on the mod loaders
+ * adapter and no client-streaming channel here yet. That is the mod loaders' job
  * and does not exist on the Plugin platform. This class only ever creates a {@link CsLodStoreSink}: the
  * durable CSLOD store gets built, and nothing consumes it yet. Deliberately incomplete; the streaming
  * half is a separate, later phase.

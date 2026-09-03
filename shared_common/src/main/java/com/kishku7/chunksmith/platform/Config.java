@@ -143,7 +143,7 @@ public interface Config {
      * a tristate, not a boolean. The default is {@link LodMode#AUTO}, on
      * when an LOD renderer (Distant Horizons, voxy, or a voxy fork) is
      * present in the JVM, and always on a dedicated server, which exists to
-     * serve the store to Chunksmith-Client players. An explicit {@code true}
+     * serve the store to connecting Chunksmith clients. An explicit {@code true}
      * or {@code false} is an operator decision and is NEVER overridden. The
      * resolution lives in {@code LodSupport}, which has the loader's
      * mod-loaded check and the running server.

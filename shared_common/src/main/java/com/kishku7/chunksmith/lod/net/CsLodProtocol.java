@@ -24,7 +24,7 @@ package com.kishku7.chunksmith.lod.net;
 /**
  * Shared constants for the Chunksmith LOD protocol.
  *
- * <p>MC-agnostic on purpose: both the Chunksmith server and Chunksmith-Client (a separate
+ * <p>MC-agnostic on purpose: both the Chunksmith server and client halves (once a separate
  * mod, separate repo) speak this, so it must not depend on anything loader- or
  * version-specific.
  *

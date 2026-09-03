@@ -338,7 +338,7 @@ if ($hasLod -eq '1') {
         Write-Host "[cog-gen] - voxy adapter (voxy is Fabric-only and has no build for $Loader/$McVer)"
     }
 
-    # --- Step 4c: the LOD CLIENT half -- MERGED IN FROM CHUNKSMITH-CLIENT AT 3.1.0 (compat.has_lod_client).
+    # --- Step 4c: the LOD CLIENT half (compat.has_lod_client).
     #
     # This is the MULTIPLAYER path: on a Chunksmith server the player's own client downloads the
     # pregenerated store (HTTP backchannel, or the in-band fallback) and injects it into whichever renderer

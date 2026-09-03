@@ -78,7 +78,7 @@ dependencies {
     // build used to pin. DH's own DhApi.READ_ME says to do exactly this -- "use the API jar in your build
     // script as a compile time dependency and the full DH jar as a runtime dependency".
     //
-    // Chunksmith uses DH's PUBLIC API only (no mixin into DH -- that lives in Chunksmith-Client), so it
+    // Chunksmith uses DH's PUBLIC API only here (the one mixin lives in the LOD client half), so it
     // needs NO full DH mod jar at compile time AT ALL. Everything we touch (DhApi.Delayed.terrainRepo,
     // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult, IDhApiWorldGenerator) is in the
     // API artifact and names no Minecraft type, so there is nothing to remap on any loader.

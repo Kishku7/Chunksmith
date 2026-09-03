@@ -192,7 +192,7 @@ public final class LodSupport {
         //     cog.outl("// No voxy sink on this cell: voxy is Fabric-only and upstream has never published a build")
         //     cog.outl("// for this (loader, MC), so there is nothing to compile VoxyLodSink against -- the seam is")
         //     cog.outl("// compile-time ABSENT, not stubbed. Distant Horizons still gets its LODs here (CsLodDhSupport),")
-        //     cog.outl("// and a dedicated server serves the CSLOD store to Chunksmith-Client over the backchannel.")
+        //     cog.outl("// and a dedicated server serves the CSLOD store to connecting clients over the backchannel.")
         //]]]
         //[[[end]]]
 
@@ -293,7 +293,7 @@ public final class LodSupport {
      *
      * <p>{@code auto} is on for a dedicated server even with no renderer installed, and that is deliberate:
      * a dedicated server cannot run voxy (client-only) and does not need DH, yet it is precisely where the
-     * CSLOD store has to exist -- it is the thing Chunksmith-Client downloads. The cost is bounded, paid
+     * CSLOD store has to exist -- it is the thing connecting clients download. The cost is bounded, paid
      * only during a pregen the operator started (~5.8 KB per chunk on disk), and one config line ends it.
      *
      * <p>The wall-clock cost was quoted here as ~16 percent until it was re-measured on a dedicated server
@@ -361,7 +361,7 @@ public final class LodSupport {
                     found);
         } else if (server != null && server.isDedicatedServer()) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled (dedicated server). No renderer runs "
-                    + "here, but the CSLOD store is what Chunksmith-Client downloads, so the store is "
+                    + "here, but the CSLOD store is what connecting clients download, so the store is "
                     + "built (~5.8 KB/chunk; measured cost to pregen speed: none). "
                     + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.");
         } else {

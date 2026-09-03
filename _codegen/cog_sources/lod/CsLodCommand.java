@@ -62,7 +62,7 @@ import java.io.IOException;
  *
  * <p>Both backfills are singleplayer-only: the renderer engines are client-side, so on a
  * dedicated server they report "not available" and the store is served over the
- * backchannel to Chunksmith-Client instead.
+ * backchannel to the connecting client instead.
  *
  * <p>Loader-blind: this class only builds the brigadier node; each loader's {@code
  * LodInit} registers it (Fabric via CommandRegistrationCallback, NeoForge/Forge via

@@ -733,7 +733,7 @@ def has_lod(mcver, loader):
 # RENDERER-ADAPTER AXIS (3.0.0-beta-1, 2026-07-12) -- the SINGLEPLAYER injection path.
 #
 # In singleplayer the integrated server runs INSIDE the client JVM, so Chunksmith can hand LODs to the
-# renderer DIRECTLY -- no Chunksmith-Client, no network. That path needs classes that compile against
+# renderer DIRECTLY -- no network hop. That path needs classes that compile against
 # the third-party jar, so a cell can only carry an adapter where that jar EXISTS for its (loader, MC).
 # Bounds are read off the Modrinth API + jar manifests (2026-07-12):
 #
@@ -819,7 +819,7 @@ DH_API_ARTIFACT = "maven.modrinth:distanthorizonsapi:7.0.0"
 
 
 # ---------------------------------------------------------------------------
-# LOD -- the CLIENT half (merged in from Chunksmith-Client at 3.1.0)
+# LOD -- the CLIENT half
 # ---------------------------------------------------------------------------
 
 
@@ -832,7 +832,6 @@ def has_lod_client(mcver, loader):
     set of files and a DIFFERENT side, and conflating the two is how a cell ends up claiming a
     renderer it cannot feed.
 
-    Before 3.1.0 this half was a SEPARATE MOD (Chunksmith-Client). Both mods registered the
     chunksmith:lod payload id, so a player who had both -- a self-hoster who plays singleplayer AND
     joins a friend's Chunksmith server -- crashed on startup with
     "Packet type [id=chunksmith:lod] is already registered!". One mod, one registration.
@@ -883,7 +882,6 @@ def neo_lod_registration(mcver):
     NEVER a playToServer plus a playToClient: NeoForge keys its payload registry on the payload ID, so
     registering chunksmith:lod twice is a hard load failure ("Cannot register payload chunksmith:lod as
     it is already registered"). That is exactly the crash a player got with Chunksmith + the standalone
-    Chunksmith-Client installed together, and it is now impossible by construction.
 
     The clientbound side names NO client class -- it drains into CsLodChannel's static sink, which is
     null unless the Dist.CLIENT entrypoint installed it. That is what keeps lod.client.* off a

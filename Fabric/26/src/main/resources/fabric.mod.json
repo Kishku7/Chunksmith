@@ -48,7 +48,6 @@
   "breaks": {
     "lss": "*",
     "voxyserver": "*",
-    "lodserver": "*",
-    "chunksmithclient": "*"
+    "lodserver": "*"
   }
 }

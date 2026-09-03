@@ -40,7 +40,7 @@ import static org.junit.Assert.assertNull;
  * <p>The format is the disk format is the wire format: the same bytes are
  * written into the region store, served over the HTTP backchannel, dripped
  * through the in-band fallback, and decoded by a completely separate mod
- * (Chunksmith-Client). Nothing else in the codebase pins that contract down, so
+ * (the LOD client half). Nothing else in the codebase pins that contract down, so
  * an encoding bug would surface only as corrupt terrain on somebody else's
  * screen.
  *

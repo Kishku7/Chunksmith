@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * addresses.
  *
  * <p>Singleplayer: on an integrated server the client's DH is in the same JVM, so we hand
- * it data directly (no Chunksmith-Client and no network involved). On a dedicated server
+ * it data directly (no network hop involved). On a dedicated server
  * DH's client-side engine is not there to be fed and nothing here arms. Hard-references
  * DH types, so it must not be loaded unless DH is present; {@code LodInit} owns that gate
  * ({@code LodPlatform.isModLoaded("distanthorizons")}).
