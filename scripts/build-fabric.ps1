@@ -82,7 +82,14 @@ function Build-26($v) {
   $mm = $m26[$v]
   $modver = (Select-String -Path (Join-Path $cell "gradle.properties") -Pattern '^version=(.+)$').Matches[0].Groups[1].Value
   Write-Host "=== $loader/26 -> $v  (mc=$($mm.mc)  api=$($mm.api)  pack_format=$($mm.packFormat)) ==="
-  & $cogGen -Cell "$loader/26" -McVer "26" -Loader $loader
+  # Pass the REAL target version, not the literal "26". Cog gates are evaluated against
+      # whatever lands here, so hardcoding "26" made every 26.x cell cog as if it were 26.0 --
+      # which silently gave 26.2 and 26.3 the 26.1 form of any gate that keys on the 26 MINOR.
+      # Harmless until one did: compat.screen_holder (the world-enter screen accessor moved onto
+      # Minecraft.gui at 26.2) resolved to the 26.1 form on every cell and broke the 26.2 build.
+      # Verified before changing: screen_holder is the ONLY gate whose answer differs across the
+      # 26 family, so this is a no-op for every existing gate.
+      & $cogGen -Cell "$loader/26" -McVer $mm.mc -Loader $loader
   if ($LASTEXITCODE -ne 0) { throw "cog-gen FAILED for $loader/26 -> $v" }
   $env:MC_DEP = $mm.dep
   $env:PACK_FORMAT = $mm.packFormat
