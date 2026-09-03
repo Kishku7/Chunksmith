@@ -132,6 +132,11 @@ public final class GsonConfig implements Config {
                             Math.max(50L, Runtime.getRuntime().availableProcessors() * 25L)));
     // 0 means no ceiling; 2048 is the default. An upper bound exists only so a typo cannot store a
     // number that overflows when multiplied up to bytes; it is not a recommendation.
+    // 4096 blocks = 256 chunks: what DH and voxy draw untouched. See Config#getWorldEnterPregenRadius.
+    private static final long WORLD_ENTER_RADIUS_DEFAULT = 4096L;
+    private static final long WORLD_ENTER_RADIUS_MIN = 128L;
+    private static final long WORLD_ENTER_RADIUS_MAX = 32768L;
+
     private static final long LOD_INDEX_BUDGET_MB_NONE = 0L;
     private static final long LOD_INDEX_BUDGET_MB_DEFAULT = 2048L;
     private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;   // a terabyte, in megabytes
@@ -485,6 +490,31 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isWorldEnterPregenEnabled() {
+        return Optional.ofNullable(configModel.worldEnterPregen).orElse(true);
+    }
+
+    @Override
+    public boolean isWorldEnterPregenSupported() {
+        // The mod runs on both sides; the integrated-server check that decides whether there is a
+        // world-entry moment at all belongs to the caller, not to config storage.
+        return true;
+    }
+
+    @Override
+    public long getWorldEnterPregenRadius() {
+        long raw = Optional.ofNullable(configModel.worldEnterPregenRadius)
+                .orElse(WORLD_ENTER_RADIUS_DEFAULT);
+        if (raw < WORLD_ENTER_RADIUS_MIN || raw > WORLD_ENTER_RADIUS_MAX) {
+            LOGGER.warn("Chunksmith: worldEnterPregenRadius " + raw + " is outside "
+                    + WORLD_ENTER_RADIUS_MIN + "-" + WORLD_ENTER_RADIUS_MAX
+                    + "; using " + WORLD_ENTER_RADIUS_DEFAULT + " instead");
+            return WORLD_ENTER_RADIUS_DEFAULT;
+        }
+        return raw;
+    }
+
+    @Override
     public String getLodBackchannelBindAddress() {
         return Input.checkHost(configModel.lodBackchannelBindAddress);
     }
@@ -663,6 +693,19 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setWorldEnterPregenEnabled(boolean enabled) {
+        configModel.worldEnterPregen = enabled;
+        saveConfig();
+    }
+
+    @Override
+    public void setWorldEnterPregenRadius(long blocks) {
+        configModel.worldEnterPregenRadius =
+                Math.max(WORLD_ENTER_RADIUS_MIN, Math.min(WORLD_ENTER_RADIUS_MAX, blocks));
+        saveConfig();
+    }
+
+    @Override
     public void setLodBackchannelBindAddress(String address) {
         // Validated on the way in AND on the way out, like every other key here: the file is what an
         // operator inspects when something is wrong, and it must not hold a value the mod refuses.
@@ -729,6 +772,9 @@ public final class GsonConfig implements Config {
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
         // 2048 MB by default; 0 = no ceiling. See Config#getLodIndexBudgetMb.
         private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_DEFAULT;
+        // On by default; single-player only. See Config#isWorldEnterPregenEnabled.
+        private Boolean worldEnterPregen = true;
+        private Long worldEnterPregenRadius = WORLD_ENTER_RADIUS_DEFAULT;
         // Empty = bind wherever the game bound. See Config#getLodBackchannelBindAddress.
         private String lodBackchannelBindAddress = "";
         // Empty = let each client use the address it connected to. See Config#getLodBackchannelHost.

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-09-02
+
+### Removed
+
+- The standalone Chunksmith-Client mod is gone -- the project has been retired and its repository
+  deleted -- so everything that referenced it has come out: the `chunksmithclient` incompatibility
+  declarations from the Fabric and NeoForge manifests, and the startup check that warned when both
+  were installed.
+
+  **If you still have an old Chunksmith-Client jar installed, remove it.** Chunksmith no longer
+  refuses to start alongside it; both mods register the same `chunksmith:lod` channel, so having both
+  is now a duplicate registration rather than a clear error message. Its multiplayer LOD job has been
+  built into Chunksmith itself since 3.1.0 -- you lose nothing by deleting it.
+
 ## [3.16.0] - 2026-09-02
 
 ### Changed

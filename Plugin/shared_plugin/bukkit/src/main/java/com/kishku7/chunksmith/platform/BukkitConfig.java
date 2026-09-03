@@ -269,6 +269,25 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isWorldEnterPregenEnabled() {
+        // Always off here, and not a config key. The feature is a single-player world-entry
+        // experience: it freezes the world and shows the player a progress screen before handing
+        // them control. A dedicated server has no world-entry moment and nobody to show a screen
+        // to. Reported honestly rather than read from config.yml and then quietly ignored.
+        return false;
+    }
+
+    @Override
+    public boolean isWorldEnterPregenSupported() {
+        return false;
+    }
+
+    @Override
+    public long getWorldEnterPregenRadius() {
+        return 4096L;
+    }
+
+    @Override
     public String getLodBackchannelBindAddress() {
         return Input.checkHost(plugin.getConfig().getString("lod-backchannel-bind-address", ""));
     }
@@ -405,6 +424,17 @@ public final class BukkitConfig implements Config {
         plugin.getConfig().set("lod-index-budget-mb",
                 (megabytes <= 0L || megabytes > LOD_INDEX_BUDGET_MB_MAX) ? 0L : megabytes);
         plugin.saveConfig();
+    }
+
+    @Override
+    public void setWorldEnterPregenEnabled(boolean enabled) {
+        // No-op: see isWorldEnterPregenEnabled. Storing it would create a key that reads back as
+        // false however it is set, which is worse than not having it.
+    }
+
+    @Override
+    public void setWorldEnterPregenRadius(long blocks) {
+        // No-op, same reason.
     }
 
     @Override

@@ -309,6 +309,48 @@ public interface Config {
      */
     String getLodBackchannelHost();
 
+    /**
+     * Returns true when a single-player world should pre-generate itself on
+     * entry, before handing the player control.
+     *
+     * <p>On by default. Entering a fresh world freezes it, pregenerates out to
+     * {@link #getWorldEnterPregenRadius()} behind a progress screen, and then
+     * lets the player in -- or lets them in immediately if they press the
+     * button, with generation continuing behind them (mod_support #20).
+     *
+     * <p>Single-player only, and only with a full game client: a dedicated
+     * server has no world-enter moment and nobody to show a screen to. The
+     * Bukkit plugin reports this as off for the same reason.
+     *
+     * <p>It is worth being honest about what this is for. Freezing does NOT make
+     * generation faster -- measured at roughly 60-70% of normal throughput,
+     * because the tick that drives chunk promotion is the same tick being
+     * frozen. The value is that the work happens before you play instead of
+     * stuttering underneath you.
+     */
+    boolean isWorldEnterPregenEnabled();
+
+    /**
+     * Returns true where the world-enter pregen can run at all -- a game client
+     * with an integrated server. False on a dedicated server and on Bukkit,
+     * where `/cs set worldEnterPregen` is hidden rather than accepting a value
+     * it would then ignore.
+     */
+    boolean isWorldEnterPregenSupported();
+
+    /**
+     * Returns how far out, in blocks, the world-enter pregen reaches.
+     *
+     * <p>Defaults to 4096 -- 256 chunks -- because that is what Distant Horizons
+     * and voxy will draw without being reconfigured. A shorter pregen would
+     * leave the renderers able to see further than the world has been built.
+     *
+     * <p>It is a large default on purpose and it is not quick: 4096 is about
+     * 205,000 chunks. It resumes across sessions rather than demanding one
+     * sitting, and the player can enter at any time.
+     */
+    long getWorldEnterPregenRadius();
+
     void setLanguage(String language);
 
     void setContinueOnRestart(boolean continueOnRestart);
@@ -374,6 +416,12 @@ public interface Config {
      * everybody currently playing pointed at the old one.
      */
     void setLodBackchannelHost(String host);
+
+    /** Turns the world-enter pregen on or off and persists it. */
+    void setWorldEnterPregenEnabled(boolean enabled);
+
+    /** Sets how far the world-enter pregen reaches, in blocks, and persists it. */
+    void setWorldEnterPregenRadius(long blocks);
 
     void reload();
 }

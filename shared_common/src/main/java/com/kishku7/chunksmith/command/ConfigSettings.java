@@ -118,6 +118,10 @@ public final class ConfigSettings {
             // No CsLodControl.apply() here, unlike the port beside it: nothing is bound to a budget.
             // It is read when the next index is built, so the next answer already honours it.
             integer("lodIndexBudgetMb", Config::getLodIndexBudgetMb, Config::setLodIndexBudgetMb),
+            worldEnter(bool("worldEnterPregen",
+                    Config::isWorldEnterPregenEnabled, Config::setWorldEnterPregenEnabled)),
+            worldEnter(integer("worldEnterPregenRadius",
+                    Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
             host("lodBackchannelBindAddress",
                     Config::getLodBackchannelBindAddress, Config::setLodBackchannelBindAddress),
             host("lodBackchannelHost",
@@ -255,6 +259,17 @@ public final class ConfigSettings {
                     return value.isPresent();
                 },
                 config -> true);
+    }
+
+    /**
+     * Hides a world-enter setting on platforms that cannot run it.
+     *
+     * <p>Same shape as {@link #settle}: the Bukkit plugin has no world-entry moment, so offering
+     * `/cs set worldEnterPregen true` there would accept a value and change nothing.
+     */
+    private static ConfigSetting worldEnter(ConfigSetting base) {
+        return new ConfigSetting(base.name(), base.kind(),
+                base::read, base::write, Config::isWorldEnterPregenSupported);
     }
 
     private static ConfigSetting settle(ConfigSetting base) {
