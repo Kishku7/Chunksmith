@@ -30,6 +30,25 @@
 
 ### Fixed
 
+- **An IPv6 address can now actually be set with `/cs set`.** Quoting it -- the obvious thing to
+  try once the bare form is refused by Minecraft's command parser -- used to fail too: the quotes
+  were arriving as part of the value, so `"2001:db8::1"` was rejected as malformed. Both routes
+  were closed on a setting whose whole job is naming an address. Quoted values now work
+  everywhere, on every loader and the plugin. (Bare IPv6 still cannot work -- Minecraft's parser
+  stops at the first colon -- so quote it: `/cs set lodBackchannelHost "2001:db8::1"`.)
+
+- **Impossible addresses are refused instead of stored.** `256.1.1.1` was accepted and kept: four
+  numeric labels satisfy every ordinary hostname rule, so the setting held an address that could
+  never resolve and the only symptom was a backchannel that quietly did not work. Also refused
+  now: `1.1.1.999`, `1.2.3`, `1.2.3.4.5`, `010.1.1.1` (a leading zero means octal to some
+  resolvers and decimal to others) and `example.123`. Fully-qualified names ending in a dot, like
+  `example.com.`, are accepted -- they were being refused.
+
+- **`0.0.0.0` is no longer accepted as the address to advertise to clients.** It is exactly right
+  for `lodBackchannelBindAddress` (listen on every interface) and meaningless for
+  `lodBackchannelHost`: a client told to connect to `0.0.0.0` has been told nothing. Leave that
+  key empty if you want each client to use the address it connected on.
+
 - **A server whose hostname contains an underscore can now serve LOD over the backchannel.**
   `myserver_minecraft.example.com` broke it in two places at once: the address was rejected outright
   by the config, so `lodBackchannelHost` silently reset to empty and could not be set at all; and the

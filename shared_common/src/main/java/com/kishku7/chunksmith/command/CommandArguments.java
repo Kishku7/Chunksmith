@@ -32,8 +32,46 @@ public final class CommandArguments {
     private final Queue<String> args = new LinkedList<>();
 
     private CommandArguments(List<String> arguments) {
-        this.size = arguments.size();
-        this.args.addAll(arguments);
+        final List<String> unquoted = new ArrayList<>(arguments.size());
+        for (final String argument : arguments) {
+            unquoted.add(unquote(argument));
+        }
+        this.size = unquoted.size();
+        this.args.addAll(unquoted);
+    }
+
+    /**
+     * Strips one layer of surrounding quotes from a token.
+     *
+     * <p><b>Why this is needed at all.</b> Every loader builds its arguments by taking the RAW
+     * command input and splitting it on spaces, rather than reading the values Brigadier already
+     * parsed. So a quoted argument keeps its quotes: they are just characters in the token.
+     *
+     * <p>That made an IPv6 address impossible to set. {@code /cs set lodBackchannelHost 2001:db8::1}
+     * fails in the PARSER -- Brigadier's string() reads an unquoted bare word and stops dead at the
+     * colon with "Expected whitespace to end one argument" -- and the quoted form that Minecraft
+     * users would reach for next, {@code "2001:db8::1"}, then arrived at the validator WITH the
+     * quotes attached and was refused as malformed. Both routes were closed, on a config key whose
+     * whole purpose is naming an address, with IPv6 documented as supported.
+     *
+     * <p>One layer only, and only when the token both starts and ends with the same quote. No
+     * command here takes a value that is legitimately quote-wrapped.
+     *
+     * <p><b>Known limitation, stated rather than hidden:</b> because the split happens on spaces
+     * before this runs, a quoted value CONTAINING a space still arrives as several tokens. That is
+     * fine for addresses, which cannot contain spaces, and fixing it properly means reading
+     * Brigadier's parsed arguments instead of re-splitting the raw line.
+     */
+    static String unquote(final String value) {
+        if (value == null || value.length() < 2) {
+            return value;
+        }
+        final char first = value.charAt(0);
+        final char last = value.charAt(value.length() - 1);
+        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
     }
 
     public static CommandArguments of(List<String> arguments) {
