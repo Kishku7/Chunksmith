@@ -39,6 +39,9 @@ public final class WorldEnterScreen extends Screen {
     private static final int COLOR_BAR_BORDER = 0xFF000000;
     private static final int COLOR_BAR_TRACK = 0xFF303030;
     private static final int COLOR_BAR_FILL = 0xFF3CB043;
+    private static final int COLOR_PANEL = 0xC8101010;
+    private static final int COLOR_PANEL_EDGE = 0xFF000000;
+    private static final int PANEL_HALF_WIDTH = 200;
 
     public WorldEnterScreen() {
         super(Component.literal("Preparing your world"));
@@ -70,11 +73,24 @@ public final class WorldEnterScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partial) {
-        super.extractRenderState(graphics, mouseX, mouseY, partial);
-
         int centerX = this.width / 2;
         int top = barTop();
         double fraction = WorldEnterPregen.fraction();
+
+        // A backing panel. Not decoration: isPauseScreen() is false, so the live world renders behind
+        // this screen at full brightness, and on grass or snow the un-backed text was genuinely hard
+        // to read -- confirmed by eyeballing the first render rather than assumed.
+        int panelLeft = centerX - PANEL_HALF_WIDTH;
+        int panelRight = centerX + PANEL_HALF_WIDTH;
+        graphics.fill(panelLeft - 1, top - 58, panelRight + 1, top + 100, COLOR_PANEL_EDGE);
+        graphics.fill(panelLeft, top - 57, panelRight, top + 99, COLOR_PANEL);
+
+        // ORDER MATTERS, and it is the reason this call is here rather than at the top of the
+        // method. super draws the child widgets, so with super first the opaque panel above paints
+        // straight OVER the button: it stayed clickable and answered `describe`, so the functional
+        // gate passed green while the player could see no button at all. Panel, then widgets, then
+        // our own text on top.
+        super.extractRenderState(graphics, mouseX, mouseY, partial);
 
         graphics.centeredText(this.font, this.title, centerX, top - 46, COLOR_TEXT);
         graphics.centeredText(this.font,
