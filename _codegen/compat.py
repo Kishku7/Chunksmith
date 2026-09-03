@@ -823,6 +823,28 @@ DH_API_ARTIFACT = "maven.modrinth:distanthorizonsapi:7.0.0"
 # ---------------------------------------------------------------------------
 
 
+def has_world_enter(mcver, loader):
+    """Does this cell carry the WORLD-ENTER PREGEN (mod_support #20)?
+
+    26.x on Fabric and NeoForge only, for now. Deliberately narrower than has_lod():
+
+      * It is a SINGLE-PLAYER, full-GUI feature -- it freezes the world on entry, pregenerates behind
+        a progress screen, and hands control over. A dedicated server has no world-entry moment and
+        nobody to show a screen to, which is why Config.isWorldEnterPregenSupported() is false on
+        Bukkit rather than the key being accepted and ignored.
+      * 1.20.1 CANNOT carry the freeze half at all: ServerTickRateManager does not exist before
+        1.20.4 (verified against the decompiled sources, 2026-09-02). The agreed answer for the
+        backport is degrade-to-no-freeze -- pregen with the progress screen, world running -- not
+        dropping the cell. Until that is written, 1.20.1 simply does not get the feature.
+      * Restricting the FIRST release to 26.x is deliberate (2026-09-02): prove it on the line that
+        matters, then backport. Widening this function is the whole of the backport's gating work.
+
+    Forge is absent for the same reason it is absent from every 26 list: there is no Forge 26.
+    """
+    v = _parse(mcver)
+    return v[0] >= 26 and loader in ("Fabric", "NeoForge")
+
+
 def has_lod_client(mcver, loader):
     """Does this cell carry the MULTIPLAYER LOD CLIENT (the download client, the renderer injectors,
     the DH dedupe-gate mixin)?

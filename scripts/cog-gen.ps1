@@ -269,8 +269,40 @@ try {
     $hasVoxy = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_voxy('$McVer','$Loader') else '0')")
     $hasSectionBuilder = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_section_builder('$McVer','$Loader') else '0')")
     $hasLodClient = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_lod_client('$McVer','$Loader') else '0')")
+    $hasWorldEnter = (& python -c "import compat,sys; sys.stdout.write('1' if compat.has_world_enter('$McVer','$Loader') else '0')")
 } finally {
     Pop-Location
+}
+
+# --- Step 4d: the WORLD-ENTER PREGEN (compat.has_world_enter) -- mod_support #20.
+#
+# Pre-generates a single-player world on entry, behind a progress screen, before handing the player
+# control. 26.x on Fabric and NeoForge only for now: 1.20.1 has no ServerTickRateManager to freeze
+# with, and a dedicated server has no world-entry moment at all.
+#
+# SIDE GUARDING -- the screen is CLIENT-ONLY and must never load on a dedicated server. Same rule and
+# same mechanism as step 4c: the guard is the LOADER's, not a runtime if. WorldEnterPregen itself is
+# server-side (it drives the integrated server) and is safe on both sides; only the screen is gated.
+$worldEnterDir = Join-Path $genJava 'com/kishku7/chunksmith/worldenter'
+if ($hasWorldEnter -eq '1') {
+    $weSrc = Join-Path $cogSrc 'worldenter'
+    New-Item -ItemType Directory -Force -Path $worldEnterDir | Out-Null
+    $weMap = [ordered]@{
+        'WorldEnterPregen.java' = 'WorldEnterPregen.java'
+    }
+    foreach ($name in $weMap.Keys) {
+        $src = Join-Path $weSrc $name
+        if (-not (Test-Path $src)) { throw "worldenter cog_source missing: $src" }
+        $dst = Join-Path $worldEnterDir $weMap[$name]
+        Copy-Item -Force $src $dst
+        # MUST be appended to $cogTargets. A copied-but-not-cogged file keeps its //[[[cog]]] block
+        # empty, and the compiler reports it as a missing return where the generated line should be.
+        $cogTargets += $dst
+    }
+    Write-Host "[cog-gen] + WORLD-ENTER pregen (mod_support #20)"
+} else {
+    if (Test-Path $worldEnterDir) { Remove-Item -Recurse -Force $worldEnterDir }
+    Write-Host "[cog-gen] - WORLD-ENTER pregen (not gated on for $Loader/$McVer)"
 }
 
 $lodDir = Join-Path $genJava 'com/kishku7/chunksmith/lod'
