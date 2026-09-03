@@ -72,7 +72,8 @@ dependencies {
     // Minecraft type at all, so there is nothing for loom to remap.
     //
     // voxy -- the m3t4f1v3 FORK (github.com/m3t4f1v3/voxy, `multiversion` branch), NOT upstream.
-    // Upstream voxy has NEVER published a 1.21.1 build on any loader (lod-ecosystem.md); this cell
+    // Upstream voxy has NEVER published a 1.21.1 build on any loader (checked against its published
+// jars); this cell
     // was compile-time-absent for voxy until the fork was verified 2026-08-03 (see
     // _codegen/compat.py::has_voxy()). Self-built from source (upstream publishes no 1.21.1 jar to
     // pull from Modrinth/Maven), staged in the gitignored ../../libs/, OPTIONAL soft dependency:

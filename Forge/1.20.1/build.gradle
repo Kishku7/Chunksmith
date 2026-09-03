@@ -90,7 +90,7 @@ dependencies {
     // remap/reobf -- a plain compileOnly file dependency, which FG6 never touches.
     //
     // DH ships FORGE on the 1.20.1 line (there is no NeoForge 1.20.1 DH). No voxy here: voxy is
-    // Fabric-only and has never published a 1.20.1 build (lod-ecosystem.md).
+    // Fabric-only and has never published a 1.20.1 build (checked against its published jars).
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //
     // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB

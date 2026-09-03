@@ -30,7 +30,7 @@ config="chunksmith_lodclient.mixins.json"
 # LOD-streamer conflicts. Each of these ALSO streams LOD data into a client's voxy/Distant Horizons
 # database over its own wire, while Chunksmith serves CSLOD over ours. Two writers, one database, no
 # coordination: duplicated download, duplicated ingest, and a real risk of racing voxy's DB-local id
-# allocation. Ids CONFIRMED from the published jars (docs/lod ecosystem survey, 2026-07-12).
+# allocation. Ids CONFIRMED by reading the published jars, 2026-07-12.
 # distanthorizons is deliberately NOT here -- it is a renderer we FEED, not a competitor.
 # Distant Horizons -- OPTIONAL, and a renderer we FEED (see the incompatible list below for the mods we
 # actually conflict with). Chunksmith works perfectly well without it. The floor is the oldest DH whose

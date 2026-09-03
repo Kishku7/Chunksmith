@@ -77,7 +77,8 @@ dependencies {
     // DhApiLevelLoadEvent, IDhApiLevelWrapper, DhApiChunk, DhApiResult) is com.seibel.* and names no
     // Minecraft type at all, so there is nothing for loom to remap.
     //
-    // No voxy here: voxy has NEVER published a 1.20.1 build on any loader (lod-ecosystem.md).
+    // No voxy here: voxy has NEVER published a 1.20.1 build on any loader (checked against its
+// published jars).
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //
     // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB

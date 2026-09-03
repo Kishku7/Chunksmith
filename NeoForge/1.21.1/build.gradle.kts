@@ -80,7 +80,8 @@ dependencies {
     // works unchanged on this loader -- no loader-specific adapter code needed. Self-built from
     // source (not published anywhere), OPTIONAL soft dependency: compiled against, NEVER shipped
     // (ARR-derived, same posture as every voxy fork). See _codegen/compat.py::has_voxy() and
-    // Memory/minecraft/lod-ecosystem.md sec. "NEOFORGE/FORGE VOXY: BLOCKER OR GAP".
+    // voxy ships no NeoForge/Forge build at all, so this is a structural absence rather than a gap
+    // in this cell -- checked against voxy's published jars.
     compileOnly(files("../../libs/voxy-0.2.15-beta+1.21.1-m3t4f1v3-neoforge.jar"))
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //

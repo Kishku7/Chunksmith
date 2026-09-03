@@ -70,7 +70,7 @@ dependencies {
     // on every loader and every runtime mapping -- nothing to remap, hence a plain file dependency.
     //
     // No voxy here: voxy is FABRIC-ONLY, and not one of its NeoForge forks is published anywhere
-    // (lod-ecosystem.md). The voxy seam is compile-time absent on this cell.
+    // (checked against voxy's published jars). The voxy seam is compile-time absent on this cell.
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //
     // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB

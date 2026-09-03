@@ -83,7 +83,7 @@ dependencies {
     // publishes one artifact per MC line and the 26.1.2 one carries the whole 26 line's API.
     //
     // No voxy here: voxy is FABRIC-ONLY, and NOT ONE voxy fork supports 26.x on NeoForge at all
-    // (lod-ecosystem.md). The voxy seam is compile-time absent on this cell.
+    // (checked against voxy's published jars). The voxy seam is compile-time absent on this cell.
     // Distant Horizons -- compiled against its STANDALONE API artifact, not the DH mod jar.
     //
     // DH publishes its API as a separate, MINECRAFT-AGNOSTIC artifact on the Modrinth maven: ONE 344 KB

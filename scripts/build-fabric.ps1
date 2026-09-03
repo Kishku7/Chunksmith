@@ -30,7 +30,7 @@ Set-Content -Path $lockFile -Value "pid=$PID started=$(Get-Date -Format o)" -Enc
 try {
 
 
-# 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format per Memory/knowledge/pack-formats.md.
+# 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format is read from each MC build's own resources/version.json -- never extrapolated.
 # 26.3 pinned to pre-1 EXCLUSIVELY (bumped 2026-09-02). Every 26.3 build so far has moved resource
 #   pack_format -- 89,90,91,92,93,94,95 across the snapshots and then 97 at pre-1, which is a jump of
 #   TWO, so read it out of the build's own resources/version.json rather than incrementing the last one.

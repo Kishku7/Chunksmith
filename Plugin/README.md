@@ -72,7 +72,7 @@ In short: the mod's server-internal Mixins exist for unpatched vanilla servers. 
 Paper/Folia the platform already does that work - usually better, because it is threaded
 and bounded - so the plugin is thinner by design, not less capable.
 
-## LOD: the plugin generates it AND serves it (3.15.0)
+## LOD: the plugin generates it AND serves it
 
 A player on a Paper/Spigot/Folia server running this plugin sees pregenerated distant terrain,
 provided that player has the Chunksmith **mod** and a renderer (Distant Horizons or voxy) on their

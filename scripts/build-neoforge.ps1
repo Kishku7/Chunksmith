@@ -29,7 +29,7 @@ Set-Content -Path $lockFile -Value "pid=$PID started=$(Get-Date -Format o)" -Enc
 try {
 
 
-# 26-line matrix (unified NeoForge/26 cell; -P + PACK_FORMAT). pack_format per Memory/knowledge/pack-formats.md.
+# 26-line matrix (unified NeoForge/26 cell; -P + PACK_FORMAT). pack_format is read from each MC build's own resources/version.json -- never extrapolated.
 $m26 = [ordered]@{
   "26.1" = @{ nf = "26.1.2.101";      nfRange = "[26.1.0.0-beta,)"; mcRange = "[26.1,26.2)"; packFormat = "84" }
   "26.2" = @{ nf = "26.2.0.75";       nfRange = "[26.2.0-alpha,)"; mcRange = "[26.2,26.3)"; packFormat = "88" }
