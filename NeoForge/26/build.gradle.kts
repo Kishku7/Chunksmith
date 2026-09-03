@@ -39,11 +39,15 @@ allprojects {
 }
 
 // NeoForge variant for MC 26.2 -- ModDevGradle toolchain (matches the other Kishku7 mods' 26.2
-// NeoForge builds + chunksmith's own NeoForge/1.20.6). MDG self-manages the neoforged maven and
-// builds against public neoforge 26.2.0.1-beta, unlike neo-loom 1.16 (cannot resolve 26.2 userdev).
-// JDK 25, mojmap-native, NO mixin AP / NO refmap.
-
-val neoforgeVersion = (project.findProperty("neoforgeVersion") ?: "26.2.0.1-beta").toString()
+// NeoForge builds + chunksmith's own NeoForge/1.20.6). MDG self-manages the neoforged maven,
+// unlike neo-loom 1.16 (cannot resolve 26.2 userdev). JDK 25, mojmap-native, NO mixin AP / NO refmap.
+//
+// scripts/build-neoforge.ps1 is the CANONICAL matrix and overrides this per target. The default
+// below exists only so a bare `gradlew` in this cell still runs -- keep it in step with that script
+// (it had drifted from 26.2.0.1-beta to the script's 26.2.0.75). The DECLARED version range in
+// neoforge.mods.toml stays deliberately wider than whatever we compile against, so building on the
+// newest NeoForge does not raise the floor for existing users.
+val neoforgeVersion = (project.findProperty("neoforgeVersion") ?: "26.2.0.75").toString()
 val mixinVersion = "0.8.5"
 // Resource pack_format is per-26.X (26.1=84, 26.2=88); build-all overrides via PACK_FORMAT so each
 // emitted jar carries its own correct value. On MC 26 the SERVER_DATA lastPreMinorVersion is 81, so
