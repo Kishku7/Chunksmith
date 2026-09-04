@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [3.17.1] - 2026-09-04
+
+### Fixed
+
+- **The world no longer runs on underneath the "Preparing your world" screen.** The progress screen
+  drew a panel in the middle and left the live world rendering behind it at full brightness, so you
+  could watch yourself standing there -- and, if the spawn was not flat ground, watch yourself fall.
+  It reads as though the freeze is not working. It was: Minecraft's tick freeze deliberately exempts
+  players, so everything else really was held while the player alone kept moving. The screen is a
+  full backdrop now, and there is nothing to misread. (mod_support #20, reported by Maker261)
+
+- **You are no longer the only thing still ticking while your world pre-generates.** Because of that
+  same exemption, the player kept running for the whole freeze -- which is 80 minutes or more at the
+  default radius. Hunger drained, fall damage applied, and a spawn over water could drown you while
+  you watched a progress bar. The player is now frozen along with everything else until the run
+  finishes or you press **Enter World Now**, and is released with the rest of the world.
+
 ## [3.17.0] - 2026-09-02
 
 ### Added

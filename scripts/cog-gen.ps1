@@ -324,9 +324,20 @@ if ($hasWorldEnter -eq '1') {
     $weInitDst = Join-Path $weCliDir 'WorldEnterClientInit.java'
     Copy-Item -Force $weInitSrc $weInitDst
     $cogTargets += $weInitDst
+    # TickRateManagerMixin freezes the PLAYER for the duration of a world-enter run (3.17.1). It
+    # came in with the shared copy in Step 2 and stays here; it is listed in chunksmith.mixins.json
+    # automatically, because Step 6 enumerates the files actually present rather than a hand list.
+    Write-Host "[cog-gen] + TickRateManagerMixin (player freeze, world-enter cells only)"
     Write-Host "[cog-gen] + WORLD-ENTER pregen (mod_support #20)"
 } else {
     if (Test-Path $worldEnterDir) { Remove-Item -Recurse -Force $worldEnterDir }
+    # TickRateManagerMixin imports WorldEnterPregen, which does not exist on a cell without the
+    # feature -- so it is not a stub to maintain, it is a file that must not be generated at all.
+    # Same treatment as the ticket diagnostics above: drop the FILE and Step 6 drops the json entry
+    # with it. Leaving it would break the build on every pre-26 cell.
+    $tickRateMixinDst = Join-Path $genJava (Join-Path $mixinPkg 'TickRateManagerMixin.java')
+    if (Test-Path $tickRateMixinDst) { Remove-Item -Force $tickRateMixinDst }
+    Write-Host "[cog-gen] - TickRateManagerMixin (no world-enter on $Loader/$McVer)"
     Write-Host "[cog-gen] - WORLD-ENTER pregen (not gated on for $Loader/$McVer)"
 }
 

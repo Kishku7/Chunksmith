@@ -39,9 +39,9 @@ public final class WorldEnterScreen extends Screen {
     private static final int COLOR_BAR_BORDER = 0xFF000000;
     private static final int COLOR_BAR_TRACK = 0xFF303030;
     private static final int COLOR_BAR_FILL = 0xFF3CB043;
-    private static final int COLOR_PANEL = 0xC8101010;
-    private static final int COLOR_PANEL_EDGE = 0xFF000000;
-    private static final int PANEL_HALF_WIDTH = 200;
+    // Opaque, not translucent. The world behind this screen is the thing the player must not be
+    // able to read anything into -- see the backdrop comment in extractRenderState.
+    private static final int COLOR_BACKDROP = 0xFF101010;
 
     public WorldEnterScreen() {
         super(Component.literal("Preparing your world"));
@@ -77,19 +77,25 @@ public final class WorldEnterScreen extends Screen {
         int top = barTop();
         double fraction = WorldEnterPregen.fraction();
 
-        // A backing panel. Not decoration: isPauseScreen() is false, so the live world renders behind
-        // this screen at full brightness, and on grass or snow the un-backed text was genuinely hard
-        // to read -- confirmed by eyeballing the first render rather than assumed.
-        int panelLeft = centerX - PANEL_HALF_WIDTH;
-        int panelRight = centerX + PANEL_HALF_WIDTH;
-        graphics.fill(panelLeft - 1, top - 58, panelRight + 1, top + 100, COLOR_PANEL_EDGE);
-        graphics.fill(panelLeft, top - 57, panelRight, top + 99, COLOR_PANEL);
+        // A FULL-SCREEN opaque backdrop, and the full-screen part is the point rather than the
+        // styling. isPauseScreen() is false, so the live world renders behind this screen at full
+        // brightness; this used to be a 400-wide panel in the middle of it, which left the world on
+        // display around the edges for the whole run.
+        //
+        // That is not only a legibility problem. Minecraft's tick freeze exempts players
+        // (TickRateManager.isEntityFrozen returns false for a Player), so before 3.17.1 the player
+        // was the one thing still moving out there, and a reporter watched himself fall and
+        // concluded the freeze had never engaged -- a correct freeze read as a broken one, from a
+        // gap around the edge of a panel. The player is frozen too now, but the backdrop stays:
+        // there is no version of this screen where showing a world the player cannot act in helps
+        // them, and any future thing that does move behind it would tell the same lie.
+        graphics.fill(0, 0, this.width, this.height, COLOR_BACKDROP);
 
         // ORDER MATTERS, and it is the reason this call is here rather than at the top of the
-        // method. super draws the child widgets, so with super first the opaque panel above paints
-        // straight OVER the button: it stayed clickable and answered `describe`, so the functional
-        // gate passed green while the player could see no button at all. Panel, then widgets, then
-        // our own text on top.
+        // method. super draws the child widgets, so with super first the opaque backdrop above
+        // paints straight OVER the button: it stayed clickable and answered `describe`, so the
+        // functional gate passed green while the player could see no button at all. Backdrop, then
+        // widgets, then our own text on top.
         super.extractRenderState(graphics, mouseX, mouseY, partial);
 
         graphics.centeredText(this.font, this.title, centerX, top - 46, COLOR_TEXT);
