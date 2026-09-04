@@ -2,7 +2,19 @@
 
 ## [Unreleased]
 
-## [3.17.1] - 2026-09-04
+## [3.17.2] - 2026-09-04
+
+### Changed
+
+- **The 26.3 build now targets `26.3-pre-2`.** Chunksmith pins its 26.3 jar to one exact
+  Minecraft build rather than a range, because `pack_format` has moved on nearly every 26.3
+  build and a jar carries exactly one. 26.3-pre-2 shipped the same day this release was
+  prepared, so the jar targets it rather than going out already a build behind. `pack_format`
+  is unchanged at 97 -- read from 26.3-pre-2's own `version.json`, not assumed.
+
+  Nothing else differs between the two builds for this mod: the only Minecraft change on a
+  surface Chunksmith attaches to was `ServerChunkCache.tickChunks` losing a parameter, and
+  Chunksmith does not hook that method.
 
 ### Fixed
 

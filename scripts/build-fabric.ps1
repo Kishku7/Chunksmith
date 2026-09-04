@@ -43,7 +43,7 @@ try {
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3-pre-1";      api = "0.159.1+26.3";   dep = "26.3-pre.1"; packFormat = "97" }
+  "26.3" = @{ mc = "26.3-pre-2";      api = "0.159.4+26.3";   dep = "26.3-pre.2"; packFormat = "97" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
