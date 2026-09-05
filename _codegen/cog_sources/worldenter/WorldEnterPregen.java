@@ -313,7 +313,18 @@ public final class WorldEnterPregen {
 
     private static void freeze(MinecraftServer mcServer, boolean frozen) {
         try {
+            //[[[cog
+            // import cog, compat
+            // if not compat.hand_rolled_freeze(mcver):
+            //     cog.outl("            mcServer.tickRateManager().setFrozen(frozen);")
+            // else:
+            //     cog.outl("            // This cell ships the hand-rolled freeze, so there is nothing to ask. The flag set")
+            //     cog.outl("            // below IS the freeze on this version: ServerLevelFreezeMixin and")
+            //     cog.outl("            // LevelEntityFreezeMixin read it through isFrozen() and hold the world")
+            //     cog.outl("            // themselves. See compat.has_tick_rate_manager.")
+            //]]]
             mcServer.tickRateManager().setFrozen(frozen);
+            //[[[end]]]
             frozenByUs = frozen;
         } catch (RuntimeException e) {
             // Never let the freeze be the reason a world will not load.

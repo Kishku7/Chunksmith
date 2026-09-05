@@ -67,8 +67,30 @@ public final class WorldEnterClientInit {
     private WorldEnterClientInit() {
     }
 
+    // Forge split ClientTickEvent into Pre/Post somewhere between forge 47 and 49; 47 (1.20.1) has
+    // one phased event instead. Phase.END is the same moment as Post. See compat.forge_tick_event_split.
+    //[[[cog
+    // import cog, compat
+    // if compat.forge_tick_event_split(mcver):
+    //     cog.outl("    @SubscribeEvent")
+    //     cog.outl("    public static void onClientTick(TickEvent.ClientTickEvent.Post event) {")
+    //     cog.outl("        WorldEnterClientHook.tick(Minecraft.getInstance());")
+    // else:
+    //     # `phase` is deprecated-for-removal from forge 49 on, and its replacement IS the Pre/Post
+    //     # split -- which forge 47 and 48 do not have. This cell's range covers those, so there is no
+    //     # non-deprecated form available to it: suppress narrowly, on the one method, with the reason.
+    //     cog.outl("    @SubscribeEvent")
+    //     cog.outl("    @SuppressWarnings(\"removal\")  // no Pre/Post below forge 49; phase is the only shape that spans this cell")
+    //     cog.outl("    public static void onClientTick(TickEvent.ClientTickEvent event) {")
+    //     cog.outl("        if (event.phase != TickEvent.Phase.END) {")
+    //     cog.outl("            return;")
+    //     cog.outl("        }")
+    //     cog.outl("        WorldEnterClientHook.tick(Minecraft.getInstance());")
+    // cog.outl("    }")
+    //]]]
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent.Post event) {
         WorldEnterClientHook.tick(Minecraft.getInstance());
     }
+    //[[[end]]]
 }

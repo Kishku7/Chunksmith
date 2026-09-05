@@ -10,10 +10,12 @@
     "EntityStorageAccessor",
     "HangingEntityMixin",
     "IOWorkerAccessor",
+    "LevelEntityFreezeMixin",
     "MinecraftServerMixin",
     "PersistentEntitySectionManagerMixin",
     "RegionFileStorageAccessor",
     "ServerChunkCacheMixin",
+    "ServerLevelFreezeMixin",
     "ServerLevelMixin",
     "StructureStartMixin",
     "WorldGenRegionMixin"

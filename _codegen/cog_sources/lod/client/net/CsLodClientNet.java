@@ -373,7 +373,7 @@ public final class CsLodClientNet {
                         ours.count(), dimension);
                 return;
             }
-            LOGGER.info("Chunksmith: LOD sync -- {} no longer matches the server (it has {} regions in my"
+            LOGGER.debug("Chunksmith: LOD sync -- {} no longer matches the server (it has {} regions in my"
                             + " radius, I can vouch for {}). Pulling the index and fetching only the"
                             + " difference. No relog, and I did not have to move.",
                     dimension, summary.count(), ours.count());

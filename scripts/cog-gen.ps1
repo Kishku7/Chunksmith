@@ -162,6 +162,10 @@ try {
     $forgeOldMixin = if ($Loader -eq 'Forge') { 'True' } else { 'False' }
     $compatLevel     = (& python -c "import compat,sys; v=compat._parse('$McVer'); sys.stdout.write('JAVA_17' if (v[0]>=26 or v[0]==1 and v[1]<=20 or ($forgeOldMixin and v[:3]<(1,21,2))) else 'JAVA_21')")
     $forgeNeedsRefmap = (& python -c "import compat,sys; sys.stdout.write('1' if compat.forge_needs_refmap('$McVer') else '0')")
+# WHICH freeze mechanism does this cell ship? Not "does vanilla have one" -- the pre-26 cells are
+# RANGES, and the 1.20.4 cell straddles the 1.20.3 boundary, so it ships the hand-rolled freeze on
+# both sides of it. See compat.hand_rolled_freeze.
+$handRolledFreeze = (& python -c "import compat,sys; sys.stdout.write('1' if compat.hand_rolled_freeze('$McVer') else '0')")
 # EventBus era, for the world-enter ARMING assertion after the cog run (step 5b).
 $forgeNewEventBus = (& python -c "import compat,sys; sys.stdout.write('1' if compat.forge_new_eventbus('$McVer') else '0')")
 } finally {
@@ -329,7 +333,34 @@ if ($hasWorldEnter -eq '1') {
     # TickRateManagerMixin freezes the PLAYER for the duration of a world-enter run (3.17.1). It
     # came in with the shared copy in Step 2 and stays here; it is listed in chunksmith.mixins.json
     # automatically, because Step 6 enumerates the files actually present rather than a hand list.
-    Write-Host "[cog-gen] + TickRateManagerMixin (player freeze, world-enter cells only)"
+    # --- FREEZE MECHANISM SWAP, by whether vanilla has one (compat.has_tick_rate_manager). ---
+    # 1.20.3+ : borrow vanilla's freeze (setFrozen) and override only its PLAYER exemption, which is
+    #           what TickRateManagerMixin does. The freeze mixins must NOT be present -- their
+    #           redirects target calls that vanilla already guards, so they would double up.
+    # <1.20.3 : TickRateManager does not exist, so TickRateManagerMixin cannot even be generated (its
+    #           @Mixin target class is absent). ServerLevelFreezeMixin + LevelEntityFreezeMixin
+    #           re-add vanilla's own guards from outside. Freezing the entity funnel freezes players
+    #           too, so no exemption override is needed there.
+    $tickRateMixinDst   = Join-Path $genJava (Join-Path $mixinPkg 'TickRateManagerMixin.java')
+    $serverFreezeDst    = Join-Path $genJava (Join-Path $mixinPkg 'ServerLevelFreezeMixin.java')
+    $entityFreezeDst    = Join-Path $genJava (Join-Path $mixinPkg 'LevelEntityFreezeMixin.java')
+    if ($handRolledFreeze -ne '1') {
+        foreach ($stale in @($serverFreezeDst, $entityFreezeDst)) {
+            if (Test-Path $stale) { Remove-Item -Force $stale }
+        }
+        Write-Host "[cog-gen] + TickRateManagerMixin (player freeze; vanilla tick freeze borrowed)"
+    } else {
+        if (Test-Path $tickRateMixinDst) { Remove-Item -Force $tickRateMixinDst }
+        foreach ($fz in @('ServerLevelFreezeMixin.java', 'LevelEntityFreezeMixin.java')) {
+            $fzSrc = Join-Path $cogSrc $fz
+            if (-not (Test-Path $fzSrc)) { throw "hand-rolled freeze cog_source missing: $fzSrc" }
+            $fzDst = Join-Path $genJava (Join-Path $mixinPkg $fz)
+            Copy-Item -Force $fzSrc $fzDst
+            $cogTargets += $fzDst
+        }
+        Write-Host "[cog-gen] + ServerLevelFreezeMixin + LevelEntityFreezeMixin (HAND-ROLLED freeze on $McVer)"
+        Write-Host "[cog-gen] - TickRateManagerMixin (cell uses the hand-rolled freeze; nothing to override)"
+    }
     Write-Host "[cog-gen] + WORLD-ENTER pregen (mod_support #20)"
 } else {
     if (Test-Path $worldEnterDir) { Remove-Item -Recurse -Force $worldEnterDir }
@@ -337,9 +368,11 @@ if ($hasWorldEnter -eq '1') {
     # feature -- so it is not a stub to maintain, it is a file that must not be generated at all.
     # Same treatment as the ticket diagnostics above: drop the FILE and Step 6 drops the json entry
     # with it. Leaving it would break the build on every pre-26 cell.
-    $tickRateMixinDst = Join-Path $genJava (Join-Path $mixinPkg 'TickRateManagerMixin.java')
-    if (Test-Path $tickRateMixinDst) { Remove-Item -Force $tickRateMixinDst }
-    Write-Host "[cog-gen] - TickRateManagerMixin (no world-enter on $Loader/$McVer)"
+    foreach ($fzName in @('TickRateManagerMixin.java', 'ServerLevelFreezeMixin.java', 'LevelEntityFreezeMixin.java')) {
+        $fzGone = Join-Path $genJava (Join-Path $mixinPkg $fzName)
+        if (Test-Path $fzGone) { Remove-Item -Force $fzGone }
+    }
+    Write-Host "[cog-gen] - freeze mixins (no world-enter on $Loader/$McVer)"
     Write-Host "[cog-gen] - WORLD-ENTER pregen (not gated on for $Loader/$McVer)"
 }
 

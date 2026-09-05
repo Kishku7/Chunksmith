@@ -913,6 +913,88 @@ def gamerule_time_set(mcver, level, value, server):
     return "%s.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(%s, %s);" % (level, value, server)
 
 
+def forge_tick_event_split(mcver):
+    """Does Forge's `TickEvent.ClientTickEvent` carry the nested Pre/Post classes?
+
+    Read straight out of the universal jars:
+      * forge 47 (1.20.1)  -- ABSENT. One `ClientTickEvent`, phased: `event.phase == Phase.END`.
+      * forge 49 (1.20.4)  -- PRESENT (`ClientTickEvent$Post`, `$Pre`).
+      * forge 50 (1.20.6)  -- PRESENT.
+
+    Keyed at **1.20.5**, i.e. the whole 1.20 line uses the PHASED form -- and the keying is on what a
+    cell's RANGE must survive, not on the version it is named after.
+
+    Root case (2026-09-05): keyed at 1.20.4 first, on the reasoning that the boundary lay somewhere in
+    forge 47..49 and 1.20.4 was where our cells were. That was wrong, and wrong in a way a build cannot
+    catch: the `Forge/1.20.4` CELL declares `[1.20.2,1.20.5)`, so its jar also runs on **forge 48**,
+    which has no Pre/Post either. It compiled clean against 49 and then died at RUNTIME on a 1.20.2
+    client with `NoClassDefFoundError: TickEvent$ClientTickEvent$Post`, taking the mod's whole client
+    subscriber registration with it ("Failed to register automatic subscribers").
+
+    The phased form is safe across the entire classic line, which is why it is now used for all of it:
+    `TickEvent.phase` is a public final field on forge 49 AND 50 (checked with javap), `Post` EXTENDS
+    `ClientTickEvent`, and Forge's EventBus delivers a subclass event to a superclass listener -- so a
+    `ClientTickEvent` listener still fires on 49+, with `phase == END` at the same moment `Post` means.
+
+    LESSON: a per-cell predicate must be evaluated against the cell's RANGE FLOOR, not its
+    representative version. Every pre-26 cell is a range.
+    """
+    return _parse(mcver) >= (1, 20, 5)
+
+
+def hand_rolled_freeze(mcver):
+    """Which freeze MECHANISM does this CELL ship? (Not the same question as has_tick_rate_manager,
+    which is a fact about vanilla.)
+
+    True for every cell below 1.20.5. That is wider than "vanilla has no TickRateManager" (1.20.3),
+    and deliberately so:
+
+    The pre-26 cells are ranges, not points. `Fabric/1.20.4` and `Forge/1.20.4` both declare
+    `[1.20.2,1.20.5)` -- which STRADDLES the 1.20.3 boundary. One jar cannot pick a freeze mechanism
+    at runtime, so a cell spanning that boundary has to choose one that works on both sides.
+
+    The hand-rolled one does. Verified by class/call presence across the decompiled trees: all seven
+    `ServerLevel.tick` call sites the redirects target, plus `Level.guardEntityTick`, are present and
+    unchanged at 1.20.2, 1.20.3 AND 1.20.4. Above 1.20.3 our redirects simply sit alongside vanilla's
+    own guards -- we never call `setFrozen`, so vanilla thinks it is running normally and ours do the
+    skipping. Same outcome, one mechanism, no double-freeze.
+
+    This is why the 1.20.2/1.20.3 cell SPLIT that was on the table is not needed: the straddle was
+    only a problem while the feature depended on a vanilla API that appears mid-range. It no longer
+    does. No new cells, no extra published jars.
+
+    1.20.5+ keeps the vanilla path: those cells are entirely above the boundary, `setFrozen` is the
+    less invasive option, and it is what every cell from 1.20.6 up has already been gated on.
+    """
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return False
+    return v < (1, 20, 5)
+
+
+def has_tick_rate_manager(mcver):
+    """Does vanilla have a tick freeze we can borrow?
+
+    `TickRateManager` and `ServerTickRateManager` first exist at **1.20.3** -- verified by class
+    presence across the decompiled trees (1.20 / 1.20.1 / 1.20.2 absent; 1.20.3 / 1.20.4 present).
+    Below that there is no `setFrozen`, no `runsNormally` and no `isEntityFrozen`, so:
+
+      * `WorldEnterPregen.freeze()` has nothing to call and only sets our own flag;
+      * `TickRateManagerMixin` (which overrides vanilla's PLAYER exemption) must not be generated --
+        its @Mixin target class does not exist;
+      * `ServerLevelFreezeMixin` + `LevelEntityFreezeMixin` are generated instead, re-adding
+        vanilla's own guards from outside.
+
+    The guard set is not invented: 1.20.1's `ServerLevel.tick` is 1.20.3's with the `if` removed.
+    The guard set is enumerated in ServerLevelFreezeMixin's own class javadoc, which is the file
+    that implements it.
+    """
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return True
+    return v >= (1, 20, 3)
+
+
 def has_world_enter(mcver, loader):
     """Does this cell carry the WORLD-ENTER PREGEN (mod_support #20)?
 
@@ -970,6 +1052,13 @@ def has_world_enter(mcver, loader):
         ("1.20.6", "Fabric"),
         ("1.20.6", "NeoForge"),
         ("1.20.6", "Forge"),
+        # Below 1.20.3 there is no vanilla tick freeze -- see has_tick_rate_manager. These cells get
+        # the hand-rolled one. NeoForge has no Chunksmith cell below 1.20.6, so Fabric and Forge are
+        # the whole supported set at 1.20.1.
+        ("1.20.4", "Fabric"),
+        ("1.20.4", "Forge"),
+        ("1.20.1", "Fabric"),
+        ("1.20.1", "Forge"),
     }
     return (mcver, loader) in targets
 
