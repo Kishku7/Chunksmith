@@ -16,6 +16,7 @@
     "ServerLevelMixin",
     "SimpleRegionStorageAccessor",
     "StructureStartMixin",
+    "TickRateManagerMixin",
     "WorldGenRegionMixin"
   ],
   "client": [

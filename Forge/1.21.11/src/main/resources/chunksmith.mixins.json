@@ -18,6 +18,7 @@
     "SimpleRegionStorageAccessor",
     "StructureStartMixin",
     "TicketMixin",
+    "TickRateManagerMixin",
     "WorldGenRegionMixin"
   ],
   "client": [

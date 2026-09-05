@@ -23,11 +23,28 @@ package com.kishku7.chunksmith.worldenter;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.platform.Config;
+//[[[cog
+// import cog, compat
+// if compat.has_world_clock(mcver):
+//     cog.outl("import net.minecraft.core.Holder;")
+//]]]
 import net.minecraft.core.Holder;
+//[[[end]]]
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+//[[[cog
+// import cog, compat
+// if compat.has_world_clock(mcver):
+//     cog.outl("import net.minecraft.world.clock.WorldClock;")
+//]]]
 import net.minecraft.world.clock.WorldClock;
+//[[[end]]]
+//[[[cog
+// import cog, compat
+// cog.outl(compat.gamerules_import(mcver))
+//]]]
 import net.minecraft.world.level.gamerules.GameRules;
+//[[[end]]]
 import net.minecraft.world.level.storage.LevelResource;
 
 import java.nio.file.Path;
@@ -144,8 +161,17 @@ public final class WorldEnterPregen {
 
         // Write the borrow record BEFORE touching anything. If it cannot be written we do not
         // proceed: changing settings we have no way to restore is worse than not running at all.
+        // Read through the seam, into a local, rather than inline in the constructor call: the
+        // gamerule moved package AND changed accessor shape at 1.21.11, and keeping the drift on one
+        // line leaves the record's argument list identical on every version.
+        //[[[cog
+        // import cog, compat
+        // cog.outl("        final boolean timeAdvanceWasOn = %s;" % compat.gamerule_time_get(mcver, "level"))
+        //]]]
+        final boolean timeAdvanceWasOn = level.getGameRules().get(GameRules.ADVANCE_TIME);
+        //[[[end]]]
         WorldEnterState borrowed = new WorldEnterState(
-                level.getGameRules().get(GameRules.ADVANCE_TIME),
+                timeAdvanceWasOn,
                 0L,
                 config.getThrottleTickBudgetMillis(),
                 config.getThrottlePlayerReserveMillis(),
@@ -269,7 +295,12 @@ public final class WorldEnterPregen {
         ServerLevel level = mcServer.overworld();
         // The player's own value, never a vanilla default -- somebody may have turned time
         // advancement off on purpose, and silently switching it back on is not ours to do.
+        //[[[cog
+        // import cog, compat
+        // cog.outl("        " + compat.gamerule_time_set(mcver, "level", "state.timeAdvanceWasOn()", "mcServer"))
+        //]]]
         level.getGameRules().set(GameRules.ADVANCE_TIME, state.timeAdvanceWasOn(), mcServer);
+        //[[[end]]]
         if (ChunksmithProvider.isLoaded()) {
             Config config = ChunksmithProvider.get().getConfig();
             config.setThrottleTickBudgetMillis(state.tickBudgetMillis());
@@ -300,9 +331,25 @@ public final class WorldEnterPregen {
      * work in a world created without cheats, which is most of them.
      */
     private static void stopTimeAdvancing(MinecraftServer mcServer, ServerLevel level) {
+        //[[[cog
+        // import cog, compat
+        // cog.outl("        " + compat.gamerule_time_set(mcver, "level", "false", "mcServer"))
+        //]]]
         level.getGameRules().set(GameRules.ADVANCE_TIME, false, mcServer);
+        //[[[end]]]
+        // 26 moved the day-time API onto a clock manager; before that ServerLevel owned it directly.
+        // Present as setDayTime from 1.20.3 through 1.21.11, and gone at 26.
+        //[[[cog
+        // import cog, compat
+        // if compat.has_world_clock(mcver):
+        //     cog.outl("        Optional<Holder<WorldClock>> clock = level.dimensionType().defaultClock();")
+        //     cog.outl("        clock.ifPresent(worldClock -> mcServer.clockManager().setTotalTicks(worldClock, 0L));")
+        // else:
+        //     cog.outl("        level.setDayTime(0L);")
+        //]]]
         Optional<Holder<WorldClock>> clock = level.dimensionType().defaultClock();
         clock.ifPresent(worldClock -> mcServer.clockManager().setTotalTicks(worldClock, 0L));
+        //[[[end]]]
     }
 
     /**

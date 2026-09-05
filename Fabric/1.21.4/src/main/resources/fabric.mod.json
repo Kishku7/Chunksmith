@@ -23,6 +23,9 @@
   "entrypoints": {
     "main": [
       "com.kishku7.chunksmith.ChunksmithFabric"
+    ],
+    "client": [
+      "com.kishku7.chunksmith.worldenter.client.WorldEnterClientInit"
     ]
   },
   "mixins": [

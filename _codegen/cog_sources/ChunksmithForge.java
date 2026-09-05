@@ -59,6 +59,14 @@ import net.minecraftforge.fml.loading.FMLPaths;
 //[[[end]]]
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+//[[[cog
+// import cog, compat
+// # WORLD-ENTER PREGEN (mod_support #20). Gated with the feature: ServerStartedEvent is referenced
+// # only by the handler below, so an ungated cell would carry an unused import.
+// if compat.has_world_enter(mcver, loader):
+//     cog.outl("import net.minecraftforge.event.server.ServerStartedEvent;")
+//]]]
+//[[[end]]]
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
@@ -136,6 +144,11 @@ public final class ChunksmithForge {
         //     cog.outl("ServerStartingEvent.BUS.addListener(this::onServerStarting);")
         //     cog.outl("RegisterCommandsEvent.BUS.addListener(this::onRegisterCommands);")
         //     cog.outl("ServerStoppingEvent.BUS.addListener(this::onServerStopping);")
+        //     # WORLD-ENTER PREGEN: EventBus 7.x does no annotation scan, so a handler that is never
+        //     # explicitly registered is never called. THIS LINE IS THE ARMING PATH -- without it the
+        //     # server half never runs and the client screen is never reached.
+        //     if compat.has_world_enter(mcver, loader):
+        //         cog.outl("ServerStartedEvent.BUS.addListener(this::onServerStartedWorldEnter);")
         // else:
         //     cog.outl("MinecraftForge.EVENT_BUS.register(this);")
         //]]]
@@ -334,6 +347,23 @@ public final class ChunksmithForge {
             chunky.disable();
         }
     }
+
+    // WORLD-ENTER PREGEN (mod_support #20). ServerSTARTED, not ServerSTARTING: the Chunksmith
+    // instance is built in onServerStarting above, and the orchestrator calls ChunksmithProvider.get()
+    // immediately. WorldEnterPregen is fully qualified so the gate can remove the whole hook without
+    // leaving an unused import behind on ungated cells. Registration differs by era -- classic Forge
+    // scans @SubscribeEvent, EventBus 7.x needs the explicit BUS.addListener in the constructor.
+    //[[[cog
+    // import cog, compat
+    // if compat.has_world_enter(mcver, loader):
+    //     if not compat.forge_new_eventbus(mcver):
+    //         cog.outl("@SubscribeEvent")
+    //     cog.outl("public void onServerStartedWorldEnter(ServerStartedEvent event) {")
+    //     cog.outl("    final MinecraftServer server = event.getServer();")
+    //     cog.outl("    com.kishku7.chunksmith.worldenter.WorldEnterPregen.onServerStarted(server, !server.isDedicatedServer());")
+    //     cog.outl("}")
+    //]]]
+    //[[[end]]]
 
     public Chunksmith getChunky() {
         return chunky;

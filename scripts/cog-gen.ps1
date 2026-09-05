@@ -162,6 +162,8 @@ try {
     $forgeOldMixin = if ($Loader -eq 'Forge') { 'True' } else { 'False' }
     $compatLevel     = (& python -c "import compat,sys; v=compat._parse('$McVer'); sys.stdout.write('JAVA_17' if (v[0]>=26 or v[0]==1 and v[1]<=20 or ($forgeOldMixin and v[:3]<(1,21,2))) else 'JAVA_21')")
     $forgeNeedsRefmap = (& python -c "import compat,sys; sys.stdout.write('1' if compat.forge_needs_refmap('$McVer') else '0')")
+# EventBus era, for the world-enter ARMING assertion after the cog run (step 5b).
+$forgeNewEventBus = (& python -c "import compat,sys; sys.stdout.write('1' if compat.forge_new_eventbus('$McVer') else '0')")
 } finally {
     Pop-Location
 }
@@ -522,6 +524,43 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "cog failed (exit $LASTEXITCODE)" }
 } finally {
     Pop-Location
+}
+
+# --- Step 5b: ASSERT THE WORLD-ENTER ARMING PATH (mod_support #20) ---
+# The fabric.mod.json cross-check above proves the CLIENT entrypoint is declared. It says nothing
+# about the SERVER half, and the server half is what actually starts the run -- the client screen is
+# only ever reached because WorldEnterPregen.onServerStarted armed it.
+#
+# ROOT CASE (Chunksmith 3.18.0, 2026-09-04): the feature was ported to Forge 1.21.11 with ONLY the
+# client entrypoint. ChunksmithForge carried no ServerStartedEvent listener at all. It built green,
+# the jar contained every worldenter class, mods.toml was correct, Chunksmith loaded -- and the cell
+# logged NOTHING, not even the server-side world-enter line. That reads like a mod failing to load,
+# and it cost a full session to diagnose as one missing registration.
+#
+# So assert on the GENERATED loader main class, after cog has run:
+#   every loader          -- must CALL WorldEnterPregen.onServerStarted
+#   Forge on EventBus 7   -- must ALSO register the handler explicitly. There is no annotation scan
+#                            from Forge 56 on, so an unregistered @SubscribeEvent method is silent.
+if ($hasWorldEnter -eq '1') {
+    $mainByLoader = @{
+        'Fabric'   = 'ChunksmithFabric.java'
+        'NeoForge' = 'ChunksmithNeoForge.java'
+        'Forge'    = 'ChunksmithForge.java'
+    }
+    $mainName = $mainByLoader[$Loader]
+    $mainFile = Join-Path $genJava ('com/kishku7/chunksmith/' + $mainName)
+    if (-not (Test-Path $mainFile)) {
+        throw "world-enter is gated ON for $Loader/$McVer but the generated $mainName is missing -- cannot verify the arming path."
+    }
+    $mainText = Get-Content $mainFile -Raw
+    if ($mainText -notmatch 'WorldEnterPregen\.onServerStarted') {
+        throw "compat.has_world_enter is true for $Loader/$McVer but the generated $mainName never calls WorldEnterPregen.onServerStarted -- the server half would never arm and the screen would never open. Add the server-side hook to _codegen/cog_sources/$($mainName)."
+    }
+    if ($Loader -eq 'Forge' -and $forgeNewEventBus -eq '1' -and
+        $mainText -notmatch 'ServerStartedEvent\.BUS\.addListener') {
+        throw "Forge/$McVer is EventBus 7 (Forge 56+), which does NOT scan annotations: the generated ChunksmithForge.java declares the world-enter handler but never registers it with ServerStartedEvent.BUS.addListener, so it can never fire. Add the addListener line to the mod constructor."
+    }
+    Write-Host "[cog-gen] . world-enter arming path verified in $mainName"
 }
 
 # --- Step 6: rebuild chunksmith.mixins.json to match present files ---

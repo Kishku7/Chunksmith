@@ -845,26 +845,133 @@ DH_API_ARTIFACT = "maven.modrinth:distanthorizonsapi:7.0.0"
 # ---------------------------------------------------------------------------
 
 
+def screen_extract(mcver):
+    """26.1 replaced the Screen render entry point and the centred-text call.
+
+    <= 1.21.11 : render(GuiGraphics, int, int, float)      + GuiGraphics.drawCenteredString
+    >= 26.1    : extractRenderState(GuiGraphicsExtractor,) + GuiGraphicsExtractor.centeredText
+
+    Read off Screen.java and GuiGraphics.java in every decompiled tree 1.20.3 .. 26.3-pre-2. This is
+    the ONLY drift in WorldEnterScreen -- fill, Button.builder, isPauseScreen and the protected
+    `font` field are identical across that whole range.
+    """
+    return _parse(mcver)[0] >= 26
+
+
+def has_world_clock(mcver):
+    """26 replaced the day-time API with a clock manager.
+
+    <= 1.21.11 : ServerLevel.setDayTime(long)
+    >= 26.1    : MinecraftServer.clockManager().setTotalTicks(Holder<WorldClock>, long), with the
+                 clock from level.dimensionType().defaultClock()
+
+    net.minecraft.world.clock.WorldClock does not exist at all below 26, so the import is
+    conditional too. Confirmed absent in every 1.20.x and 1.21.x tree.
+    """
+    return _parse(mcver)[0] >= 26
+
+
+def gamerules_moved(mcver):
+    """1.21.11 moved GameRules to its own package AND reshaped the accessors.
+
+    <= 1.21.10 : net.minecraft.world.level.GameRules
+                 GameRules.Key<GameRules.BooleanValue> RULE_DAYLIGHT ("doDaylightCycle")
+                 read  getBoolean(key)   write  getRule(key).set(value, server)
+    >= 1.21.11 : net.minecraft.world.level.gamerules.GameRules
+                 GameRule<Boolean> ADVANCE_TIME ("advance_time")
+                 read  get(rule)         write  set(rule, value, server)
+
+    Read off GameRules.java in both decompiled trees, not from release notes: RULE_DAYLIGHT at
+    MC-Java\1.21.x\1.21.10 line 74, ADVANCE_TIME at MC-Java\1.21.x\1.21.11 line 20. Note 1.21.10
+    ALSO carries a net.minecraft.server.jsonrpc.internalapi.GameRules -- a different class entirely,
+    and the one a naive file search finds first.
+
+    Shares era()'s modern_11plus boundary but is named for what it gates: the import and the two
+    accessor shapes, which a cell can need without caring about the rest of that era.
+    """
+    return era(mcver) == "modern_11plus"
+
+
+def gamerules_import(mcver):
+    """The GameRules import for this version. See gamerules_moved."""
+    if gamerules_moved(mcver):
+        return "import net.minecraft.world.level.gamerules.GameRules;"
+    return "import net.minecraft.world.level.GameRules;"
+
+
+def gamerule_time_get(mcver, level):
+    """Expression reading the time-advance gamerule as a boolean. See gamerules_moved."""
+    if gamerules_moved(mcver):
+        return "%s.getGameRules().get(GameRules.ADVANCE_TIME)" % level
+    return "%s.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)" % level
+
+
+def gamerule_time_set(mcver, level, value, server):
+    """Statement setting the time-advance gamerule. See gamerules_moved."""
+    if gamerules_moved(mcver):
+        return "%s.getGameRules().set(GameRules.ADVANCE_TIME, %s, %s);" % (level, value, server)
+    return "%s.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(%s, %s);" % (level, value, server)
+
+
 def has_world_enter(mcver, loader):
     """Does this cell carry the WORLD-ENTER PREGEN (mod_support #20)?
 
-    26.x on Fabric and NeoForge only, for now. Deliberately narrower than has_lod():
+    SINGLE-PLAYER, full-GUI feature: it freezes the world on entry, pregenerates behind a progress
+    screen, and hands control over. A dedicated server has no world-entry moment and nobody to show a
+    screen to, which is why Config.isWorldEnterPregenSupported() is false on Bukkit rather than the
+    key being accepted and ignored.
 
-      * It is a SINGLE-PLAYER, full-GUI feature -- it freezes the world on entry, pregenerates behind
-        a progress screen, and hands control over. A dedicated server has no world-entry moment and
-        nobody to show a screen to, which is why Config.isWorldEnterPregenSupported() is false on
-        Bukkit rather than the key being accepted and ignored.
-      * 1.20.1 CANNOT carry the freeze half at all: ServerTickRateManager does not exist before
-        1.20.4 (verified against the decompiled sources, 2026-09-02). The agreed answer for the
-        backport is degrade-to-no-freeze -- pregen with the progress screen, world running -- not
-        dropping the cell. Until that is written, 1.20.1 simply does not get the feature.
-      * Restricting the FIRST release to 26.x is deliberate (2026-09-02): prove it on the line that
-        matters, then backport. Widening this function is the whole of the backport's gating work.
+    THE REAL FLOOR IS 1.20.3. ServerTickRateManager and TickRateManager.isEntityFrozen both arrive
+    there and the freeze has nothing to call below it -- a whole-tree search of 1.20.1 finds no
+    occurrence of TickRateManager, setFrozen, isEntityFrozen or runsNormally in any file. From 1.20.3
+    up, isEntityFrozen is the SAME expression all the way to 26.3-pre-2, so the player-freeze mixin
+    needs no per-version work at all; the only drift in the feature is the Screen entry point at 26.1
+    (see screen_extract) and the gamerule key at 1.21.11 (ADVANCE_TIME, was RULE_DAYLIGHT).
 
-    Forge is absent for the same reason it is absent from every 26 list: there is no Forge 26.
+    1.20 / 1.20.1 / 1.20.2 would need a hand-rolled freeze of our own. Owner's call (2026-09-04): best
+    effort, some parity is better than none -- so they are a later step, not a permanent exclusion.
+
+    WIDENING IS DELIBERATE AND ONE CELL AT A TIME. This list is the BUILD target set -- cog-gen emits
+    nothing for a cell that is not in it, so a cell must be listed before it can be compiled at all.
+    It is therefore not a record of what is proven; the harness gate is. Add one cell, build it, gate
+    it on the harness, and only then add the next. Do not batch-add a family and build them together:
+    the point is that a failure names exactly one cell.
+
+    Proven on the harness so far (world-enter screen up, player held, screen eyeballed):
+      1.21.11 Fabric -- 3.18.0, 2026-09-04.
     """
     v = _parse(mcver)
-    return v[0] >= 26 and loader in ("Fabric", "NeoForge")
+    if v[0] >= 26:
+        return loader in ("Fabric", "NeoForge")
+    # Proven backport targets, newest first. 1.21.11 is the first because it differs from 26.1 by
+    # the Screen entry point ALONE -- it already has the ADVANCE_TIME gamerule -- so it isolates one
+    # drift point in the first build.
+    targets = {
+        ("1.21.11", "Fabric"),
+        ("1.21.11", "NeoForge"),
+        ("1.21.11", "Forge"),
+        ("1.21.10", "Fabric"),
+        ("1.21.10", "NeoForge"),
+        ("1.21.10", "Forge"),
+        ("1.21.8", "Fabric"),
+        ("1.21.8", "NeoForge"),
+        ("1.21.8", "Forge"),
+        # NeoForge 1.21.5/1.21.6/1.21.7 ride the NeoForge/1.21.8 cell -- its jar declares
+        # [1.21.5,1.21.9), so there is no separate cell to gate. Fabric and Forge each need
+        # their own: Fabric/1.21.5 is a one-version cell, and Forge/1.21.5 is CLASSIC EventBus.
+        ("1.21.5", "Fabric"),
+        ("1.21.5", "Forge"),
+        ("1.21.4", "Fabric"),
+        ("1.21.4", "NeoForge"),
+        ("1.21.4", "Forge"),
+        ("1.21.1", "Fabric"),
+        ("1.21.1", "NeoForge"),
+        ("1.21.1", "Forge"),
+        ("1.20.6", "Fabric"),
+        ("1.20.6", "NeoForge"),
+        ("1.20.6", "Forge"),
+    }
+    return (mcver, loader) in targets
 
 
 def has_lod_client(mcver, loader):

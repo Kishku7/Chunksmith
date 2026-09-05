@@ -1,7 +1,15 @@
 package com.kishku7.chunksmith.worldenter.client;
 
 import com.kishku7.chunksmith.worldenter.WorldEnterPregen;
+//[[[cog
+// import cog, compat
+// if compat.screen_extract(mcver):
+//     cog.outl("import net.minecraft.client.gui.GuiGraphicsExtractor;")
+// else:
+//     cog.outl("import net.minecraft.client.gui.GuiGraphics;")
+//]]]
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+//[[[end]]]
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -28,6 +36,12 @@ import net.minecraft.network.chat.Component;
  * <p>Releasing does NOT stop generation, and the button says so. The remaining work carries on in
  * the background and yields to the player from then on, because release() hands the throttle's
  * player-reserve back at the same time.
+ *
+ * <p><b>Version drift.</b> 26.1 replaced the Screen render entry point and renamed the centred-text
+ * call with it. Those two seams are generated; everything else here -- fill, Button.builder,
+ * isPauseScreen, the protected {@code font} field -- is identical on every version this feature
+ * supports (1.20.3 upward), read off the decompiled sources rather than assumed. That is why the
+ * body below is shared rather than duplicated per era.
  */
 public final class WorldEnterScreen extends Screen {
 
@@ -40,7 +54,7 @@ public final class WorldEnterScreen extends Screen {
     private static final int COLOR_BAR_TRACK = 0xFF303030;
     private static final int COLOR_BAR_FILL = 0xFF3CB043;
     // Opaque, not translucent. The world behind this screen is the thing the player must not be
-    // able to read anything into -- see the backdrop comment in extractRenderState.
+    // able to read anything into -- see the backdrop comment in the render method.
     private static final int COLOR_BACKDROP = 0xFF101010;
 
     public WorldEnterScreen() {
@@ -72,7 +86,15 @@ public final class WorldEnterScreen extends Screen {
     }
 
     @Override
+    //[[[cog
+    // import cog, compat
+    // if compat.screen_extract(mcver):
+    //     cog.outl("    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partial) {")
+    // else:
+    //     cog.outl("    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {")
+    //]]]
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partial) {
+    //[[[end]]]
         int centerX = this.width / 2;
         int top = barTop();
         double fraction = WorldEnterPregen.fraction();
@@ -83,7 +105,7 @@ public final class WorldEnterScreen extends Screen {
         // display around the edges for the whole run.
         //
         // That is not only a legibility problem. Minecraft's tick freeze exempts players
-        // (TickRateManager.isEntityFrozen returns false for a Player), so before 3.17.1 the player
+        // (TickRateManager.isEntityFrozen returns false for a Player), so before 3.17.2 the player
         // was the one thing still moving out there, and a reporter watched himself fall and
         // concluded the freeze had never engaged -- a correct freeze read as a broken one, from a
         // gap around the edge of a panel. The player is frozen too now, but the backdrop stays:
@@ -96,10 +118,18 @@ public final class WorldEnterScreen extends Screen {
         // paints straight OVER the button: it stayed clickable and answered `describe`, so the
         // functional gate passed green while the player could see no button at all. Backdrop, then
         // widgets, then our own text on top.
+        //[[[cog
+        // import cog, compat
+        // if compat.screen_extract(mcver):
+        //     cog.outl("        super.extractRenderState(graphics, mouseX, mouseY, partial);")
+        // else:
+        //     cog.outl("        super.render(graphics, mouseX, mouseY, partial);")
+        //]]]
         super.extractRenderState(graphics, mouseX, mouseY, partial);
+        //[[[end]]]
 
-        graphics.centeredText(this.font, this.title, centerX, top - 46, COLOR_TEXT);
-        graphics.centeredText(this.font,
+        centered(graphics, this.title, centerX, top - 46, COLOR_TEXT);
+        centered(graphics,
                 Component.literal("Pre-generating terrain so it is ready before you arrive."),
                 centerX, top - 32, COLOR_DIM);
 
@@ -112,16 +142,35 @@ public final class WorldEnterScreen extends Screen {
             graphics.fill(left, top, left + filled, top + BAR_HEIGHT, COLOR_BAR_FILL);
         }
 
-        graphics.centeredText(this.font,
+        centered(graphics,
                 Component.literal(String.format("%.1f%%  --  %,d chunks", fraction * 100.0,
                         WorldEnterPregen.chunksDone())),
                 centerX, top + BAR_HEIGHT + 8, COLOR_TEXT);
-        graphics.centeredText(this.font,
+        centered(graphics,
                 Component.literal(WorldEnterPregen.eta()),
                 centerX, top + BAR_HEIGHT + 22, COLOR_DIM);
-        graphics.centeredText(this.font,
+        centered(graphics,
                 Component.literal("Entering now will not stop it -- generation continues in the background."),
                 centerX, top + 84, COLOR_DIM);
+    }
+
+    /**
+     * Draws one centred line. It exists so the five call sites above need no per-era handling of
+     * their own: the method name changed at 26.1 ({@code drawCenteredString} -> {@code centeredText})
+     * and the graphics parameter type changed with it, and both are absorbed here.
+     */
+    //[[[cog
+    // import cog, compat
+    // if compat.screen_extract(mcver):
+    //     cog.outl("    private void centered(GuiGraphicsExtractor g, Component text, int x, int y, int color) {")
+    //     cog.outl("        g.centeredText(this.font, text, x, y, color);")
+    // else:
+    //     cog.outl("    private void centered(GuiGraphics g, Component text, int x, int y, int color) {")
+    //     cog.outl("        g.drawCenteredString(this.font, text, x, y, color);")
+    //]]]
+    private void centered(GuiGraphicsExtractor g, Component text, int x, int y, int color) {
+        g.centeredText(this.font, text, x, y, color);
+    //[[[end]]]
     }
 
     private int barTop() {

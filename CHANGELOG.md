@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-09-04
+
+### Added
+
+- **World-enter pre-generation comes to Minecraft 1.20.5 through 1.21.11.** The feature that shipped
+  in 3.17.0 for 26.x only -- your single-player world pre-generates itself behind a progress screen
+  before you start playing it, and the world (you included) is held still while it runs -- now works
+  across the whole 1.21 line and the top of 1.20 as well. Same settings, same behaviour:
+  `worldEnterPregen` to turn it off, `worldEnterPregenRadius` to size it.
+
+  Covered: **every 1.21 release, 1.21 through 1.21.11**, on Fabric, NeoForge and Forge, plus
+  **1.20.5 and 1.20.6**. The gaps are the loaders' own, not the feature's: Forge never shipped a
+  1.21.2 build, and Forge 1.21.9 is unsupported everywhere.
+
+  Very little about the feature changed to get there. Minecraft's tick freeze, and the player
+  exemption the freeze has to override, are identical from 1.20.3 to the current snapshots, so the
+  part that holds the world still needed no per-version work at all. Two things genuinely differ:
+  26.1 renamed the screen's render entry point and its centred-text call, and 1.21.11 moved the
+  time-advance game rule to a new package and changed both how it is read and how it is written.
+  Those are the only seams; the rest is one shared source.
+
+  1.20.3 is the real floor -- below it Minecraft has no tick freeze to borrow.
+
 ## [3.17.2] - 2026-09-04
 
 ### Changed
