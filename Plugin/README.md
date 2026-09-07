@@ -78,6 +78,11 @@ A player on a Paper/Spigot/Folia server running this plugin sees pregenerated di
 provided that player has the Chunksmith **mod** and a renderer (Distant Horizons or voxy) on their
 own client. The server needs no renderer -- it never draws anything, it only ships the store.
 
+**It should not have one either.** Distant Horizons installed server-side is not a step in that
+path: it competes with pregeneration for CPU, duplicates the LOD distribution, and floods the console
+with `[SharedApi] No DH level provided ...` whenever `/cslod dhpush` is run there. mod_support #27
+was exactly this and nothing else. Renderers go on clients.
+
 Before 3.15.0 the plugin generated a CSLOD store and could not deliver it. Every piece of the
 delivery machinery had in fact been in the jar since 3.2.0, because it lives in `shared_common`:
 the wire format, the token store, the HTTP backchannel. Nothing registered a channel or started the
