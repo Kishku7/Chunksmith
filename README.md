@@ -99,6 +99,13 @@ nothing verifies that any more, so it is not a promise this project makes.)
 **Server and client should run the same Chunksmith version.** The LOD wire protocol is versioned and
 a mismatch is refused with a clear message rather than failing strangely.
 
+**Put the renderer on the client, and only on the client.** Distant Horizons and voxy draw distant
+terrain, and only a client draws anything -- the server just ships the data. Installing Distant
+Horizons on the server is strongly discouraged: it runs its own distant generation against the same
+CPU Chunksmith is pre-generating on, duplicates the LOD your players are already being sent, and
+fills the console with `[SharedApi] No DH level provided ...` warnings. Nothing is gained. If LOD is
+misbehaving on your server, this is the first thing to check.
+
 Renderer support, per loader and Minecraft version, is on the
 **[Supported renderers](https://github.com/Kishku7/Chunksmith/wiki/Supported-Renderers)** page --
 including the voxy forks, and which mods Chunksmith refuses to load beside.
