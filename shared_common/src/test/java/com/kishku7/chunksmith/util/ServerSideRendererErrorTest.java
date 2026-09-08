@@ -58,17 +58,46 @@ public class ServerSideRendererErrorTest {
     }
 
     @Test
-    public void namesTheRendererItFound() {
+    public void callsTheRendererWhatItsAuthorCalls() {
+        // Detection is by mod id, but nobody installed a mod called "distanthorizons". An operator
+        // reading this has to recognise the thing on his own disk.
         String message = joined(ServerSideRendererError.lines(true, "distanthorizons"::equals));
-        assertTrue(message.contains("distanthorizons is installed on this DEDICATED SERVER"));
-        assertFalse("only report what is actually installed", message.contains("voxy"));
+        assertTrue(message.contains("Distant Horizons is installed on this DEDICATED SERVER"));
+        assertFalse("never show the raw mod id", message.contains("distanthorizons"));
+        assertFalse("only report what is actually installed", message.toLowerCase().contains("voxy"));
     }
 
     @Test
     public void namesBothRenderers() {
         String message = joined(ServerSideRendererError.lines(true, BOTH::contains));
-        assertTrue(message.contains("distanthorizons and voxy are installed"));
+        assertTrue(message.contains("Distant Horizons and Voxy are installed"));
         assertTrue("plural reads correctly", message.contains("REMOVE THEM"));
+        assertFalse("never show the raw mod id", message.contains("distanthorizons"));
+    }
+
+    @Test
+    public void reportsVoxyOnItsOwn() {
+        // Voxy is not a footnote to the DH case: it earns the same red banner by itself.
+        String message = joined(ServerSideRendererError.lines(true, "voxy"::equals));
+        assertTrue(message.contains("Voxy is installed on this DEDICATED SERVER"));
+        assertTrue(message.contains("REMOVE IT"));
+        assertFalse("Distant Horizons is not installed, so do not mention it",
+                message.contains("Distant Horizons"));
+    }
+
+    @Test
+    public void keepsTheDhOnlyReasoningOutOfAVoxyReport() {
+        // The dhpush console spam and the "you may legitimately serve vanilla DH clients" carve-out
+        // are both facts about Distant Horizons. Printed at a Voxy operator they send him looking
+        // for a log line that is not there and a command that has nothing to do with him.
+        String voxyOnly = joined(ServerSideRendererError.lines(true, "voxy"::equals));
+        assertFalse(voxyOnly.contains("dhpush"));
+        assertFalse(voxyOnly.contains("players who do not have Chunksmith installed"));
+        assertTrue("say instead why Voxy has no case at all",
+                voxyOnly.contains("Voxy has no server half"));
+
+        String withDh = joined(ServerSideRendererError.lines(true, BOTH::contains));
+        assertTrue("with DH present the DH reasoning belongs there", withDh.contains("dhpush"));
     }
 
     @Test
@@ -91,6 +120,16 @@ public class ServerSideRendererErrorTest {
     }
 
     @Test
+    public void reportsTheRenamedForkUnderItsOwnName() {
+        // neo-voxy is the one fork that changed its mod id. It reaches the no-server-half branch,
+        // and it must not be told it is Voxy.
+        String message = joined(ServerSideRendererError.lines(true, "neovoxy"::equals));
+        assertTrue(message.contains("neo-voxy is installed on this DEDICATED SERVER"));
+        assertTrue(message.contains("neo-voxy has no server half"));
+        assertFalse(message.contains("Voxy has no server half"));
+    }
+
+    @Test
     public void isABannerOfSeparateLines() {
         // One logger call per line, so every line is red and stamped; an embedded newline would
         // leave all but the first bare. Nothing in here may carry its own newline.
@@ -103,7 +142,11 @@ public class ServerSideRendererErrorTest {
 
     @Test
     public void onlyReportsOurRenderers() {
-        assertEquals(List.of("distanthorizons", "voxy"), ServerSideRendererError.rendererIds());
+        // The IDS stay raw -- they are what a loader is asked about. Only the DISPLAY is prettied.
+        // And the list is RendererNames', so this cannot drift from what the LOD detector looks for;
+        // the two were already out of step by one fork when they were separate.
+        assertEquals(RendererNames.ids(), ServerSideRendererError.rendererIds());
+        assertTrue("the renamed fork counts too", ServerSideRendererError.rendererIds().contains("neovoxy"));
         assertTrue("an unrelated mod is ignored",
                 ServerSideRendererError.lines(true, "some_other_mod"::equals).isEmpty());
     }

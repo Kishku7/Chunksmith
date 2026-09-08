@@ -6,22 +6,34 @@
 
 ### Changed
 
-- **A Distant Horizons (or voxy) installed on a DEDICATED SERVER is now reported as an ERROR, in
-  red, instead of a warning.** Nothing else changed about it: Chunksmith starts and runs normally,
-  nothing is refused, and no `breaks` is declared. A renderer is a client mod -- Chunksmith builds
-  LOD while it pregenerates and serves it to each player's client, which injects it into the
-  renderer THEY have installed -- so one on the server generates a second copy of terrain this
-  server is already generating, and it is what fills the console with Distant Horizons' own
-  "No DH level provided" warnings during `/cslod dhpush`.
+- **An LOD renderer on a DEDICATED SERVER is now reported as an ERROR, in red, instead of a
+  warning.** Distant Horizons, Voxy and the neo-voxy fork all count. Nothing else changed about it:
+  Chunksmith starts and runs normally, nothing is refused, and no `breaks` is declared. A renderer is
+  a client mod -- Chunksmith builds LOD while it pregenerates and serves it to each player's client,
+  which injects it into the renderer THEY have installed -- so one on the server generates a second
+  copy of terrain this server is already generating.
 
   The message was already there and was a single grey `WARN` line, which is exactly how it was
   missed by the operator it was written for (mod_support #27: nothing was wrong with the mod, and
   removing Distant Horizons from the server was the entire fix). It is now a red block that says
-  what to do, when keeping it is nevertheless correct, and -- because red looks like a crash --
-  that Chunksmith itself is fine.
+  what to do, when keeping it is nevertheless correct, and -- because red looks like a crash -- that
+  Chunksmith itself is fine.
 
-  Single-player is untouched. An integrated server runs inside a client that needs its renderer,
-  and telling that player to remove it would be wrong.
+  The reasoning is per-renderer, because the reasons differ. Distant Horizons has a server half that
+  can legitimately serve vanilla DH clients, so the banner names that as the one case for keeping
+  it, and only a DH report mentions the `/cslod dhpush` console spam. Voxy and neo-voxy have no
+  server half at all, so they get no such carve-out.
+
+  Single-player is untouched. An integrated server runs inside a client that needs its renderer, and
+  telling that player to remove it would be wrong.
+
+- **Renderers are called what their authors call them.** Every operator-facing line now says
+  "Distant Horizons", "Voxy" and "neo-voxy" rather than the raw mod ids `distanthorizons`, `voxy`
+  and `neovoxy`. Detection is still by id -- that is the only name a loader has -- but nobody
+  installed a mod called `distanthorizons`. This also settles a smaller drift: the startup error and
+  the LOD auto-enable notice were reading from two different renderer lists, one of which had never
+  heard of the neo-voxy fork, and printed their two vocabularies two lines apart in the same log.
+  Both now read from one place.
 
 ## [3.18.0] - 2026-09-04
 

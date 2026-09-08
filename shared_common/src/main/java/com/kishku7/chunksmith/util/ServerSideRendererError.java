@@ -49,14 +49,18 @@ import java.util.function.Predicate;
  * or declare {@code breaks} over it -- Distant Horizons is a renderer we FEED, and an operator
  * deliberately serving vanilla DH clients is entitled to run it. Loud, once, at startup, then out
  * of the way.
+ *
+ * <p><b>The text is per-renderer, because the reasons are not the same.</b> Distant Horizons has a
+ * server half that can legitimately serve vanilla DH clients, so there is a case for keeping it and
+ * the banner says so. The voxy family has no server half at all -- there is no configuration in
+ * which one earns its place on a dedicated server -- so they get no such carve-out, and the
+ * {@code /cslod dhpush} sentence is DH's and is only printed when DH is what was found. A banner
+ * that explains the wrong mod is worse than a shorter one.
+ *
+ * <p>Which renderers exist, and what each is CALLED, is {@link RendererNames} -- shared with the
+ * LOD detector so the two cannot drift apart, which they already had.
  */
 public final class ServerSideRendererError {
-
-    /**
-     * Renderer mod ids worth reporting: the ones Chunksmith can actually feed on the client. Same
-     * id on every loader that ships them; anything not on this list is somebody else's mod.
-     */
-    private static final List<String> RENDERER_IDS = List.of("distanthorizons", "voxy");
 
     /** Drawn above and below the block so it reads as one thing in a busy startup log. */
     private static final String RULE = "*".repeat(78);
@@ -65,7 +69,7 @@ public final class ServerSideRendererError {
     }
 
     public static List<String> rendererIds() {
-        return RENDERER_IDS;
+        return RendererNames.ids();
     }
 
     /**
@@ -83,14 +87,15 @@ public final class ServerSideRendererError {
             return List.of();
         }
         List<String> found = new ArrayList<>();
-        for (String id : RENDERER_IDS) {
+        for (String id : RendererNames.ids()) {
             if (modPresent.test(id)) {
-                found.add(id);
+                found.add(RendererNames.display(id));
             }
         }
         if (found.isEmpty()) {
             return List.of();
         }
+        boolean dh = modPresent.test(RendererNames.DISTANT_HORIZONS);
         String names = String.join(" and ", found);
         String verb = found.size() == 1 ? "is" : "are";
         String pronoun = found.size() == 1 ? "it" : "them";
@@ -103,10 +108,24 @@ public final class ServerSideRendererError {
         out.add("Chunksmith builds its own LOD data while it pregenerates and serves that to each");
         out.add("player's client, which injects it into the renderer THEY have installed.");
         out.add("Running one here costs threads, memory and disk generating a second copy of the");
-        out.add("terrain this server is already generating, and it is what fills the console with");
-        out.add("DH's \"No DH level provided\" warnings during /cslod dhpush.");
-        out.add("Removing it is the recommended setup. Keep it only if you deliberately serve");
-        out.add("players who do not have Chunksmith installed.");
+        out.add("terrain this server is already generating.");
+        if (dh) {
+            // DH's, not Voxy's. Printing it when only Voxy was found would send an operator hunting
+            // for a log line that is not there and a command that has nothing to do with them.
+            out.add("It is also what fills the console with Distant Horizons' own \"No DH level");
+            out.add("provided\" warnings whenever /cslod dhpush is run at this console.");
+            out.add("Removing it is the recommended setup. Keep Distant Horizons here only if you");
+            out.add("deliberately serve players who do not have Chunksmith installed.");
+        } else {
+            // No carve-out for the voxy family: they are renderers with no server half, so unlike
+            // Distant Horizons there is no configuration in which keeping one here is the right
+            // call. Named from what was actually found, never hardcoded -- neo-voxy reaches this
+            // branch too and must not be told it is Voxy.
+            out.add(names + " " + (found.size() == 1 ? "has" : "have")
+                    + " no server half -- " + (found.size() == 1 ? "it renders" : "they render")
+                    + ", and this machine does");
+            out.add("not. There is no setup in which " + pronoun + " belongs here.");
+        }
         out.add("Chunksmith itself is running normally; this is a server misconfiguration.");
         out.add(RULE);
         return out;

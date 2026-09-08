@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.util.RendererNames;
 import com.kishku7.chunksmith.ChunksmithProvider;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -258,8 +259,12 @@ public final class LodSupport {
      *       realBritakee, JustinTHChapman, NHblock714), every one of which keeps the upstream mod id.</li>
      *   <li>{@code neovoxy}: the one fork that renamed itself (meansabine/neo-voxy).</li>
      * </ul>
+     *
+     * <p>The list itself lives in {@link RendererNames}, with the human name for each, because this
+     * file and {@code ServerSideRendererError} had drifted to two different lists and two different
+     * vocabularies -- printed two lines apart in the same startup log.
      */
-    private static final String[] RENDERER_IDS = {"distanthorizons", "voxy", "neovoxy"};
+    private static final List<String> RENDERER_IDS = RendererNames.ids();
 
     /** Resolved once: a mod cannot appear in the JVM halfway through a run. Null = none present. */
     private static volatile String renderer;
@@ -351,14 +356,14 @@ public final class LodSupport {
         if (mode != LodMode.AUTO) {
             LOGGER.info("Chunksmith: LOD generation {} (lodEnabled={} set explicitly in the config{})",
                     on ? "ON" : "off", mode == LodMode.ON ? "true" : "false",
-                    found == null ? "" : "; " + found + " is installed");
+                    found == null ? "" : "; " + RendererNames.display(found) + " is installed");
             return;
         }
         if (found != null) {
             LOGGER.info("Chunksmith: detected {}, so LOD generation is auto-enabled. "
                             + "Pregen will build the CSLOD store (~5.8 KB/chunk; measured cost to pregen speed: none). "
                             + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.",
-                    found);
+                    RendererNames.display(found));
         } else if (server != null && server.isDedicatedServer()) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled (dedicated server). No renderer runs "
                     + "here, but the CSLOD store is what connecting clients download, so the store is "
@@ -366,8 +371,8 @@ public final class LodSupport {
                     + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.");
         } else {
             LOGGER.info("Chunksmith: no LOD renderer detected (looked for {}); LOD generation off. "
-                    + "Install Distant Horizons or voxy, or set lodEnabled=true to force it on.",
-                    String.join(", ", RENDERER_IDS));
+                    + "Install Distant Horizons or Voxy, or set lodEnabled=true to force it on.",
+                    String.join(", ", RendererNames.displayNames()));
         }
     }
 
