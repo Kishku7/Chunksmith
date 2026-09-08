@@ -151,12 +151,19 @@ Which cells compile LOD support at all is decided by `_codegen/compat.py` (`has_
 `has_voxy`). Those gates are about the **renderer**, which is client-side: they say where a
 Chunksmith client can draw LOD, not where a server can produce or send it.
 
-**Neither renderer belongs on a server, and DH on a server is worth telling operators about.** The
-server ships the store; the client's renderer draws it. A server-side Distant Horizons runs its own
-distant generation against the same CPU Chunksmith is pregenerating on, duplicates the distribution
-Chunksmith is already doing, and answers `/cslod dhpush` at the console with pages of DH's own
-`[SharedApi] No DH level provided by the ... ServerLevelWrapper`. That was the entirety of
-mod_support #27: nothing was wrong with the mod, and removing DH from the server fixed it.
+**Neither renderer belongs on a server, and from 3.18.1 the server says so at ERROR level** --
+`ServerSideRendererError`, with the id-to-name table in `RendererNames` (detection is by mod id;
+display is by the name the author gives it). The server ships the store; the client's renderer draws
+it. A server-side Distant Horizons runs its own distant generation against the same CPU Chunksmith
+is pregenerating on, duplicates the distribution Chunksmith is already doing, and answers
+`/cslod dhpush` at the console with pages of DH's own `[SharedApi] No DH level provided by the ...
+ServerLevelWrapper`. That was the entirety of mod_support #27: nothing was wrong with the mod, and
+removing DH from the server fixed it. Voxy and neo-voxy have no server half at all, so they get the
+same banner without the "you might legitimately be serving vanilla DH clients" carve-out.
+
+Also worth knowing, from gating the above: **DH + Sodium on a dedicated server prevents it starting**
+-- DH's server entrypoint reaches `NativeDialogUtil.showDialog` in `initializeModCompat` and dies on
+`NoClassDefFoundError: org/lwjgl/util/tinyfd/TinyFileDialogs`. DH alone on a server boots fine.
 
 ## Platform notes
 
