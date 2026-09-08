@@ -50,7 +50,7 @@ import com.kishku7.chunksmith.platform.FabricSender;
 import com.kishku7.chunksmith.platform.FabricServer;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.platform.impl.GsonConfig;
-import com.kishku7.chunksmith.util.ServerSideRendererAdvisory;
+import com.kishku7.chunksmith.util.ServerSideRendererError;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.TranslationKey;
 
@@ -92,10 +92,11 @@ public class ChunksmithFabric implements ModInitializer {
         }
         ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
             // An LOD renderer on a DEDICATED server is duplicated work Chunksmith does not need; it
-            // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
-            // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
-            ServerSideRendererAdvisory.message(minecraftServer.isDedicatedServer(), FabricLoader.getInstance()::isModLoaded)
-                    .ifPresent(message -> LoggerFactory.getLogger("Chunksmith").warn(message));
+            // builds its own LOD data and serves it to each player's client. Logged at ERROR (red, once,
+            // at startup) because a WARN was missed by the operator it was written for -- but we still do
+            // not act on it: it is the operator's machine. See ServerSideRendererError.
+            ServerSideRendererError.lines(minecraftServer.isDedicatedServer(), FabricLoader.getInstance()::isModLoaded)
+                    .forEach(line -> LoggerFactory.getLogger("Chunksmith").error(line));
             Path configDir = FabricLoader.getInstance().getConfigDir();
             Path baseDir = configDir.resolve("chunksmith");
             Path legacyDir = configDir.resolve("chunky");

@@ -52,7 +52,7 @@ import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
 import com.kishku7.chunksmith.command.CommandLiteral;
 import com.kishku7.chunksmith.command.suggestion.SuggestionProviders;
-import com.kishku7.chunksmith.util.ServerSideRendererAdvisory;
+import com.kishku7.chunksmith.util.ServerSideRendererError;
 import com.kishku7.chunksmith.util.StructureFaultReporter;
 import com.kishku7.chunksmith.util.TranslationKey;
 import com.kishku7.chunksmith.event.task.GenerationTaskFinishEvent;
@@ -120,10 +120,11 @@ public class ChunksmithNeoForge {
     public void onServerStarting(ServerStartingEvent event) {
         MinecraftServer server = event.getServer();
         // An LOD renderer on a dedicated server is duplicated work Chunksmith does not need: it
-        // builds its own LOD data and serves it to each player's client. Say so once, at startup, and
-        // do not act on it: it is the operator's machine. See ServerSideRendererAdvisory.
-        ServerSideRendererAdvisory.message(server.isDedicatedServer(), id -> ModList.get().isLoaded(id))
-                .ifPresent(message -> LoggerFactory.getLogger("Chunksmith").warn(message));
+        // builds its own LOD data and serves it to each player's client. Logged at ERROR (red, once, at
+        // startup) because a WARN was missed by the operator it was written for -- but we still do not
+        // act on it: it is the operator's machine. See ServerSideRendererError.
+        ServerSideRendererError.lines(server.isDedicatedServer(), id -> ModList.get().isLoaded(id))
+                .forEach(line -> LoggerFactory.getLogger("Chunksmith").error(line));
         Path configDir = FMLPaths.CONFIGDIR.get();
         Path baseDir = configDir.resolve("chunksmith");
         Path legacyDir = configDir.resolve("chunky");

@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [3.18.1] - 2026-09-08
+
+### Changed
+
+- **A Distant Horizons (or voxy) installed on a DEDICATED SERVER is now reported as an ERROR, in
+  red, instead of a warning.** Nothing else changed about it: Chunksmith starts and runs normally,
+  nothing is refused, and no `breaks` is declared. A renderer is a client mod -- Chunksmith builds
+  LOD while it pregenerates and serves it to each player's client, which injects it into the
+  renderer THEY have installed -- so one on the server generates a second copy of terrain this
+  server is already generating, and it is what fills the console with Distant Horizons' own
+  "No DH level provided" warnings during `/cslod dhpush`.
+
+  The message was already there and was a single grey `WARN` line, which is exactly how it was
+  missed by the operator it was written for (mod_support #27: nothing was wrong with the mod, and
+  removing Distant Horizons from the server was the entire fix). It is now a red block that says
+  what to do, when keeping it is nevertheless correct, and -- because red looks like a crash --
+  that Chunksmith itself is fine.
+
+  Single-player is untouched. An integrated server runs inside a client that needs its renderer,
+  and telling that player to remove it would be wrong.
+
 ## [3.18.0] - 2026-09-04
 
 ### Added
