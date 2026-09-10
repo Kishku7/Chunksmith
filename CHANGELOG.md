@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [3.18.2] - 2026-09-10
+
+### Changed
+
+- **The 26.3 target moves from `26.3-pre-3` to `26.3-rc-1`.** This is the whole release. The 26.3
+  pin is exclusive by construction -- one `pack_format` per jar -- so on rc-1 the `3.18.1+26.3` jar
+  does not load at all, and "does not load" is the state every 26.3 pre-release leaves the previous
+  build in. `pack_format` is UNCHANGED at **97** (rc-1's own `version.json` still reads resource
+  97.1 / data 121.0, the first 26.3 build in a while not to move it), fabric-api goes to
+  `0.160.3+26.3`, and the dependency predicate is `26.3-rc.1`.
+- **No code change was needed.** The pre-3 to rc-1 source diff is 14 text files with nothing added,
+  removed or binary-changed, and Chunksmith names none of the six symbols it touches. The one that
+  came closest is `ChunkMap`: rc-1 widened its chunk-load-failure branch to report and substitute an
+  empty chunk for EVERY non-`Error` cause, where before only `IOException` and `NbtException` took
+  that path. Chunksmith's `ChunkMapMixin` is accessors plus an `@Invoker` on `tick`
+  (`visibleChunkMap`, `toDrop`, `unloadQueue`, `pendingUnloads`, `getMainThreadExecutor`), none of
+  which that branch touches.
+
+### Notes
+
+- **Two rc-1 behaviours change how a pregen run should be READ, not how it runs.**
+  `SharedConstants.CRASH_EAGERLY` flips to `false` and `BlockableEventLoop` now rethrows only what
+  `isNonRecoverable` admits, so an exception thrown from a task on the main loop LOGS under the
+  FATAL marker and the server keeps going. A run that would have crashed on a pre-release comes back
+  green on rc-1: grep the log, do not trust the exit code. Separately, that widened `ChunkMap`
+  branch means a chunk that fails to load now yields an EMPTY chunk plus a report instead of
+  throwing, so a bad chunk can be COUNTED as generated rather than surfacing. Neither is a
+  Chunksmith change; both are worth knowing before reading a benchmark off this build.
+- **fabric-api must be `0.160.3+26.3` or newer on rc-1.** Earlier builds on the line install and
+  then crash the client: every 26.3 fabric-api declares `depends.minecraft = "~26.3-"`, which cannot
+  tell one prerelease from another, while `fabric-renderer-api-v1`'s `LevelExtractorMixin` wraps
+  `lambda$getViewBlockingState$1` -- a lambda rc-1 deleted when it rewrote `getViewBlockingState`.
+  Match the Modrinth `game_versions` label to the exact build. The dedicated server boots clean on
+  the wrong API because that mixin is client-only.
+
 ## [3.18.1] - 2026-09-08
 
 ### Changed
