@@ -31,9 +31,9 @@ try {
 
 
 # 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format is read from each MC build's own resources/version.json -- never extrapolated.
-# 26.3 pinned to pre-1 EXCLUSIVELY (bumped 2026-09-02). Every 26.3 build so far has moved resource
-#   pack_format -- 89,90,91,92,93,94,95 across the snapshots and then 97 at pre-1, which is a jump of
-#   TWO, so read it out of the build's own resources/version.json rather than incrementing the last one.
+# 26.3 is pinned to ONE exact build EXCLUSIVELY (currently pre-3, bumped 2026-09-09). Most 26.3 builds move resource
+#   pack_format -- 89,90,91,92,93,94,95 across the snapshots and then 97 at pre-1 (a jump of TWO), while
+#   pre-2 and pre-3 both stayed at 97 -- so READ it out of the build's own resources/version.json, never increment.
 #   That is why the pin is exclusive: a jar carries one pack_format and is wrong on every other 26.3
 #   build. dep uses the Fabric-normalized form, which for the 26.x naming only swaps the LAST hyphen
 #   for a dot: 26.3-snapshot-7 -> 26.3-alpha.7, 26.3-pre-1 -> 26.3-pre.1. NOT beta.1 -- that was
@@ -43,7 +43,7 @@ try {
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3-pre-2";      api = "0.159.4+26.3";   dep = "26.3-pre.2"; packFormat = "97" }
+  "26.3" = @{ mc = "26.3-pre-3";      api = "0.160.2+26.3";   dep = "26.3-pre.3"; packFormat = "97" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
