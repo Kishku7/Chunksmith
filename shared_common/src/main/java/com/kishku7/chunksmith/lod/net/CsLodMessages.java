@@ -78,14 +78,18 @@ public final class CsLodMessages {
      *                        fallback. The address is the host it is already connected to.
      * @param token           authenticates the client to the backchannel. Issued over this channel, which
      *                        the player has already authenticated with Mojang.
+     * @param worldId         opaque per-world id the client keys its store on, or empty from a 3.x
+     *                        server. Never the seed: operators treat a seed as private, and this is
+     *                        handed to everyone who connects.
      */
     public record ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
-                              String token, List<String> dimensions, String advertisedHost) {
+                              String token, List<String> dimensions, String advertisedHost,
+                              String worldId) {
 
         /** A hello that names no host, so the client uses the address it connected to. */
         public ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
                            String token, List<String> dimensions) {
-            this(protocolVersion, storeAvailable, backchannelPort, token, dimensions, "");
+            this(protocolVersion, storeAvailable, backchannelPort, token, dimensions, "", "");
         }
     }
 
@@ -106,6 +110,10 @@ public final class CsLodMessages {
             // list and never sees these bytes; the message is length-prefixed, so trailing content is
             // not a framing error to it. The decoder below handles the other direction.
             out.writeUTF(hello.advertisedHost() == null ? "" : hello.advertisedHost());
+            // Same trick again for the world id. v4 DID move VERSION, for the SETTING_* removal, so
+            // appending buys nothing against a v2 client -- it buys the v4 client talking to a 3.x
+            // server, which stops reading one field earlier and must not see a framing error.
+            out.writeUTF(hello.worldId() == null ? "" : hello.worldId());
         }
         return raw.toByteArray();
     }
@@ -131,7 +139,10 @@ public final class CsLodMessages {
         // here, so read the host only if there is anything left to read. available() is exact -- the
         // stream is a ByteArrayInputStream over one already-framed message, not a socket.
         String advertisedHost = in.available() > 0 ? in.readUTF() : "";
-        return new ServerHello(version, available, port, token, dimensions, advertisedHost);
+        // Empty means a 3.x server that has no world id to give. The client falls back to keying its
+        // store on the address, which is what every 3.x client did for every server.
+        String worldId = in.available() > 0 ? in.readUTF() : "";
+        return new ServerHello(version, available, port, token, dimensions, advertisedHost, worldId);
     }
 
     // region index

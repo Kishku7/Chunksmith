@@ -123,7 +123,23 @@ public final class CsLodClientSettings {
                         value.ifPresent(CsLodClientConfig::setReinjectOnJoin);
                         return value.isPresent();
                     },
-                    "send every LOD region to your renderer again on the next join, then set it back"));
+                    "send every LOD region to your renderer again on the next join, then set it back"),
+            new Setting(CsLodClientConfig.KEY_MAX_DISK_MB,
+                    Kind.INTEGER,
+                    () -> Long.toString(CsLodClientConfig.maxDiskMb()),
+                    raw -> {
+                        Optional<Long> value = Input.tryLong(raw);
+                        if (value.isEmpty()) {
+                            return false;
+                        }
+                        // Negative is stored as 0 rather than refused: "no ceiling" is a real answer
+                        // and 0 is how it is spelled, so -1 meaning the same thing costs nobody
+                        // anything.
+                        CsLodClientConfig.setMaxDiskMb(value.get());
+                        return true;
+                    },
+                    "ceiling in MEGABYTES on stored LOD per dimension per server; 0 means no ceiling"
+                            + " (the default, and how every version before 4.0.0 behaved)"));
 
     public static List<Setting> all() {
         return ALL;

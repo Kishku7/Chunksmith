@@ -389,6 +389,17 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public long getThrottleLodDrainTo() {
+        return Math.max(0L, plugin.getConfig().getLong("throttle-lod-drain-to", 0L));
+    }
+
+    @Override
+    public void setThrottleLodDrainTo(long items) {
+        plugin.getConfig().set("throttle-lod-drain-to", Math.max(0L, items));
+        plugin.saveConfig();
+    }
+
+    @Override
     public void setThrottleMaxLodQueue(long items) {
         plugin.getConfig().set("throttle-max-lod-queue", items);
         plugin.saveConfig();

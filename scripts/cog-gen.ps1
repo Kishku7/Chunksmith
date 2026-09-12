@@ -391,6 +391,18 @@ if ($Loader -eq 'Fabric') {
         if ($gated -and -not $declared) {
             throw "compat.has_world_enter is true for $Loader/$McVer but fabric.mod.json does not declare WorldEnterClientInit -- the screen would never open. Add it to the 'client' entrypoints."
         }
+
+        # Same check for /csclient (4.0.0). Same failure mode, same reason it has to be a build error:
+        # an undeclared entrypoint means the command silently does not exist, and a declared one on a
+        # cell without the LOD client half means the client dies at load on a missing class.
+        $cmdDeclared = (Get-Content $fmj -Raw) -match 'lod\.client\.CsLodClientCommandInit'
+        $cmdGated = ($hasLodClient -eq '1')
+        if ($cmdDeclared -and -not $cmdGated) {
+            throw "fabric.mod.json declares CsLodClientCommandInit but compat.has_lod_client is false for $Loader/$McVer -- the client would crash at load. Remove the entrypoint or widen the gate."
+        }
+        if ($cmdGated -and -not $cmdDeclared) {
+            throw "compat.has_lod_client is true for $Loader/$McVer but fabric.mod.json does not declare CsLodClientCommandInit -- /csclient would silently not exist. Add it to the 'client' entrypoints."
+        }
     }
 }
 
@@ -431,6 +443,13 @@ if ($hasLod -eq '1') {
     $cogTargets += (Join-Path $lodDir 'CsLodCommand.java')
     $cogTargets += (Join-Path $lodDir 'LodInit.java')
     $cogTargets += (Join-Path $lodDir 'net/CsLodServerNet.java')
+
+    # --- legacy compat (4.0.0). One package, deleted whole when 3.x peers stop mattering.
+    # Server half: the /cslod stub that tells a 3.x client why its commands are gone.
+    $legacyDir = Join-Path $lodDir 'legacy'
+    New-Item -ItemType Directory -Force -Path $legacyDir | Out-Null
+    Copy-Item -Force (Join-Path $cogSrc 'lod/legacy/CsLodLegacyCommand.java') (Join-Path $legacyDir 'CsLodLegacyCommand.java')
+    $cogTargets += (Join-Path $legacyDir 'CsLodLegacyCommand.java')
     $cogTargets += (Join-Path $lodDir 'net/CsLodChannel.java')
 
     # --- Renderer adapters (the SINGLEPLAYER injection path). Each behind its own gate. ---
@@ -513,6 +532,25 @@ if ($hasLod -eq '1') {
         if (-not (Test-Path $cliInitSrc)) { throw "client entrypoint cog_source missing: $cliInitSrc" }
         Copy-Item -Force $cliInitSrc (Join-Path $lodCliDir 'LodClientInit.java')
         $cogTargets += (Join-Path $lodCliDir 'LodClientInit.java')
+
+        # /csclient (4.0.0). Its own per-loader entrypoint rather than a branch inside LodClientInit:
+        # the registration APIs are unrelated (Fabric ClientCommandRegistrationCallback vs a game-bus
+        # RegisterClientCommandsEvent subscriber), and LodClientInit's Forge variant sits on the MOD
+        # bus while this one must be on the GAME bus. One file each keeps the bus choice visible.
+        $cmdInitSrc = Join-Path $lodCliSrc ("CsLodClientCommandInit_{0}.java" -f $Loader.ToLower())
+        if (-not (Test-Path $cmdInitSrc)) { throw "client command entrypoint cog_source missing: $cmdInitSrc" }
+        Copy-Item -Force $cmdInitSrc (Join-Path $lodCliDir 'CsLodClientCommandInit.java')
+        $cogTargets += (Join-Path $lodCliDir 'CsLodClientCommandInit.java')
+
+        Copy-Item -Force (Join-Path $lodCliSrc 'CsLodClientCommand.java') (Join-Path $lodCliDir 'CsLodClientCommand.java')
+        $cogTargets += (Join-Path $lodCliDir 'CsLodClientCommand.java')
+
+        # Client half of the legacy compat package: answers a 3.x server's /cslod set, which would
+        # otherwise hit an unknown message id and be dropped in silence.
+        $legacyCliDir = Join-Path $lodDir 'legacy'
+        New-Item -ItemType Directory -Force -Path $legacyCliDir | Out-Null
+        Copy-Item -Force (Join-Path $cogSrc 'lod/legacy/CsLodLegacySettings.java') (Join-Path $legacyCliDir 'CsLodLegacySettings.java')
+        $cogTargets += (Join-Path $legacyCliDir 'CsLodLegacySettings.java')
 
         # voxy seam: the REAL adapter only where voxy actually ships (Fabric 1.21.11 + 26.x); a documented
         # no-op stub everywhere else, so hasVoxy() returns false and the cell never announces a renderer it

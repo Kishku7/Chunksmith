@@ -156,7 +156,7 @@ Chunksmith client can draw LOD, not where a server can produce or send it.
 display is by the name the author gives it). The server ships the store; the client's renderer draws
 it. A server-side Distant Horizons runs its own distant generation against the same CPU Chunksmith
 is pregenerating on, duplicates the distribution Chunksmith is already doing, and answers
-`/cslod dhpush` at the console with pages of DH's own `[SharedApi] No DH level provided by the ...
+`/csclient inject_dh` (`/cslod dhpush` before 4.0.0) with pages of DH's own `[SharedApi] No DH level provided by the ...
 ServerLevelWrapper`. That was the entirety of mod_support #27: nothing was wrong with the mod, and
 removing DH from the server fixed it. Voxy and neo-voxy have no server half at all, so they get the
 same banner without the "you might legitimately be serving vanilla DH clients" carve-out.
@@ -179,6 +179,13 @@ Also worth knowing, from gating the above: **DH + Sodium on a dedicated server p
   announcement, so the plugin registers the outgoing channel for any player who has already spoken to
   it on that channel. Without that step the server hears the client perfectly and the client hears
   nothing back, which is indistinguishable from working on the server side.
+
+## The landing-page README
+
+`readme-main_dev.md` at the repo root is the **user-facing** README in waiting: a drop-in replacement
+for `main`'s `README.md`, carrying the pitch for everything on this branch that has not shipped yet.
+On release its contents replace `main`'s and the staging file is deleted from here. This file stays
+the build guide; the two must not leak into each other.
 
 ## Credits / License
 

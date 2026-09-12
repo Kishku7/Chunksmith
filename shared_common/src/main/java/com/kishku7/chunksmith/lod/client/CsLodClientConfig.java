@@ -63,10 +63,30 @@ public final class CsLodClientConfig {
      * emptying the renderer's own database underneath it. voxy's storage and DH's sqlite
      * are theirs, and nothing we can read says "this was reset", so our record would
      * honestly describe data that is gone and we would skip it forever. Set it true, join
-     * once, set it back; {@code /cslod set reinject-on-join true} does that without
-     * leaving the game, and deleting the {@code .injected} files does the same.
+     * once, set it back; that is what the command below does without
+     * leaving the game with {@code /csclient set reinject-on-join true}, and deleting the
+     * {@code .injected} files does the same.
      */
     public static final String KEY_REINJECT = "reinject-on-join";
+
+    /**
+     * A ceiling, in megabytes, on what this client will write per dimension per server.
+     *
+     * <p>Zero means no ceiling, which is what every client did before 4.0.0 and remains the default.
+     * How much a client writes has always been the SERVER's decision -- it advertises an index and the
+     * client fetches all of it -- and an operator may raise {@code lodIndexBudgetMb} to a terabyte or
+     * switch it off entirely. This is the first control on THIS side (mod_support #30).
+     *
+     * <p>Deliberately NOT defaulted to a number. A default ceiling would silently stop existing
+     * players receiving terrain they already have, and the same reasoning settled the server budget in
+     * #23: an upgrade must not change what an untouched install does. What was missing was a say, not
+     * a smaller number. {@code /csclient status} reports the size so the decision can be an informed
+     * one.
+     *
+     * <p>Regions are kept nearest-first, so a ceiling trims the far horizon rather than punching holes
+     * in what is close.
+     */
+    public static final String KEY_MAX_DISK_MB = "max-disk-mb";
 
     /**
      * How often the client asks "has anything changed?" by default. Five minutes.
@@ -106,10 +126,17 @@ public final class CsLodClientConfig {
             + " " + KEY_REINJECT + ": normally Chunksmith remembers which LOD regions it has already\n"
             + " given to your renderer, so joining a world does not re-send terrain voxy or Distant\n"
             + " Horizons already has. Set this to true for ONE join if you have deleted or reset your\n"
-            + " renderer's own data and want everything sent again. Default false.";
+            + " renderer's own data and want everything sent again. Default false.\n"
+            + "\n"
+            + " " + KEY_MAX_DISK_MB + ": a ceiling, in MEGABYTES, on what Chunksmith will store per\n"
+            + " dimension per server. 0 (the default) means no ceiling, which is how every version\n"
+            + " before 4.0.0 behaved. How much arrives is otherwise entirely the server's choice.\n"
+            + " Regions nearest you are kept first, so a ceiling shortens your far horizon rather\n"
+            + " than leaving gaps nearby.";
 
     private static volatile int syncSeconds = DEFAULT_SYNC_SECONDS;
     private static volatile boolean reinject;
+    private static volatile long maxDiskMb;
     private static volatile boolean loaded;
 
     /**
@@ -143,6 +170,7 @@ public final class CsLodClientConfig {
                 loaded = true;
                 syncSeconds = DEFAULT_SYNC_SECONDS;
                 reinject = false;
+                maxDiskMb = 0L;
                 return "could not read " + FILE_NAME + " (" + e + "); using the defaults";
             }
         }
@@ -151,6 +179,18 @@ public final class CsLodClientConfig {
         // recovery switch into permanent behaviour.
         reinject = Boolean.parseBoolean(
                 properties.getProperty(KEY_REINJECT, "false").trim());
+
+        // Unparseable or negative is "no ceiling", matching the default rather than refusing to start.
+        long disk = 0L;
+        String rawDisk = properties.getProperty(KEY_MAX_DISK_MB);
+        if (rawDisk != null && !rawDisk.isBlank()) {
+            try {
+                disk = Math.max(0L, Long.parseLong(rawDisk.trim()));
+            } catch (NumberFormatException ignored) {
+                disk = 0L;
+            }
+        }
+        maxDiskMb = disk;
 
         String raw = properties.getProperty(KEY_SYNC_SECONDS);
         int requested = DEFAULT_SYNC_SECONDS;
@@ -198,6 +238,24 @@ public final class CsLodClientConfig {
 
     public static boolean reinjectOnJoin() {
         return reinject;
+    }
+
+    /** The per-dimension, per-server ceiling in megabytes; 0 means none. */
+    public static long maxDiskMb() {
+        return maxDiskMb;
+    }
+
+    /** The same ceiling in bytes, or 0 for none. What {@code CsLodDiskBudget} takes. */
+    public static long maxDiskBytes() {
+        long megabytes = maxDiskMb;
+        return megabytes <= 0L ? 0L : megabytes * 1024L * 1024L;
+    }
+
+    /** Sets the ceiling and saves it. Negative is stored as 0, so the file cannot hold a value we refuse. */
+    public static synchronized long setMaxDiskMb(long megabytes) {
+        maxDiskMb = Math.max(0L, megabytes);
+        save();
+        return maxDiskMb;
     }
 
     public static boolean isLoaded() {
@@ -250,6 +308,7 @@ public final class CsLodClientConfig {
         Properties out = new Properties();
         out.setProperty(KEY_SYNC_SECONDS, Integer.toString(syncSeconds));
         out.setProperty(KEY_REINJECT, Boolean.toString(reinject));
+        out.setProperty(KEY_MAX_DISK_MB, Long.toString(maxDiskMb));
         try {
             Files.createDirectories(path.getParent());
             try (OutputStream stream = Files.newOutputStream(path)) {

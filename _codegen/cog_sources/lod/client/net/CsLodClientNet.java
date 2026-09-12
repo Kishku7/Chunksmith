@@ -34,6 +34,10 @@ import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 import com.kishku7.chunksmith.lod.net.CsLodRetry;
 import com.kishku7.chunksmith.lod.net.CsLodSummary;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
+import java.util.Comparator;
+import com.kishku7.chunksmith.lod.client.CsLodDiskBudget;
+import com.kishku7.chunksmith.lod.CsLodWorldId;
+import com.kishku7.chunksmith.lod.legacy.CsLodLegacySettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
@@ -111,6 +115,23 @@ public final class CsLodClientNet {
      * back to the connect address instead of keeping a stale override forever.
      */
     private static volatile String advertisedHost = "";
+
+    /**
+     * The server's id for the world we are pulling, or empty from a 3.x server. This is what the store
+     * is keyed on; the address is only the fallback. See {@link #storeRoot()}.
+     */
+    private static volatile String worldId = "";
+
+    /**
+     * Regions the disk ceiling made us skip, per dimension, as the server last advertised them
+     * (mod_support #30).
+     *
+     * <p>Held as ENTRIES rather than bare coordinates, and rebuilt from every index, so each one
+     * carries the token the server currently claims for it. That is what lets {@link #summary} fold
+     * them back out of the server's aggregate exactly; a stale token would put the two sides
+     * permanently out of step, which is the failure mode the whole design is avoiding.
+     */
+    private static final Map<String, List<CsLodMessages.RegionEntry>> DECLINED = new HashMap<>();
 
     /**
      * The dimension we are currently pulling for. always the one the player is actually in. This field held
@@ -368,7 +389,16 @@ public final class CsLodClientNet {
                 return;
             }
             CsLodSummary.Snapshot ours = manifest.fold(dir, mine);
-            if (ours.count() == summary.count() && ours.aggregate() == summary.aggregate()) {
+            // Take what we deliberately declined back out of the server's numbers before comparing.
+            // Without this a capped client mismatches on EVERY poll, pulls a full index each time and
+            // never settles -- trading a disk problem for an endless-download one (mod_support #30).
+            int theirCount = summary.count();
+            long theirAggregate = summary.aggregate();
+            for (CsLodMessages.RegionEntry skipped : declinedFor(dimension)) {
+                theirCount--;
+                theirAggregate = CsLodDiskBudget.foldOut(theirAggregate, skipped);
+            }
+            if (ours.count() == theirCount && ours.aggregate() == theirAggregate) {
                 LOGGER.debug("Chunksmith: LOD sync, nothing has changed ({} regions of {})",
                         ours.count(), dimension);
                 return;
@@ -527,7 +557,8 @@ public final class CsLodClientNet {
                 case CsLodProtocol.S2C_INDEX -> index(CsLodMessages.decodeRegionIndex(in));
                 case CsLodProtocol.S2C_CHUNK -> slice(CsLodMessages.decodeRegionSlice(in));
                 case CsLodProtocol.S2C_CLIENT_SETTING ->
-                        clientSetting(CsLodMessages.decodeClientSetting(in));
+                        // A 3.x server asking us to change a client setting. Compat only -- see the class.
+                        CsLodLegacySettings.handle(CsLodMessages.decodeClientSetting(in));
                 case CsLodProtocol.S2C_DONE -> {
                     LOGGER.info("Chunksmith: in-band transfer complete");
                     // One manifest write for the whole transfer, not one per region.
@@ -598,6 +629,10 @@ public final class CsLodClientNet {
         // (mod_support #24). Empty from every 3.15.0 server and from every server that has not set
         // the key, which is why this reads as "override if named" rather than as a new requirement.
         advertisedHost = hello.advertisedHost() == null ? "" : hello.advertisedHost();
+        // Refuse a malformed id rather than making a directory named after whatever arrived. Empty is
+        // a 3.x server, which is not an error -- it is every server that existed before 4.0.0.
+        String offered = hello.worldId() == null ? "" : hello.worldId();
+        worldId = CsLodWorldId.isValid(offered) ? offered : "";
         serverDimensions = hello.dimensions();
 
         // The dimension is the one the player is standing in, NEVER the first one the server listed.
@@ -677,20 +712,33 @@ public final class CsLodClientNet {
         }
     }
 
-    private static void index(CsLodMessages.RegionIndex index) {
+    private static void index(CsLodMessages.RegionIndex advertised) {
         Path root = storeRoot();
         // The dimension is server-supplied and becomes a filesystem path in every transport below. Gate it
         // once at the top too, and free the busy latch we took to get here.
-        if (CsLodStore.dimensionDir(root, index.dimension()) == null) {
+        if (CsLodStore.dimensionDir(root, advertised.dimension()) == null) {
             LOGGER.warn("Chunksmith: server sent a malformed dimension id; ignoring the region index");
             busy.set(false);
             return;
         }
-        // Keep it. This is the set the sync poll folds against (see summary()), and it carries each
-        // region's freshness token to the injector. A region whose token has moved must be re-injected,
-        // not skipped as "already drawn". Bare coordinates, as we used to carry, would throw those away.
-        lastIndex = index.regions();
+        // Keep what the server ADVERTISED, not what we went on to fetch. The sync poll folds our copy
+        // against this list and subtracts whatever the ceiling declined (see summary()); recording the
+        // trimmed list instead would make the two sides disagree about what was even offered. It also
+        // carries each region's freshness token to the injector -- a region whose token has moved must
+        // be re-injected, not skipped as "already drawn". Bare coordinates, as we used to carry, would
+        // throw those away.
+        lastIndex = advertised.regions();
         lastSyncMillis = System.currentTimeMillis();
+
+        // The client's own disk ceiling. Off by default, so for almost everyone this returns exactly
+        // what came in. Final because a lambda below captures it.
+        final CsLodMessages.RegionIndex index = applyDiskBudget(advertised, root);
+        if (index.regions().isEmpty()) {
+            // Nothing left to fetch once the ceiling had its say. Not an error, and not silence:
+            // applyDiskBudget already logged why.
+            busy.set(false);
+            return;
+        }
 
         String fetchHost = fetchHost();
         if (backchannelPort == 0 || token.isEmpty() || fetchHost.isEmpty()) {
@@ -876,6 +924,236 @@ public final class CsLodClientNet {
         return current == null ? "idle" : current.describe();
     }
 
+    /**
+     * Replays everything in range into the renderers, without a relog.
+     *
+     * <p>Does NOT walk the store itself. It clears the injected-region bookkeeping and asks the server
+     * for the index again, so the replay goes through the SAME path a travel refresh uses -- the one
+     * that re-checks each region against the level it is being pushed into. That guard has caught two
+     * shipped bugs (1089 overworld chunks into the End, and the overworld store into the Nether in
+     * 3.1.0-beta-2); a second replay path would be a second chance to reintroduce them.
+     *
+     * @return false when there is nothing to replay into, i.e. no dimension is active
+     */
+    public static boolean reinjectNow() {
+        if (activeDimension.isEmpty()) {
+            return false;
+        }
+        LodInjector.reset();
+        requestIndex(activeDimension);
+        return true;
+    }
+    /**
+     * Trims an index to what the client's disk ceiling allows, and remembers the rest.
+     *
+     * <p>Returns the index unchanged when there is no ceiling, which is the default and therefore the
+     * path almost every player is on.
+     */
+    private static CsLodMessages.RegionIndex applyDiskBudget(final CsLodMessages.RegionIndex index,
+                                                             final Path root) {
+        long budget = CsLodClientConfig.maxDiskBytes();
+        String dimension = index.dimension();
+        if (budget <= 0L) {
+            synchronized (DECLINED) {
+                DECLINED.remove(dimension);
+            }
+            return index;
+        }
+
+        Path dir = CsLodStore.dimensionDir(root, dimension);
+        CsLodDiskBudget.Split split =
+                CsLodDiskBudget.apply(index.regions(), sizeOnDisk(dir), budget);
+
+        synchronized (DECLINED) {
+            if (split.declined().isEmpty()) {
+                DECLINED.remove(dimension);
+            } else {
+                DECLINED.put(dimension, List.copyOf(split.declined()));
+            }
+        }
+        if (split.cappedAnything()) {
+            LOGGER.info("Chunksmith: disk ceiling reached for {} -- keeping {} region(s), skipping {}"
+                            + " ({} MB). Nearest terrain is kept first; raise or clear it with"
+                            + " /csclient set {} <mb>.",
+                    dimension, split.keep().size(), split.declined().size(),
+                    split.declinedBytes() / (1024L * 1024L), CsLodClientConfig.KEY_MAX_DISK_MB);
+        }
+        return new CsLodMessages.RegionIndex(dimension, split.keep());
+    }
+
+    private static List<CsLodMessages.RegionEntry> declinedFor(final String dimension) {
+        synchronized (DECLINED) {
+            return DECLINED.getOrDefault(dimension, List.of());
+        }
+    }
+
+    private static long sizeOnDisk(final Path dir) {
+        if (dir == null || !Files.isDirectory(dir)) {
+            return 0L;
+        }
+        try (var walk = Files.walk(dir)) {
+            return walk.filter(Files::isRegularFile).mapToLong(path -> {
+                try {
+                    return Files.size(path);
+                } catch (IOException e) {
+                    return 0L;
+                }
+            }).sum();
+        } catch (IOException e) {
+            // Unknown is not zero: pretending the store is empty would let the ceiling be blown past
+            // on the one pass where we could not measure it.
+            return Long.MAX_VALUE;
+        }
+    }
+
+    /** Where this client keeps the store for whatever it is connected to. */
+    public static Path storePath() {
+        return storeRoot();
+    }
+
+    /**
+     * The {@code /csclient status} readout, one "label: value" per entry.
+     *
+     * <p>Built here rather than exposed as a dozen getters: every field it reads is private static
+     * state on this class, and handing them out one by one would invite a caller to sample them at
+     * different moments and print a state the client was never actually in.
+     */
+    public static List<String> status() {
+        List<String> out = new ArrayList<>();
+        Path store = storeRoot();
+        String fetch = fetchHost();
+
+        out.add("server:       " + (host.isEmpty() ? "(not connected)" : host));
+        if (!advertisedHost.isEmpty() && !advertisedHost.equals(host)) {
+            out.add("fetching from: " + fetch + " (server advertised it)");
+        }
+        out.add("world id:     " + (worldId.isEmpty() ? "(none -- 3.x server, keyed by address)" : worldId));
+        out.add("store:        " + store);
+        out.add("dimension:    " + (activeDimension.isEmpty() ? "(none)" : activeDimension));
+
+        long[] counted = countStore(store);
+        out.add("regions:      " + counted[0] + " file(s) on disk");
+        out.add("size:         " + (counted[1] / 1024L) + " KB");
+
+        out.add("transport:    " + (backchannelPort == 0
+                ? "in-band (no backchannel)"
+                : "backchannel " + backchannelPort));
+        out.add("token:        " + (token.isEmpty() ? "none" : "held"));
+        out.add("renderers:    voxy=" + (capsVoxy ? "yes" : "no") + " dh=" + (capsDh ? "yes" : "no"));
+        out.add("radius:       " + (capsRadius <= 0 ? "(unknown)" : capsRadius + " blocks"));
+        out.add("injected:     " + LodInjector.describe());
+        out.add("download:     " + describe());
+        for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
+            out.add(setting.name() + ": " + setting.read());
+        }
+
+        // Anything left over from before 4.0.0 changed the key. Worth naming: it is disk nobody is
+        // using and nothing else will ever mention it.
+        List<String> orphans = legacyStores(store);
+        if (!orphans.isEmpty()) {
+            out.add("pre-4.0 stores: " + String.join(", ", orphans) + " (unused; /csclient reset clears them)");
+        }
+        return out;
+    }
+
+    /** {@code [file count, total bytes]}. Cheap enough for a command; it stats, it does not read. */
+    private static long[] countStore(final Path store) {
+        if (!Files.isDirectory(store)) {
+            return new long[] {0L, 0L};
+        }
+        long files = 0L;
+        long bytes = 0L;
+        try (var walk = Files.walk(store)) {
+            for (Path path : (Iterable<Path>) walk.filter(Files::isRegularFile)::iterator) {
+                files++;
+                try {
+                    bytes += Files.size(path);
+                } catch (IOException ignored) {
+                    // A file that vanished mid-walk is not worth failing a status readout over.
+                }
+            }
+        } catch (IOException e) {
+            return new long[] {-1L, -1L};
+        }
+        return new long[] {files, bytes};
+    }
+
+    /**
+     * Directories under {@code chunksmith/lod} that are not the current store and are not shaped like
+     * a world id, i.e. stores keyed by address before 4.0.0. Named, never adopted -- see
+     * {@link #storeRoot()} for why adopting one would defeat the point of keying on the world.
+     */
+    private static List<String> legacyStores(final Path current) {
+        List<String> out = new ArrayList<>();
+        Path lod = ClientPlatform.gameDir().resolve("chunksmith").resolve("lod");
+        if (!Files.isDirectory(lod)) {
+            return out;
+        }
+        try (var entries = Files.list(lod)) {
+            for (Path path : (Iterable<Path>) entries.filter(Files::isDirectory)::iterator) {
+                String name = path.getFileName().toString();
+                if (!path.equals(current) && !CsLodWorldId.isValid(name)) {
+                    out.add(name);
+                }
+            }
+        } catch (IOException ignored) {
+            // Best effort. A status line is not worth an error.
+        }
+        return out;
+    }
+
+    /**
+     * Puts this client back where it was before it first saw this server: the store goes, every
+     * counter and cache goes, and the handshake runs again. No relog.
+     *
+     * <p>Deletes the WHOLE key, every dimension, not just the one in play. A per-dimension reset
+     * would leave a regenerated world half-fixed, which is the case anyone typing this is most
+     * likely trying to escape.
+     *
+     * <p>What it CANNOT do is clear the renderer. Distant Horizons and voxy own their databases and
+     * {@code LodSupport} states plainly that we never touch them, so terrain already handed over
+     * stays until the renderer is cleared on its own terms. The caller says so out loud.
+     *
+     * @return how many files were removed, or -1 if the store could not be walked
+     */
+    public static long resetAll() {
+        Path store = storeRoot();
+        LodInjector.stop();
+        LodInjector.reset();
+        long removed = deleteTree(store);
+        // Drop every scrap of session state, then re-arm. reset() already covers the download
+        // bookkeeping; what it does not do is make the server talk to us again, which hello() does.
+        reset();
+        hello();
+        return removed;
+    }
+
+    private static long deleteTree(final Path dir) {
+        if (!Files.isDirectory(dir)) {
+            return 0L;
+        }
+        long removed = 0L;
+        try (var walk = Files.walk(dir)) {
+            List<Path> paths = new ArrayList<>();
+            walk.forEach(paths::add);
+            // Deepest first, so a directory is empty by the time it is removed.
+            paths.sort(Comparator.reverseOrder());
+            for (Path path : paths) {
+                try {
+                    if (Files.deleteIfExists(path)) {
+                        removed++;
+                    }
+                } catch (IOException e) {
+                    LOGGER.warn("Chunksmith: could not remove {} during reset: {}", path, e.toString());
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Chunksmith: could not walk {} during reset: {}", dir, e.toString());
+            return -1L;
+        }
+        return removed;
+    }
+
     private static void reset() {
         cancel();
         downloader = null;
@@ -884,6 +1162,7 @@ public final class CsLodClientNet {
         backchannelPort = 0;
         host = "";
         advertisedHost = "";
+        worldId = "";
         activeDimension = "";
         playerDimension = "";
         serverDimensions = List.of();
@@ -910,63 +1189,42 @@ public final class CsLodClientNet {
         LodInjector.reset();
     }
 
-    /** The client's own store, keyed by server so two servers never mix: {@code chunksmith/lod/<server>}. */
+    /**
+     * The client's own store, at {@code chunksmith/lod/<key>}.
+     *
+     * <p>The key is the server's WORLD id where it gives one. Keying on the address was wrong in two
+     * ways that shared a cause (mod_support #28, #29): the port is stripped, so two servers on one
+     * host shared a directory and overwrote each other's regions, and nothing identified the world at
+     * all, so a regenerated world went on serving the terrain it replaced until somebody deleted the
+     * folder by hand.
+     *
+     * <p>A 3.x server sends no id and falls back to the old address key. That also means a store
+     * written before 4.0.0 is ORPHANED rather than migrated -- adopting it would mean asserting the
+     * old bytes belong to this world, which is the exact assumption #29 exists to break. The cost is
+     * one re-download on upgrade; {@code /csclient status} lists what was left behind and
+     * {@code /csclient reset} removes it.
+     */
     private static Path storeRoot() {
+        Path lod = ClientPlatform.gameDir().resolve("chunksmith").resolve("lod");
+        if (!worldId.isEmpty()) {
+            return lod.resolve(worldId);
+        }
         String key = host.isEmpty() ? "unknown" : host.replaceAll("[^a-zA-Z0-9._-]", "_");
-        return ClientPlatform.gameDir().resolve("chunksmith").resolve("lod").resolve(key);
+        return lod.resolve(key);
     }
 
     /**
-     * Act on this client's own LOD settings, on behalf of a /cslod set typed at the server. The reply is
-     * printed on this side rather than sent back for the server to print: the file being read and written
-     * is on this machine, so the server cannot know the answer. Already on the client thread --
-     * ClientPlatform hands every payload to the client executor before calling handle(), so
-     * Minecraft.getInstance() is safe here.
+     * One line into the local player's chat, for callers outside this package. Exists so
+     * {@code CsLodLegacySettings} does not have to carry its own copy of the MC 26 chat seam below;
+     * one branch, one place.
      */
-    private static void clientSetting(CsLodMessages.ClientSetting request) {
+    public static void chat(final String line) {
         LocalPlayer player = Minecraft.getInstance().player;
-        if (player == null) {
-            return;
+        if (player != null) {
+            say(player, Component.literal(line));
         }
-        if (request.action() == CsLodProtocol.SETTING_LIST) {
-            say(player, Component.literal(
-                    "[chunksmith] LOD client settings (config/" + CsLodClientConfig.FILE_NAME + "):"));
-            for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
-                say(player, Component.literal(
-                        "  " + setting.name() + " = " + setting.read() + "  -- " + setting.help()));
-            }
-            return;
-        }
-
-        var found = CsLodClientSettings.find(request.name());
-        if (found.isEmpty()) {
-            say(player, Component.literal(
-                    "[chunksmith] no LOD client setting called '" + request.name() + "'. Known: "
-                            + String.join(", ", CsLodClientSettings.names())));
-            return;
-        }
-        CsLodClientSettings.Setting setting = found.get();
-
-        if (request.action() == CsLodProtocol.SETTING_SHOW) {
-            say(player, Component.literal(
-                    "[chunksmith] " + setting.name() + " = " + setting.read() + "  -- " + setting.help()));
-            return;
-        }
-
-        // SETTING_SET. A refused value is a shape error: a word where a number belongs. An out-of-range
-        // value is accepted and clamped, so the reply reports what was stored, not what was typed.
-        if (!setting.write(request.value())) {
-            var expected = setting.kind().completions();
-            say(player, Component.literal(
-                    "[chunksmith] '" + request.value() + "' is not a valid value for " + setting.name()
-                            + (expected.isEmpty() ? " (expected a whole number)"
-                                    : " (expected one of: " + String.join(", ", expected) + ")")));
-            return;
-        }
-        say(player, Component.literal(
-                "[chunksmith] " + setting.name() + " = " + setting.read()
-                        + ", applied now and saved to config/" + CsLodClientConfig.FILE_NAME));
     }
+
 
     /**
      * Prints one line into the local player's chat. This is the only version-conditional code in the class,

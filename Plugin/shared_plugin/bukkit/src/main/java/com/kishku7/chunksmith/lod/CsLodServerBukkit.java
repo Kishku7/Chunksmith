@@ -31,6 +31,7 @@ import com.kishku7.chunksmith.lod.net.CsLodStoreScan;
 import com.kishku7.chunksmith.lod.net.CsLodTokens;
 import com.kishku7.chunksmith.platform.Config;
 
+import com.kishku7.chunksmith.lod.CsLodWorldId;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -210,6 +211,47 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         return owner == null ? "" : ChunksmithProvider.get().getConfig().getLodBackchannelHost();
     }
 
+    /**
+     * The id connecting clients key their store on, anchored to the PRIMARY world.
+     *
+     * <p>A Bukkit server has no single world folder -- nether and end are siblings of the overworld,
+     * not children -- so there is no one place to put this that mirrors the mod. The overworld is the
+     * anchor because it is what {@code level-name} names and what the others are derived from, so it
+     * is the one folder whose replacement really does mean "this is a different world now".
+     */
+    private static String worldId() {
+        List<World> worlds = Bukkit.getWorlds();
+        return worlds.isEmpty() ? "" : CsLodWorldId.forStore(LodSupport.storeRootBase(worlds.get(0)));
+    }
+
+    /**
+     * One line describing what this server is serving LOD over. Mirrors the mod's
+     * {@code CsLodServerNet.describe()} so {@code /cs lod status} reads the same on both platforms.
+     *
+     * <p>No in-band backlog line here: the plugin has no in-band sender (see the TODO at the fetch
+     * path), so a blocked backchannel means no LOD rather than slow LOD.
+     */
+    public static String describe() {
+        CsLodHttpServer current = http;
+        return current == null
+                ? "LOD serving: not running (no backchannel)"
+                : "LOD serving: " + current.describe();
+    }
+
+    /**
+     * Issues a backchannel token for an online player, out of band of the handshake, so an operator
+     * can mint one and try the endpoint by hand. Still bound to that player's real address, so it
+     * grants nothing they could not get by connecting.
+     *
+     * @return the token, or null when the backchannel is not running
+     */
+    public static String issueFor(Player player) {
+        if (http == null) {
+            return null;
+        }
+        return TOKENS.issue(player.getUniqueId(), addressOf(player));
+    }
+
     /** A token must never outlive the session that earned it. Wired to PlayerQuitEvent. */
     public static void onQuit(UUID player) {
         TOKENS.revoke(player);
@@ -290,7 +332,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         try {
             player.sendPluginMessage(plugin, CHANNEL, withLengthPrefix(CsLodMessages.encode(
                     new CsLodMessages.ServerHello(CsLodProtocol.VERSION, available, port, token, dims,
-                            advertisedHost()))));
+                            advertisedHost(), worldId()))));
         } catch (IOException e) {
             LOGGER.warning("Chunksmith: could not answer the LOD hello from "
                     + player.getName() + ": " + e);

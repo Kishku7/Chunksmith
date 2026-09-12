@@ -2,6 +2,92 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-09-12
+
+Breaking. The command surface is reorganised by who can run a command and where it executes, and
+`/cslod` is retired. Protocol version moves to 4.
+
+### Changed
+
+- **Commands are split by audience, not by feature.** `/cslod` grouped things by subsystem, which put
+  three client-side operations behind a server permission gate and gave the client's own state no
+  readout at all. Server operator commands now live under the existing `/cs` root, which already
+  carries the permission gate; everything a player runs for their own client lives under a new
+  `/csclient`.
+
+  | was | now |
+  |---|---|
+  | `/cslod status` | `/cs lod status` |
+  | `/cslod token <player>` | `/cs lod token <player>` |
+  | `/cslod set` | `/csclient set` |
+  | `/cslod inject` | `/csclient inject_voxy` |
+  | `/cslod dhpush` | `/csclient inject_dh` |
+
+- **`/csclient` is a real client command**, registered through Fabric's
+  `ClientCommandRegistrationCallback` and NeoForge/Forge's `RegisterClientCommandsEvent`. It therefore
+  works when connected to a server that has never heard of Chunksmith, which is exactly when you want
+  to ask why no LODs are arriving. It does not exist on the Bukkit plugin; there is no client there.
+- **`inject` and `dhpush` became `inject_voxy` and `inject_dh`.** One was named for its verb and the
+  other for its target, so neither said what it did.
+- **Both status commands print one value per line** instead of a single packed line.
+- The per-subcommand operator gates are gone. `/cs` gates at its root, and `/csclient` needs no gate.
+
+### Added
+
+- **`/csclient reset`** returns the client to the state it was in before it first connected: the store
+  for that server is deleted across every dimension, the injected-region bookkeeping is cleared, and
+  the handshake runs again, all without a relog. Until now the only way out of a bad client store was
+  to disconnect and delete the directory by hand.
+
+  It cannot give you a clean slate on its own, and says so when it runs. Distant Horizons and Voxy keep
+  their own databases, which Chunksmith does not touch by design, so a world that was regenerated
+  server-side may still render its old terrain out of the renderer's copy.
+
+- **`/csclient status`** reports the client store: which server it is keyed to, the path, per-dimension
+  region counts, transport, renderers, injection progress, and the settings in force.
+
+### Removed
+
+- **`/cslod` is gone**, and a 4.x client does not register it under any name. See Compatibility.
+- The `SETTING_LIST` / `SETTING_SHOW` / `SETTING_SET` relay. A client command reads and writes
+  `config/chunksmith-lod.properties` directly, so the server no longer has to ask the client on the
+  player's behalf.
+
+### Plugin (Paper / Spigot)
+
+- **`/cs lod status` and `/cs lod token <player>` work on the plugin too.** Status is reported per
+  WORLD rather than per dimension, because that is the shape a Bukkit server actually has: the mod
+  keeps one save folder with its dimensions nested inside, Bukkit gives each world its own folder and
+  therefore its own store. It answers from the console for the same reason.
+- There is no `/csclient` on the plugin and there will not be. That command runs on a client, and a
+  Bukkit server does not have one.
+- The plugin serves the new world id, anchored to the primary world -- the one `level-name` names and
+  the one the others are derived from, so it is the folder whose replacement really does mean "this is
+  a different world now".
+
+- **Folia is no longer declared supported.** `folia-supported` is gone from `plugin.yml`, so Folia
+  will refuse to load the plugin rather than running it untested. This was announced in 3.3.0 and a
+  major release is where it lands. Nothing changes for Paper or Spigot.
+
+  The reasoning is not that Folia is broken -- it is that the Folia harness could not be kept working,
+  and a platform nobody tests is an unverifiable claim, which is worse than an absent one. The
+  region-scheduler code paths and the `folia-api` compile dependency are still in the tree and come out
+  separately; removing them means moving three cells onto `paper-api` and unwinding the JVM-version
+  workarounds `folia-api` forces, which is its own change and does not belong in this one.
+
+### Compatibility
+
+`CsLodProtocol.VERSION` goes from 2 to **4**, matching the major version from here on. There was never
+a protocol 3.
+
+- **4.x server, 4.x client.** `/cslod` does not exist on either side.
+- **3.x server, 4.x client.** The client registers no `/cslod`, so the server's own still arrives in
+  the command tree and keeps working for whatever that server supports.
+- **4.x server, 3.x client.** `/cslod` answers "update your cs client" and does nothing else.
+
+All of that lives in one `legacy` package and comes out in 5.x.
+
+
 ## [3.18.2] - 2026-09-10
 
 ### Changed

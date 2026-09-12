@@ -124,7 +124,9 @@ public class CsLodSummaryWireTest {
     }
 
     @Test
-    public void theProtocolIsV2() {
-        assertEquals(2, CsLodProtocol.VERSION);
+    public void theProtocolIsV4() {
+        // 4, not 3. The number tracks the mod's major version from 4.0.0 on, so v3 was never
+        // minted. If this fails, decide whether the wire really changed before moving it.
+        assertEquals(4, CsLodProtocol.VERSION);
     }
 }

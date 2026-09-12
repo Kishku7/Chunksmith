@@ -146,6 +146,17 @@ public class ChunksmithFabric implements ModInitializer {
             dispatcher.register(buildCommand(CommandLiteral.CHUNKSMITH));
             dispatcher.register(buildCommand(CommandLiteral.CHUNKY));
             dispatcher.register(buildCommand(CommandLiteral.CY));
+            //[[[cog
+            // import cog, compat
+            // if compat.has_lod(mcver, loader):
+            //     cog.outl('// Legacy compat: /cslod exists on a 4.x server ONLY to tell a 3.x client why its LOD')
+            //     cog.outl('// commands are gone. requires() hides it from everyone else, so on a 4.x client the')
+            //     cog.outl('// name is genuinely absent rather than present-and-scolding.')
+            //     cog.outl('dispatcher.register(com.kishku7.chunksmith.lod.legacy.CsLodLegacyCommand.build());')
+            // else:
+            //     cog.outl('// No LOD on this cell, so no legacy /cslod stub either.')
+            //]]]
+            //[[[end]]]
         });
     }
 
@@ -255,6 +266,18 @@ public class ChunksmithFabric implements ModInitializer {
         registerArguments(borderCommand, literal(CommandLiteral.WRAP),
                 argument(CommandLiteral.WRAP, word()));
         registerArguments(command, borderCommand);
+        //[[[cog
+        // import cog, compat
+        // if compat.has_lod(mcver, loader):
+        //     cog.outl('// The LOD operator node. Grafted HERE rather than routed through the shared')
+        //     cog.outl('// commandMap: that map is wired to TranslationKey and the lang files, and the LOD')
+        //     cog.outl('// feature stays out of them. Brigadier prefers this literal child over the root\'s')
+        //     cog.outl('// string-dispatching executes(), so /cs lod status reaches it and /cs status does not.')
+        //     cog.outl('command.then(com.kishku7.chunksmith.lod.CsLodCommand.buildServerNode());')
+        // else:
+        //     cog.outl('// No LOD on this cell, so no lod node. compat.has_lod says which cells have it.')
+        //]]]
+        //[[[end]]]
         return command;
     }
 

@@ -21,26 +21,14 @@
 
 package com.kishku7.chunksmith.lod;
 
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-import com.kishku7.chunksmith.lod.client.CsLodClientSettings;
-import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 import com.kishku7.chunksmith.lod.net.CsLodServerNet;
-//[[[cog
-// import cog, compat
-// # The permissions() API + Permissions class exist from 1.21.11, but 26 gates through the
-// # Commands.hasPermission(Commands.LEVEL_GAMEMASTERS) predicate instead, so 26 needs NO import.
-// if compat.era(mcver) == "modern_11plus" and compat._parse(mcver)[0] < 26:
-//     cog.outl("import net.minecraft.server.permissions.Permissions;")
-//]]]
-//[[[end]]]
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,158 +36,78 @@ import net.minecraft.commands.arguments.EntityArgument;
 import java.io.IOException;
 
 /**
- * Operator commands for the CSLOD store, under {@code /cslod}.
+ * Server-operator commands for the CSLOD store, under {@code /cs lod}.
  *
  * <ul>
- *   <li>{@code set}: the player's own client settings; the only subcommand a non-operator may run.</li>
- *   <li>{@code status}: where the store is, how big, and whether the backchannel is up.</li>
+ *   <li>{@code status}: where the store is, what is in it, and whether the backchannel is up.</li>
  *   <li>{@code token <player>}: mint a backchannel token by hand.</li>
- *   <li>{@code dhpush}: replay the store into Distant Horizons. Present on every LOD cell: DH ships a
- *       build for all of them.</li>
- *   <li>{@code inject}: replay the store into voxy. Only where a voxy jar exists to compile against
- *       (Fabric 1.21.11 + Fabric 26).</li>
  * </ul>
  *
- * <p>Both backfills are singleplayer-only: the renderer engines are client-side, so on a
- * dedicated server they report "not available" and the store is served over the
- * backchannel to the connecting client instead.
+ * <p><b>Everything else moved to {@code /csclient} at 4.0.0.</b> The old {@code /cslod} root mixed
+ * these two with three operations that run on the CLIENT -- the settings relay and the two renderer
+ * backfills -- and gated those three on server permissions they had no use for. The renderer engines
+ * are client-side, so on a dedicated server the backfills could only ever report "not available".
+ * They are client commands now, and work against the store the client downloaded.
  *
- * <p>Loader-blind: this class only builds the brigadier node; each loader's {@code
- * LodInit} registers it (Fabric via CommandRegistrationCallback, NeoForge/Forge via
- * RegisterCommandsEvent).
+ * <p>Loader-blind: this class only builds the brigadier node. Each loader's entrypoint grafts it
+ * onto the {@code /cs} root it is already registering, which is also where the permission gate
+ * comes from.
  *
- * <p>Its own root command rather than folded into {@code /chunksmith}: the shared command
- * tree lives in shared_common and is wired to TranslationKey + the lang files, which the
- * LOD feature has no business reaching into.
+ * <p>Grafted rather than folded into the shared command tree: that tree lives in shared_common and
+ * is wired to TranslationKey and the lang files, which the LOD feature still has no business
+ * reaching into. The graft happens at the loader layer, where both trees are already in scope.
  */
 public final class CsLodCommand {
 
     private CsLodCommand() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> build() {
-        //[[[cog
-        // import cog, compat
-        // cog.outl("final java.util.function.Predicate<CommandSourceStack> operatorOnly =")
-        // cog.outl("        %s;" % compat.command_permission_gate(mcver, "source"))
-        //]]]
-        //[[[end]]]
+    /**
+     * The {@code lod} node, grafted under the {@code /cs} root by each loader's entrypoint.
+     *
+     * <p>No permission predicate here. The {@code /cs} root already gates on
+     * {@code chunksmith.command} (auto-true in single-player) and every child inherits it, so the
+     * per-node {@code operatorOnly} this file used to carry was doing that job twice. Anything a
+     * PLAYER runs against their own client lives on {@code /csclient}, ungated -- that split is the
+     * whole point of the 4.0.0 restructure.
+     */
+    public static LiteralArgumentBuilder<CommandSourceStack> buildServerNode() {
+        LiteralArgumentBuilder<CommandSourceStack> lod = Commands.literal("lod");
 
-        // The root is deliberately ungated (3.3.0): /cslod set changes the player's own client settings,
-        // so a gamemaster gate on the root would stop an ordinary player changing their own config. Every
-        // operator subcommand carries the gate itself instead, and brigadier hides a node whose requires()
-        // fails, so a normal player sees /cslod set and nothing else.
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("cslod");
-
-        root.then(Commands.literal("status").requires(operatorOnly).executes(context -> {
-            ServerLevel level = context.getSource().getLevel();
+        lod.then(Commands.literal("status").executes(context -> {
+            CommandSourceStack source = context.getSource();
+            ServerLevel level = source.getLevel();
             Path store = LodSupport.storeRoot(level);
             long bytes = sizeOf(store);
             // The record count, not just the byte size: the number an operator compares against their
-            // chunk count to answer "does my store actually cover my world?". Header reads only (8 KB per
-            // region, no record decode), so it is safe to run from a command.
+            // chunk count to answer "does my store actually cover my world?". Header reads only (8 KB
+            // per region, no record decode), so it is safe to run from a command.
             long records;
             try {
                 records = CsLodPresenceIndex.countRecords(store);
             } catch (IOException e) {
                 records = -1L;
             }
-            long recordCount = records;
-            // One line: chat renders a literal \n rather than breaking the line.
-            context.getSource().sendSuccess(() -> Component.literal(
-                    "[chunksmith] " + LodSupport.describeDecision(level.getServer())
-                            + " | store: " + store
-                            + " | exists: " + Files.isDirectory(store)
-                            + " | records: " + (recordCount < 0 ? "unreadable" : Long.toString(recordCount))
-                            + " | size: " + (bytes / 1024) + " KB"
-                            + renderers()
-                            + " | " + CsLodServerNet.describe()), false);
+
+            // One call per line. An embedded newline renders literally in chat, which is why this was
+            // a single packed line before; 3.18.1's startup banner hit the same wall and was fixed the
+            // same way, one log call per line.
+            say(source, "dimension:   " + LodSupport.dimensionKey(level));
+            say(source, "world id:    " + orNone(LodSupport.worldId(level.getServer())));
+            say(source, "store:       " + store);
+            say(source, "exists:      " + Files.isDirectory(store));
+            say(source, "records:     " + (records < 0 ? "unreadable" : Long.toString(records)));
+            say(source, "size:        " + (bytes / 1024) + " KB");
+            say(source, "decision:    " + LodSupport.describeDecision(level.getServer()));
+            say(source, "backchannel: " + CsLodServerNet.describe());
+            String rendererLine = renderers();
+            if (!rendererLine.isEmpty()) {
+                say(source, "renderers:   " + rendererLine);
+            }
             return 1;
         }));
 
-        //[[[cog
-        // import cog, compat
-        // if compat.has_voxy(mcver, loader):
-        //     cog.outl('root.then(Commands.literal("inject").requires(operatorOnly).executes(context -> {')
-        //     cog.outl('    final CommandSourceStack source = context.getSource();')
-        //     cog.outl('    final ServerLevel level = source.getLevel();')
-        //     cog.outl('    final Path store = LodSupport.storeRoot(level);')
-        //     cog.outl('    if (!Files.isDirectory(store)) {')
-        //     cog.outl('        source.sendFailure(Component.literal("[chunksmith] no LOD store for this dimension: " + store));')
-        //     cog.outl('        return 0;')
-        //     cog.outl('    }')
-        //     cog.outl('    if (!CsLodVoxyInjector.voxyAvailable()) {')
-        //     cog.outl('        source.sendFailure(Component.literal(')
-        //     cog.outl('                "[chunksmith] voxy is not available here (its engine is client-side only, "')
-        //     cog.outl('                        + "so this works in singleplayer, not on a dedicated server)"));')
-        //     cog.outl('        return 0;')
-        //     cog.outl('    }')
-        //     cog.outl('    source.sendSuccess(() -> Component.literal("[chunksmith] injecting LOD store into voxy..."), true);')
-        //     cog.outl('    // Off the server thread: this walks the whole store and waits on voxy\'s queue.')
-        //     cog.outl('    final Thread worker = new Thread(() -> {')
-        //     cog.outl('        try {')
-        //     cog.outl('            CsLodVoxyInjector.inject(level, store,')
-        //     cog.outl('                    line -> source.getServer().execute(() ->')
-        //     cog.outl('                            source.sendSuccess(() -> Component.literal("[chunksmith] " + line), true)));')
-        //     cog.outl('        } catch (final Exception e) {')
-        //     cog.outl('            source.getServer().execute(() -> source.sendFailure(')
-        //     cog.outl('                    Component.literal("[chunksmith] LOD injection failed: " + e)));')
-        //     cog.outl('        }')
-        //     cog.outl('    }, "chunksmith-lod-inject");')
-        //     cog.outl('    worker.setDaemon(true);')
-        //     cog.outl('    worker.start();')
-        //     cog.outl('    return 1;')
-        //     cog.outl('}));')
-        // else:
-        //     cog.outl("// /cslod inject is absent on this cell: it compiles directly against the voxy jar, and voxy")
-        //     cog.outl("// (Fabric-only; never published for 1.20.1 or 1.21.1) has no build for this (loader, MC).")
-        //     cog.outl("// Distant Horizons IS served here -- see /cslod dhpush below.")
-        //
-        // if compat.has_dh(mcver, loader):
-        //     cog.outl('')
-        //     cog.outl('root.then(Commands.literal("dhpush").requires(operatorOnly).executes(context -> {')
-        //     cog.outl('    final CommandSourceStack source = context.getSource();')
-        //     cog.outl('    final ServerLevel level = source.getLevel();')
-        //     cog.outl('    final Path store = LodSupport.storeRoot(level);')
-        //     cog.outl('    if (!Files.isDirectory(store)) {')
-        //     cog.outl('        source.sendFailure(Component.literal("[chunksmith] no LOD store for this dimension"));')
-        //     cog.outl('        return 0;')
-        //     cog.outl('    }')
-        //     cog.outl('    if (!LodPlatform.isModLoaded("distanthorizons")) {')
-        //     cog.outl('        source.sendFailure(Component.literal("[chunksmith] Distant Horizons is not installed"));')
-        //     cog.outl('        return 0;')
-        //     cog.outl('    }')
-        //     cog.outl('    // THIS level\'s wrapper -- never "the last one DH mentioned". DH loads every dimension')
-        //     cog.outl('    // at startup, so a last-wins wrapper is the END, and DH will happily (and silently)')
-        //     cog.outl('    // accept overworld chunks into the end\'s database.')
-        //     cog.outl('    final var wrapper = CsLodDhSupport.wrapperFor(level);')
-        //     cog.outl('    if (wrapper == null) {')
-        //     cog.outl('        source.sendFailure(Component.literal(')
-        //     cog.outl('                "[chunksmith] DH has not reported this level yet -- rejoin the world and retry"));')
-        //     cog.outl('        return 0;')
-        //     cog.outl('    }')
-        //     cog.outl('    source.sendSuccess(() -> Component.literal(')
-        //     cog.outl('            "[chunksmith] pushing LOD store into Distant Horizons -> " + wrapper.getDhIdentifier()), true);')
-        //     cog.outl('    final Thread worker = new Thread(() -> {')
-        //     cog.outl('        try {')
-        //     cog.outl('            CsLodDhPusher.push(level, wrapper, store,')
-        //     cog.outl('                    line -> source.getServer().execute(() ->')
-        //     cog.outl('                            source.sendSuccess(() -> Component.literal("[chunksmith] " + line), true)));')
-        //     cog.outl('        } catch (final Exception e) {')
-        //     cog.outl('            source.getServer().execute(() -> source.sendFailure(')
-        //     cog.outl('                    Component.literal("[chunksmith] DH push failed: " + e)));')
-        //     cog.outl('        }')
-        //     cog.outl('    }, "chunksmith-dh-push");')
-        //     cog.outl('    worker.setDaemon(true);')
-        //     cog.outl('    worker.start();')
-        //     cog.outl('    return 1;')
-        //     cog.outl('}));')
-        // else:
-        //     cog.outl("// /cslod dhpush is absent on this cell: no LOD renderer exists for this (loader, MC) at all.")
-        //]]]
-        //[[[end]]]
-
-        root.then(Commands.literal("token").requires(operatorOnly)
+        lod.then(Commands.literal("token")
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
                             ServerPlayer target =
@@ -220,80 +128,18 @@ public final class CsLodCommand {
                             return 1;
                         })));
 
-        // Referencing CsLodClientSettings from server-side code is not a side-guard breach: it and
-        // CsLodClientConfig name no net.minecraft.client type at all; they are java.util.Properties and
-        // two static fields. What must never be reached from here is the renderer/download half, and none
-        // of it is. No permission gate: config/chunksmith-lod.properties is the player's own file, on
-        // their own machine; the command forwards and the client answers.
-        root.then(Commands.literal("set")
-                .executes(context -> clientSetting(context.getSource(),
-                        CsLodProtocol.SETTING_LIST, "", ""))
-                .then(Commands.argument("name", StringArgumentType.word())
-                        .suggests((context, builder) -> {
-                            for (String name : CsLodClientSettings.names()) {
-                                builder.suggest(name);
-                            }
-                            return builder.buildFuture();
-                        })
-                        .executes(context -> clientSetting(context.getSource(),
-                                CsLodProtocol.SETTING_SHOW,
-                                StringArgumentType.getString(context, "name"), ""))
-                        .then(Commands.argument("value", StringArgumentType.word())
-                                .suggests((context, builder) -> {
-                                    // Completions come from the setting, so they cannot drift from it.
-                                    var setting = CsLodClientSettings.find(
-                                            StringArgumentType.getString(context, "name"));
-                                    if (setting.isPresent()) {
-                                        for (String option : setting.get().kind().completions()) {
-                                            builder.suggest(option);
-                                        }
-                                    }
-                                    return builder.buildFuture();
-                                })
-                                .executes(context -> clientSetting(context.getSource(),
-                                        CsLodProtocol.SETTING_SET,
-                                        StringArgumentType.getString(context, "name"),
-                                        StringArgumentType.getString(context, "value"))))));
-
-        return root;
+        return lod;
     }
 
-    /**
-     * Forward a client-settings request to the player's own client. Deliberately silent
-     * on success: the client prints the answer, because it is the side that reads and
-     * writes the file.
-     *
-     * <p>{@link CsLodServerNet#hasLodClient} exists for the refusal path. An unknown
-     * message id is dropped silently at the far end, so without the check a player on a
-     * vanilla client would type the command, see nothing, and have no way to tell success
-     * from an empty room.
-     */
-    private static int clientSetting(final CommandSourceStack source,
-                                     final byte action,
-                                     final String name,
-                                     final String value) throws CommandSyntaxException {
-        ServerPlayer player = source.getPlayerOrException();
-        if (!CsLodServerNet.hasLodClient(player)) {
-            // The "no renderer" half of this message is gone (3.4.0): the client now introduces itself
-            // whether or not it has voxy or Distant Horizons, precisely so these settings stay reachable,
-            // so blaming a missing renderer would now be a wrong answer. What is left is the honest
-            // remainder: no hello means either no Chunksmith on that client, or a different LOD protocol
-            // version (which the client reports in its own log, by version number, when it happens).
-            source.sendFailure(Component.literal(
-                    "[chunksmith] this server has not heard from your client's Chunksmith, so it cannot"
-                            + " reach your client settings. Either Chunksmith is not installed"
-                            + " client-side, or your version speaks a different LOD protocol than this"
-                            + " server; your client's log names which. Editing"
-                            + " config/chunksmith-lod.properties by hand always works."));
-            return 0;
-        }
-        if (!CsLodServerNet.sendClientSetting(player, action, name, value)) {
-            source.sendFailure(Component.literal(
-                    "[chunksmith] could not send that request to your client"));
-            return 0;
-        }
-        return 1;
+    /** One status line. Not broadcast: a readout is for whoever asked, not the room. */
+    private static void say(final CommandSourceStack source, final String line) {
+        source.sendSuccess(() -> Component.literal("[chunksmith] " + line), false);
     }
+
+    private static String orNone(final String value) {
+        return value == null || value.isEmpty() ? "(none -- store not writable)" : value;
+    }
+
 
     /**
      * Returns the renderer fields of the status line. A cell reports only the renderers

@@ -38,6 +38,7 @@ import com.kishku7.chunksmith.api.ChunksmithAPI;
 import com.kishku7.chunksmith.command.ChunksmithCommand;
 import com.kishku7.chunksmith.command.CommandArguments;
 import com.kishku7.chunksmith.command.CommandLiteral;
+import com.kishku7.chunksmith.lod.CsLodBukkitCommand;
 import com.kishku7.chunksmith.diagnostic.WorldgenOverreachLogFilter;
 import com.kishku7.chunksmith.integration.WorldBorderIntegration;
 import com.kishku7.chunksmith.platform.BukkitConfig;
@@ -181,6 +182,18 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         if (CommandLiteral.CHUNKY.equalsIgnoreCase(label) || CommandLiteral.CY.equalsIgnoreCase(label)) {
             bukkitSender.sendMessagePrefixed(TranslationKey.COMMAND_DEPRECATED_ALIAS);
         }
+        // `lod` is checked BEFORE the shared map, which is what keeps the LOD feature out of the
+        // TranslationKey-wired command tree. The mod does the equivalent by grafting a brigadier
+        // literal onto its own root; brigadier prefers a literal child over the root's dispatcher,
+        // and this if is the Bukkit spelling of that.
+        if (args.length > 0 && CsLodBukkitCommand.LITERAL.equalsIgnoreCase(args[0])) {
+            if (!hasCommandPermission(sender, CommandLiteral.STATUS)) {
+                bukkitSender.sendMessage(TranslationKey.COMMAND_NO_PERMISSION);
+                return true;
+            }
+            CsLodBukkitCommand.execute(bukkitSender, Arrays.copyOfRange(args, 1, args.length));
+            return true;
+        }
         Map<String, ChunksmithCommand> commands = chunky.getCommands();
         CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
         if (args.length > 0 && commands.containsKey(args[0].toLowerCase())) {
@@ -205,6 +218,12 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         Map<String, ChunksmithCommand> commands = chunky.getCommands();
         if (args.length == 1) {
             commands.keySet().stream().filter(name -> hasCommandPermission(sender, name)).forEach(suggestions::add);
+            if (hasCommandPermission(sender, CommandLiteral.STATUS)) {
+                suggestions.add(CsLodBukkitCommand.LITERAL);
+            }
+        } else if (CsLodBukkitCommand.LITERAL.equalsIgnoreCase(args[0])
+                && hasCommandPermission(sender, CommandLiteral.STATUS)) {
+            suggestions.addAll(CsLodBukkitCommand.suggestions(Arrays.copyOfRange(args, 1, args.length)));
         } else if (commands.containsKey(args[0].toLowerCase()) && hasCommandPermission(sender, args[0].toLowerCase())) {
             CommandArguments arguments = CommandArguments.of(Arrays.copyOfRange(args, 1, args.length));
             suggestions.addAll(commands.get(args[0].toLowerCase()).suggestions(arguments));

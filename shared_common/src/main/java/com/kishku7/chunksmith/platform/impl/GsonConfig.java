@@ -106,6 +106,11 @@ public final class GsonConfig implements Config {
     private static final long MAX_LOD_QUEUE_MIN = 16L;
     private static final long MAX_LOD_QUEUE_MAX = 100_000L;
     private static final long MAX_LOD_QUEUE_DEFAULT = 512L;
+
+    // 0 means "governor only", which is exactly what every release before 4.0.0 did. The barrier is
+    // opt-in because it LOSES on a machine with spare cores -- it idles them while the renderer
+    // drains -- and the two numbers that would make a sensible default have not been measured yet.
+    private static final long LOD_DRAIN_TO_DEFAULT = 0L;
     private static final long DISPATCH_MAX_CONCURRENT_MIN = 1L;
     private static final long DISPATCH_MAX_CONCURRENT_MAX = 4096L;
     /**
@@ -372,6 +377,25 @@ public final class GsonConfig implements Config {
                     raw, MAX_LOD_QUEUE_MIN, MAX_LOD_QUEUE_MAX, clamped));
         }
         return clamped;
+    }
+
+    @Override
+    public long getThrottleLodDrainTo() {
+        long raw = Optional.ofNullable(configModel.throttleLodDrainTo).orElse(LOD_DRAIN_TO_DEFAULT);
+        if (raw <= 0L) {
+            return 0L;
+        }
+        // Must sit BELOW the high-water mark or the barrier releases the instant it engages and the
+        // whole thing is an expensive no-op. Clamped rather than refused: a config that disagrees with
+        // itself should still run.
+        long ceiling = getThrottleMaxLodQueue();
+        if (ceiling > 0L && raw >= ceiling) {
+            long clamped = Math.max(1L, ceiling / 2L);
+            LOGGER.warn(String.format("Chunksmith: throttleLodDrainTo %d is not below throttleMaxLodQueue"
+                    + " %d, using %d", raw, ceiling, clamped));
+            return clamped;
+        }
+        return raw;
     }
 
     @Override
@@ -649,6 +673,13 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setThrottleLodDrainTo(long items) {
+        // 0 disables, as above.
+        configModel.throttleLodDrainTo = Math.max(0L, items);
+        saveConfig();
+    }
+
+    @Override
     public void setDispatchMaxConcurrent(long chunks) {
         configModel.dispatchMaxConcurrent = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
                 Math.min(DISPATCH_MAX_CONCURRENT_MAX, chunks));
@@ -766,6 +797,7 @@ public final class GsonConfig implements Config {
         // it said, and is never rewritten behind the operator's back.
         private String lodEnabled = "auto";
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
+        private Long throttleLodDrainTo = LOD_DRAIN_TO_DEFAULT;
         private Long dispatchMaxConcurrent = DISPATCH_MAX_CONCURRENT_DEFAULT;
         private Boolean lodDhOverride = false;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.

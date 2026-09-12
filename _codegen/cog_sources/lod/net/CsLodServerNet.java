@@ -115,8 +115,15 @@ public final class CsLodServerNet {
     private static final Map<UUID, Set<String>> ANNOUNCED =
             new ConcurrentHashMap<>();
 
-    /** Players whose hello we have already narrated. The retries and token renewals are not news. */
-    private static final Set<UUID> GREETED = ConcurrentHashMap.newKeySet();
+    /**
+     * Players whose hello we have already narrated, and the protocol each one speaks. The retries and
+     * token renewals are not news.
+     *
+     * <p>A map rather than a set since 4.0.0: the legacy {@code /cslod} stub has to tell a 3.x client
+     * from a 4.x one, and the version is only ever seen here, in the hello. Two parallel structures
+     * would be two things to keep in step.
+     */
+    private static final Map<UUID, Integer> GREETED = new ConcurrentHashMap<>();
 
     /**
      * Players with a scan already running. The tick thread no longer rate-limits the scan, so a
@@ -242,6 +249,17 @@ public final class CsLodServerNet {
     }
 
     /**
+     * The id this player's client should key its store on. Goes through the player rather than a
+     * captured server reference because two of the three hello sites are inside a loop over players
+     * and the third has no server in scope; they are all the same server either way.
+     */
+    private static String worldIdOf(ServerPlayer player) {
+        // Via the level, not the player: Entity carries no getServer() on any line we build for.
+        MinecraftServer server = player.level().getServer();
+        return server == null ? "" : LodSupport.worldId(server);
+    }
+
+    /**
      * Moves the backchannel to the currently configured port without a restart, after {@code /cs set
      * lodBackchannelPort}. Three things must happen together or the change is worse than useless.
      * The old listener stops (or the old port stays open and nothing has moved), the new one binds,
@@ -287,7 +305,7 @@ public final class CsLodServerNet {
         boolean available = !dims.isEmpty();
         int told = 0;
         for (ServerPlayer player : current.getPlayerList().getPlayers()) {
-            if (!GREETED.contains(player.getUUID())) {
+            if (!GREETED.containsKey(player.getUUID())) {
                 continue;
             }
             String token = (available && port != 0)
@@ -295,7 +313,8 @@ public final class CsLodServerNet {
                     : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                        CsLodProtocol.VERSION, available, port, token, dims, advertisedHost())));
+                        CsLodProtocol.VERSION, available, port, token, dims, advertisedHost(),
+                        worldIdOf(player))));
                 told++;
             } catch (IOException e) {
                 LOGGER.warn("Chunksmith: could not tell {} about the new backchannel port: {}",
@@ -409,7 +428,7 @@ public final class CsLodServerNet {
             // But do record the greeting (3.4.0): GREETED is what hasLodClient() answers, which decides
             // whether /cslod set relays to them. Leaving it out was why a player with Chunksmith and no
             // renderer could not reach their own client settings at all. Guarded by add(): one line/session.
-            if (GREETED.add(player.getUUID())) {
+            if (GREETED.put(player.getUUID(), hello.protocolVersion()) == null) {
                 LOGGER.info("Chunksmith: LOD hello from " + nameOf(player)
                         + " (voxy=false dh=false, no LOD renderer) -> serving no data;"
                         + " /cslod set can reach them");
@@ -431,7 +450,8 @@ public final class CsLodServerNet {
                 : "";
 
         send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                CsLodProtocol.VERSION, available, port, token, dims, advertisedHost())));
+                CsLodProtocol.VERSION, available, port, token, dims, advertisedHost(),
+                worldIdOf(player))));
 
         RADIUS.put(player.getUUID(),
                 Math.min(MAX_RADIUS_BLOCKS, Math.max(16, hello.radiusBlocks())));
@@ -450,7 +470,7 @@ public final class CsLodServerNet {
         String line = "Chunksmith: LOD hello from " + nameOf(player)
                 + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
                 + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port);
-        if (GREETED.add(player.getUUID())) {
+        if (GREETED.put(player.getUUID(), hello.protocolVersion()) == null) {
             LOGGER.info(line);
         } else {
             LOGGER.debug(line);
@@ -550,7 +570,8 @@ public final class CsLodServerNet {
             String token = port != 0 ? TOKENS.issue(uuid, addressOf(player)) : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
-                        CsLodProtocol.VERSION, true, port, token, dims, advertisedHost())));
+                        CsLodProtocol.VERSION, true, port, token, dims, advertisedHost(),
+                        worldIdOf(player))));
             } catch (IOException e) {
                 LOGGER.warn("Chunksmith: could not tell {} that the LOD store is ready: {}",
                         nameOf(player), e.toString());
@@ -576,7 +597,19 @@ public final class CsLodServerNet {
      * @return true once we have heard a hello from this client
      */
     public static boolean hasLodClient(ServerPlayer player) {
-        return GREETED.contains(player.getUUID());
+        return GREETED.containsKey(player.getUUID());
+    }
+
+    /**
+     * True when this player's client greeted us speaking a protocol older than ours.
+     *
+     * <p>The gate on the legacy {@code /cslod} stub. Deliberately requires a GREETING as well as an
+     * old version: a vanilla client never greets at all, and telling somebody with no Chunksmith
+     * installed to update their Chunksmith is worse than saying nothing.
+     */
+    public static boolean isLegacyClient(ServerPlayer player) {
+        Integer spoken = GREETED.get(player.getUUID());
+        return spoken != null && spoken < CsLodProtocol.VERSION;
     }
 
     /**

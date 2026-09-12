@@ -81,7 +81,9 @@ own client. The server needs no renderer -- it never draws anything, it only shi
 **It should not have one either.** A renderer installed server-side is not a step in that path: it
 competes with pregeneration for CPU and duplicates the LOD distribution, and a server-side Distant
 Horizons additionally floods the console with `[SharedApi] No DH level provided ...` whenever
-`/cslod dhpush` is run there. mod_support #27 was exactly this and nothing else. Renderers go on
+the renderer backfill is run there. mod_support #27 was exactly this and nothing else, and 4.0.0
+removed the shape that allowed it: the backfill is a CLIENT command now (`/csclient inject_dh`), so
+it can no longer be aimed at a server's own renderer by accident. Renderers go on
 clients. (The mod prints a red ERROR banner about this from 3.18.1; the plugin does not, because a
 Bukkit server cannot load one of these mods in the first place.)
 

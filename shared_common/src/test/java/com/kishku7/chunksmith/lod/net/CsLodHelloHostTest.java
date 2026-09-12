@@ -24,6 +24,7 @@ package com.kishku7.chunksmith.lod.net;
 import com.kishku7.chunksmith.command.ConfigSetting;
 import com.kishku7.chunksmith.command.ConfigSettings;
 import com.kishku7.chunksmith.util.Input;
+import com.kishku7.chunksmith.lod.CsLodWorldId;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -82,7 +83,8 @@ public class CsLodHelloHostTest {
     @Test
     public void aHostSurvivesTheRoundTrip() throws Exception {
         CsLodMessages.ServerHello sent = new CsLodMessages.ServerHello(
-                CsLodProtocol.VERSION, true, 25566, "t", List.of("minecraft_overworld"), "lod.example.net");
+                CsLodProtocol.VERSION, true, 25566, "t", List.of("minecraft_overworld"),
+                "lod.example.net", "0123456789abcdef0123456789abcdef");
         CsLodMessages.ServerHello back =
                 CsLodMessages.decodeServerHello(CsLodMessages.reader(body(sent)));
         assertEquals("lod.example.net", back.advertisedHost());
@@ -112,12 +114,14 @@ public class CsLodHelloHostTest {
     }
 
     @Test
-    public void anOldClientReadingANewHelloStopsBeforeTheHost() throws Exception {
-        // The backward-compatibility half: 3.15.0 client, 3.16.0 server. A 3.15.0 client reads exactly
-        // the fields below and then stops, so the proof is that everything it reads is unchanged and
-        // the only thing left over is the host it never asks for.
+    public void anOlderClientStopsAtItsOwnFieldAndLeavesTheRest() throws Exception {
+        // The backward-compatibility half, now two deep: a 3.15.0 client stops after the dimension
+        // list, a 3.16.0 one stops after the host, and 4.0.0 appended a world id behind both. The proof
+        // is that every field an older client reads is still where it was, in the same order, and that
+        // whatever it does not read is only ever trailing bytes.
         byte[] payload = body(new CsLodMessages.ServerHello(
-                CsLodProtocol.VERSION, true, 25566, "t", List.of("d0"), "lod.example.net"));
+                CsLodProtocol.VERSION, true, 25566, "t", List.of("d0"), "lod.example.net",
+                "0123456789abcdef0123456789abcdef"));
         try (var in = CsLodMessages.reader(payload)) {
             assertEquals(CsLodProtocol.VERSION, in.readInt());
             assertTrue(in.readBoolean());
@@ -125,9 +129,13 @@ public class CsLodHelloHostTest {
             assertEquals("t", in.readUTF());
             assertEquals(1, in.readInt());
             assertEquals("d0", in.readUTF());
-            // What an old client leaves on the floor, harmlessly: the message is length-prefixed, so
-            // trailing bytes are not a framing error to it.
+            // Where a 3.15.0 client stops. Everything past here is bytes it never asks for, and the
+            // message is length-prefixed, so leaving them is not a framing error.
+            assertTrue(in.available() > 0);
             assertEquals("lod.example.net", in.readUTF());
+            // Where a 3.16.0 client stops, for the same reason.
+            assertTrue(in.available() > 0);
+            assertEquals("0123456789abcdef0123456789abcdef", in.readUTF());
             assertEquals(0, in.available());
         }
     }
@@ -194,5 +202,36 @@ public class CsLodHelloHostTest {
     public void theBudgetKeyIsThereToo() {
         assertTrue(ConfigSettings.find("lodIndexBudgetMb").isPresent());
         assertFalse(ConfigSettings.find("lodIndexBudgetMbb").isPresent());
+    }
+
+    @Test
+    public void theWorldIdSurvivesTheRoundTrip() throws Exception {
+        String id = "0123456789abcdef0123456789abcdef";
+        CsLodMessages.ServerHello sent = new CsLodMessages.ServerHello(
+                CsLodProtocol.VERSION, true, 25566, "t", List.of("d0"), "", id);
+        byte[] payload = body(sent);
+        try (var in = CsLodMessages.reader(payload)) {
+            assertEquals(id, CsLodMessages.decodeServerHello(in).worldId());
+        }
+    }
+
+    @Test
+    public void aHelloThatStopsAfterTheHostDecodesToAnEmptyWorldId() throws Exception {
+        // The 3.x server shape: advertisedHost present, nothing after it. available() is exact here
+        // because the stream is one already-framed message, so this is the real path, not a mock.
+        byte[] payload = body(new CsLodMessages.ServerHello(
+                CsLodProtocol.VERSION, true, 25566, "t", List.of("d0"), "lod.example.net", ""));
+        try (var in = CsLodMessages.reader(payload)) {
+            assertEquals("", CsLodMessages.decodeServerHello(in).worldId());
+        }
+    }
+
+    @Test
+    public void onlyAThirtyTwoCharHexStringIsAcceptedAsAWorldId() {
+        assertTrue(CsLodWorldId.isValid("0123456789abcdef0123456789abcdef"));
+        assertFalse(CsLodWorldId.isValid(""));
+        assertFalse(CsLodWorldId.isValid("0123456789ABCDEF0123456789ABCDEF"));
+        assertFalse(CsLodWorldId.isValid("0123456789abcdef"));
+        assertFalse(CsLodWorldId.isValid(null));
     }
 }

@@ -59,8 +59,17 @@ public final class CsLodProtocol {
      * v1 gets silence, reported after {@code CsLodClientNet.HELLO_TIMEOUT_MILLIS}. v2 also
      * adds {@link #C2S_REQUEST_SUMMARY} / {@link #S2C_SUMMARY}, which alone would not have
      * forced a bump.
+     *
+     * <p><b>v4 (4.0.0). There is no v3</b> -- the number is kept equal to the mod's major
+     * version from here on, so 2 jumps straight to 4. Two changes. {@code S2C_HELLO} gains a
+     * world id, which the client keys its store on instead of the address it dialled; a
+     * regenerated world therefore stops serving a stale store, and two servers behind one
+     * hostname stop sharing one. And the {@code SETTING_*} relay is gone: the client settings
+     * command is a client command now, so it reads its own file rather than being asked.
+     * A v2 peer is not refused outright -- see the {@code legacy} package for what each
+     * direction does instead.
      */
-    public static final int VERSION = 2;
+    public static final int VERSION = 4;
 
     /** HTTP path prefix for a region file: {@code /lod/<dim>/r.<x>.<z>.cslod}. */
     public static final String HTTP_PREFIX = "/lod/";

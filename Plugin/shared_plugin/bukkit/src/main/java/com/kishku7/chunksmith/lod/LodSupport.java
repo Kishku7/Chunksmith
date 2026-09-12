@@ -130,6 +130,18 @@ public final class LodSupport {
                 .normalize();
     }
 
+    /**
+     * The store root a world's dimension directories hang off, {@code <world>/chunksmith/lod}.
+     *
+     * <p>This is where the plugin and the mod genuinely differ. A mod server is ONE save folder with
+     * every dimension nested under it, so it has one of these. Bukkit gives each world its own folder,
+     * so it has one per world -- which is why the world id is anchored to the PRIMARY world rather
+     * than computed per call. See {@code CsLodServerBukkit#worldId}.
+     */
+    public static Path storeRootBase(World world) {
+        return world.getWorldFolder().toPath().resolve("chunksmith").resolve("lod").normalize();
+    }
+
     /** Mirrors the mod-loader {@code dimensionKey}: the dimension id with ':' and '/' flattened. */
     public static String dimensionKey(World world) {
         return world.getKey().toString().replace(':', '_').replace('/', '_');

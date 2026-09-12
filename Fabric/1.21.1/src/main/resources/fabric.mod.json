@@ -27,6 +27,7 @@
     ],
     "client": [
       "com.kishku7.chunksmith.lod.client.LodClientInit",
+      "com.kishku7.chunksmith.lod.client.CsLodClientCommandInit",
       "com.kishku7.chunksmith.worldenter.client.WorldEnterClientInit"
     ]
   },

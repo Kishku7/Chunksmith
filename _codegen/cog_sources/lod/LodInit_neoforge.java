@@ -51,10 +51,8 @@ public final class LodInit {
     private LodInit() {
     }
 
-    @SubscribeEvent
-    public static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(CsLodCommand.build());
-    }
+    // No onRegisterCommands here since 4.0.0. The LOD operator commands are a `lod` node on the
+    // /cs root, grafted in the loader main's buildCommand so they inherit its permission gate.
 
     /**
      * Binds Distant Horizons at the last point before it reports its levels. {@code

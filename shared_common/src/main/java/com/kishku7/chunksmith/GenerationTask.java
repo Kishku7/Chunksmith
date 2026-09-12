@@ -111,6 +111,18 @@ public class GenerationTask implements Runnable {
     // even when chunk completions have stalled entirely (disk blocked, no callbacks firing).
     private static final long RAMP_INTERVAL_MS = 1_000L;     // at most +1 per second
     private static final long BACKOFF_INTERVAL_MS = 250L;    // at most -1 per 250 ms
+
+    /** How often to re-read the sink's depth while the barrier holds. Matches the store-replay path. */
+    private static final long LOD_DRAIN_POLL_MS = 20L;
+
+    /**
+     * Longest the barrier will hold before giving up and letting the governor take over.
+     *
+     * <p>The sink is another mod's code and its queue is unbounded; a renderer that stops consuming
+     * must cost a pause, not the whole run. TODO measure this against a real drain on the core-starved
+     * rig -- 30s is a guard, not a tuned number.
+     */
+    private static final long LOD_DRAIN_MAX_MS = 30_000L;
     private static final long MSPT_CHECK_INTERVAL_MS = 250L; // how often tick health is evaluated
     private static final double MSPT_BAND = 3.0D;            // dead-band around target to prevent flapping
     private static final long WRITE_CHECK_INTERVAL_MS = 100L; // how often the disk write-queue depth is sampled
@@ -162,6 +174,7 @@ public class GenerationTask implements Runnable {
     private final long maxChunkMillis;
     private final long maxQueuedWrites;
     private final long maxLodQueue;
+    private final long lodDrainTo;
     private final long resumeQueuedWrites;
     private final AtomicLong lastWriteCheckTime = new AtomicLong(0);
     private final AtomicLong lastWriteNoticeTime = new AtomicLong(0);
@@ -221,6 +234,7 @@ public class GenerationTask implements Runnable {
         this.maxChunkMillis = chunky.getConfig().getThrottleMaxChunkMillis();
         this.maxQueuedWrites = chunky.getConfig().getThrottleMaxQueuedWrites();
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
+        this.lodDrainTo = chunky.getConfig().getThrottleLodDrainTo();
         this.maxWorkingCount = (int) Math.max(1L, chunky.getConfig().getDispatchMaxConcurrent());
         this.dispatchLimit.set(this.maxWorkingCount);
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
@@ -457,17 +471,83 @@ public class GenerationTask implements Runnable {
     }
 
     /**
-     * LOD-sink governor. The LOD sink (voxy) queues ingest work on an
-     * unbounded queue and never reports saturation, so it cannot push
-     * back on us -- we have to watch it. When its backlog exceeds the
-     * configured bound, back off dispatch until it drains.
+     * LOD-sink governor, or barrier. The LOD sink (voxy) queues ingest work
+     * on an unbounded queue and never reports saturation, so it cannot push
+     * back on us -- we have to watch it.
+     *
+     * <p>Two behaviours, chosen by {@code throttleLodDrainTo}:
+     *
+     * <ul>
+     *   <li><b>0, the default and every release before 4.0.0:</b> a GOVERNOR.
+     *       Drop dispatch by one, at most once per interval, never below one.
+     *       It never stops, so both workloads run together indefinitely --
+     *       right on a machine with cores to spare.</li>
+     *   <li><b>Above 0:</b> a BARRIER. Stop dispatching entirely and let the
+     *       renderer drain to that depth before resuming. Alternating beats
+     *       competing when there are no spare cores, which is the case a
+     *       reporter measured on an i3-7100 as "the pregeneration pauses
+     *       pretty often" (mod_support #20). It is the same stop-drain-resume
+     *       the store-replay path has always used.</li>
+     * </ul>
+     *
+     * <p>Opt-in rather than switched on because it LOSES on a wide machine:
+     * the drain idles cores that had work available. The two numbers that
+     * would justify a default have not been measured on a core-starved rig
+     * yet, and guessing them is how a throttle ends up tuned for one box.
      */
     private void adjustFromLodQueue() {
         if (maxLodQueue <= 0L) {
             return;
         }
-        if (LodSinks.get().queueDepth() > maxLodQueue) {
+        if (LodSinks.get().queueDepth() <= maxLodQueue) {
+            return;
+        }
+        if (lodDrainTo <= 0L) {
             backoff();
+            return;
+        }
+        drainLodQueue();
+    }
+
+    /**
+     * Holds the dispatcher until the LOD sink has drained to {@code lodDrainTo}.
+     *
+     * <p>Safe to sleep here, and only here: this runs on the Chunksmith worker thread, never the
+     * server thread, which is also why no ticket work may happen in this loop (mod_support #16).
+     * Blocking the server thread on a renderer's queue would be a watchdog kill.
+     *
+     * <p>Bounded by {@link #LOD_DRAIN_MAX_MS} because the sink is somebody else's code: a renderer
+     * that wedges must cost a pause, not the run. On expiry the generator carries on and the governor
+     * takes over, which is strictly the old behaviour.
+     */
+    private void drainLodQueue() {
+        long started = System.currentTimeMillis();
+        long depth = LodSinks.get().queueDepth();
+        long startedAt = depth;
+        boolean waited = false;
+
+        while (depth > lodDrainTo && !cancelled) {
+            if (System.currentTimeMillis() - started > LOD_DRAIN_MAX_MS) {
+                LOGGER.warn(String.format("Chunksmith: the LOD sink did not drain below %d within %ds"
+                        + " (still %d); carrying on and letting the governor handle it.",
+                        lodDrainTo, LOD_DRAIN_MAX_MS / 1000L, depth));
+                return;
+            }
+            try {
+                Thread.sleep(LOD_DRAIN_POLL_MS);
+            } catch (InterruptedException e) {
+                // A cancel or a shutdown. Restore the flag and let the run loop see it rather than
+                // swallowing it here.
+                Thread.currentThread().interrupt();
+                return;
+            }
+            waited = true;
+            depth = LodSinks.get().queueDepth();
+        }
+
+        if (waited) {
+            LOGGER.debug(String.format("Chunksmith: paused generation for %dms while the LOD sink drained"
+                    + " %d -> %d", System.currentTimeMillis() - started, startedAt, depth));
         }
     }
 

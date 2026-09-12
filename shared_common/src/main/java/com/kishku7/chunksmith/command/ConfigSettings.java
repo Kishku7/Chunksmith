@@ -66,6 +66,7 @@ public final class ConfigSettings {
             integer("throttleMaxChunkMillis", Config::getThrottleMaxChunkMillis, Config::setThrottleMaxChunkMillis),
             integer("throttleMaxQueuedWrites", Config::getThrottleMaxQueuedWrites, Config::setThrottleMaxQueuedWrites),
             integer("throttleMaxLodQueue", Config::getThrottleMaxLodQueue, Config::setThrottleMaxLodQueue),
+            integer("throttleLodDrainTo", Config::getThrottleLodDrainTo, Config::setThrottleLodDrainTo),
             integer("dispatchMaxConcurrent", Config::getDispatchMaxConcurrent, Config::setDispatchMaxConcurrent),
             integer("throttleMaxAddedChunks", Config::getThrottleMaxAddedChunks, Config::setThrottleMaxAddedChunks),
             integer("throttleMaxHeapPercent", Config::getThrottleMaxHeapPercent, Config::setThrottleMaxHeapPercent),

@@ -159,6 +159,22 @@ public interface Config {
     long getThrottleMaxLodQueue();
 
     /**
+     * Returns the LOD-sink backlog the generator waits DOWN to once
+     * {@link #getThrottleMaxLodQueue()} has been exceeded, or 0 to keep the
+     * old governor-only behaviour.
+     *
+     * <p>The governor alone never stops: it drops dispatch by one at a time
+     * and never below one, so both workloads grind on together forever. On a
+     * machine with spare cores that is the right trade. On two cores it is
+     * the contention a reporter measured as "the pregeneration pauses pretty
+     * often" (mod_support #20). Above zero, the generator instead stops dead
+     * and lets the renderer drain -- the pattern the store-replay path has
+     * always used -- which finishes sooner on a starved box and wastes cores
+     * on a wide one. Hence a setting, not a behaviour change.
+     */
+    long getThrottleLodDrainTo();
+
+    /**
      * How many chunk requests Chunksmith keeps in flight at once, the
      * pipeline's width, and on a healthy server what actually sets the rate.
      * A chunk request spends almost all of its life waiting, because vanilla
@@ -380,6 +396,8 @@ public interface Config {
     void setAutoPauseGraceSeconds(int seconds);
 
     void setThrottleMaxLodQueue(long items);
+
+    void setThrottleLodDrainTo(long items);
 
     void setDispatchMaxConcurrent(long chunks);
 

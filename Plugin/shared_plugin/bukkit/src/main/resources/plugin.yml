@@ -2,7 +2,6 @@ name: ${name}
 version: ${version}
 main: ${group}.chunksmith.ChunksmithBukkit
 api-version: ${apiVersion}
-folia-supported: true
 softdepend: [dynmap, BlueMap, squaremap, WorldBorder, Chunky]
 load: POSTWORLD
 authors: [${author}, pop4959]

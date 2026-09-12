@@ -43,8 +43,8 @@ public final class LodInit implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-                dispatcher.register(CsLodCommand.build()));
+        // No command registration here since 4.0.0. The LOD operator commands are a `lod` node on
+        // the /cs root, grafted in ChunksmithFabric#buildCommand so they inherit its permission gate.
 
         // The LOD protocol: the channel is registered at init; the HTTP backchannel binds
         // once the server is up and its port is known, and unbinds when it stops.

@@ -22,6 +22,7 @@
 package com.kishku7.chunksmith.lod;
 
 import com.kishku7.chunksmith.util.RendererNames;
+import com.kishku7.chunksmith.lod.CsLodWorldId;
 import com.kishku7.chunksmith.ChunksmithProvider;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -208,6 +209,15 @@ public final class LodSupport {
      */
     public static Path storeRootBase(MinecraftServer server) {
         return server.getWorldPath(LevelResource.ROOT).resolve("chunksmith").resolve("lod").normalize();
+    }
+
+    /**
+     * The id clients key their copy of this world's store on, or empty if we could not write one.
+     * Minted once and cached; see {@link com.kishku7.chunksmith.lod.CsLodWorldId} for why it is not
+     * the seed.
+     */
+    public static String worldId(MinecraftServer server) {
+        return CsLodWorldId.forStore(storeRootBase(server));
     }
 
     /** Returns our own tree, {@code <world>/chunksmith/lod/<dim>}; we never touch voxy's or DH's store. */
