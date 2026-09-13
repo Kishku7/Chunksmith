@@ -1027,7 +1027,18 @@ public final class CsLodClientNet {
         if (!advertisedHost.isEmpty() && !advertisedHost.equals(host)) {
             out.add("fetching from: " + fetch + " (server advertised it)");
         }
-        out.add("world id:     " + (worldId.isEmpty() ? "(none -- 3.x server, keyed by address)" : worldId));
+        // Three different reasons the id can be absent, and they are not interchangeable: nobody to
+        // ask, a server too old to answer, or an answer we refused. Saying "3.x server" in
+        // singleplayer sends someone looking for a server that does not exist.
+        String idLine;
+        if (!worldId.isEmpty()) {
+            idLine = worldId;
+        } else if (host.isEmpty()) {
+            idLine = "(not connected -- nothing to key a store on)";
+        } else {
+            idLine = "(none -- this server predates 4.0.0, so the store is keyed by address)";
+        }
+        out.add("world id:     " + idLine);
         out.add("store:        " + store);
         out.add("dimension:    " + (activeDimension.isEmpty() ? "(none)" : activeDimension));
 

@@ -417,6 +417,19 @@ public final class CsLodServerNet {
             // old client's own version check names the problem in their log. No token, no scan, no data.
             send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                     CsLodProtocol.VERSION, false, 0, "", List.of())));
+            // RECORD THE GREETING EVEN THOUGH WE REFUSED TO SERVE. This is what tells the legacy
+            // /cslod stub that an OLD client is present, and it was missing: the stub could never
+            // fire for the only clients it exists for, so it was dead code. Found by running a
+            // 3.18.1 client against a 4.0.0 server -- no 4.x-only rig can see this.
+            GREETED.put(player.getUUID(), hello.protocolVersion());
+            // And re-send the command tree. Brigadier builds it ONCE at login, before this hello
+            // arrives, so requires() had already been evaluated with GREETED empty and the node
+            // dropped for the whole session. Re-sending re-evaluates it, and the client is told to
+            // update instead of getting "Unknown or incomplete command".
+            MinecraftServer owner = player.level().getServer();
+            if (owner != null) {
+                owner.getCommands().sendCommands(player);
+            }
             return;
         }
         if (!hello.hasVoxy() && !hello.hasDh()) {
