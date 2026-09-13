@@ -1,6 +1,7 @@
 # Chunksmith - Build Guide
 
-`CSv3-Current` is the Chunksmith source tree for the 3.x line and the branch all current work
+`CSv3-Current` is the Chunksmith source tree for the 3.x and 4.x lines, and the branch all current
+work
 happens on. One codebase builds every supported target - the Fabric, Forge and NeoForge mods plus
 the Bukkit/Paper plugin - across Minecraft 1.20.1 through 26.3.
 
@@ -167,9 +168,12 @@ Also worth knowing, from gating the above: **DH + Sodium on a dedicated server p
 
 ## Platform notes
 
-- **Folia is no longer a supported or tested platform.** Plugin testing is on Paper. Existing jars
-  that declare `folia-supported` keep working for now; the flag and the runtime branches come out in
-  a later release.
+- **Folia is not supported, and from 4.0.0 the plugin will not load on it.** `folia-supported` is
+  gone from `plugin.yml`, so Folia refuses the plugin rather than running something nothing tests.
+  Plugin testing is on Paper. Jars from 3.x still declare the flag and still load there. The
+  region-scheduler runtime branches are still in the tree and come out separately -- removing them
+  means moving three cells off `folia-api` and unwinding the JVM-version workarounds it forces, which
+  is its own change.
 - **The plugin has no in-band fallback.** When the LOD backchannel port cannot be bound or reached,
   the mod drips the same bytes down the game connection; the plugin does not, so a blocked port means
   players get nothing rather than something slow. It is logged plainly. This is the one real
