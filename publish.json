@@ -5,5 +5,10 @@
   "fabric_api_dep": "P7dR8mSH",
   "env": "server_only_client_optional",
   "quilt_via_fabric_pre26": true,
-  "forge_jar_also_neoforge_below_mc": null
+  "forge_jar_also_neoforge_below_mc": null,
+  "plugin_loaders": [
+    "bukkit",
+    "spigot",
+    "paper"
+  ]
 }
