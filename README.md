@@ -69,9 +69,10 @@ identify rather than something you merely suffer.
 
 ### Everything is live
 
-Every setting is readable and settable with `/cs set` -- no restart, no editing files, no server
-downtime. That's a rule the project holds itself to, with a test that fails if a setting is added
-without a command for it.
+Every setting is readable and settable live -- no restart, no editing files, no server downtime.
+Server settings are `/cs set`; the ones that belong to your own client are `/csclient set`. That's a
+rule the project holds itself to, with a test that fails if a setting is added without a command for
+it.
 
 ---
 
@@ -92,12 +93,18 @@ install is **optional**.
 You only need it on the client for **multiplayer LOD**: to see pregenerated distant terrain on a
 server you haven't walked. Pre-generation alone needs nothing on the client.
 
-Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot plugin**. (Folia is no longer
-tested: the plugin still carries its Folia support and as far as anyone knows it still works, but
-nothing verifies that any more, so it is not a promise this project makes.)
+Ships as a **Fabric, Forge, and NeoForge mod** and a **Paper / Spigot plugin**. (Folia is not
+supported. From 4.0.0 the plugin will not load on Folia at all -- it no longer declares
+`folia-supported`, so Folia refuses it rather than running a platform nothing tests. An unverifiable
+claim is worse than an absent one.)
 
-**Server and client should run the same Chunksmith version.** The LOD wire protocol is versioned and
-a mismatch is refused with a clear message rather than failing strangely.
+**Server and client must run the same major version.** 4.0.0 changed the LOD wire protocol, and a
+mixed 3.x/4.x pair turns LOD off in both directions: the client will not fetch and the server will
+not serve. Everything else keeps working -- it is the distant terrain that stops arriving, and both
+sides say so plainly rather than failing strangely.
+
+Worth knowing before you update: **a launcher will offer 4.0.0 to anyone on 3.x**, so a client can be
+updated into that mismatch without the server being touched. Move both together.
 
 **Put the renderer on the client, and only on the client.** Distant Horizons and Voxy draw distant
 terrain, and only a client draws anything -- the server just ships the data. A renderer installed on
@@ -125,8 +132,8 @@ including the voxy forks, and which mods Chunksmith refuses to load beside.
 
 ## Source
 
-[`CSv3-Current`](https://github.com/Kishku7/Chunksmith/tree/CSv3-Current) -- the 3.x line, where
-current development happens. The 2.x line is frozen on
+[`CSv3-Current`](https://github.com/Kishku7/Chunksmith/tree/CSv3-Current) -- the 3.x and 4.x lines,
+where current development happens. The 2.x line is frozen on
 [`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
 
 ## License
