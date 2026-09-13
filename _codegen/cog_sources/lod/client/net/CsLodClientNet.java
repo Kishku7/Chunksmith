@@ -135,6 +135,13 @@ public final class CsLodClientNet {
     private static final Map<String, List<CsLodMessages.RegionEntry>> DECLINED = new HashMap<>();
 
     /**
+     * Whether this connection has already told the player that the protocols disagree. Per
+     * CONNECTION, not per session: reset() clears it on disconnect, so moving to a server that is
+     * still on Chunksmith 3 says so again, but a re-hello on the same server does not repeat it.
+     */
+    private static boolean mismatchTold = false;
+
+    /**
      * The dimension we are currently pulling for. always the one the player is actually in. This field held
      * {@code hello.dimensions().get(0)} in 3.1.0-beta-2 and never changed again, which is the failure
      * {@code CsLodDimension} documents. Now re-derived from the level ({@link #dimensionTick}); a dimension
@@ -422,9 +429,11 @@ public final class CsLodClientNet {
     /**
      * We said hello and nothing came back. Say so once, at INFO. Two servers look identical from here and
      * neither sends anything that would tell them apart: one that does not run Chunksmith at all (normal,
-     * nothing wrong), and one running 3.1.0-beta-3 or earlier, which sees our v2 hello, refuses it as a
-     * protocol it does not know, and replies with nothing. (Our own v2 server deliberately answers an old
-     * client's v1 hello so it can name the mismatch. An old server does us no such favour.) INFO rather
+     * nothing wrong), and one running 3.1.0-beta-3 or earlier, which sees our hello, refuses it as a
+     * protocol it does not know, and replies with nothing. (Our own server deliberately answers an
+     * out-of-date client's hello so it can name the mismatch. An old server does us no such favour.) A
+     * Chunksmith 3 server from beta-4 onward also answers and names the mismatch itself, so it never
+     * reaches this path -- see serverHello. INFO rather
      * than DEBUG because case 2 is a player who updated before the server did, staring at an empty horizon
      * with no explanation in their log; the line is worded to be true of both cases and does not guess.
      */
@@ -443,10 +452,11 @@ public final class CsLodClientNet {
         }
         silenceReported = true;
         LOGGER.info("Chunksmith: no LOD data is being offered by this server (it did not answer our hello"
-                        + " within {}s). Either it does not run Chunksmith (which is normal, and nothing is"
-                        + " wrong) or it runs a version older than 3.1.0-beta-4, which speaks an LOD"
-                        + " protocol older than v{} and cannot serve this client. If you expected LOD terrain"
-                        + " here, the server and every client must be on 3.1.0-beta-4 or later.",
+                        + " within {}s). Either it does not run Chunksmith at all -- which is normal, and"
+                        + " nothing is wrong -- or it runs one old enough not to recognise our hello"
+                        + " (3.1.0-beta-3 or earlier). A server on any later Chunksmith 3 DOES answer, and"
+                        + " says so itself. If you expected LOD terrain here, the server and every client"
+                        + " must both be on Chunksmith 4 or newer, which is what speaks LOD protocol v{}.",
                 HELLO_TIMEOUT_MILLIS / 1000L, CsLodProtocol.VERSION);
     }
 
@@ -588,13 +598,24 @@ public final class CsLodClientNet {
     private static void serverHello(CsLodMessages.ServerHello hello) {
         helloAnswered = true;
         if (hello.protocolVersion() != CsLodProtocol.VERSION) {
-            // A 3.1.0-beta-3 server speaks v1, where the hash field is a CRC32 of the region's contents --
-            // which is what forced that server to read every file in our radius (the bug). The two
-            // protocols cannot interoperate; say so in words a player can act on, once.
-            LOGGER.warn("Chunksmith: this server speaks LOD protocol v{} and we speak v{}. Not fetching."
-                            + " The server and the client must be on the same Chunksmith version"
-                            + " (v1 is 3.1.0-beta-3 and earlier; v2 is 3.1.0-beta-4 and later).",
-                    hello.protocolVersion(), CsLodProtocol.VERSION);
+            // The protocols cannot interoperate, so LOD is simply off in BOTH directions: we will not
+            // fetch, and the server will not serve. Say it where the player will actually see it.
+            //
+            // This is the direction the launchers CREATE. Modrinth's update feed offers 4.x to anyone
+            // on 3.x for the same loader and MC version, so a player can be auto-updated into this
+            // state without touching their server. The mirror case (v4 server, v3 client) already
+            // answers in chat through the legacy /cslod stub; this direction was log-only, which meant
+            // the player simply saw distant terrain stop appearing and had nothing to act on.
+            String line = "[chunksmith] LOD is off: this server speaks LOD protocol v"
+                    + hello.protocolVersion() + " and this client speaks v" + CsLodProtocol.VERSION
+                    + ". Chunksmith 4 changed the protocol, so the server and the client must BOTH"
+                    + " be on Chunksmith 4 or newer for distant terrain to load."
+                    + " Everything else in Chunksmith still works.";
+            LOGGER.warn(line);
+            if (!mismatchTold) {
+                mismatchTold = true;
+                chat(line);
+            }
             return;
         }
         if (!capsVoxy && !capsDh) {
@@ -1194,6 +1215,7 @@ public final class CsLodClientNet {
         lastIndex = List.of();
         helloSentMillis = 0L;
         helloAnswered = false;
+        mismatchTold = false;
         silenceReported = false;
         inBandRoot = null;
         inBandDimension = "";
