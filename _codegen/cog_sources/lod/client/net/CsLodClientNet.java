@@ -36,6 +36,7 @@ import com.kishku7.chunksmith.lod.net.CsLodSummary;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
 import java.util.Comparator;
 import com.kishku7.chunksmith.lod.client.CsLodDiskBudget;
+import com.kishku7.chunksmith.lod.LodSinks;
 import com.kishku7.chunksmith.lod.CsLodWorldId;
 import com.kishku7.chunksmith.lod.legacy.CsLodLegacySettings;
 import net.minecraft.client.Minecraft;
@@ -1051,6 +1052,11 @@ public final class CsLodClientNet {
                 : "backchannel " + backchannelPort));
         out.add("token:        " + (token.isEmpty() ? "none" : "held"));
         out.add("renderers:    voxy=" + (capsVoxy ? "yes" : "no") + " dh=" + (capsDh ? "yes" : "no"));
+        // The depth throttleLodDrainTo is measured against. Shown because a user tuning that
+        // knob otherwise has no way to tell whether the barrier can engage on their machine at
+        // all -- it only fires once this passes throttleMaxLodQueue.
+        out.add("queue:        " + LodSinks.get().queueDepth()
+                + " chunk(s) awaiting the renderer");
         out.add("radius:       " + (capsRadius <= 0 ? "(unknown)" : capsRadius + " blocks"));
         out.add("injected:     " + LodInjector.describe());
         out.add("download:     " + describe());

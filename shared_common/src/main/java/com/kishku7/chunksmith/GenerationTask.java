@@ -483,17 +483,30 @@ public class GenerationTask implements Runnable {
      *       It never stops, so both workloads run together indefinitely --
      *       right on a machine with cores to spare.</li>
      *   <li><b>Above 0:</b> a BARRIER. Stop dispatching entirely and let the
-     *       renderer drain to that depth before resuming. Alternating beats
-     *       competing when there are no spare cores, which is the case a
-     *       reporter measured on an i3-7100 as "the pregeneration pauses
-     *       pretty often" (mod_support #20). It is the same stop-drain-resume
-     *       the store-replay path has always used.</li>
+     *       renderer drain to that depth before resuming. The theory is that
+     *       alternating beats competing when there are no spare cores. It is
+     *       the same stop-drain-resume the store-replay path has always used.
+     *       Read the measurement below before turning it on.</li>
      * </ul>
      *
-     * <p>Opt-in rather than switched on because it LOSES on a wide machine:
-     * the drain idles cores that had work available. The two numbers that
-     * would justify a default have not been measured on a core-starved rig
-     * yet, and guessing them is how a throttle ends up tuned for one box.
+     * <p>Opt-in, and MEASURED rather than assumed (2026-09-12, Fabric
+     * 1.21.11 client pinned to 4 cores with voxy 0.2.16; full record in
+     * mod_support issue-20). Two results, both arguing for the default of 0:
+     *
+     * <ul>
+     *   <li>At the DEFAULT {@code throttleMaxLodQueue} of 512 the sink queue
+     *       peaked near 46, so {@link #adjustFromLodQueue()} returns at its
+     *       first check and NEITHER the barrier nor the governor ever runs.
+     *       voxy ingests about as fast as we generate.</li>
+     *   <li>With the ceiling lowered until the barrier does engage, it ran
+     *       ~11% SLOWER than the governor over interleaved arms, and the
+     *       pause distribution was unchanged (p90 2.42-2.43s in every arm).
+     *       It costs throughput and buys no smoothness.</li>
+     * </ul>
+     *
+     * <p>So this is not the fix for "pregen pauses pretty often" -- a 45s
+     * progress gap was observed while the queue sat under 46, with the I/O
+     * throttle active. Whatever causes those pauses, it is not this.
      */
     private void adjustFromLodQueue() {
         if (maxLodQueue <= 0L) {
