@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [4.0.0] - 2026-09-12
+## [4.0.0] - 2026-09-13
 
 Breaking. The command surface is reorganised by who can run a command and where it executes, and
 `/cslod` is retired. Protocol version moves to 4.
@@ -32,6 +32,14 @@ Breaking. The command surface is reorganised by who can run a command and where 
 - **Both status commands print one value per line** instead of a single packed line.
 - The per-subcommand operator gates are gone. `/cs` gates at its root, and `/csclient` needs no gate.
 
+- **The client store is keyed to the WORLD, not the server address.** A client used to file LOD under
+  the host it connected to, so a world that changed address looked brand new and was downloaded again,
+  while two unrelated worlds behind one address shared a store and overwrote each other. The server now
+  mints a stable id per world and the client files under that. Stores from before 4.0 are left alone,
+  listed by `/csclient status` as `pre-4.0 stores`, and cleared by `/csclient reset` when you want the
+  space back. Against a 3.x server the client falls back to the old host key, because that server has
+  no id to give.
+
 ### Added
 
 - **`/csclient reset`** returns the client to the state it was in before it first connected: the store
@@ -44,7 +52,27 @@ Breaking. The command surface is reorganised by who can run a command and where 
   server-side may still render its old terrain out of the renderer's copy.
 
 - **`/csclient status`** reports the client store: which server it is keyed to, the path, per-dimension
-  region counts, transport, renderers, injection progress, and the settings in force.
+  region counts, transport, renderers, injection progress, and the settings in force. It also reports
+  the **renderer queue depth** -- the number `throttleLodDrainTo` below is measured against. Without it
+  there was no way to tell whether that setting could ever engage on your machine.
+
+- **`max-disk-mb`** (client) caps what Chunksmith keeps on disk for a world, in megabytes. **Default 0,
+  meaning no cap**, which is the behaviour every earlier release had: how much a client wrote was
+  decided entirely by the server's index budget, a number the client cannot see and was never told.
+  Nearest terrain is kept first.
+
+  Declining regions does not put the client into a permanent re-download loop. The summary the two
+  sides compare is an XOR aggregate, which is its own inverse, so declined regions fold back out of
+  the server's number exactly and a capped client settles at "I have everything I intend to have".
+
+- **`throttleLodDrainTo`** (server) makes the LOD governor a barrier: stop dispatching entirely and let
+  the renderer drain to that depth before resuming, rather than merely slowing down. **Default 0,
+  meaning off, and it should stay off unless you have measured your own machine.**
+
+  It is off by default because the measurement argues against it. On a four-core client with voxy the
+  barrier ran about 11% SLOWER than the existing governor and did not change how often the run paused.
+  It is here because alternating should beat competing on a machine with no cores to spare -- but that
+  has not been demonstrated, and guessing the threshold is how a throttle ends up tuned for one box.
 
 ### Removed
 
@@ -80,9 +108,18 @@ Breaking. The command surface is reorganised by who can run a command and where 
 `CsLodProtocol.VERSION` goes from 2 to **4**, matching the major version from here on. There was never
 a protocol 3.
 
+**4.0.0 is a coordinated upgrade: move the server and the client together.** The two protocols do not
+interoperate, so a mixed 3.x/4.x pair turns LOD off in BOTH directions -- the client will not fetch and
+the server will not serve. Everything else in Chunksmith keeps working; what stops arriving is the
+distant terrain.
+
+This is worth saying plainly because a launcher will offer 4.0.0 to anyone running 3.x, so a client can
+be updated into the mismatch without the server being touched by anyone. A 4.x client that lands on a
+3.x server now says so in chat on join, rather than leaving you to work out why the horizon went empty.
+
 - **4.x server, 4.x client.** `/cslod` does not exist on either side.
-- **3.x server, 4.x client.** The client registers no `/cslod`, so the server's own still arrives in
-  the command tree and keeps working for whatever that server supports.
+- **3.x server, 4.x client.** The client registers no `/cslod`, so the server's own still arrives in the
+  command tree and `/cslod set` still reaches this client's settings. LOD data does not transfer.
 - **4.x server, 3.x client.** `/cslod` answers "update your cs client" and does nothing else.
 
 All of that lives in one `legacy` package and comes out in 5.x.
