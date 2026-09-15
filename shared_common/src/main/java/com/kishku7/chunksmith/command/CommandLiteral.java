@@ -35,6 +35,12 @@ public final class CommandLiteral {
     public static final String CONTINUE = "continue";
     public static final String CORNERS = "corners";
     public static final String DEBUG = "debug";
+    /**
+     * Alias for {@link #DEBUG}. The command is a live diagnostics dump, but its name reads as a
+     * logging on/off switch -- which is why three reporters in a row (mod_support #22, #27, #32)
+     * asked for information it was already printing. Same command, a name somebody would try.
+     */
+    public static final String DIAG = "diag";
     public static final String HELP = "help";
     public static final String INHABITED = "inhabited";
     public static final String INTERVAL = "interval";

@@ -28,6 +28,7 @@ import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.Debug;
 import com.kishku7.chunksmith.util.TickBudget;
 import com.kishku7.chunksmith.util.TicketLedger;
+import com.kishku7.chunksmith.util.DispatchStats;
 import com.kishku7.chunksmith.util.UnloadDiagnostics;
 
 import java.util.List;
@@ -58,9 +59,13 @@ public class DebugCommand implements ChunksmithCommand {
         }
         if (Debug.ENABLED) {
             sender.sendMessagePrefixed("Debug logging ENABLED. While a generation task runs, per-dimension entity-manager stats print to the server log every 5s. Run /cs debug again to turn it off.");
+            sender.sendMessagePrefixed("(The lines below are a live diagnostics dump and print whether logging is on or off.)");
         } else {
             sender.sendMessagePrefixed("Debug logging disabled.");
         }
+        // Dispatch first: it is the number people actually come looking for, and the one whose
+        // absence sent mod_support #20 chasing the wrong cause for a fortnight.
+        sender.sendMessagePrefixed("Dispatch: " + DispatchStats.describe());
         sender.sendMessagePrefixed("Tick budget: " + TickBudget.describe());
         sender.sendMessagePrefixed("Auto-pause: " + AutoPause.describe());
         sender.sendMessagePrefixed("Chunk residency: " + ChunkResidency.describe());

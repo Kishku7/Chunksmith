@@ -39,6 +39,7 @@ import com.kishku7.chunksmith.util.GeneratedChunkScan;
 import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
 import com.kishku7.chunksmith.util.DispatchControl;
+import com.kishku7.chunksmith.util.DispatchStats;
 import com.kishku7.chunksmith.util.HeapPressure;
 import com.kishku7.chunksmith.util.TickBudget;
 import com.kishku7.chunksmith.util.Input;
@@ -412,6 +413,10 @@ public class GenerationTask implements Runnable {
         progress.chunkZ = chunkZ;
         progress.dispatchCurrent = dispatchLimit.get();
         progress.dispatchMax = maxWorkingCount;
+        // Same sample, published where a human can ask for it. The width and the threshold govern
+        // the whole run and used to be invisible outside a throttle notice (mod_support #32).
+        DispatchStats.publish(inFlight.get(), progress.dispatchCurrent, goodWidth.get(),
+                maxWorkingCount, LodSinks.get().queueDepth());
         chunky.getEventBus().call(new GenerationProgressEvent(progress.world, progress.chunkCount, progress.complete, progress.percentComplete, progress.hours, progress.minutes, progress.seconds, progress.rate, progress.chunkX, progress.chunkZ));
         if (progress.complete) {
             progress.sendUpdate(chunky.getServer().getConsole());
@@ -1140,6 +1145,7 @@ public class GenerationTask implements Runnable {
         // 3.5.0 stopped driving the unload pass the moment a task ended, which orphaned the backlog
         // until the next restart. ChunkResidency has the measurement. Declare the debt here; the
         // platform's tick hook keeps paying it until residency is actually back down.
+        DispatchStats.clear();
         ChunkResidency.noteTaskEnd();
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
         chunky.getEventBus().call(new GenerationCompleteEvent(selection.world().getName()));

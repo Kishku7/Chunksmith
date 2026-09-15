@@ -143,7 +143,9 @@ public final class Chunksmith {
         commandMap.put(CommandLiteral.CONFIRM, new ConfirmCommand(this));
         commandMap.put(CommandLiteral.CONTINUE, new ContinueCommand(this));
         commandMap.put(CommandLiteral.CORNERS, new CornersCommand(this));
-        commandMap.put(CommandLiteral.DEBUG, new DebugCommand(this));
+        DebugCommand debugCommand = new DebugCommand(this);
+        commandMap.put(CommandLiteral.DEBUG, debugCommand);
+        commandMap.put(CommandLiteral.DIAG, debugCommand);
         commandMap.put(CommandLiteral.HELP, new HelpCommand(this));
         commandMap.put(CommandLiteral.PATTERN, new PatternCommand(this));
         commandMap.put(CommandLiteral.PAUSE, new PauseCommand(this));
