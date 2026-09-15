@@ -48,11 +48,32 @@ public final class DispatchControl {
      * @return the width to move to, never below 1
      */
     public static int reduce(int current, boolean sustained) {
-        if (current <= 1) {
-            return 1;
+        if (current <= MIN_USEFUL_WIDTH) {
+            // Already at or below the floor. Halving again only buys a longer climb back.
+            return Math.max(1, current);
         }
-        return sustained ? Math.max(1, current / 2) : current - 1;
+        int next = sustained ? current / 2 : current - 1;
+        return Math.max(MIN_USEFUL_WIDTH, next);
     }
+
+    /**
+     * The narrowest width the controller will THROTTLE down to.
+     *
+     * <p>Measured, on a Paper server pinned to two cores: with no floor, halving from a ceiling of
+     * 200 reaches a width of 1 in about eight steps, and the run then sits at 1-2 chunks in flight
+     * for minutes while climbing back at one per second. Two of five runs at that ceiling took
+     * twice as long as the best, and the throttle notices show 92 separate reports of width 1
+     * against 50 at a ceiling of 50 -- the deeper the ceiling, the longer the collapse.
+     *
+     * <p>A width of 1 is not throttling, it is stopping: per-chunk latency is over a second, so
+     * one in flight is a handful of chunks a minute. Whatever the server is struggling with, the
+     * difference between 1 and 8 in flight is not what saves it, and the cost of finding out is a
+     * minute of climbing.
+     *
+     * <p>Deliberately equal to the config floor: the same number that is the smallest sensible
+     * ceiling is the smallest sensible operating width.
+     */
+    public static final int MIN_USEFUL_WIDTH = 8;
 
     /**
      * Whether the fast multi-step recovery is allowed at this width.

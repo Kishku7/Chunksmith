@@ -668,7 +668,17 @@ public class GenerationTask implements Runnable {
         if (sustained) {
             // The threshold is what we now believe this machine can carry. Climbing past it again
             // is allowed, but only one careful step at a time -- see rampUp.
-            goodWidth.set(reduced);
+            //
+            // It must NOT simply track every collapse downward. Setting it to the reduced width on
+            // each halving ratchets it toward the floor, and since rampUp refuses to BURST at or
+            // above it, the fast recovery switches itself off exactly when the run is at its
+            // narrowest and needs it most. Measured on a two-core Paper server: the width sat at
+            // 1-2 for minutes, climbing at one per second, and two of five runs took twice as long
+            // as the best. Never drop the threshold below the floor -- below that it is not a
+            // memory of what worked, it is a memory of the collapse.
+            final int settled = reduced;
+            goodWidth.updateAndGet(previous ->
+                    Math.max(DispatchControl.MIN_USEFUL_WIDTH, Math.min(previous, settled)));
             overloadStreak.set(0);
         }
         // Hold off ramping briefly so a single back-off isn't immediately undone.

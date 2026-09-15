@@ -59,8 +59,32 @@ public class DispatchControlTest {
         // A width of 0 dispatches nothing, forever -- a run that silently stopped.
         assertEquals(1, DispatchControl.reduce(1, true));
         assertEquals(1, DispatchControl.reduce(1, false));
-        assertEquals(1, DispatchControl.reduce(2, true));
-        assertEquals(1, DispatchControl.reduce(2, false));
+        assertEquals(2, DispatchControl.reduce(2, true));
+        assertEquals(2, DispatchControl.reduce(2, false));
+    }
+
+    @Test
+    public void throttlingStopsAtAWidthThatStillDoesWork() {
+        // Measured on a Paper server pinned to two cores: with no floor, halving from a ceiling of
+        // 200 reached a width of 1 in about eight steps and the run then sat at 1-2 for minutes,
+        // climbing back one per second. Two of five runs took twice as long as the best, and the
+        // throttle notices reported width 1 ninety-two times. A width of 1 is not throttling, it
+        // is stopping.
+        assertEquals(DispatchControl.MIN_USEFUL_WIDTH, DispatchControl.reduce(16, true));
+        assertEquals(DispatchControl.MIN_USEFUL_WIDTH, DispatchControl.reduce(9, false));
+        assertEquals(DispatchControl.MIN_USEFUL_WIDTH, DispatchControl.reduce(10, true));
+    }
+
+    @Test
+    public void aCollapseFromTheCeilingCannotRunAwayToOne() {
+        // The whole failure in one assertion: halve repeatedly from the shipped ceiling and the
+        // controller must come to rest somewhere it can still generate.
+        int width = 200;
+        for (int i = 0; i < 20; i++) {
+            width = DispatchControl.reduce(width, true);
+        }
+        assertEquals("twenty sustained overloads must not leave the pipeline at 1",
+                DispatchControl.MIN_USEFUL_WIDTH, width);
     }
 
     @Test
@@ -83,6 +107,8 @@ public class DispatchControlTest {
             additiveSteps++;
         }
         assertEquals("the old behaviour, kept here as the thing being fixed", 84, additiveSteps);
+        assertTrue("and it stops at the floor rather than walking to 1",
+                additive >= DispatchControl.MIN_USEFUL_WIDTH);
     }
 
     @Test
