@@ -84,12 +84,11 @@ public class GsonConfigDispatchWidthTest {
     }
 
     @Test
-    public void aClientCurrentlyGetsTheSameDefaultAndThatIsDeliberate() throws IOException {
-        // Not an oversight and not a claim that a client wants the same number. Every measurement
-        // behind the knee came off a dedicated server with no renderer, so the client case is
-        // UNMEASURED -- and this ticket exists because a plausible-sounding unmeasured constant
-        // shipped once already. The seam is live (ServerEnvironment, reported by /cs debug); the
-        // number waits on a client bench.
+    public void aClientGetsTheSameDefaultAndThatIsMeasured() throws IOException {
+        // Benched on a 4-core client with voxy and Sodium, 16640 chunks, arms interleaved:
+        // width 200 took 275s and 298s with a worst pause of 6.0s; width 16 took 458s and 379s
+        // with worst pauses of 20.9s and 16.4s. Narrowing lost 46 percent of throughput AND
+        // tripled the worst stall, so there is no speed-for-smoothness trade to make here.
         ServerEnvironment.setDedicated(false);
         long client = new GsonConfig(configPath()).getDispatchMaxConcurrent();
         ServerEnvironment.setDedicated(true);

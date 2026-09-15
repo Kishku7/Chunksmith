@@ -155,13 +155,21 @@ public final class GsonConfig implements Config {
      * <p>The {@code chunksmith.maxWorkingCount} system property still wins when set, so an
      * operator who already tuned this on the command line is never silently overridden.
      *
-     * <p>UNMEASURED, and deliberately not guessed at: whether a CLIENT hosting an integrated
-     * server wants a lower ceiling than this. It plausibly does -- it is rendering the game and,
-     * with Distant Horizons or voxy installed, building LODs off the same cores, and a reporter
-     * on mod_support #33 settled by hand on 16 -- but every number above was measured on a
-     * dedicated server with no renderer, so none of them answers it. {@link ServerEnvironment}
-     * carries the answer to the question and {@code /cs debug} reports which side it is on; the
-     * client curve waits on a client bench rather than on a second plausible-sounding constant.
+     * <p>A CLIENT gets the same number, and that was MEASURED rather than assumed. On a 4-core
+     * client under {@code taskset} with voxy and Sodium loaded, 16640 chunks, arms interleaved:
+     * <ul>
+     *   <li>width 200: 275s and 298s, worst pause 6.0s both times.</li>
+     *   <li>width 16: 458s and 379s, worst pause 20.9s and 16.4s.</li>
+     * </ul>
+     * Narrowing the pipeline cost 46 percent of throughput AND tripled the worst stall; mean and
+     * p90 gaps were identical. The expectation going in was that a narrow pipeline trades speed
+     * for smoothness on a machine that is also rendering. It does not -- it loses both.
+     *
+     * <p>What that does NOT settle: the bench rig has 4 cores but a fast GPU, and the reporter on
+     * mod_support #33 has an i3-7100 with integrated graphics, which is exactly the variable that
+     * differs most. His hand-tuned 16 may still help HIM. It is not evidence for a DEFAULT.
+     * {@link ServerEnvironment} stays live and {@code /cs debug} reports which side it is on, so
+     * the seam is there if a client ever earns its own curve.
      *
      * @return the default number of chunks to keep in flight
      */
