@@ -38,6 +38,8 @@ public class DispatchStatsTest {
     @After
     public void clear() {
         DispatchStats.clear();
+        // Static and process-wide: leaking "client" into another test would move its numbers.
+        com.kishku7.chunksmith.platform.ServerEnvironment.setDedicated(true);
     }
 
     @Test
@@ -67,6 +69,17 @@ public class DispatchStatsTest {
     public void aThresholdThatHasMovedIsShown() {
         DispatchStats.publish(16, 16, 24, 100, 0);
         assertTrue(DispatchStats.describe().contains("knownGood=24"));
+    }
+
+    @Test
+    public void saysWhichKindOfServerTheCurveIsFor() {
+        // The client curve is still unmeasured and currently equals the server one, so the only
+        // way to tell from a paste which case you are looking at is for the line to say.
+        com.kishku7.chunksmith.platform.ServerEnvironment.setDedicated(false);
+        DispatchStats.publish(1, 200, 200, 200, 0);
+        assertTrue(DispatchStats.describe(), DispatchStats.describe().contains("on=client"));
+        com.kishku7.chunksmith.platform.ServerEnvironment.setDedicated(true);
+        assertTrue(DispatchStats.describe(), DispatchStats.describe().contains("on=dedicated"));
     }
 
     @Test

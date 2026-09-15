@@ -21,6 +21,8 @@
 
 package com.kishku7.chunksmith.util;
 
+import com.kishku7.chunksmith.platform.ServerEnvironment;
+
 /**
  * What the dispatch pipeline is doing right now, for {@code /cs debug} (mod_support #32).
  *
@@ -82,8 +84,9 @@ public final class DispatchStats {
         // goodWidth starts at the ceiling and only means something once an overload has moved it.
         String known = goodWidth >= ceiling ? "none yet" : Integer.toString(goodWidth);
         return String.format(
-                "inFlight=%d width=%d of %d (ceiling) knownGood=%s rendererQueue=%s",
+                "inFlight=%d width=%d of %d (ceiling) knownGood=%s rendererQueue=%s on=%s",
                 inFlight, limit, ceiling, known,
-                sinkQueue < 0 ? "n/a" : Integer.toString(sinkQueue));
+                sinkQueue < 0 ? "n/a" : Integer.toString(sinkQueue),
+                ServerEnvironment.isDedicated() ? "dedicated" : "client");
     }
 }

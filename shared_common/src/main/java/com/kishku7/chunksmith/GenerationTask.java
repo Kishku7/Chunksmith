@@ -413,10 +413,7 @@ public class GenerationTask implements Runnable {
         progress.chunkZ = chunkZ;
         progress.dispatchCurrent = dispatchLimit.get();
         progress.dispatchMax = maxWorkingCount;
-        // Same sample, published where a human can ask for it. The width and the threshold govern
-        // the whole run and used to be invisible outside a throttle notice (mod_support #32).
-        DispatchStats.publish(inFlight.get(), progress.dispatchCurrent, goodWidth.get(),
-                maxWorkingCount, LodSinks.get().queueDepth());
+        publishDispatchStats();
         chunky.getEventBus().call(new GenerationProgressEvent(progress.world, progress.chunkCount, progress.complete, progress.percentComplete, progress.hours, progress.minutes, progress.seconds, progress.rate, progress.chunkX, progress.chunkZ));
         if (progress.complete) {
             progress.sendUpdate(chunky.getServer().getConsole());
@@ -448,6 +445,10 @@ public class GenerationTask implements Runnable {
         if (now - last < MSPT_CHECK_INTERVAL_MS || !lastMsptCheckTime.compareAndSet(last, now)) {
             return;
         }
+        // Publish before the early return: a platform that cannot report tick time still has a
+        // pipeline, and "no generation task running" while one is running is the exact species of
+        // lying readout mod_support #32 exists to kill.
+        publishDispatchStats();
         double mspt = chunky.getServer().getMillisPerTick();
         if (mspt < 0.0D) {
             return;
@@ -616,6 +617,18 @@ public class GenerationTask implements Runnable {
             LOGGER.debug(String.format("Chunksmith: paused generation for %dms while the LOD sink drained"
                     + " %d -> %d", System.currentTimeMillis() - started, startedAt, depth));
         }
+    }
+
+    /**
+     * Publishes the pipeline sample {@code /cs debug} reads (mod_support #32).
+     *
+     * <p>Called on the controller's cadence rather than the progress-update one. Progress updates
+     * are throttled and can be silenced entirely; the diagnostic must not inherit that, or it
+     * reports "no task" during a run that is plainly underway.
+     */
+    private void publishDispatchStats() {
+        DispatchStats.publish(inFlight.get(), dispatchLimit.get(), goodWidth.get(),
+                maxWorkingCount, LodSinks.get().queueDepth());
     }
 
     /**

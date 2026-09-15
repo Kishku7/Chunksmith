@@ -61,35 +61,40 @@ public class GsonConfigDispatchWidthTest {
         return folder.newFolder("chunksmith" + folderSeq++).toPath().resolve("config.json");
     }
 
-    private static int cores() {
-        return Runtime.getRuntime().availableProcessors();
-    }
+    /** The knee, measured on an 8-core server and again on a 2-core one. See GsonConfig. */
+    private static final long KNEE = 200L;
 
     @Test
-    public void aDedicatedServerKeepsTheMeasuredServerCurve() throws IOException {
+    public void theDefaultIsTheMeasuredKnee() throws IOException {
         ServerEnvironment.setDedicated(true);
-        long expected = Math.min(400L, Math.max(8L, cores() * 25L));
-        assertEquals("upgrading must not change what an untouched dedicated server does",
-                expected, new GsonConfig(configPath()).getDispatchMaxConcurrent());
+        assertEquals("the knee was measured at 200 on both an 8-core and a 2-core server",
+                KNEE, new GsonConfig(configPath()).getDispatchMaxConcurrent());
     }
 
     @Test
-    public void aClientGetsAMuchNarrowerPipelineThanAServerWithTheSameCores() throws IOException {
+    public void theDefaultDoesNotScaleWithCoreCount() throws IOException {
+        // The old default was cores*25, which reads as protecting a small machine and actually
+        // cost one 43 percent of its throughput: 50 measured 16.9 cps against 29.8 at 200 on the
+        // same two cores. Width buys concurrency against per-chunk LATENCY, and latency does not
+        // shrink when you remove cores. If this test ever fails because someone reintroduced a
+        // per-core term, measure before believing it.
+        long onThisMachine = new GsonConfig(configPath()).getDispatchMaxConcurrent();
+        assertEquals("the default must not depend on availableProcessors()",
+                KNEE, onThisMachine);
+    }
+
+    @Test
+    public void aClientCurrentlyGetsTheSameDefaultAndThatIsDeliberate() throws IOException {
+        // Not an oversight and not a claim that a client wants the same number. Every measurement
+        // behind the knee came off a dedicated server with no renderer, so the client case is
+        // UNMEASURED -- and this ticket exists because a plausible-sounding unmeasured constant
+        // shipped once already. The seam is live (ServerEnvironment, reported by /cs debug); the
+        // number waits on a client bench.
         ServerEnvironment.setDedicated(false);
         long client = new GsonConfig(configPath()).getDispatchMaxConcurrent();
         ServerEnvironment.setDedicated(true);
         long server = new GsonConfig(configPath()).getDispatchMaxConcurrent();
-        assertTrue("a client shares its cores with the renderer and the game; " + client
-                + " should be well under " + server, client < server);
-    }
-
-    @Test
-    public void theOldFloorOfFiftyNoLongerHoldsTheCurveUp() throws IOException {
-        // The floor was the reason the scaling could never descend for the machine that needed it.
-        ServerEnvironment.setDedicated(false);
-        long width = new GsonConfig(configPath()).getDispatchMaxConcurrent();
-        assertTrue("a client on this box got " + width + ", which the old floor of 50 forbade",
-                width < 50L || cores() > 8);
+        assertEquals(server, client);
     }
 
     @Test

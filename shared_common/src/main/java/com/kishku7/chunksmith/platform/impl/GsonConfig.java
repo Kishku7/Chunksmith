@@ -115,68 +115,62 @@ public final class GsonConfig implements Config {
     private static final long DISPATCH_MAX_CONCURRENT_MIN = 1L;
     private static final long DISPATCH_MAX_CONCURRENT_MAX = 4096L;
     /**
-     * Smallest pipeline width the scaling may choose. The historic floor was 50, held there so no
-     * machine got slower than it had been. That floor is why the curve could never descend for a
-     * machine that needed it to (mod_support #33), and with the controller in GenerationTask now
-     * converging properly it is no longer load-bearing: 8 is low enough to be reachable and high
-     * enough that a run still makes progress on one core.
+     * Smallest pipeline width the default may choose. Historically 50, held there so no machine
+     * got slower than it had been; 8 now, because with the controller converging properly the
+     * floor is no longer what protects a small box.
      */
     private static final long DISPATCH_FLOOR = 8L;
     /**
-     * Chunks in flight per logical processor, and the ceiling, on a DEDICATED server.
+     * The pipeline knee: chunks in flight past which more does not help, and eventually hurts.
      *
-     * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated
-     * server, 50 gave 31.6 cps while 200 gave 43.9 (a 39 percent gain) with residency and heap
-     * no worse, and no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because
-     * the real ceiling past that point is vanilla promoting roughly 2.2 chunks per tick at 20
-     * tps. So the knee is around 25 per core, and the ceiling at 400 because nothing above the
-     * knee helps and every extra slot costs resident chunks.
+     * <p>MEASURED TWICE, on machines four core-counts apart, and it did not move:
+     * <ul>
+     *   <li>8-core dedicated: 50 -> 31.6 cps, <b>200 -> 43.9</b>, 600 -> 42.4.</li>
+     *   <li>2-core dedicated (2026-09-14, 625 chunks, every JVM thread pinned to two cores):
+     *       8 -> 15.6, 16 -> 17.7, 24 -> 19.5, 50 -> 16.9, 100 -> 21.5, <b>200 -> 29.8</b>,
+     *       400 -> about 25 and visibly bursting then stalling.</li>
+     * </ul>
+     *
+     * <p><b>This is why the default is no longer scaled by core count.</b> It used to be
+     * {@code cores * 25}, which gives 200 on 8 cores and looked right because that is the machine
+     * it was measured on. On two cores the same formula gives 50 -- and 50 measured at 16.9 cps
+     * against 29.8 at 200, so the "scaling" was costing a small machine <b>43 percent of its
+     * throughput</b> in the name of protecting it.
+     *
+     * <p>The reason it does not scale is in {@link Config#getDispatchMaxConcurrent()}: a chunk
+     * request spends almost all of its life WAITING, because vanilla walks it up its generation
+     * statuses about a hop per tick. Width buys concurrency against latency, not against CPU, and
+     * latency does not shrink when you remove cores.
+     *
+     * <p>Above the knee it does not merely stop helping: the 400 arm generated in bursts and then
+     * stalled, which is the pattern a reporter described on mod_support #20 and #33. The
+     * controller in GenerationTask caught it -- it halved 396 to 197 and then to 95 -- but the
+     * cheaper fix is not to start above the knee.
      */
-    private static final long DISPATCH_PER_CORE_DEDICATED = 25L;
-    private static final long DISPATCH_CEILING_DEDICATED = 400L;
-    /**
-     * The same two numbers for a CLIENT hosting an integrated server, where every measurement
-     * behind the dedicated figures is wrong.
-     *
-     * <p>A dedicated server does nothing but generate. A client is rendering the game and, with
-     * Distant Horizons or voxy installed, building LODs off the same cores at the same time. The
-     * dedicated curve put 100 chunks in flight on a two-core client and pinned it; the reporter
-     * settled by hand on 16, a number {@code cores * 25} cannot produce at any core count
-     * (mod_support #20, #33).
-     *
-     * <p>6 per logical processor puts that same machine at 24 and a modern 8-thread client at 48.
-     * It is deliberately conservative: this is a CEILING, and GenerationTask's controller climbs
-     * from here when the box turns out to have room. Getting it slightly low costs a ramp; getting
-     * it high is what the reporter was living with.
-     *
-     * <p>UNMEASURED. The dedicated numbers came off a real bench; these did not, and the two
-     * measurements asked for on #33 are what should replace them.
-     */
-    private static final long DISPATCH_PER_CORE_INTEGRATED = 6L;
-    private static final long DISPATCH_CEILING_INTEGRATED = 64L;
+    private static final long DISPATCH_KNEE = 200L;
 
     /**
-     * Default pipeline width, scaled to the box and to what the box is FOR.
+     * Default pipeline width.
      *
-     * <p>Resolved per call rather than as a constant because it depends on
-     * {@link ServerEnvironment}, which the loader entrypoint publishes at startup -- a static
-     * initialiser could run before that and bake in the wrong curve.
+     * <p>The {@code chunksmith.maxWorkingCount} system property still wins when set, so an
+     * operator who already tuned this on the command line is never silently overridden.
      *
-     * <p>The original {@code chunksmith.maxWorkingCount} system property still wins when set,
-     * so an operator who already tuned this on the command line is never silently overridden.
+     * <p>UNMEASURED, and deliberately not guessed at: whether a CLIENT hosting an integrated
+     * server wants a lower ceiling than this. It plausibly does -- it is rendering the game and,
+     * with Distant Horizons or voxy installed, building LODs off the same cores, and a reporter
+     * on mod_support #33 settled by hand on 16 -- but every number above was measured on a
+     * dedicated server with no renderer, so none of them answers it. {@link ServerEnvironment}
+     * carries the answer to the question and {@code /cs debug} reports which side it is on; the
+     * client curve waits on a client bench rather than on a second plausible-sounding constant.
      *
-     * @return the default number of chunks to keep in flight on this machine
+     * @return the default number of chunks to keep in flight
      */
     private static long dispatchMaxConcurrentDefault() {
         Optional<Integer> override = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"));
         if (override.isPresent()) {
             return override.get().longValue();
         }
-        boolean dedicated = ServerEnvironment.isDedicated();
-        long perCore = dedicated ? DISPATCH_PER_CORE_DEDICATED : DISPATCH_PER_CORE_INTEGRATED;
-        long ceiling = dedicated ? DISPATCH_CEILING_DEDICATED : DISPATCH_CEILING_INTEGRATED;
-        long scaled = Runtime.getRuntime().availableProcessors() * perCore;
-        return Math.min(ceiling, Math.max(DISPATCH_FLOOR, scaled));
+        return Math.max(DISPATCH_FLOOR, DISPATCH_KNEE);
     }
     // 0 means no ceiling; 2048 is the default. An upper bound exists only so a typo cannot store a
     // number that overflows when multiplied up to bytes; it is not a recommendation.
