@@ -1045,7 +1045,17 @@ public final class CsLodClientNet {
         Path store = storeRoot();
         String fetch = fetchHost();
 
-        out.add("server:       " + (host.isEmpty() ? "(not connected)" : host));
+        // Single player is not a degenerate case of multiplayer here: the whole transport half of
+        // this panel is the multiplayer LOD CLIENT, and on an integrated server none of it runs.
+        // Printed unconditionally it reads as a broken feature -- mod_support #20's reporter sent a
+        // screenshot of exactly that, asking whether the command was working. Say which mode this
+        // is, then print only the fields that mean something in it.
+        boolean multiplayer = !host.isEmpty();
+        out.add("mode:         " + (multiplayer
+                ? "multiplayer (receiving LOD from a server)"
+                : "single player -- the renderer builds LOD locally as Chunksmith generates;"
+                        + " nothing is downloaded, so the transport fields below are omitted"));
+        out.add("server:       " + (multiplayer ? host : "(not connected)"));
         if (!advertisedHost.isEmpty() && !advertisedHost.equals(host)) {
             out.add("fetching from: " + fetch + " (server advertised it)");
         }
@@ -1064,14 +1074,18 @@ public final class CsLodClientNet {
         out.add("store:        " + store);
         out.add("dimension:    " + (activeDimension.isEmpty() ? "(none)" : activeDimension));
 
-        long[] counted = countStore(store);
-        out.add("regions:      " + counted[0] + " file(s) on disk");
-        out.add("size:         " + (counted[1] / 1024L) + " KB");
+        if (multiplayer) {
+            long[] counted = countStore(store);
+            out.add("regions:      " + counted[0] + " file(s) on disk");
+            out.add("size:         " + (counted[1] / 1024L) + " KB");
+        }
 
-        out.add("transport:    " + (backchannelPort == 0
-                ? "in-band (no backchannel)"
-                : "backchannel " + backchannelPort));
-        out.add("token:        " + (token.isEmpty() ? "none" : "held"));
+        if (multiplayer) {
+            out.add("transport:    " + (backchannelPort == 0
+                    ? "in-band (no backchannel)"
+                    : "backchannel " + backchannelPort));
+            out.add("token:        " + (token.isEmpty() ? "none" : "held"));
+        }
         out.add("renderers:    voxy=" + (capsVoxy ? "yes" : "no") + " dh=" + (capsDh ? "yes" : "no"));
         // The depth throttleLodDrainTo is measured against. Shown because a user tuning that
         // knob otherwise has no way to tell whether the barrier can engage on their machine at
@@ -1079,8 +1093,10 @@ public final class CsLodClientNet {
         out.add("queue:        " + LodSinks.get().queueDepth()
                 + " chunk(s) awaiting the renderer");
         out.add("radius:       " + (capsRadius <= 0 ? "(unknown)" : capsRadius + " blocks"));
-        out.add("injected:     " + LodInjector.describe());
-        out.add("download:     " + describe());
+        if (multiplayer) {
+            out.add("injected:     " + LodInjector.describe());
+            out.add("download:     " + describe());
+        }
         for (CsLodClientSettings.Setting setting : CsLodClientSettings.all()) {
             out.add(setting.name() + ": " + setting.read());
         }
