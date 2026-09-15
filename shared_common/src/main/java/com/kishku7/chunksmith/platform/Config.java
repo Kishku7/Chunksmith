@@ -24,6 +24,30 @@ package com.kishku7.chunksmith.platform;
 import java.nio.file.Path;
 
 public interface Config {
+
+    /**
+     * Default chunks in flight, for EVERY platform that implements this interface.
+     *
+     * <p>It lives here because it did not, and the cost was silent. {@code GsonConfig} scaled its
+     * default by core count while {@code BukkitConfig} returned a flat hard-coded 50, so a Paper
+     * server never saw any of it -- and 50 is the width measured at 16.9 cps against 29.8 at 200 on
+     * the same two cores. One setting, two registries, and only one of them was ever maintained.
+     *
+     * <p>The number is the measured knee. See {@link #getDispatchMaxConcurrent()} and the
+     * measurements recorded on the default in GsonConfig.
+     */
+    long DISPATCH_MAX_CONCURRENT_DEFAULT = 200L;
+
+    /**
+     * Default LOD index budget in megabytes, for every platform.
+     *
+     * <p>Here for the same reason: it existed as two private constants of the same name holding the
+     * same value in two files, which is a drift waiting to happen rather than a shared default.
+     * mod_support #23 pinned this number precisely so upgrading would not change what an untouched
+     * server serves; that guarantee is worth exactly as much as its weakest copy.
+     */
+    long LOD_INDEX_BUDGET_MB_DEFAULT = 2048L;
+
     Path getDirectory();
 
     int getVersion();

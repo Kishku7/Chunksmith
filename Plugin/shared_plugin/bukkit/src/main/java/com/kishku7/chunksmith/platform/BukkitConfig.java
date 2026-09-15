@@ -37,7 +37,6 @@ public final class BukkitConfig implements Config {
     private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;
 
     /** Matches the mod's default. */
-    private static final long LOD_INDEX_BUDGET_MB_DEFAULT = 2048L;
 
     /** The documentation page. Kept as a constant so there is one place to correct it. */
     private static final String CONFIG_DOCS = "https://github.com/Kishku7/Chunksmith/wiki/Server-Settings";
@@ -247,7 +246,7 @@ public final class BukkitConfig implements Config {
 
     @Override
     public long getDispatchMaxConcurrent() {
-        return plugin.getConfig().getLong("dispatch-max-concurrent", 50L);
+        return plugin.getConfig().getLong("dispatch-max-concurrent", DISPATCH_MAX_CONCURRENT_DEFAULT);
     }
 
     @Override

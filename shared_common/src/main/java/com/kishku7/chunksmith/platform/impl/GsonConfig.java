@@ -147,7 +147,7 @@ public final class GsonConfig implements Config {
      * controller in GenerationTask caught it -- it halved 396 to 197 and then to 95 -- but the
      * cheaper fix is not to start above the knee.
      */
-    private static final long DISPATCH_KNEE = 200L;
+    private static final long DISPATCH_KNEE = Config.DISPATCH_MAX_CONCURRENT_DEFAULT;
 
     /**
      * Default pipeline width.
@@ -188,7 +188,6 @@ public final class GsonConfig implements Config {
     private static final long WORLD_ENTER_RADIUS_MAX = 32768L;
 
     private static final long LOD_INDEX_BUDGET_MB_NONE = 0L;
-    private static final long LOD_INDEX_BUDGET_MB_DEFAULT = 2048L;
     private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;   // a terabyte, in megabytes
 
     private static final long SETTLE_DELAY_DEFAULT = 40L;

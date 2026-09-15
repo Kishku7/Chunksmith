@@ -65,6 +65,17 @@ public class GsonConfigDispatchWidthTest {
     private static final long KNEE = 200L;
 
     @Test
+    public void everyPlatformReadsOneDefault() {
+        // The plugin had its OWN hard-coded 50 while the mod scaled by core count, so a Paper
+        // server never saw any of the tuning -- one setting with two registries, only one of them
+        // maintained. Both now read Config.DISPATCH_MAX_CONCURRENT_DEFAULT. SCOPE, stated plainly:
+        // this pins the shared constant and the mod's use of it. BukkitConfig lives in another
+        // module with no test source set, so nothing here can prove the plugin reads it -- what
+        // prevents drift there is that the literal is gone, not this assertion.
+        assertEquals(KNEE, com.kishku7.chunksmith.platform.Config.DISPATCH_MAX_CONCURRENT_DEFAULT);
+    }
+
+    @Test
     public void theDefaultIsTheMeasuredKnee() throws IOException {
         ServerEnvironment.setDedicated(true);
         assertEquals("the knee was measured at 200 on both an 8-core and a 2-core server",
