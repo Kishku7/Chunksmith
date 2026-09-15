@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith;
 
+import com.kishku7.chunksmith.platform.ServerEnvironment;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -95,6 +96,10 @@ public class ChunksmithFabric implements ModInitializer {
             // builds its own LOD data and serves it to each player's client. Logged at ERROR (red, once,
             // at startup) because a WARN was missed by the operator it was written for -- but we still do
             // not act on it: it is the operator's machine. See ServerSideRendererError.
+            // Publish what this JVM is before anything reads the config: the dispatch-width
+            // default is resolved off this, and a client sharing its cores with the renderer
+            // needs a different curve from a server that has the box to itself (mod_support #33).
+            ServerEnvironment.setDedicated(minecraftServer.isDedicatedServer());
             ServerSideRendererError.lines(minecraftServer.isDedicatedServer(), FabricLoader.getInstance()::isModLoaded)
                     .forEach(line -> LoggerFactory.getLogger("Chunksmith").error(line));
             Path configDir = FabricLoader.getInstance().getConfigDir();

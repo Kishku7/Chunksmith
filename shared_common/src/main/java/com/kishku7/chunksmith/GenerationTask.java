@@ -38,6 +38,7 @@ import com.kishku7.chunksmith.util.ChunkCoordinate;
 import com.kishku7.chunksmith.util.GeneratedChunkScan;
 import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
+import com.kishku7.chunksmith.util.DispatchControl;
 import com.kishku7.chunksmith.util.HeapPressure;
 import com.kishku7.chunksmith.util.TickBudget;
 import com.kishku7.chunksmith.util.Input;
@@ -106,11 +107,39 @@ public class GenerationTask implements Runnable {
     // on "any missing" would turn the check into noise.
     private static final int VERIFY_MIN_MISSING = 4;
     private static final double VERIFY_MISSING_FRACTION = 0.5d;
-    // Adaptive concurrency uses asymmetric AIMD-style timing: back off quickly under load,
-    // ramp back up slowly. Tick health is sampled on a fixed cadence so the limit can fall
-    // even when chunk completions have stalled entirely (disk blocked, no callbacks firing).
+    // Adaptive concurrency. Tick health is sampled on a fixed cadence so the limit can fall even
+    // when chunk completions have stalled entirely (disk blocked, no callbacks firing).
+    //
+    // These two intervals are the RATE LIMITS on a step, not the step sizes, and they are no longer
+    // the whole story: the recovery path may take up to 8 steps per sample when there is headroom,
+    // and a sustained overload halves rather than stepping. Sizes live in DispatchControl.
+    //
+    // This comment used to say the timing was asymmetric in favour of backing off quickly. It had
+    // not been true since the burst recovery landed -- +8 per 250ms against -1 per 250ms is eight
+    // times faster UP than down, the opposite of what was written, and that asymmetry against a
+    // ceiling chosen for a bigger machine is what a reporter experienced as the pregen bursting and
+    // stalling on repeat (mod_support #33).
     private static final long RAMP_INTERVAL_MS = 1_000L;     // at most +1 per second
     private static final long BACKOFF_INTERVAL_MS = 250L;    // at most -1 per 250 ms
+    /**
+     * Consecutive back-offs before the decrease turns multiplicative (mod_support #33).
+     *
+     * <p>Additive decrease alone takes as many steps as the distance to a sustainable width: from a
+     * ceiling of 100 down to a workable 16 is 84 steps at one per 250 ms, so a starved machine
+     * spends 21 seconds overloaded before the controller arrives. Four consecutive overloaded
+     * samples is one second of continuous pain -- long enough that it is not a spike, short enough
+     * that the halving lands before the user reads it as a freeze.
+     *
+     * <p>Isolated back-offs stay at -1: a single tick over budget is not congestion.
+     */
+    private static final int BACKOFF_STREAK_FOR_HALVING = 4;
+    /**
+     * How long a width must stay healthy before it is believed and remembered as good.
+     *
+     * <p>Shorter than this and a lull promotes a width that is about to overload again, which is
+     * the oscillation this is here to stop.
+     */
+    private static final long GOOD_WIDTH_PROMOTE_MS = 10_000L;
 
     /** How often to re-read the sink's depth while the barrier holds. Matches the store-replay path. */
     private static final long LOD_DRAIN_POLL_MS = 20L;
@@ -168,6 +197,24 @@ public class GenerationTask implements Runnable {
     private final AtomicLong lastThrottleNoticeTime = new AtomicLong(0);
     private final AtomicLong lastRampTime = new AtomicLong(0);
     private final AtomicLong lastBackoffTime = new AtomicLong(0);
+    /**
+     * The widest dispatch known to have run healthily -- a slow-start threshold (mod_support #33).
+     *
+     * <p>Before this existed the controller only ever climbed back toward {@code maxWorkingCount},
+     * so on a machine that could not sustain the ceiling it re-entered overload every single time
+     * it recovered, forever. That sawtooth is what a reporter described as generate-pause-generate.
+     *
+     * <p>Below it, recovery may burst. At or above it, the climb is one step per second, because
+     * past the last width that actually worked we are guessing again.
+     *
+     * <p>Starts at the ceiling: until something overloads we know nothing bad about any width, and
+     * a healthy server must behave exactly as it did before.
+     */
+    private final AtomicInteger goodWidth = new AtomicInteger(Integer.MAX_VALUE);
+    /** Consecutive back-offs; reset by any healthy sample. See BACKOFF_STREAK_FOR_HALVING. */
+    private final AtomicInteger overloadStreak = new AtomicInteger(0);
+    /** When the current width last became healthy, for promoting it into goodWidth. */
+    private final AtomicLong healthySince = new AtomicLong(0);
     private final AtomicLong lastMsptCheckTime = new AtomicLong(0);
     private final boolean ioThrottleEnabled;
     private final double targetMspt;
@@ -237,6 +284,7 @@ public class GenerationTask implements Runnable {
         this.lodDrainTo = chunky.getConfig().getThrottleLodDrainTo();
         this.maxWorkingCount = (int) Math.max(1L, chunky.getConfig().getDispatchMaxConcurrent());
         this.dispatchLimit.set(this.maxWorkingCount);
+        this.goodWidth.set(this.maxWorkingCount);
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
         this.maxHeapPercent = chunky.getConfig().getThrottleMaxHeapPercent();
         this.tickBudgetMillis = chunky.getConfig().getThrottleTickBudgetMillis();
@@ -410,6 +458,7 @@ public class GenerationTask implements Runnable {
         if (mspt > target + MSPT_BAND) {
             backoff();
         } else if (mspt < target - MSPT_BAND) {
+            noteHealthy(now);
             // Recovery, not just back-off. A single spike used to cost a full second of climbing back
             // at +1 per second, and a run that spent its life one step below the limit left work on
             // the table for no reason. The further under target we are, the faster we climb.
@@ -564,22 +613,49 @@ public class GenerationTask implements Runnable {
         }
     }
 
+    /**
+     * Narrows the pipeline under load: additively for a blip, multiplicatively once the overload
+     * persists.
+     *
+     * <p>A width that has overloaded four samples running is not one step too wide, and stepping
+     * down one at a time from a ceiling chosen for a different machine is how a two-core client
+     * spent twenty seconds pinned before the controller caught up (mod_support #33). On a streak
+     * the width halves and that half becomes the new slow-start threshold, so recovery climbs back
+     * to something that worked rather than to the ceiling that did not.
+     */
     private void backoff() {
         long now = System.currentTimeMillis();
         long last = lastBackoffTime.get();
         if (now - last < BACKOFF_INTERVAL_MS || !lastBackoffTime.compareAndSet(last, now)) {
             return;
         }
+        // Any back-off means the current width is not healthy, so it is not a candidate for promotion.
+        healthySince.set(0L);
+        // "Consecutive" has to mean consecutive. Samples land every MSPT_CHECK_INTERVAL_MS, so two
+        // back-offs further apart than a couple of intervals are separate events, not a streak --
+        // otherwise four unrelated spikes over a calm minute would halve a width that is coping.
+        if (last != 0L && now - last > BACKOFF_INTERVAL_MS * 3L) {
+            overloadStreak.set(0);
+        }
+        boolean sustained = overloadStreak.incrementAndGet() >= BACKOFF_STREAK_FOR_HALVING;
         int current;
+        int reduced;
         do {
             current = dispatchLimit.get();
             if (current <= 1) {
                 return;
             }
-        } while (!dispatchLimit.compareAndSet(current, current - 1));
+            reduced = DispatchControl.reduce(current, sustained);
+        } while (!dispatchLimit.compareAndSet(current, reduced));
+        if (sustained) {
+            // The threshold is what we now believe this machine can carry. Climbing past it again
+            // is allowed, but only one careful step at a time -- see rampUp.
+            goodWidth.set(reduced);
+            overloadStreak.set(0);
+        }
         // Hold off ramping briefly so a single back-off isn't immediately undone.
         lastRampTime.set(now);
-        maybeNotify(current - 1);
+        maybeNotify(reduced);
     }
 
     private void rampUp() {
@@ -605,8 +681,40 @@ public class GenerationTask implements Runnable {
             if (current >= maxWorkingCount) {
                 return;
             }
+            // Past the widest setting known to have worked here, the burst recovery is not a
+            // shortcut back to a proven state any more -- it is a guess, and repeating it every
+            // time the box recovers is precisely the sawtooth. Step, do not leap.
+            if (burst && !DispatchControl.mayBurst(current, goodWidth.get())) {
+                return;
+            }
         } while (!dispatchLimit.compareAndSet(current, current + 1));
         maybeNotify(current + 1);
+    }
+
+    /**
+     * Records that the pipeline is coping at its current width, and promotes that width to the
+     * slow-start threshold once it has held for {@link #GOOD_WIDTH_PROMOTE_MS}.
+     *
+     * <p>Without the promotion a single halving would cap the run for good: a machine that has
+     * since freed up -- the renderer finished, a player logged off -- would never be allowed to
+     * use the headroom it now has.
+     */
+    private void noteHealthy(long now) {
+        overloadStreak.set(0);
+        long since = healthySince.get();
+        if (since == 0L) {
+            healthySince.compareAndSet(0L, now);
+            return;
+        }
+        if (now - since < GOOD_WIDTH_PROMOTE_MS) {
+            return;
+        }
+        int current = dispatchLimit.get();
+        int known = goodWidth.get();
+        if (current > known) {
+            goodWidth.set(current);
+        }
+        healthySince.set(now);
     }
 
     private void maybeNotify(int newLimit) {

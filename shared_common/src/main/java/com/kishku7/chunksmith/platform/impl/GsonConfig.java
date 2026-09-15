@@ -24,6 +24,7 @@ package com.kishku7.chunksmith.platform.impl;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kishku7.chunksmith.platform.Config;
+import com.kishku7.chunksmith.platform.ServerEnvironment;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.util.Translator;
@@ -114,27 +115,69 @@ public final class GsonConfig implements Config {
     private static final long DISPATCH_MAX_CONCURRENT_MIN = 1L;
     private static final long DISPATCH_MAX_CONCURRENT_MAX = 4096L;
     /**
-     * Default pipeline width, scaled to the box.
+     * Smallest pipeline width the scaling may choose. The historic floor was 50, held there so no
+     * machine got slower than it had been. That floor is why the curve could never descend for a
+     * machine that needed it to (mod_support #33), and with the controller in GenerationTask now
+     * converging properly it is no longer load-bearing: 8 is low enough to be reachable and high
+     * enough that a run still makes progress on one core.
+     */
+    private static final long DISPATCH_FLOOR = 8L;
+    /**
+     * Chunks in flight per logical processor, and the ceiling, on a DEDICATED server.
      *
      * <p>The old fixed 50 was measured leaving throughput on the table: on an 8-core dedicated
      * server, 50 gave 31.6 cps while 200 gave 43.9 (a 39 percent gain) with residency and heap
      * no worse, and no keep-up warnings either way. 600 gave 42.4, i.e. nothing more, because
      * the real ceiling past that point is vanilla promoting roughly 2.2 chunks per tick at 20
-     * tps.
+     * tps. So the knee is around 25 per core, and the ceiling at 400 because nothing above the
+     * knee helps and every extra slot costs resident chunks.
+     */
+    private static final long DISPATCH_PER_CORE_DEDICATED = 25L;
+    private static final long DISPATCH_CEILING_DEDICATED = 400L;
+    /**
+     * The same two numbers for a CLIENT hosting an integrated server, where every measurement
+     * behind the dedicated figures is wrong.
      *
-     * <p>So the knee is around 25 per core rather than a fixed number, and a fixed 200 would
-     * be wrong on a 2-core VPS for the same reason 50 was wrong on an 8-core box. Floor stays
-     * at the historic 50 so no machine gets slower than it was; ceiling at 400 because nothing
-     * above the knee helps and every extra slot costs resident chunks.
+     * <p>A dedicated server does nothing but generate. A client is rendering the game and, with
+     * Distant Horizons or voxy installed, building LODs off the same cores at the same time. The
+     * dedicated curve put 100 chunks in flight on a two-core client and pinned it; the reporter
+     * settled by hand on 16, a number {@code cores * 25} cannot produce at any core count
+     * (mod_support #20, #33).
+     *
+     * <p>6 per logical processor puts that same machine at 24 and a modern 8-thread client at 48.
+     * It is deliberately conservative: this is a CEILING, and GenerationTask's controller climbs
+     * from here when the box turns out to have room. Getting it slightly low costs a ramp; getting
+     * it high is what the reporter was living with.
+     *
+     * <p>UNMEASURED. The dedicated numbers came off a real bench; these did not, and the two
+     * measurements asked for on #33 are what should replace them.
+     */
+    private static final long DISPATCH_PER_CORE_INTEGRATED = 6L;
+    private static final long DISPATCH_CEILING_INTEGRATED = 64L;
+
+    /**
+     * Default pipeline width, scaled to the box and to what the box is FOR.
+     *
+     * <p>Resolved per call rather than as a constant because it depends on
+     * {@link ServerEnvironment}, which the loader entrypoint publishes at startup -- a static
+     * initialiser could run before that and bake in the wrong curve.
      *
      * <p>The original {@code chunksmith.maxWorkingCount} system property still wins when set,
      * so an operator who already tuned this on the command line is never silently overridden.
+     *
+     * @return the default number of chunks to keep in flight on this machine
      */
-    private static final long DISPATCH_MAX_CONCURRENT_DEFAULT =
-            Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"))
-                    .map(Long::valueOf)
-                    .orElseGet(() -> Math.min(400L,
-                            Math.max(50L, Runtime.getRuntime().availableProcessors() * 25L)));
+    private static long dispatchMaxConcurrentDefault() {
+        Optional<Integer> override = Input.tryInteger(System.getProperty("chunksmith.maxWorkingCount"));
+        if (override.isPresent()) {
+            return override.get().longValue();
+        }
+        boolean dedicated = ServerEnvironment.isDedicated();
+        long perCore = dedicated ? DISPATCH_PER_CORE_DEDICATED : DISPATCH_PER_CORE_INTEGRATED;
+        long ceiling = dedicated ? DISPATCH_CEILING_DEDICATED : DISPATCH_CEILING_INTEGRATED;
+        long scaled = Runtime.getRuntime().availableProcessors() * perCore;
+        return Math.min(ceiling, Math.max(DISPATCH_FLOOR, scaled));
+    }
     // 0 means no ceiling; 2048 is the default. An upper bound exists only so a typo cannot store a
     // number that overflows when multiplied up to bytes; it is not a recommendation.
     // 4096 blocks = 256 chunks: what DH and voxy draw untouched. See Config#getWorldEnterPregenRadius.
@@ -401,7 +444,7 @@ public final class GsonConfig implements Config {
     @Override
     public long getDispatchMaxConcurrent() {
         long raw = Optional.ofNullable(configModel.dispatchMaxConcurrent)
-                .orElse(DISPATCH_MAX_CONCURRENT_DEFAULT);
+                .orElseGet(GsonConfig::dispatchMaxConcurrentDefault);
         long clamped = Math.max(DISPATCH_MAX_CONCURRENT_MIN,
                 Math.min(DISPATCH_MAX_CONCURRENT_MAX, raw));
         if (raw != clamped) {
@@ -798,7 +841,10 @@ public final class GsonConfig implements Config {
         private String lodEnabled = "auto";
         private Long throttleMaxLodQueue = MAX_LOD_QUEUE_DEFAULT;
         private Long throttleLodDrainTo = LOD_DRAIN_TO_DEFAULT;
-        private Long dispatchMaxConcurrent = DISPATCH_MAX_CONCURRENT_DEFAULT;
+        // Resolved when the model is constructed -- i.e. at config load, after the entrypoint
+        // has published ServerEnvironment -- so a fresh config file is written with the right
+        // number for this machine rather than a constant fixed at class-init time.
+        private Long dispatchMaxConcurrent = dispatchMaxConcurrentDefault();
         private Boolean lodDhOverride = false;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
