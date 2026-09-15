@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-09-14
+
+Pregen throughput. The default pipeline width was wrong on every machine that was not an 8-core
+dedicated server, and on the Bukkit plugin it was wrong everywhere.
+
+### Changed
+
+- **`dispatchMaxConcurrent` now defaults to 200 on every platform, and no longer scales with core
+  count.** It used to be `cores * 25`, which reads like protecting a small machine and does the
+  opposite. Benched on a 2-core server (625 chunks, every JVM thread pinned): 8 -> 15.6 cps,
+  16 -> 17.7, 24 -> 19.5, 50 -> 16.9, 100 -> 21.5, **200 -> 29.8**, 400 -> about 25 and stalling.
+  The 8-core bench behind the old default agrees: 50 -> 31.6, 200 -> 43.9, 600 -> 42.4. Two
+  machines four core-counts apart, the same knee -- because a chunk request spends almost all of
+  its life waiting on vanilla walking it up its statuses, so width buys concurrency against
+  latency, and latency does not shrink when you remove cores. On two cores the old formula gave 50
+  and cost that machine 43 percent of its throughput.
+- **The Paper / Spigot plugin gets the same default for the first time.** `BukkitConfig` carried
+  its own hard-coded 50, separate from the mod's, so no plugin server ever saw any dispatch tuning
+  -- old or new. Both platforms now read one constant.
+- **Single-player gets the same 200 as a dedicated server, and that was measured too.** On a
+  4-core client with voxy and Sodium (16640 chunks, interleaved arms), width 200 took 275s and
+  298s with a worst pause of 6.0s; width 16 took 458s and 379s with worst pauses of 20.9s and
+  16.4s. Narrowing the pipeline costs throughput AND makes the longest stall worse; it does not
+  trade one for the other.
+
+### Fixed
+
+- **The dispatch controller converges instead of oscillating.** It backed off one slot at a time
+  and then climbed all the way back to the ceiling, so a machine that could not sustain the
+  ceiling re-entered overload every time it recovered -- generate, pause, generate. A sustained
+  overload now halves the width instead of stepping, and the controller remembers the widest
+  setting that ran healthily and will not burst past it. Reported on mod_support #20 and #33.
+
+### Added
+
+- **`/cs debug` reports the dispatch pipeline**, and `/cs diag` is a new alias for it. The width
+  the controller settled on only ever appeared in a throttle notice and the threshold it steers
+  against appeared nowhere, so "the pregen keeps pausing" could not be answered by looking.
+  Requested on mod_support #32.
+
+### Changed (diagnostics)
+
+- **`/csclient status` no longer describes multiplayer when there is no server.** Transport,
+  token, injected, download and the store counters are the multiplayer client path and are inert
+  on an integrated server; printed unconditionally they read as a broken feature. It now leads
+  with the mode and omits what does not apply.
+
+
 ## [4.0.0] - 2026-09-13
 
 Breaking. The command surface is reorganised by who can run a command and where it executes, and
