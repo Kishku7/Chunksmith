@@ -1,5 +1,5 @@
 plugins {
-    id("net.neoforged.moddev") version "2.0.141"
+    id("net.neoforged.moddev") version "2.0.147"
     id("java-library")
     id("maven-publish")
     id("com.gradleup.shadow") version "9.4.0"

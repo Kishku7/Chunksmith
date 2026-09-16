@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-09-16
+
+Minecraft 26.3 shipped stable on 15 September. The 26.3 jar that was live before this release could
+not load on it at all -- not degraded, absent -- because every 26.3 pre-release moved the resource
+pack format, so that jar was pinned to exactly one build and 26.3 stable was a different one. This
+release ends that: 26.3 is a settled line now and takes the same closed range every other 26.X line
+has, so one jar serves 26.3 and everything after it up to 26.4.
+
+### Added
+
+- **NeoForge on 26.3.** The first NeoForge build Chunksmith has ever shipped for a 26.3 line --
+  NeoForge only published a 26.3 loader (26.3.0.1-beta) this week, which is why the line was
+  Fabric-only until now. Requires NeoForge 26.3.0-alpha or newer.
+
+### Changed
+
+- **The Fabric 26.3 jar now declares `>=26.3- <26.4` instead of a single exact build.** It is the
+  same range shape 26.1 and 26.2 have carried since they settled. Nothing about the mod changed
+  between 26.3-rc-1 and 26.3 stable; the eight files Mojang touched are window handling, the
+  multiplayer screen and version stamps.
+- **The Bukkit / Paper / Spigot plugin now claims 26.3.** One plugin jar already covered the whole
+  26 line; this is the metadata catching up so the 26.3 build is listed for it.
+
 ## [4.1.0] - 2026-09-14
 
 Pregen throughput. The default pipeline width was wrong on every machine that was not an 8-core

@@ -31,19 +31,21 @@ try {
 
 
 # 26-line matrix (unified Fabric/26 cell; -P + PACK_FORMAT). pack_format is read from each MC build's own resources/version.json -- never extrapolated.
-# 26.3 is pinned to ONE exact build EXCLUSIVELY (currently rc-1, bumped 2026-09-10). Most 26.3 builds move resource
-#   pack_format -- 89,90,91,92,93,94,95 across the snapshots and then 97 at pre-1 (a jump of TWO), while
-#   pre-2 and pre-3 both stayed at 97 -- so READ it out of the build's own resources/version.json, never increment.
-#   That is why the pin is exclusive: a jar carries one pack_format and is wrong on every other 26.3
-#   build. dep uses the Fabric-normalized form, which for the 26.x naming only swaps the LAST hyphen
-#   for a dot: 26.3-snapshot-7 -> 26.3-alpha.7, 26.3-pre-1 -> 26.3-pre.1. NOT beta.1 -- that was
-#   assumed from the older 1.x convention and the server refused to load the mod
-#   ("requires version 26.3-beta.1 ... but only the wrong version is present: 26.3-pre.1").
-#   Read it off a boot, never from the pattern.
+# 26.3 went STABLE 2026-09-15, so its exclusive single-build pin is GONE: it now carries the same
+#   closed prerelease-inclusive range every settled 26.X line uses. pack_format is 97, read from
+#   26.3's own resources/version.json, and it is the same 97 rc-1 shipped -- the ladder had moved
+#   89,90,91,92,93,94,95 across the snapshots and then jumped TWO to 97 at pre-1, which is exactly
+#   why it is READ and never incremented.
+# IF A FUTURE 26.X LINE IS BUILT WHILE STILL IN PRE-RELEASE, it goes back to an exclusive pin
+#   (one jar carries one pack_format and is wrong on every other build of that line), and dep takes
+#   the Fabric-normalized form, which for 26.x naming only swaps the LAST hyphen for a dot:
+#   26.3-snapshot-7 -> 26.3-alpha.7, 26.3-pre-1 -> 26.3-pre.1. NOT beta.1 -- that was assumed from
+#   the older 1.x convention and the server refused to load the mod ("requires version 26.3-beta.1
+#   ... but only the wrong version is present: 26.3-pre.1"). Read it off a boot, never from the pattern.
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.150.0+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.152.1+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3-rc-1";       api = "0.160.3+26.3";   dep = "26.3-rc.1";  packFormat = "97" }
+  "26.3" = @{ mc = "26.3";            api = "0.160.6+26.3";   dep = ">=26.3- <26.4"; packFormat = "97" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object

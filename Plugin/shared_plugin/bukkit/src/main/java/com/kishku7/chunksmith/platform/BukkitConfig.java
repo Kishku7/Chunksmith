@@ -36,8 +36,6 @@ public final class BukkitConfig implements Config {
     /** Matches the mod's ceiling; see Config#getLodIndexBudgetMb. A terabyte, in megabytes. */
     private static final long LOD_INDEX_BUDGET_MB_MAX = 1L << 20;
 
-    /** Matches the mod's default. */
-
     /** The documentation page. Kept as a constant so there is one place to correct it. */
     private static final String CONFIG_DOCS = "https://github.com/Kishku7/Chunksmith/wiki/Server-Settings";
 
