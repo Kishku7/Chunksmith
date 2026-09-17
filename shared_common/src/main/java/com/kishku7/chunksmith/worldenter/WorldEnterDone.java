@@ -58,12 +58,36 @@ public final class WorldEnterDone {
 
     private final String dimension;
     private final long radiusBlocks;
+    private final double centerX;
+    private final double centerZ;
     private final long completedAtMillis;
 
+    /**
+     * A record from before the centre was configurable, or any run centred on origin.
+     *
+     * <p>Kept because that is exactly what an absent centre MEANS: until 4.3.0 the pregen was
+     * hard-coded to (0, 0), so every existing record on disk describes a run centred there. Reading
+     * one as origin is not a default, it is the truth about that world.
+     */
     public WorldEnterDone(String dimension, long radiusBlocks, long completedAtMillis) {
+        this(dimension, radiusBlocks, 0.0, 0.0, completedAtMillis);
+    }
+
+    public WorldEnterDone(String dimension, long radiusBlocks,
+                          double centerX, double centerZ, long completedAtMillis) {
         this.dimension = dimension;
         this.radiusBlocks = radiusBlocks;
+        this.centerX = centerX;
+        this.centerZ = centerZ;
         this.completedAtMillis = completedAtMillis;
+    }
+
+    public double centerX() {
+        return centerX;
+    }
+
+    public double centerZ() {
+        return centerZ;
     }
 
     public String dimension() {
@@ -85,9 +109,32 @@ public final class WorldEnterDone {
      * setting is not a reason to re-run something already finished.
      */
     public boolean satisfies(String wantedDimension, long wantedRadius) {
-        return dimension != null
-                && dimension.equals(wantedDimension)
-                && radiusBlocks >= wantedRadius;
+        return satisfies(wantedDimension, wantedRadius, 0.0, 0.0);
+    }
+
+    /**
+     * Does this record already satisfy a request centred somewhere in particular?
+     *
+     * <p>The test is CONTAINMENT: the wanted disc has to lie inside the completed one, which is
+     * {@code distance(centres) + wantedRadius <= completedRadius}. That generalises the old
+     * radius-only rule rather than replacing it -- same centre gives distance 0 and the rule reduces
+     * to {@code completed >= wanted}, so a world finished before 4.3.0 still counts as done for an
+     * origin-centred request of the same size or smaller.
+     *
+     * <p>It matters because the centre is now movable. Somebody who sets
+     * {@code worldEnterPregenCenter} to {@code spawn} on a world already finished around origin is
+     * asking for ground that was never generated; a record that only remembered the radius would
+     * refuse them forever, which is the very failure the stored radius was added to prevent.
+     */
+    public boolean satisfies(String wantedDimension, long wantedRadius,
+                             double wantedX, double wantedZ) {
+        if (dimension == null || !dimension.equals(wantedDimension)) {
+            return false;
+        }
+        double dx = centerX - wantedX;
+        double dz = centerZ - wantedZ;
+        double distance = Math.sqrt(dx * dx + dz * dz);
+        return distance + wantedRadius <= radiusBlocks;
     }
 
     /**
@@ -105,6 +152,8 @@ public final class WorldEnterDone {
         String json = "{\n"
                 + "  \"dimension\": \"" + dimension + "\",\n"
                 + "  \"radiusBlocks\": " + radiusBlocks + ",\n"
+                + "  \"centerX\": " + centerX + ",\n"
+                + "  \"centerZ\": " + centerZ + ",\n"
                 + "  \"completedAtMillis\": " + completedAtMillis + "\n"
                 + "}\n";
         try {
@@ -142,7 +191,10 @@ public final class WorldEnterDone {
             if (dim.isEmpty() || radius <= 0L) {
                 return Optional.empty();
             }
+            // Absent centre = origin, which is what every pre-4.3.0 record describes.
             return Optional.of(new WorldEnterDone(dim, radius,
+                    Double.parseDouble(field(json, "centerX", "0")),
+                    Double.parseDouble(field(json, "centerZ", "0")),
                     Long.parseLong(field(json, "completedAtMillis", "0"))));
         } catch (IOException | NumberFormatException e) {
             return Optional.empty();

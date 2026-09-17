@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-09-17
+
+The world-enter pregen always centred on (0, 0). Any mod that moves world spawn -- and plenty do --
+therefore had it pregenerate the wrong part of the world: the player waits behind a progress screen
+while terrain nobody is going to stand on is built, and the terrain around them is generated on foot
+afterwards anyway. Reported on mod_support #34.
+
+### Added
+
+- **`worldEnterPregenCenter`** -- where the world-enter pregen is centred. `origin` (the default,
+  and what every existing world already did), `spawn` to follow the world's spawn point, or an
+  explicit `x,z`. Settable in `config/chunksmith/config.json` or with
+  `/cs set worldEnterPregenCenter spawn`.
+
+  In a command the coordinate form needs quotes -- `/cs set worldEnterPregenCenter "512,-64"` --
+  because an unquoted command argument cannot contain a comma. `origin` and `spawn` need no quotes,
+  and the config file takes the bare form either way. All three were checked on a live server, not
+  assumed: the unquoted pair is the one thing that does not parse, and it fails loudly rather than
+  storing something nobody asked for.
+
+### Changed
+
+- **The completion record now stores the centre as well as the radius.** It already stored the
+  radius so that raising `worldEnterPregenRadius` could re-arm a world that had been finished at a
+  smaller one. The centre needs the same treatment for the same reason: without it, changing the
+  centre on a world already recorded as done would be silently ignored forever, which is the exact
+  failure the stored radius exists to prevent.
+
 ## [4.2.0] - 2026-09-16
 
 Minecraft 26.3 shipped stable on 15 September. The 26.3 jar that was live before this release could

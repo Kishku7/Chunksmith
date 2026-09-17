@@ -285,6 +285,14 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public String getWorldEnterPregenCenter() {
+        // Reported honestly rather than read from config.yml: the feature itself is unsupported here
+        // (see isWorldEnterPregenSupported), so a centre key would be one an operator could set and
+        // never observe. 'origin' is what this platform would do if it did anything.
+        return "origin";
+    }
+
+    @Override
     public String getLodBackchannelBindAddress() {
         return Input.checkHost(plugin.getConfig().getString("lod-backchannel-bind-address", ""));
     }
@@ -442,6 +450,11 @@ public final class BukkitConfig implements Config {
 
     @Override
     public void setWorldEnterPregenRadius(long blocks) {
+        // No-op, same reason.
+    }
+
+    @Override
+    public void setWorldEnterPregenCenter(String spec) {
         // No-op, same reason.
     }
 

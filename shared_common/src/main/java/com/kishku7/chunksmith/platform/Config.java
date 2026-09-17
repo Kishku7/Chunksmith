@@ -391,6 +391,17 @@ public interface Config {
      */
     long getWorldEnterPregenRadius();
 
+    /**
+     * Where the world-enter pregen is centred: {@code origin} (default), {@code spawn}, or
+     * {@code x,z}.
+     *
+     * <p>Returned as the raw spec rather than as coordinates, because {@code spawn} cannot be
+     * resolved here -- it is a property of the world, read when the pregen starts. Parse it with
+     * {@code WorldEnterCenter.parse}. An implementation that cannot offer the feature at all should
+     * return {@code origin}; that is what it would have done.
+     */
+    String getWorldEnterPregenCenter();
+
     void setLanguage(String language);
 
     void setContinueOnRestart(boolean continueOnRestart);
@@ -464,6 +475,9 @@ public interface Config {
 
     /** Sets how far the world-enter pregen reaches, in blocks, and persists it. */
     void setWorldEnterPregenRadius(long blocks);
+
+    /** Sets the world-enter pregen centre from a spec. See {@link #getWorldEnterPregenCenter()}. */
+    void setWorldEnterPregenCenter(String spec);
 
     void reload();
 }

@@ -27,6 +27,7 @@ import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.ServerEnvironment;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
+import com.kishku7.chunksmith.worldenter.WorldEnterCenter;
 import com.kishku7.chunksmith.util.Translator;
 
 import java.io.IOException;
@@ -583,6 +584,21 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public String getWorldEnterPregenCenter() {
+        String raw = Optional.ofNullable(configModel.worldEnterPregenCenter)
+                .orElse(WorldEnterCenter.ORIGIN);
+        WorldEnterCenter parsed = WorldEnterCenter.parse(raw);
+        if (parsed == null) {
+            // Same posture as the radius above: say what was wrong and what is being used instead,
+            // rather than silently substituting a value the operator never sees.
+            LOGGER.warn("Chunksmith: worldEnterPregenCenter \"" + raw + "\" is not 'origin',"
+                    + " 'spawn' or 'x,z'; using " + WorldEnterCenter.ORIGIN + " instead");
+            return WorldEnterCenter.ORIGIN;
+        }
+        return parsed.spec();
+    }
+
+    @Override
     public String getLodBackchannelBindAddress() {
         return Input.checkHost(configModel.lodBackchannelBindAddress);
     }
@@ -781,6 +797,17 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setWorldEnterPregenCenter(String spec) {
+        // Canonicalised on the way in, so the file holds 'origin' / 'spawn' / '512,-64' and never
+        // the raw casing or spacing somebody typed. Refused values never reach here -- ConfigSettings
+        // rejects them at the command, and the getter guards the file.
+        WorldEnterCenter parsed = WorldEnterCenter.parse(spec);
+        configModel.worldEnterPregenCenter =
+                parsed == null ? WorldEnterCenter.ORIGIN : parsed.spec();
+        saveConfig();
+    }
+
+    @Override
     public void setLodBackchannelBindAddress(String address) {
         // Validated on the way in AND on the way out, like every other key here: the file is what an
         // operator inspects when something is wrong, and it must not hold a value the mod refuses.
@@ -854,6 +881,9 @@ public final class GsonConfig implements Config {
         // On by default; single-player only. See Config#isWorldEnterPregenEnabled.
         private Boolean worldEnterPregen = true;
         private Long worldEnterPregenRadius = WORLD_ENTER_RADIUS_DEFAULT;
+        // 'origin' keeps every world that has already run this feature exactly where it was.
+        // See Config#getWorldEnterPregenCenter and mod_support #34.
+        private String worldEnterPregenCenter = WorldEnterCenter.ORIGIN;
         // Empty = bind wherever the game bound. See Config#getLodBackchannelBindAddress.
         private String lodBackchannelBindAddress = "";
         // Empty = let each client use the address it connected to. See Config#getLodBackchannelHost.

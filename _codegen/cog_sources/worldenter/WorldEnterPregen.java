@@ -23,6 +23,8 @@ package com.kishku7.chunksmith.worldenter;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.platform.Config;
+import com.kishku7.chunksmith.platform.World;
+import com.kishku7.chunksmith.platform.util.Location;
 //[[[cog
 // import cog, compat
 // if compat.has_world_clock(mcver):
@@ -100,6 +102,8 @@ public final class WorldEnterPregen {
     private static volatile long chunksDone;
     private static volatile float percentComplete;
     private static volatile long radiusBlocks;
+    private static volatile double centerBlocksX;
+    private static volatile double centerBlocksZ;
 
     private WorldEnterPregen() {
     }
@@ -131,6 +135,12 @@ public final class WorldEnterPregen {
         ServerLevel level = mcServer.overworld();
         String dimension = dimensionId(level);
         long radius = config.getWorldEnterPregenRadius();
+        // mod_support #34: this was hard-coded to (0, 0), so any mod that relocates world spawn had
+        // it pregenerate terrain the player never stands on. Resolved HERE, per load, because
+        // 'spawn' can move between loads -- what gets recorded as complete is the resolved place.
+        double[] center = resolveCenter(config, dimension);
+        double centerX = center[0];
+        double centerZ = center[1];
 
         // ONCE IT IS DONE, IT IS DONE (decided 2026-09-02). Without this the pregen fired on EVERY
         // single-player load: the task skips chunks that already exist, so nothing was destroyed,
@@ -138,7 +148,8 @@ public final class WorldEnterPregen {
         // waited out. Continuing a PARTIAL run is still wanted -- pressing "Enter World Now" leaves
         // no record, so the next load picks up where it stopped. Only a real completion writes one.
         Optional<WorldEnterDone> alreadyDone = WorldEnterDone.read(worldDir(mcServer));
-        if (alreadyDone.isPresent() && alreadyDone.get().satisfies(dimension, radius)) {
+        if (alreadyDone.isPresent()
+                && alreadyDone.get().satisfies(dimension, radius, centerX, centerZ)) {
             LOGGER.info("Chunksmith: this world has already been pre-generated to {} blocks, so the"
                     + " world-enter pregen is being skipped. Raise worldEnterPregenRadius if you"
                     + " want more, or delete {} in the world folder to run it again.",
@@ -153,6 +164,8 @@ public final class WorldEnterPregen {
         server = mcServer;
         worldKey = dimension;
         radiusBlocks = radius;
+        centerBlocksX = centerX;
+        centerBlocksZ = centerZ;
         chunksTotal = estimateChunks(radius);
         ETA.reset();
         chunksDone = 0L;
@@ -188,17 +201,18 @@ public final class WorldEnterPregen {
         freeze(mcServer, true);
 
         boolean started = ChunksmithProvider.get().getApi().startTask(
-                worldKey, SHAPE, 0.0, 0.0, radius, radius, PATTERN);
+                worldKey, SHAPE, centerX, centerZ, radius, radius, PATTERN);
         if (!started) {
             LOGGER.warn("Chunksmith: the world-enter pregen could not start a task; releasing the"
                     + " world and restoring settings.");
             release();
             return;
         }
-        LOGGER.info("Chunksmith: world-enter pregen started -- radius {} blocks (~{} chunks)."
+        LOGGER.info("Chunksmith: world-enter pregen started -- radius {} blocks (~{} chunks)"
+                + " centred on {}, {}."
                 + " The world is frozen until it finishes or you choose to enter."
                 + " Freezing does NOT make this faster; it stops the world moving while it runs.",
-                radius, chunksTotal);
+                radius, chunksTotal, (long) centerX, (long) centerZ);
     }
 
     /**
@@ -260,7 +274,8 @@ public final class WorldEnterPregen {
         if (mcServer == null) {
             return;
         }
-        boolean recorded = new WorldEnterDone(worldKey, radiusBlocks, System.currentTimeMillis())
+        boolean recorded = new WorldEnterDone(worldKey, radiusBlocks,
+                centerBlocksX, centerBlocksZ, System.currentTimeMillis())
                 .write(worldDir(mcServer));
         if (!recorded) {
             LOGGER.warn("Chunksmith: the world-enter pregen finished but its completion could not be"
@@ -429,6 +444,37 @@ public final class WorldEnterPregen {
     static long estimateChunks(long radiusBlocks) {
         double radiusChunks = radiusBlocks / 16.0;
         return (long) Math.ceil(Math.PI * radiusChunks * radiusChunks);
+    }
+
+    /**
+     * The configured centre as {@code [x, z]} blocks.
+     *
+     * <p>{@code spawn} goes through the platform {@code World} rather than touching
+     * {@code ServerLevel} here, because {@code World.getSpawn()} is already generated per MC version
+     * by the platform layer -- the same accessor {@code /cs spawn} uses. Reaching for the mojmap
+     * method in this file would put a version-drifting symbol into a cog source for no gain.
+     *
+     * <p>If the world cannot be resolved -- which should not happen, the server has just started it
+     * -- this falls back to origin and SAYS so. Silently pregenerating the wrong place is the bug
+     * this whole change exists to fix.
+     */
+    private static double[] resolveCenter(Config config, String dimension) {
+        WorldEnterCenter wanted = WorldEnterCenter.parse(config.getWorldEnterPregenCenter());
+        if (wanted == null) {
+            // The config getter already warned and canonicalised; this is belt and braces.
+            return new double[] {0.0, 0.0};
+        }
+        if (!wanted.followsSpawn()) {
+            return new double[] {wanted.x(), wanted.z()};
+        }
+        Optional<World> world = ChunksmithProvider.get().getServer().getWorld(dimension);
+        if (world.isEmpty()) {
+            LOGGER.warn("Chunksmith: worldEnterPregenCenter is 'spawn' but {} could not be resolved,"
+                    + " so the pregen is centred on 0, 0 instead.", dimension);
+            return new double[] {0.0, 0.0};
+        }
+        Location spawn = world.get().getSpawn();
+        return new double[] {spawn.getX(), spawn.getZ()};
     }
 
     /**

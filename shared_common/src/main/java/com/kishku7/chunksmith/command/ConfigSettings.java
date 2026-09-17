@@ -25,6 +25,7 @@ import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
+import com.kishku7.chunksmith.worldenter.WorldEnterCenter;
 
 import java.util.List;
 import java.util.Locale;
@@ -123,6 +124,9 @@ public final class ConfigSettings {
                     Config::isWorldEnterPregenEnabled, Config::setWorldEnterPregenEnabled)),
             worldEnter(integer("worldEnterPregenRadius",
                     Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
+            worldEnter(text("worldEnterPregenCenter",
+                    Config::getWorldEnterPregenCenter, Config::setWorldEnterPregenCenter,
+                    raw -> WorldEnterCenter.parse(raw) != null)),
             // Different validators on purpose. A BIND address may be a wildcard (0.0.0.0 = every
             // interface); an ADVERTISED one may not, because a client told to connect to 0.0.0.0
             // has been told nothing at all.
@@ -237,6 +241,33 @@ public final class ConfigSettings {
 
     private interface TextSetter {
         void set(Config config, String value);
+    }
+
+    /**
+     * A plain text key with a validator and nothing to rebind.
+     *
+     * <p>Deliberately not {@link #host}: that one calls {@code CsLodControl.apply()} because moving
+     * an address has to take effect on the spot. Nothing is bound to a pregen centre -- it is read
+     * when the next world-enter pregen starts -- so applying anything here would be theatre.
+     *
+     * <p>An invalid value is REFUSED rather than coerced. Storing a fallback and answering "done"
+     * is how a setting comes to look like it worked while changing nothing.
+     */
+    private static ConfigSetting text(String name,
+                                      Function<Config, String> getter,
+                                      TextSetter setter,
+                                      Function<String, Boolean> valid) {
+        return new ConfigSetting(name, ConfigSetting.Kind.TEXT,
+                getter,
+                (config, raw) -> {
+                    String asked = raw == null ? "" : raw.trim();
+                    if (asked.isEmpty() || !valid.apply(asked)) {
+                        return false;
+                    }
+                    setter.set(config, asked);
+                    return true;
+                },
+                config -> true);
     }
 
     private static ConfigSetting of(final String name,
