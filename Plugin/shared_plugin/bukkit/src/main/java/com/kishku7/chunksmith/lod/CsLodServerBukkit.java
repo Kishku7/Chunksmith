@@ -25,6 +25,7 @@ import com.kishku7.chunksmith.lod.net.CsLodCapNotice;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.lod.net.CsLodHttpServer;
 import com.kishku7.chunksmith.lod.net.CsLodIndexScan;
+import com.kishku7.chunksmith.lod.net.CsLodReachNotice;
 import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import com.kishku7.chunksmith.lod.net.CsLodProtocol;
 import com.kishku7.chunksmith.lod.net.CsLodStoreScan;
@@ -99,6 +100,16 @@ public final class CsLodServerBukkit implements PluginMessageListener {
 
     /** Silences a repeated "index was capped" line per player; see CsLodCapNotice. */
     private static final CsLodCapNotice CAP_NOTICE = new CsLodCapNotice();
+
+    /**
+     * Silences a repeated "nothing ever reached the backchannel" line per player.
+     *
+     * <p>Same class the mod uses, for the same reason the cap notice is shared: two platforms
+     * diagnosing the same fault must not drift into saying different things about it. The
+     * CONSEQUENCE differs though, and `explain` is told which platform is asking -- the mod falls
+     * back in-band and is merely slow, this one has no fallback and delivers nothing.
+     */
+    private static final CsLodReachNotice REACH_NOTICE = new CsLodReachNotice();
     private static final String CHANNEL = CsLodProtocol.NAMESPACE + ":" + CsLodProtocol.CHANNEL;
 
     /**
@@ -256,6 +267,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     public static void onQuit(UUID player) {
         TOKENS.revoke(player);
         CAP_NOTICE.forget(player);
+        REACH_NOTICE.forget(player);
         SPOKEN.remove(player);
         RADIUS.remove(player);
         SCANNING.remove(player);
@@ -410,6 +422,19 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                         + (scanned.bytes() / (1024 * 1024)) + " MB, radius " + radius + "): "
                         + CsLodCapNotice.explain(scanned, budgetMb));
             }
+            // The client has now been told what to fetch. If the backchannel has NEVER been reached
+            // -- zero served AND zero rejected, which cannot be tokens or permissions because a
+            // rejection would have counted -- then the port is not reachable from this player.
+            // Only from the SECOND answer onward: the first has not had time to come back yet.
+            CsLodHttpServer server = http;
+            if (!summaryOnly && server != null
+                    && REACH_NOTICE.hasBeenAnsweredBefore(uuid)
+                    && CsLodReachNotice.unreached(true, server.servedCount(), server.rejectedCount())
+                    && REACH_NOTICE.shouldWarn(uuid, System.currentTimeMillis())) {
+                // false: no in-band fallback on this platform, so this is no LOD at all, not slow LOD.
+                LOGGER.warning(CsLodReachNotice.explain(server.getPort(), false));
+            }
+
             byte[] message = summaryOnly
                     ? CsLodMessages.encode(new CsLodMessages.RegionSummary(dimension,
                             scanned.regions().size(), CsLodIndexScan.aggregate(scanned.regions())))

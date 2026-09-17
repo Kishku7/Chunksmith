@@ -209,6 +209,22 @@ public final class CsLodHttpServer {
         tokens.clear();
     }
 
+    /**
+     * Files served since this server started.
+     *
+     * <p>Exposed as a number, not just inside {@link #describe()}: a diagnosis has to compare it
+     * against the rejection count, and parsing that back out of a human-readable line would be a
+     * worse dependency than two getters.
+     */
+    public long servedCount() {
+        return served.get();
+    }
+
+    /** Requests refused for a bad or expired token since this server started. */
+    public long rejectedCount() {
+        return rejected.get();
+    }
+
     public int getPort() {
         return port;
     }

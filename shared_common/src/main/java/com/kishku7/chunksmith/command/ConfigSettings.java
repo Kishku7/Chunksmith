@@ -126,7 +126,11 @@ public final class ConfigSettings {
                     Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
             worldEnter(text("worldEnterPregenCenter",
                     Config::getWorldEnterPregenCenter, Config::setWorldEnterPregenCenter,
-                    raw -> WorldEnterCenter.parse(raw) != null)),
+                    raw -> WorldEnterCenter.parse(raw) != null,
+                    // The quotes are not optional and not a style choice: a brigadier unquoted
+                    // argument cannot contain a comma, so 512,-64 is rejected by the COMMAND before
+                    // this setting ever sees it. Found by typing it at a live server.
+                    "expected 'origin', 'spawn', or coordinates in quotes like \"512,-64\"")),
             // Different validators on purpose. A BIND address may be a wildcard (0.0.0.0 = every
             // interface); an ADVERTISED one may not, because a client told to connect to 0.0.0.0
             // has been told nothing at all.
@@ -256,7 +260,8 @@ public final class ConfigSettings {
     private static ConfigSetting text(String name,
                                       Function<Config, String> getter,
                                       TextSetter setter,
-                                      Function<String, Boolean> valid) {
+                                      Function<String, Boolean> valid,
+                                      String hint) {
         return new ConfigSetting(name, ConfigSetting.Kind.TEXT,
                 getter,
                 (config, raw) -> {
@@ -267,7 +272,12 @@ public final class ConfigSettings {
                     setter.set(config, asked);
                     return true;
                 },
-                config -> true);
+                config -> true,
+                // The generic refusal can only say "expected text", which tells an operator nothing
+                // they did not already know. A TEXT key with a closed set of forms has to name them
+                // -- otherwise the only way to discover them is the wiki, and the person is already
+                // at a console getting an error.
+                (config, raw) -> hint);
     }
 
     private static ConfigSetting of(final String name,

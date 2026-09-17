@@ -84,6 +84,9 @@ public final class CsLodServerNet {
     /** Silences a repeated "index was capped" line per player; see CsLodCapNotice. */
     private static final CsLodCapNotice CAP_NOTICE = new CsLodCapNotice();
 
+    /** Silences a repeated "nothing ever reached the backchannel" line per player. */
+    private static final CsLodReachNotice REACH_NOTICE = new CsLodReachNotice();
+
     private static final CsLodTokens TOKENS = new CsLodTokens();
 
     /** ~16k blocks: further than any LOD renderer draws, and it bounds the index we build. */
@@ -171,6 +174,7 @@ public final class CsLodServerNet {
     public static void onDisconnect(UUID player) {
         TOKENS.revoke(player);
         CsLodInBandSender.forget(player);
+        REACH_NOTICE.forget(player);
         CAP_NOTICE.forget(player);
         RADIUS.remove(player);
         WAITING.remove(player);
@@ -530,6 +534,17 @@ public final class CsLodServerNet {
         CsLodInBandSender.queue(player, root, dimension, wanted);
         LOGGER.info("Chunksmith: in-band LOD fetch for {}. {} regions of {} (no backchannel; this is the"
                 + " slow path)", nameOf(player), wanted.size(), dimension);
+        // An in-band fetch is the SYMPTOM. If the backchannel is bound and has never been reached at
+        // all, say so here rather than leaving the operator to infer it from counters they would have
+        // to know to go and read. Reported three times (mod_support #24, #26, #31) with the startup
+        // line already printing the port -- the line was not missing, it was at boot and at INFO.
+        CsLodHttpServer server = http;
+        if (server != null
+                && CsLodReachNotice.unreached(true, server.servedCount(), server.rejectedCount())
+                && REACH_NOTICE.shouldWarn(player.getUUID(), System.currentTimeMillis())) {
+            // true: the mod HAS an in-band fallback, so the consequence here is slowness.
+            LOGGER.warn(CsLodReachNotice.explain(server.getPort(), true));
+        }
     }
 
     /** Drip-feeds the in-band queues, and watches for the store coming to life. Wired to the server tick. */
