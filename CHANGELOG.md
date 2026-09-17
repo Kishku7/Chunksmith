@@ -22,6 +22,22 @@ afterwards anyway. Reported on mod_support #34.
   assumed: the unquoted pair is the one thing that does not parse, and it fails loudly rather than
   storing something nobody asked for.
 
+- **The server now tells you when no client has ever reached the LOD backchannel.** It has always
+  logged the port at startup and said to open it; three separate operators have now missed that line
+  in a modded server's boot spam and reported the symptom instead. The server can tell the
+  difference on its own -- a client is connected, a download credential was issued, and yet nothing
+  has served AND nothing has been rejected, which together mean no request ever arrived -- so it
+  says so, once, to the operator, at the moment it matters rather than at boot. Throttled to one
+  message per player every ten minutes.
+
+  The consequence differs by platform and the message says which applies to you: on the mod the LOD
+  falls back to the game connection, so it still arrives, just slowly. **The plugin has no such
+  fallback, so an unreachable backchannel there means no LOD at all** -- which makes the plugin the
+  side that needed this notice most, and the side that did not have it until now.
+
+- **`/cs set` names the accepted forms when it refuses a value.** A rejected setting used to say
+  only that the value was invalid, leaving you to guess the shape it wanted.
+
 ### Fixed
 
 - **The world-enter estimate no longer swings by an hour between redraws.** Reported from real play:
