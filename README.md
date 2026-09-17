@@ -73,7 +73,7 @@ only green once the log has actually been grepped for `warning:` - on **both** s
 | Fabric   | 1.20.6, 1.21.1, 1.21.4, 1.21.5, 1.21.8, 1.21.10, 1.21.11 | 21  | 8.14   |
 | Fabric   | 26 (26.1 / 26.2 / 26.3)                                  | 25  | 9.4.1  |
 | NeoForge | 1.20.6, 1.21.1, 1.21.4, 1.21.8, 1.21.10, 1.21.11         | 21  | 8.14   |
-| NeoForge | 26 (26.1 / 26.2)                                         | 25  | 9.4.1  |
+| NeoForge | 26 (26.1 / 26.2 / 26.3)                                  | 25  | 9.4.1  |
 | Forge    | 1.20.1, 1.20.4                                            | 17  | 8.14   |
 | Forge    | 1.20.6, 1.21.1, 1.21.4, 1.21.5, 1.21.8, 1.21.10, 1.21.11 | 21  | 8.14   |
 | Plugin   | 1.20.x, 1.21.x                                           | 21  | 9.4.1  |
@@ -81,20 +81,27 @@ only green once the log has actually been grepped for `warning:` - on **both** s
 
 Notes:
 
-- **Forge** stops at 1.21.11 - ForgeGradle 6 is the ceiling, and there is no Forge for MC 26.
+- **Forge** stops at 1.21.11 - there is no Forge for MC 26, because the 26 line ships unobfuscated
+  and ForgeGradle cannot build against it. (ForgeGradle 7 does exist and is used for the newer Forge
+  cells; the 26 gap is not a missing FG7.)
 - **NeoForge** begins at 1.20.6. NeoForge 1.20.1 is a fork of Forge and runs the Forge build; it is
   tested on a NeoForge 1.20.1 harness each release rather than assumed.
-- **MC 26.3** is Fabric-only - NeoForge has not shipped a 26.3 line.
+- **MC 26.3 is built on Fabric AND NeoForge.** NeoForge published `26.3.0.1-beta`, and the first
+  NeoForge 26.3 unit shipped in 4.2.0. It needs **ModDevGradle 2.0.147 or newer** - see the NeoForge
+  cell's README.
 
-### Prerelease MC lines pin exactly
+### MC 26.3 is STABLE; the exact-pin era is over
 
-The 26.3 cell targets **one** prerelease build at a time (currently `26.3-pre-1`) and declares it
-exclusively, because every 26.3 build so far has moved the resource `pack_format` - and a jar carries
-exactly one, so it is wrong on every other 26.3 build. Two things there are worth knowing before you
-bump it:
+26.3 went stable on 2026-09-15, so the 26.3 cells take the ordinary closed, prerelease-inclusive
+range every other 26.X line uses - `>=26.3- <26.4` on Fabric, `[26.3,26.4)` on NeoForge - at
+`pack_format` **97**.
+
+While 26.3 was in prerelease the cell had to target **one** build at a time and declare it
+exclusively, because every 26.3 build moved the resource `pack_format` and a jar carries exactly one.
+That is history now, but both halves of it will apply again the moment a 26.4 prerelease opens:
 
 - **Read `pack_format` out of the build's own `resources/version.json`.** Do not extrapolate it. The
-  snapshots moved it by one each time (89..95) and then `26.3-pre-1` jumped straight to **97**.
+  26.3 snapshots moved it by one each time (89..95) and then `26.3-pre-1` jumped straight to **97**.
 - **Read the Fabric-normalized id off a boot, not off the pattern.** For 26.x naming Fabric swaps
   only the last hyphen for a dot: `26.3-snapshot-7` becomes `26.3-alpha.7` and `26.3-pre-1` becomes
   **`26.3-pre.1`**. It is not `beta.1`. A wrong predicate still builds green and passes every static
