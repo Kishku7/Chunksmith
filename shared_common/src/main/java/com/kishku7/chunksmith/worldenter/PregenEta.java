@@ -49,11 +49,31 @@ public final class PregenEta {
     /**
      * How many samples the rate is measured over.
      *
-     * <p>Eight, at roughly one a second, is a few seconds of history: long
-     * enough that one slow tick does not throw the estimate, short enough to
-     * follow a real change in rate within a few seconds.
+     * <p>Eight, at one a second (see {@link #MIN_SAMPLE_GAP_MILLIS}), is a few
+     * seconds of history: long enough that one slow tick does not throw the
+     * estimate, short enough to follow a real change in rate within a few
+     * seconds.
      */
     public static final int WINDOW = 8;
+
+    /**
+     * The shortest gap between two samples that count.
+     *
+     * <p><b>This is the whole fix for an ETA that swung between two hours and
+     * thirty minutes.</b> The window above was written for samples arriving
+     * about a second apart, and the caller feeds it {@code GenerationProgressEvent},
+     * which {@code GenerationTask.update} fires once per finished chunk --
+     * throttled to at most ten a second, not to one. Eight of those is under a
+     * second of history, so the "rate" was a snapshot of one burst between two
+     * stalls, and the estimate lurched with every one of them.
+     *
+     * <p>Note what was NOT wrong: the window length, the arithmetic, and the
+     * reasoning in the class doc above are all fine. The samples were simply
+     * arriving an order of magnitude faster than the thing consuming them
+     * assumed. A rate is only as meaningful as the interval it is measured over,
+     * and nothing in the old code stated the interval it needed.
+     */
+    public static final long MIN_SAMPLE_GAP_MILLIS = 1000L;
 
     /** Below this many chunks per second, treat the run as stalled rather than slow. */
     private static final double STALLED_RATE = 0.05;
@@ -68,9 +88,13 @@ public final class PregenEta {
      */
     public void sample(long nowMillis, long chunksDone) {
         long[] last = samples.peekLast();
-        if (last != null && nowMillis <= last[0]) {
-            // A clock that did not move tells us nothing about rate, and a clock that went
-            // backwards would produce a negative one. Ignore rather than poison the window.
+        if (last != null && nowMillis - last[0] < MIN_SAMPLE_GAP_MILLIS) {
+            // Too soon to be a second data point. This also covers a clock that did not move or
+            // went backwards, which would tell us nothing about rate or produce a negative one.
+            //
+            // Dropped rather than averaged in: the caller fires per finished chunk, so accepting
+            // them all fills an 8-slot window with under a second of a bursty process and the
+            // estimate follows the noise instead of the trend.
             return;
         }
         samples.addLast(new long[]{nowMillis, chunksDone});

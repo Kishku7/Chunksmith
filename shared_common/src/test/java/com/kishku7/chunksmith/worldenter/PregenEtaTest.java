@@ -42,6 +42,89 @@ public class PregenEtaTest {
         return eta;
     }
 
+    /**
+     * The cadence the caller ACTUALLY uses: {@code GenerationTask.update} fires
+     * {@code GenerationProgressEvent} once per finished chunk, throttled to at most ten a second.
+     * These tests drive that, not the tidy one-a-second the class was written against.
+     */
+    private static void burstyTenHz(PregenEta eta, int seconds, int chunksPerBurst) {
+        long chunks = 0;
+        for (int second = 0; second < seconds; second++) {
+            for (int tick = 0; tick < 10; tick++) {
+                // All of the second's work lands in its first tick, then nothing -- the burst and
+                // stall pattern a real pregen produces on a machine with too little headroom.
+                if (tick == 0) {
+                    chunks += chunksPerBurst;
+                }
+                eta.sample(second * 1000L + tick * 100L, chunks);
+            }
+        }
+    }
+
+    // ------------------------------------------------- the ETA that swung by an hour (2026-09-17)
+
+    /**
+     * Reported from real play: the world-enter estimate jumping between two hours and thirty
+     * minutes, several times a second.
+     *
+     * <p>The window is eight samples, written for samples about a second apart. The caller feeds it
+     * up to TEN a second, so eight of them is under a second of history -- and on a bursty run that
+     * is either a burst (a huge rate) or a stall (none at all). This asserts the estimate is now
+     * measured over real time: a run averaging 20 chunks/sec must read as about 20, whichever
+     * instant it is asked at.
+     *
+     * <p>RED on the pre-fix code: without the minimum gap the same input rates the last 0.8s, which
+     * over a burst-then-stall pattern is nowhere near the average.
+     */
+    @Test
+    public void aBurstyRunIsRatedOverSecondsNotOverTheLastBurst() {
+        PregenEta eta = new PregenEta();
+        burstyTenHz(eta, 30, 20);          // 20 chunks each second = 20 cps average
+        double rate = eta.ratePerSecond();
+        assertTrue("rate was " + rate + ", expected about 20", rate > 15.0 && rate < 25.0);
+
+        // 20000 chunks left at ~20/sec is ~1000s. The complaint was a figure that halved and
+        // doubled between redraws; pin it to the average it is supposed to track.
+        long seconds = eta.secondsRemaining(10000, 30000);
+        assertTrue("seconds was " + seconds, seconds > 800 && seconds < 1300);
+    }
+
+    /**
+     * The estimate must not move just because it was asked again a tenth of a second later.
+     *
+     * <p>This is the visible half of the complaint -- "the update speed updates WAY too fast". A
+     * sample that is dropped cannot move the answer, so the reading is stable between seconds.
+     */
+    @Test
+    public void extraSamplesWithinTheSameSecondDoNotMoveTheEstimate() {
+        PregenEta eta = new PregenEta();
+        burstyTenHz(eta, 20, 20);
+        long before = eta.secondsRemaining(10000, 30000);
+        double rateBefore = eta.ratePerSecond();
+
+        // Nine more events inside the same second as the last ACCEPTED sample, exactly as the task
+        // would deliver them. The accepted samples land on whole seconds, so the last one is at
+        // 19000ms -- not 19900, which is merely the last event the task fired.
+        for (int tick = 1; tick < 10; tick++) {
+            eta.sample(19000L + tick * 100L, 400L + tick);
+        }
+        assertEquals(rateBefore, eta.ratePerSecond(), 1.0E-9);
+        assertEquals(before, eta.secondsRemaining(10000, 30000));
+    }
+
+    /** The window really is WINDOW seconds now, not WINDOW samples of whatever arrives. */
+    @Test
+    public void subSecondSamplesAreDropped() {
+        PregenEta eta = new PregenEta();
+        eta.sample(0L, 0L);
+        eta.sample(100L, 500L);      // dropped: 100ms after the last
+        eta.sample(999L, 900L);      // dropped: still inside the same second
+        assertEquals(0.0, eta.ratePerSecond(), 1.0E-9);   // one sample is not a rate
+
+        eta.sample(1000L, 50L);      // accepted
+        assertEquals(50.0, eta.ratePerSecond(), 1.0E-9);
+    }
+
     // ---------------------------------------------------------------- refusing to guess
 
     @Test

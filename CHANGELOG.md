@@ -22,6 +22,20 @@ afterwards anyway. Reported on mod_support #34.
   assumed: the unquoted pair is the one thing that does not parse, and it fails loudly rather than
   storing something nobody asked for.
 
+### Fixed
+
+- **The world-enter estimate no longer swings by an hour between redraws.** Reported from real play:
+  "time remaining" jumping from 1-2 hours down to 30 minutes, several times a second. The estimate
+  is measured over a window of eight samples, which was written for samples about a second apart --
+  but it is fed `GenerationProgressEvent`, which fires once per finished chunk, throttled to ten a
+  second rather than to one. Eight of those is under a second of history, so on a bursty run the
+  "rate" was whichever side of a burst it happened to catch. Samples closer together than a second
+  are now ignored, so the window really is the few seconds it claims to be.
+
+  Nothing about the window length or the arithmetic was wrong; the samples were simply arriving an
+  order of magnitude faster than the code consuming them assumed. A rate is only as meaningful as
+  the interval it is measured over.
+
 ### Changed
 
 - **The completion record now stores the centre as well as the radius.** It already stored the
