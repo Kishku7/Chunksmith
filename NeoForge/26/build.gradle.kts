@@ -47,7 +47,7 @@ allprojects {
 // (this default HAS drifted from the script before -- check both when bumping). The DECLARED version range in
 // neoforge.mods.toml stays deliberately wider than whatever we compile against, so building on the
 // newest NeoForge does not raise the floor for existing users.
-val neoforgeVersion = (project.findProperty("neoforgeVersion") ?: "26.2.0.84").toString()
+val neoforgeVersion = (project.findProperty("neoforgeVersion") ?: "26.2.0.88").toString()
 val mixinVersion = "0.8.5"
 // Resource pack_format is per-26.X (26.1=84, 26.2=88); build-all overrides via PACK_FORMAT so each
 // emitted jar carries its own correct value. On MC 26 the SERVER_DATA lastPreMinorVersion is 81, so

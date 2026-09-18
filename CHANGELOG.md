@@ -54,6 +54,21 @@ afterwards anyway. Reported on mod_support #34.
 
 ### Changed
 
+- **Every cell was rebuilt against a current loader and a current fabric-api.** This is not a
+  behaviour change; it is a coverage one. The pins had drifted -- NeoForge 26.3 was three betas
+  behind, 26.2 four builds, and several pre-26 cells more -- and because the declared ranges are
+  deliberately wider than the build pins, nothing was ever broken by it: the jars loaded on the
+  newer loaders perfectly well. What had drifted was that the jars players run were not the jars
+  that were tested. NeoForge is now 26.1 `26.1.2.109` / 26.2 `26.2.0.88` / 26.3 `26.3.0.4-beta`,
+  fabric-api 26.1 `0.155.3` / 26.2 `0.160.0` / 26.3 `0.160.7`, and the pre-26 Forge and NeoForge
+  cells are current too.
+
+  **Forge 1.21.11 is the one exception and stays at `61.1.0`:** newer builds on that line cannot be
+  built here at all, because ForgeGradle 6 throws `duplicate entry: mcp/client/Start.class` while
+  assembling the mapped artifact. The published Forge bundles are not at fault -- they carry no
+  duplicate -- and `61.1.0` succeeds only because its artifact was derived months ago and is still
+  cached. That jar declares `[61,)` with an open upper bound, so it loads on newer 61.x regardless.
+
 - **The completion record now stores the centre as well as the radius.** It already stored the
   radius so that raising `worldEnterPregenRadius` could re-arm a world that had been finished at a
   smaller one. The centre needs the same treatment for the same reason: without it, changing the
