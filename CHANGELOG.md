@@ -35,11 +35,25 @@ afterwards anyway. Reported on mod_support #34.
   fallback, so an unreachable backchannel there means no LOD at all** -- which makes the plugin the
   side that needed this notice most, and the side that did not have it until now.
 
+  The notice now also names the cause it used to leave out. `lodBackchannelBindAddress` defaults to
+  empty, which means "bind wherever the game bound" -- that is, whatever `server-ip=` says in
+  server.properties. Unset, which is the normal case, that is every interface and all is well. But a
+  hosted panel behind a proxy routinely sets `server-ip=127.0.0.1`, and the backchannel then binds
+  loopback only: unreachable however carefully the port is forwarded, and producing exactly the
+  signature this notice fires on. It now says so, and gives the override --
+  `/cs set lodBackchannelBindAddress 0.0.0.0`.
+
 - **`/cs set` names the accepted forms when it refuses a value.** A rejected setting used to say
   only that the value was invalid, leaving you to guess the shape it wanted.
 
 ### Fixed
 
+- **`/cs status` and `/cs progress` could answer with silence while a pregen was running.** Both
+  read the list of tasks, then printed only those whose world matched one the server currently
+  listed -- and when none matched they printed nothing at all, not even "no tasks", because there
+  were tasks. A player watching chunks generate could ask what was running and be told nothing, in
+  two different ways. Both now report every task they hold; each line already named its own world,
+  so the filtering was never buying anything. Reported on mod_support #33.
 - **The world-enter estimate no longer swings by an hour between redraws.** Reported from real play:
   "time remaining" jumping from 1-2 hours down to 30 minutes, several times a second. The estimate
   is measured over a window of eight samples, which was written for samples about a second apart --

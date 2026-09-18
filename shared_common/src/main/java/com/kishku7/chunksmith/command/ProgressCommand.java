@@ -24,9 +24,9 @@ package com.kishku7.chunksmith.command;
 import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.platform.Sender;
-import com.kishku7.chunksmith.platform.World;
 import com.kishku7.chunksmith.util.TranslationKey;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -44,11 +44,13 @@ public class ProgressCommand implements ChunksmithCommand {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_PROGRESS_NO_TASKS);
             return;
         }
-        for (World world : chunky.getServer().getWorlds()) {
-            if (generationTasks.containsKey(world.getName())) {
-                generationTasks.get(world.getName()).getProgress().sendUpdate(sender);
-            }
-        }
+        // Same correction as StatusCommand, and for the same reason: this filtered the task map
+        // through getServer().getWorlds() and printed nothing whatsoever when no world matched,
+        // so the one command a player is told to run when a pregen looks stuck could answer with
+        // silence. Read the map, which is what actually decides whether a task exists.
+        generationTasks.values().stream()
+                .sorted(Comparator.comparing(task -> task.getProgress().getWorld()))
+                .forEach(task -> task.getProgress().sendUpdate(sender));
     }
 
     @Override

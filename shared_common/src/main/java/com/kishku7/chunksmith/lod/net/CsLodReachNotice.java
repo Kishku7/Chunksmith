@@ -132,6 +132,15 @@ public final class CsLodReachNotice {
      * same fault means those clients get NO LOD at all. Telling a Paper operator their players are
      * "falling back to a slower channel" would have them wait for something that is never coming.
      *
+     * <p><b>The bind address is named because it is the cause this notice kept leaving out.</b>
+     * {@code lodBackchannelBindAddress} defaults to empty, which means "follow the game's own
+     * bind" -- that is, {@code server-ip=} from server.properties. Unset, which is the normal case,
+     * that resolves to the wildcard and all is well. But a hosted panel behind a proxy routinely
+     * sets {@code server-ip=127.0.0.1}, and the backchannel then inherits it and binds LOOPBACK
+     * ONLY: unreachable however carefully the port is forwarded, and producing precisely this
+     * signature. The message used to name only forwarding and the advertised host, so an operator
+     * in that state was sent to check two things that were already correct.
+     *
      * @param port              the backchannel port nothing has arrived on
      * @param inBandFallback    true on the mod, false on the Bukkit plugin
      */
@@ -151,6 +160,12 @@ public final class CsLodReachNotice {
                 + " TCP " + port + " exactly as you did the game port, or -- if the game reaches"
                 + " them by a different address, such as through a proxy -- point them somewhere"
                 + " routable with '/cs set lodBackchannelHost <host>' and"
-                + " '/cs set lodBackchannelPort <port>'." + closing;
+                + " '/cs set lodBackchannelPort <port>'."
+                + " One cause looks nothing like a firewall and is worth checking first: if"
+                + " 'server-ip=' is set in server.properties, the backchannel follows it, so a"
+                + " value like 127.0.0.1 -- routine on a hosted panel behind a proxy -- binds it to"
+                + " loopback where no player can reach it, however the port is forwarded. Override"
+                + " that with '/cs set lodBackchannelBindAddress 0.0.0.0'."
+                + closing;
     }
 }

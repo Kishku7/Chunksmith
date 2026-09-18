@@ -25,9 +25,9 @@ import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.platform.Sender;
-import com.kishku7.chunksmith.platform.World;
 import com.kishku7.chunksmith.util.TranslationKey;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -46,12 +46,19 @@ public class StatusCommand implements ChunksmithCommand {
         if (generationTasks.isEmpty()) {
             sender.sendMessage(TranslationKey.FORMAT_STATUS_NO_TASKS);
         } else {
-            for (World world : chunky.getServer().getWorlds()) {
-                GenerationTask task = generationTasks.get(world.getName());
-                if (task != null) {
-                    task.getProgress().sendUpdate(sender);
-                }
-            }
+            // The task map is the authority, so read it directly. This used to walk
+            // getServer().getWorlds() and print a task only when its key matched a world the
+            // server currently listed -- and when none matched it printed NOTHING AT ALL, not
+            // even "no tasks", because the map was not empty. A player then sees a status
+            // readout that silently denies a run they can watch happening, which is the exact
+            // shape of mod_support #33 and the third time this family of bug has been paid for.
+            // The world loop was not buying anything either: Progress.sendUpdate already names
+            // the world each line belongs to, so nothing in the output depended on it.
+            // Sorted by world name because a ConcurrentHashMap has no order of its own and a
+            // status paste that reshuffles between runs is harder to compare than it needs to be.
+            generationTasks.values().stream()
+                    .sorted(Comparator.comparing(task -> task.getProgress().getWorld()))
+                    .forEach(task -> task.getProgress().sendUpdate(sender));
         }
 
         sender.sendMessage(TranslationKey.FORMAT_STATUS_LOD,

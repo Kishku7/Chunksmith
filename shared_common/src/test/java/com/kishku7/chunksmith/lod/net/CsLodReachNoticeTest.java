@@ -149,4 +149,26 @@ public class CsLodReachNoticeTest {
         notice.forget(player);
         assertFalse("a reconnecting player starts over", notice.hasBeenAnsweredBefore(player));
     }
-}
+
+    /**
+     * The bind address has to be in the message, because it is the one cause the other two
+     * sentences cannot fix.
+     *
+     * <p>lodBackchannelBindAddress defaults to empty, meaning "follow server-ip=". A hosted panel
+     * behind a proxy sets server-ip=127.0.0.1 as a matter of course, and the backchannel then binds
+     * loopback only -- this exact signature, with the port forwarded correctly and the advertised
+     * host set correctly. An operator told only to check those two is being sent to verify what is
+     * already right, which is part of why mod_support #31 sat in waiting-for-reply: nobody had
+     * asked about server-ip= at all.
+     */
+    @Test
+    public void theExplanationNamesTheBindAddressAndServerIp() {
+        for (boolean inBand : new boolean[] {true, false}) {
+            String message = CsLodReachNotice.explain(25566, inBand);
+            assertTrue("the setting that fixes a loopback bind must be named",
+                    message.contains("lodBackchannelBindAddress"));
+            assertTrue("and so must the property it inherits from, or nobody knows to look",
+                    message.contains("server-ip="));
+            assertTrue(message.contains("0.0.0.0"));
+        }
+    }}
