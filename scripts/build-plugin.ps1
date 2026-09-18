@@ -12,6 +12,14 @@ $repo   = Split-Path $PSScriptRoot -Parent
 $plugin = Join-Path $repo "Plugin"
 $dist   = Join-Path $repo "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
+# --- dist hygiene (2026-09-18) ------------------------------------------------------------
+# dist/ must only ever hold the CURRENT version. It had reached 226 jars across ten versions, and
+# that is not merely clutter: deploy_profiles.py matches a jar per cell, two candidates make the
+# match AMBIGUOUS, and it then falls back to a filename-version tiebreak -- so a string comparison
+# decides which binary a release is gated on. Pruning is VERSION-SCOPED, never "empty dist/",
+# because build-stage.ps1 runs the loader builders back to back and a blanket wipe here would
+# delete the jars the previous builder just produced in the same run. See dist-prune.ps1.
+& (Join-Path $PSScriptRoot "dist-prune.ps1")
 
 $cells = [ordered]@{
     "1.20.x" = "Chunksmith-plugin-1.20.x.jar"
