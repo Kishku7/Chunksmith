@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+## [4.3.1] - 2026-09-18
+
+A world-enter pregen that stopped early was recorded as having finished, and the world was then
+skipped forever. Reported on mod_support #35: a 5000-block radius produced a partial area, and on
+re-entry Chunksmith announced the world was already pre-generated and refused to run again. The
+resume-on-re-entry behaviour that makes a large radius workable at all was the exact thing being
+destroyed -- a 5000-block radius is about 306,000 chunks, which nobody finishes in one sitting.
+
+### Fixed
+
+- **The world-enter pregen treated "the task ended" as "the work finished".** It recorded completion
+  from `GenerationCompleteEvent`, which `GenerationTask` fires from the single end-of-task path that
+  a genuine exhaustion of the iterator, a cancel, a pause and an **auto-pause** all reach. The task's
+  own comment beside that line already said it: *"Ending a task is not the same as finishing the
+  work."* Auto-pause is the likely trigger in the wild -- when the server cannot keep up,
+  `GenerationTask` deliberately stops rather than stutter and expects the resume watcher to pick the
+  run back up, which is correct behaviour and is not being changed here. What was wrong is that
+  stopping made Chunksmith write `worldenter-done.json` with the **configured** radius, describing a
+  run that had covered a fraction of it. `WorldEnterDone.satisfies()` then did its job perfectly and
+  skipped that world on every subsequent load.
+- Completion is now recorded only when the task itself reports the selection covered. The progress
+  event already carries that verdict (`GenerationTask.update()` sets `complete` only when
+  `chunkIterator.total() - finishedChunks == 0`), so the number being trusted is the task's own
+  iterator total rather than this feature's `estimateChunks()` circle-area approximation -- which is
+  documented as inexact and has no business deciding whether a permanent record gets written.
+- **The world is released either way.** Whatever ended the task, the player is behind a frozen world
+  and a progress screen, and leaving them there is the one outcome that is never acceptable. Only the
+  permanent record is now conditional.
+- **The log stops lying.** A run that ends short says how far it got, that it is deliberately not
+  being recorded, that it will resume on the next load, and that an auto-pause above is the usual
+  reason. It previously said "world-enter pregen finished; releasing the world. It will not run again
+  on this world." on exactly this path, with a `Task stopped` line immediately above it.
+
+### Notes
+
+- **If a world is already stuck, it stays stuck until the record is removed** -- this build cannot
+  un-write what a previous one recorded. Delete `<world>/chunksmith/worldenter-done.json`, or raise
+  `worldEnterPregenRadius` above the recorded value, and the feature re-arms.
+- No change to auto-pause, to the radius, to the shape, or to the selection. The reported symptom of
+  a square area is what a partial concentric run looks like: the pattern walks square rings outward
+  from the centre, so a run that stops early leaves a filled square well inside the circular
+  selection. That part was working as designed and only looked wrong because it had been declared
+  finished.
+
 ## [4.3.0] - 2026-09-17
 
 The world-enter pregen always centred on (0, 0). Any mod that moves world spawn -- and plenty do --

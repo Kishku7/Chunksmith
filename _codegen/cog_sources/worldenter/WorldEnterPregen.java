@@ -101,6 +101,21 @@ public final class WorldEnterPregen {
     private static volatile boolean frozenByUs;
     private static volatile long chunksDone;
     private static volatile float percentComplete;
+    /**
+     * Did the TASK say it had covered its selection? mod_support #35.
+     *
+     * <p>{@code GenerationCompleteEvent} means the task ENDED, not that the work finished --
+     * {@code GenerationTask.run()} fires it from the single end-of-task path that an auto-pause,
+     * a cancel and a genuine exhaustion of the iterator all reach. The task's own comment there says
+     * so outright: "Ending a task is not the same as finishing the work."
+     *
+     * <p>The progress event carries the honest answer. {@code GenerationTask.update()} sets
+     * {@code complete} only when {@code chunkIterator.total() - finishedChunks == 0}, i.e. when the
+     * selection really is covered, measured against the iterator's own total rather than against our
+     * {@link #estimateChunks} circle-area approximation -- which is explicitly NOT exact and must
+     * never be used to decide whether a permanent record gets written.
+     */
+    private static volatile boolean selectionCovered;
     private static volatile long radiusBlocks;
     private static volatile double centerBlocksX;
     private static volatile double centerBlocksZ;
@@ -170,6 +185,7 @@ public final class WorldEnterPregen {
         ETA.reset();
         chunksDone = 0L;
         percentComplete = 0.0f;
+        selectionCovered = false;
         listenForProgress();
 
         // Write the borrow record BEFORE touching anything. If it cannot be written we do not
@@ -250,15 +266,39 @@ public final class WorldEnterPregen {
             }
             chunksDone = event.chunks();
             percentComplete = event.progress();
+            // The task's own verdict on whether the selection is covered. Latched here because the
+            // complete event that follows carries no such flag -- it only says the task stopped.
+            selectionCovered = event.complete();
             ETA.sample(System.currentTimeMillis(), event.chunks());
         });
         api.onGenerationComplete(event -> {
-            if (ACTIVE.get() && event.world().equals(worldKey)) {
+            if (!ACTIVE.get() || !event.world().equals(worldKey)) {
+                return;
+            }
+            // RELEASE EITHER WAY. Whatever ended the task, the player is sitting behind a frozen
+            // world and a progress screen, and the one unacceptable outcome is leaving them there.
+            // Only the permanent record is conditional.
+            if (selectionCovered) {
                 recordCompletion();
                 LOGGER.info("Chunksmith: world-enter pregen finished; releasing the world."
                         + " It will not run again on this world.");
-                release();
+            } else {
+                // mod_support #35. The reporter set a 5000-block radius, got a partial area, and the
+                // feature then refused to run on that world ever again. This is that path: the task
+                // AUTO-PAUSED under load (GenerationTask stops rather than stutter, expecting the
+                // resume watcher to pick it up), which ends the task and fires the same complete
+                // event a real finish does. Recording a completion here wrote "done to 5000 blocks"
+                // over a run that had covered a fraction of it, and satisfies() then correctly --
+                // and permanently -- skipped the world on every later load.
+                LOGGER.info("Chunksmith: the world-enter pregen stopped after {} of ~{} chunks"
+                        + " ({}%) without covering the {}-block radius, so it is NOT being recorded"
+                        + " as done and will pick up where it left off next time you load this"
+                        + " world. Releasing the world now; anything still running continues in the"
+                        + " background. A pause under load is the usual reason -- look for an"
+                        + " auto-pause line above this one.",
+                        chunksDone, chunksTotal, Math.round(percentComplete), radiusBlocks);
             }
+            release();
         });
     }
 
