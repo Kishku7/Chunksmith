@@ -48,13 +48,50 @@ public final class DispatchControl {
      * @return the width to move to, never below 1
      */
     public static int reduce(int current, boolean sustained) {
+        return reduce(current, sustained, false);
+    }
+
+    /**
+     * The next width after a back-off, with the option to go below the comfort floor.
+     *
+     * <p>{@code mayGoBelowFloor} is the difference between throttling and STOPPING, and the owner
+     * settled it: "even if the working numbers are outside of the ideal, some work is better than
+     * no work", and "if a pause has to last more than 10 seconds, some number is wrong". The floor
+     * is a comfort setting -- it exists so an ordinary wobble does not collapse the width and then
+     * spend a minute climbing back. It is NOT a reason to stop generating. A machine that cannot
+     * carry {@link #MIN_USEFUL_WIDTH} can still carry three, and three chunks in flight is worth
+     * more than an auto-pause that produces nothing.
+     *
+     * <p>So the caller opens this once the overload has persisted rather than spiked, and the
+     * width walks down one at a time to {@link #MIN_WORKING_WIDTH}. Auto-pause is only allowed to
+     * fire once even that is not enough -- see {@code AutoPause.shouldPause}.
+     *
+     * @param current         the width now
+     * @param sustained       true once the overload has persisted rather than spiked
+     * @param mayGoBelowFloor true once a good hard try at the floor has already failed
+     * @return the width to move to, never below {@link #MIN_WORKING_WIDTH}
+     */
+    public static int reduce(int current, boolean sustained, boolean mayGoBelowFloor) {
         if (current <= MIN_USEFUL_WIDTH) {
+            if (mayGoBelowFloor) {
+                // One at a time down here: the numbers are small, and halving 8 to 4 to 2 throws
+                // away half the remaining throughput on each step for no measurement gained.
+                return Math.max(MIN_WORKING_WIDTH, current - 1);
+            }
             // Already at or below the floor. Halving again only buys a longer climb back.
-            return Math.max(1, current);
+            return Math.max(MIN_WORKING_WIDTH, current);
         }
         int next = sustained ? current / 2 : current - 1;
         return Math.max(MIN_USEFUL_WIDTH, next);
     }
+
+    /**
+     * The narrowest width that still counts as generating.
+     *
+     * <p>Below this there is no run left to throttle, so this is where "try harder" ends and
+     * auto-pause finally becomes the honest answer.
+     */
+    public static final int MIN_WORKING_WIDTH = 1;
 
     /**
      * The narrowest width the controller will THROTTLE down to.

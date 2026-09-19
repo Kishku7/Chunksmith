@@ -44,6 +44,8 @@ public class AutoPauseTest {
     private static final long GRACE = 120_000L;
     /** The shipped default for throttleMaxHeapPercent; the resume point derives from it. */
     private static final long HEAP_THRESHOLD = 85L;
+    /** The controller has nothing left to try: the precondition for an auto-pause. */
+    private static final boolean AT_FLOOR = true;
 
     @Before
     public void reset() {
@@ -62,36 +64,43 @@ public class AutoPauseTest {
         // The 3.7.0 flaw: keyed on our gates alone, auto-pause sat idle through twelve "Can't keep
         // up" warnings because the chunk gate was off and the heap was under its threshold.
         AutoPause.noteStruggling(true, T0);
-        assertTrue("struggling with no gate of ours closed", AutoPause.shouldPause(T0 + GRACE));
+        assertTrue("struggling with no gate of ours closed", AutoPause.shouldPause(T0 + GRACE, AT_FLOOR));
     }
 
     @Test
     public void aBlipDoesNotPause() {
         AutoPause.noteStruggling(true, T0);
-        assertFalse(AutoPause.shouldPause(T0 + GRACE - 1));
+        assertFalse(AutoPause.shouldPause(T0 + GRACE - 1, AT_FLOOR));
         // Recovered before the grace expired: the clock must start over, not carry on.
         AutoPause.noteStruggling(false, T0 + GRACE - 1);
         AutoPause.noteStruggling(true, T0 + GRACE);
-        assertFalse("a brief stall must not pause", AutoPause.shouldPause(T0 + GRACE + 1));
+        assertFalse("a brief stall must not pause", AutoPause.shouldPause(T0 + GRACE + 1, AT_FLOOR));
     }
 
     @Test
     public void aSustainedStallPauses() {
         AutoPause.noteStruggling(true, T0);
         AutoPause.noteStruggling(true, T0 + 60_000L);
-        assertTrue(AutoPause.shouldPause(T0 + GRACE));
+        assertTrue(AutoPause.shouldPause(T0 + GRACE, AT_FLOOR));
         assertEquals(120L, AutoPause.strugglingSeconds(T0 + GRACE));
     }
 
+    /**
+     * Still "a blip is not a recovery", but measured on the RESUME grace, which is seconds and no
+     * longer the pause-side grace. The assertion used to be written against GRACE because both
+     * directions shared one knob; that sharing is the thing that made every pause last two
+     * minutes, so the contract here changed deliberately rather than the test drifting.
+     */
     @Test
     public void aBriefRecoveryDoesNotResume() {
+        long resumeGrace = AutoPause.resumeGraceMillis();
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
-        assertFalse(AutoPause.shouldResume(T0 + GRACE - 1));
-        AutoPause.noteHealthy(false, T0 + GRACE - 1);
-        AutoPause.noteHealthy(true, T0 + GRACE);
+        assertFalse(AutoPause.shouldResume(T0 + resumeGrace - 1));
+        AutoPause.noteHealthy(false, T0 + resumeGrace - 1);
+        AutoPause.noteHealthy(true, T0 + resumeGrace);
         assertFalse("must not resume on a blip",
-                AutoPause.shouldResume(T0 + GRACE + 1));
+                AutoPause.shouldResume(T0 + resumeGrace + 1));
     }
 
     @Test
@@ -122,7 +131,7 @@ public class AutoPauseTest {
     public void disabledMeansNothingFires() {
         AutoPause.configure(false, GRACE, HEAP_THRESHOLD);
         AutoPause.noteStruggling(true, T0);
-        assertFalse(AutoPause.shouldPause(T0 + GRACE * 10));
+        assertFalse(AutoPause.shouldPause(T0 + GRACE * 10, AT_FLOOR));
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
         assertFalse(AutoPause.shouldResume(T0 + GRACE * 10));
@@ -131,11 +140,11 @@ public class AutoPauseTest {
     @Test
     public void noDoublePause() {
         AutoPause.noteStruggling(true, T0);
-        assertTrue(AutoPause.shouldPause(T0 + GRACE));
+        assertTrue(AutoPause.shouldPause(T0 + GRACE, AT_FLOOR));
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteStruggling(true, T0 + GRACE);
         assertFalse("already paused",
-                AutoPause.shouldPause(T0 + GRACE * 3));
+                AutoPause.shouldPause(T0 + GRACE * 3, AT_FLOOR));
     }
 
     @Test
@@ -217,5 +226,71 @@ public class AutoPauseTest {
         assertFalse(line.contains("%"));
         assertTrue(line.contains("heap="));
         assertTrue(line.contains("mspt="));
+    }
+
+    // ---- pause is a LAST RESORT, and a pause is a short event (the owner's two rules) ----
+
+    /**
+     * "Pausing should be a last resort, and only after a good hard try, even if the working
+     * numbers are outside of the ideal -- some work is better than no work."
+     *
+     * <p>A run with room left to narrow must narrow instead of stopping. This is the test the
+     * old code could not have passed: it fired on elapsed time alone, so a client with a
+     * perfectly usable width of 16 still available to it stopped dead at 5.08% (mod_support #33).
+     */
+    @Test
+    public void aRunWithRoomLeftToNarrowMustNotPause() {
+        AutoPause.noteStruggling(true, T0);
+        assertFalse("there is still width to give up -- narrow, do not stop",
+                AutoPause.shouldPause(T0 + GRACE * 10, false));
+        assertTrue("at the hard minimum, a pause is finally the honest answer",
+                AutoPause.shouldPause(T0 + GRACE, true));
+    }
+
+    /**
+     * "If a pause has to last more than 10 seconds, some number is wrong."
+     *
+     * <p>Both directions used to share one grace knob, so a 120s pause-side patience also made
+     * every recovery wait 120s: a 10-second pause was impossible whatever the machine did.
+     */
+    @Test
+    public void aRecoveredMachineResumesInSecondsNotMinutes() {
+        assertTrue("resume grace must be seconds", AutoPause.resumeGraceMillis() <= 10_000L);
+        assertTrue("and must not be the pause-side grace",
+                AutoPause.resumeGraceMillis() < GRACE);
+
+        AutoPause.markAutoPaused("minecraft:overworld");
+        AutoPause.noteHealthy(true, T0);
+        assertFalse("not instantly -- a blip is not a recovery",
+                AutoPause.shouldResume(T0 + AutoPause.resumeGraceMillis() - 1));
+        assertTrue("but well inside 10 seconds",
+                AutoPause.shouldResume(T0 + 10_000L));
+    }
+
+    /** A pause-side grace SHORTER than the cap still governs the resume side; it is a cap, not a value. */
+    @Test
+    public void resumeGraceIsACapNotAFixedValue() {
+        AutoPause.configure(true, 2_000L, HEAP_THRESHOLD);
+        assertEquals(2_000L, AutoPause.resumeGraceMillis());
+    }
+
+    /** A resumed run comes back BELOW the width that failed, so recovery is not a sawtooth. */
+    @Test
+    public void aResumedRunStartsNarrowerThanTheWidthThatFailed() {
+        assertEquals("no recommendation until something has failed", 0,
+                AutoPause.recommendedStartWidth());
+        AutoPause.noteWidthFailed(16);
+        assertEquals(8, AutoPause.recommendedStartWidth());
+        AutoPause.noteWidthFailed(1);
+        assertEquals("never below a width that still generates", 1,
+                AutoPause.recommendedStartWidth());
+    }
+
+    /** A new run must not inherit the last one's recommendation. */
+    @Test
+    public void clearForgetsTheRecommendation() {
+        AutoPause.noteWidthFailed(32);
+        AutoPause.clear();
+        assertEquals(0, AutoPause.recommendedStartWidth());
     }
 }

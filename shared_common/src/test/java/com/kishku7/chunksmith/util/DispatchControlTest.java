@@ -127,4 +127,47 @@ public class DispatchControlTest {
         assertTrue(DispatchControl.mayBurst(1, Integer.MAX_VALUE));
         assertTrue(DispatchControl.mayBurst(399, Integer.MAX_VALUE));
     }
+
+    // ---- below the comfort floor: "some work is better than no work" (the owner, mod_support #33) ----
+
+    /**
+     * The floor is a COMFORT setting, not a reason to stop. Without permission the width parks at
+     * MIN_USEFUL_WIDTH, which is right for an ordinary wobble -- a deeper collapse just buys a
+     * long climb back. But once a good hard try at the floor has already failed, the alternative
+     * is an auto-pause, and three chunks in flight beats nothing in flight.
+     */
+    @Test
+    public void theFloorHoldsUntilPermissionIsGiven() {
+        assertEquals("parked at the floor", DispatchControl.MIN_USEFUL_WIDTH,
+                DispatchControl.reduce(DispatchControl.MIN_USEFUL_WIDTH, true));
+        assertEquals("and the two-arg form must keep that behaviour",
+                DispatchControl.MIN_USEFUL_WIDTH,
+                DispatchControl.reduce(DispatchControl.MIN_USEFUL_WIDTH, true, false));
+    }
+
+    @Test
+    public void belowTheFloorItWalksDownOneAtATime() {
+        int width = DispatchControl.MIN_USEFUL_WIDTH;
+        assertEquals(width - 1, DispatchControl.reduce(width, true, true));
+        assertEquals("halving down here would throw away half the remaining throughput per step",
+                width - 2, DispatchControl.reduce(width - 1, true, true));
+    }
+
+    @Test
+    public void itNeverStopsGeneratingAltogether() {
+        int width = DispatchControl.MIN_USEFUL_WIDTH;
+        for (int i = 0; i < 50; i++) {
+            width = DispatchControl.reduce(width, true, true);
+        }
+        assertEquals("a width of 0 is not a throttle, it is a stop -- that is auto-pause's job",
+                DispatchControl.MIN_WORKING_WIDTH, width);
+        assertTrue(width >= 1);
+    }
+
+    /** Above the floor, permission changes nothing: the normal halving still applies. */
+    @Test
+    public void permissionDoesNotDisturbTheNormalRange() {
+        assertEquals(DispatchControl.reduce(100, true), DispatchControl.reduce(100, true, true));
+        assertEquals(DispatchControl.reduce(100, false), DispatchControl.reduce(100, false, true));
+    }
 }

@@ -283,7 +283,12 @@ public class GenerationTask implements Runnable {
         this.maxLodQueue = chunky.getConfig().getThrottleMaxLodQueue();
         this.lodDrainTo = chunky.getConfig().getThrottleLodDrainTo();
         this.maxWorkingCount = (int) Math.max(1L, chunky.getConfig().getDispatchMaxConcurrent());
-        this.dispatchLimit.set(this.maxWorkingCount);
+        // A run resumed after an auto-pause starts BELOW the width that failed, not at the
+        // configured ceiling. Coming back at the ceiling is what made recovery a sawtooth: the
+        // controller walked straight back into the wall it had just been stopped by.
+        int startWidth = AutoPause.recommendedStartWidth();
+        int opening = startWidth > 0 ? Math.min(this.maxWorkingCount, startWidth) : this.maxWorkingCount;
+        this.dispatchLimit.set(opening);
         this.goodWidth.set(this.maxWorkingCount);
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
         this.maxHeapPercent = chunky.getConfig().getThrottleMaxHeapPercent();
@@ -656,6 +661,12 @@ public class GenerationTask implements Runnable {
             overloadStreak.set(0);
         }
         boolean sustained = overloadStreak.incrementAndGet() >= BACKOFF_STREAK_FOR_HALVING;
+        // A good hard try at the comfort floor, before the width is allowed below it. Measured
+        // on the same clock auto-pause runs on: once the machine has been struggling for longer
+        // than a pause is allowed to last, the floor has had its chance, and stopping is not
+        // the answer -- a narrower run still generates.
+        boolean belowFloorEarned =
+                AutoPause.strugglingSeconds(now) * 1000L >= AutoPause.resumeGraceMillis() * 2L;
         int current;
         int reduced;
         do {
@@ -663,7 +674,7 @@ public class GenerationTask implements Runnable {
             if (current <= 1) {
                 return;
             }
-            reduced = DispatchControl.reduce(current, sustained);
+            reduced = DispatchControl.reduce(current, sustained, belowFloorEarned);
         } while (!dispatchLimit.compareAndSet(current, reduced));
         if (sustained) {
             // The threshold is what we now believe this machine can carry. Climbing past it again
@@ -1045,7 +1056,8 @@ public class GenerationTask implements Runnable {
                 boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
                         && mspt > TickBudget.effectiveTarget() + TickBudget.MSPT_BAND;
                 AutoPause.noteStruggling(gated || tickFarBehind, gateNow);
-                if (AutoPause.shouldPause(gateNow)) {
+                boolean atHardMinimum = dispatchLimit.get() <= DispatchControl.MIN_WORKING_WIDTH;
+                if (AutoPause.shouldPause(gateNow, atHardMinimum)) {
                     // Stuttering is worse than stopping: on a server that cannot keep up, the
                     // never-wedge valve lets through about a second of work every grace period and
                     // nothing useful gets generated, while the server stays under load throughout.
@@ -1081,6 +1093,7 @@ public class GenerationTask implements Runnable {
                             AutoPause.graceMillis() / 1000L);
                     chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_AUTO_PAUSED,
                             selection.world().getName(), AutoPause.strugglingSeconds(gateNow));
+                    AutoPause.noteWidthFailed(dispatchLimit.get());
                     AutoPause.markAutoPaused(selection.world().getName());
                     stop(false);
                     break;

@@ -56,6 +56,29 @@ public final class AutoPause {
     private static volatile long graceMillis = 120_000L;
     private static volatile long heapThresholdPercent = 85L;
 
+    /**
+     * The longest an auto-pause should last once the machine is coping again.
+     *
+     * <p>The owner's rule: "if a pause has to last more than 10 seconds, some number is wrong."
+     * Pausing and resuming used to share ONE grace knob, so a 120-second pause-side patience also
+     * made every recovery wait two minutes -- a pause of 10 seconds was impossible by
+     * construction, whatever the machine did.
+     *
+     * <p>The two directions are not the same requirement. Patience going IN protects a healthy run
+     * from a passing autosave and costs a little throughput if it is wrong. Patience coming OUT
+     * costs the whole run. So the resume side gets its own, short, grace.
+     */
+    private static final long RESUME_GRACE_CAP_MS = 5_000L;
+
+    /**
+     * The width the next run should START at, or 0 for "use the configured ceiling".
+     *
+     * <p>Resuming at the width that just failed is how a run saws between generating and pausing.
+     * A resumed run comes back narrow and climbs, so recovery is a step toward a width this
+     * machine can hold rather than a return to the one it could not.
+     */
+    private static volatile int recommendedStartWidth;
+
     private static volatile long gatedSince;
     private static volatile long healthySince;
 
@@ -156,9 +179,30 @@ public final class AutoPause {
         }
     }
 
-    /** True once generation has been held continuously for the whole grace period. */
+    /** @deprecated use {@link #shouldPause(long, boolean)}, so no caller silently loses the floor test. */
+    @Deprecated
     public static boolean shouldPause(long now) {
-        return enabled && !autoPaused && gatedSince != 0L && now - gatedSince >= graceMillis;
+        return shouldPause(now, true);
+    }
+
+    /**
+     * True once generation has been held continuously for the whole grace period AND there is
+     * nothing left to try.
+     *
+     * <p>{@code atHardMinimum} is the owner's rule in code: pausing "should be a last resort, and
+     * only after a good hard try". The controller can always make itself narrower, and a narrower
+     * run still generates; an auto-pause generates nothing. So a run with room left to slow down
+     * slows down instead, and only a run already at {@link DispatchControl#MIN_WORKING_WIDTH} that
+     * STILL cannot keep up has earned a pause.
+     *
+     * <p>This used to fire on time alone, which is how a client with a perfectly usable width of
+     * 16 available to it stopped dead at 5.08% instead (mod_support #33).
+     *
+     * @param atHardMinimum true when the dispatch width can go no lower
+     */
+    public static boolean shouldPause(long now, boolean atHardMinimum) {
+        return enabled && !autoPaused && atHardMinimum
+                && gatedSince != 0L && now - gatedSince >= graceMillis;
     }
 
     public static long strugglingSeconds(long now) {
@@ -190,9 +234,33 @@ public final class AutoPause {
         }
     }
 
-    /** True once the server has looked healthy continuously for the whole grace period. */
+    /**
+     * How long health must hold before a paused run restarts. Short, and never the pause-side
+     * grace -- see {@link #RESUME_GRACE_CAP_MS}.
+     */
+    public static long resumeGraceMillis() {
+        return Math.min(graceMillis, RESUME_GRACE_CAP_MS);
+    }
+
+    /** True once the server has looked healthy continuously for the resume grace. */
     public static boolean shouldResume(long now) {
-        return enabled && autoPaused && healthySince != 0L && now - healthySince >= graceMillis;
+        return enabled && autoPaused && healthySince != 0L
+                && now - healthySince >= resumeGraceMillis();
+    }
+
+    /** The width a resumed run should start at, or 0 when there is no recommendation. */
+    public static int recommendedStartWidth() {
+        return recommendedStartWidth;
+    }
+
+    /**
+     * Records that the width in use was not survivable, so the next run starts below it.
+     *
+     * <p>Halved rather than reused: the run reached this width by stepping DOWN to it and still
+     * could not hold it, so it is an upper bound on what works, not a target.
+     */
+    public static void noteWidthFailed(int width) {
+        recommendedStartWidth = Math.max(DispatchControl.MIN_WORKING_WIDTH, width / 2);
     }
 
     /**
@@ -220,6 +288,7 @@ public final class AutoPause {
         pausedWorld = null;
         gatedSince = 0L;
         healthySince = 0L;
+        recommendedStartWidth = 0;
     }
 
     /** Returns one line for the debug command. No literal percent sign, because the sender formats it. */
