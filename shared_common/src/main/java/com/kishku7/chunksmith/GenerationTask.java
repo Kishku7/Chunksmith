@@ -154,7 +154,6 @@ public class GenerationTask implements Runnable {
      */
     private static final long LOD_DRAIN_MAX_MS = 30_000L;
     private static final long MSPT_CHECK_INTERVAL_MS = 250L; // how often tick health is evaluated
-    private static final double MSPT_BAND = 3.0D;            // dead-band around target to prevent flapping
     private static final long WRITE_CHECK_INTERVAL_MS = 100L; // how often the disk write-queue depth is sampled
     // Drain-stall backpressure. The region writer is a single consecutive-executor thread, so
     // if the queue stops shrinking while still holding work the writer is blocked in fsync
@@ -293,7 +292,8 @@ public class GenerationTask implements Runnable {
                 chunky.getConfig().getThrottlePlayerReserveMillis(),
                 chunky.getConfig().getThrottleCeilingMillis());
         AutoPause.configure(chunky.getConfig().isAutoPauseEnabled(),
-                chunky.getConfig().getAutoPauseGraceSeconds() * 1000L);
+                chunky.getConfig().getAutoPauseGraceSeconds() * 1000L,
+                chunky.getConfig().getThrottleMaxHeapPercent());
         // State the settle policy for this run. A pregen is the only thing that drops chunk tickets the
         // instant generation finishes, so it is the only thing for which "hold it until the neighbours
         // exist" means anything. See ChunkSettleWindow (mod_support #14).
@@ -461,18 +461,18 @@ public class GenerationTask implements Runnable {
                 && !TickBudget.isProbing();
         TickBudget.sample(mspt, addingLoad, chunky.getServer().getPlayers().size());
         double target = effectiveTargetMspt();
-        if (mspt > target + MSPT_BAND) {
+        if (mspt > target + TickBudget.MSPT_BAND) {
             backoff();
-        } else if (mspt < target - MSPT_BAND) {
+        } else if (mspt < target - TickBudget.MSPT_BAND) {
             noteHealthy(now);
             // Recovery, not just back-off. A single spike used to cost a full second of climbing back
             // at +1 per second, and a run that spent its life one step below the limit left work on
             // the table for no reason. The further under target we are, the faster we climb.
             double headroom = target - mspt;
             int steps = 1;
-            if (headroom > MSPT_BAND * 4.0D) {
+            if (headroom > TickBudget.MSPT_BAND * 4.0D) {
                 steps = 8;
-            } else if (headroom > MSPT_BAND * 2.0D) {
+            } else if (headroom > TickBudget.MSPT_BAND * 2.0D) {
                 steps = 3;
             }
             for (int i = 0; i < steps; i++) {
@@ -1043,7 +1043,7 @@ public class GenerationTask implements Runnable {
                 // all the moment the target went adaptive. Same shape as the 3.7.1 bug: a trigger
                 // keyed to the wrong reference.
                 boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
-                        && mspt > TickBudget.effectiveTarget() + MSPT_BAND;
+                        && mspt > TickBudget.effectiveTarget() + TickBudget.MSPT_BAND;
                 AutoPause.noteStruggling(gated || tickFarBehind, gateNow);
                 if (AutoPause.shouldPause(gateNow)) {
                     // Stuttering is worse than stopping: on a server that cannot keep up, the
@@ -1073,7 +1073,7 @@ public class GenerationTask implements Runnable {
                             writeQueueStalled, chunkResidencyStalled, heapStalled, tickFarBehind,
                             String.format("%.1f", mspt),
                             String.format("%.1f", TickBudget.effectiveTarget()),
-                            MSPT_BAND, TickBudget.atCeiling(),
+                            TickBudget.MSPT_BAND, TickBudget.atCeiling(),
                             pausedDone, pausedTotal,
                             pausedTotal > 0L
                                     ? String.format("%.2f", 100.0D * pausedDone / pausedTotal)

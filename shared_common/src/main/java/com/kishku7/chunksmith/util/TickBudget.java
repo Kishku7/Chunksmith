@@ -46,6 +46,15 @@ package com.kishku7.chunksmith.util;
  */
 public final class TickBudget {
 
+    /**
+     * Dead-band around the target, to stop the throttle flapping.
+     *
+     * <p>Public because auto-pause and auto-resume must use the SAME band as the throttle. It
+     * used to be a private constant in GenerationTask while the resume test used a hard-coded
+     * absolute, which is how the two sides came apart (mod_support #33).
+     */
+    public static final double MSPT_BAND = 3.0D;
+
     /** Weight of each new sample in the decaying averages. Slow enough to ignore single spikes. */
     private static final double ALPHA = 0.1D;
 

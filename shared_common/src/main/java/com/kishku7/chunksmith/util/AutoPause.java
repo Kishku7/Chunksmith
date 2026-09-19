@@ -54,6 +54,7 @@ public final class AutoPause {
 
     private static volatile boolean enabled = true;
     private static volatile long graceMillis = 120_000L;
+    private static volatile long heapThresholdPercent = 85L;
 
     private static volatile long gatedSince;
     private static volatile long healthySince;
@@ -65,9 +66,58 @@ public final class AutoPause {
     }
 
     /** Sets the auto-pause policy. Called when a run starts, from the config it was created with. */
-    public static void configure(boolean enabled, long graceMillis) {
+    public static void configure(boolean enabled, long graceMillis, long heapThresholdPercent) {
         AutoPause.enabled = enabled;
         AutoPause.graceMillis = Math.max(1_000L, graceMillis);
+        AutoPause.heapThresholdPercent = heapThresholdPercent;
+    }
+
+    /**
+     * Decides whether the machine is well enough to carry a run again.
+     *
+     * <p>THE BUG THIS REPLACES (mod_support #33). The resume test used to be two hard-coded
+     * absolutes -- {@code mspt <= 55} and {@code heap < 70} -- while the PAUSE side was
+     * relative: heap from {@code throttleMaxHeapPercent}, and tick from the adaptive
+     * {@link TickBudget#effectiveTarget()} which is allowed up to a 150 ms ceiling. The two
+     * sides therefore answered different questions, and on any machine whose own baseline tick
+     * cost exceeds ~55 ms the resume condition was unreachable BY CONSTRUCTION: the run could
+     * auto-pause and never come back, whatever it did. A reporter sat at 5.08% indefinitely.
+     *
+     * <p>Note what makes it unreachable rather than merely strict: 55 ms is an ABSOLUTE compared
+     * against a machine-RELATIVE reality. Once paused we stop dispatching, so the baseline
+     * re-learns the machine's own idle cost and {@code effectiveTarget} rises to meet it -- the
+     * run becomes sustainable at that target -- while the 55 ms test keeps asking the machine to
+     * be faster than it has ever been. This is the same defect shape the throttle already carries
+     * comments about twice: a trigger keyed to the wrong reference.
+     *
+     * <p>So both arms now use the pause side's own references. Heap: the same point the dispatch
+     * gate itself reopens at, {@code throttleMaxHeapPercent - RESUME_MARGIN_PERCENT}, floored at
+     * 50 exactly as {@link HeapPressure} floors it. Tick: at or under the effective target plus
+     * the throttle's own dead-band.
+     *
+     * <p>An UNMEASURED target (-1, before a baseline exists) counts as healthy on the tick arm.
+     * That is deliberate: refusing to resume on the absence of a measurement is how a latch gets
+     * built, and the cost of being wrong is bounded -- the run resumes, finds it cannot sustain
+     * itself, and auto-pauses again after the grace period, saying so in the log both times.
+     */
+    public static boolean healthyNow(double mspt, double heapUsedPercent) {
+        double heapResumeAt = Math.max(50.0D,
+                (double) heapThresholdPercent - HeapPressure.RESUME_MARGIN_PERCENT);
+        boolean heapOk = heapUsedPercent >= 0.0D && heapUsedPercent < heapResumeAt;
+        double target = TickBudget.effectiveTarget();
+        boolean tickOk = mspt < 0.0D || target < 0.0D || mspt <= target + TickBudget.MSPT_BAND;
+        return heapOk && tickOk;
+    }
+
+    /** One line naming which arm of {@link #healthyNow} is holding a paused run down. */
+    public static String describeHealth(double mspt, double heapUsedPercent) {
+        double heapResumeAt = Math.max(50.0D,
+                (double) heapThresholdPercent - HeapPressure.RESUME_MARGIN_PERCENT);
+        double target = TickBudget.effectiveTarget();
+        return String.format("heap=%.1f%s (resume under %.0f) mspt=%.1f target=%s band=%.0f",
+                heapUsedPercent, "pct", heapResumeAt, mspt,
+                target < 0.0D ? "unmeasured" : String.format("%.1f", target),
+                TickBudget.MSPT_BAND);
     }
 
     public static boolean isEnabled() {

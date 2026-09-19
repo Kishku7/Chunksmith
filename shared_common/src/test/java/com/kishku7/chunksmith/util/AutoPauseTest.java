@@ -42,11 +42,14 @@ public class AutoPauseTest {
 
     private static final long T0 = 1_000_000L;
     private static final long GRACE = 120_000L;
+    /** The shipped default for throttleMaxHeapPercent; the resume point derives from it. */
+    private static final long HEAP_THRESHOLD = 85L;
 
     @Before
     public void reset() {
         AutoPause.clear();
-        AutoPause.configure(true, GRACE);
+        TickBudget.reset();
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
     }
 
     @After
@@ -117,7 +120,7 @@ public class AutoPauseTest {
 
     @Test
     public void disabledMeansNothingFires() {
-        AutoPause.configure(false, GRACE);
+        AutoPause.configure(false, GRACE, HEAP_THRESHOLD);
         AutoPause.noteStruggling(true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE * 10));
         AutoPause.markAutoPaused("minecraft:overworld");
@@ -150,5 +153,69 @@ public class AutoPauseTest {
         AutoPause.markAutoPaused("minecraft:overworld");
         assertFalse(AutoPause.describe().contains("%"));
         assertTrue(String.format(AutoPause.describe()).length() > 0);
+    }
+
+    // ---- healthyNow: the resume side must use the PAUSE side's references (mod_support #33) ----
+
+    /**
+     * THE REGRESSION. The old resume test was {@code mspt <= 55 && heap < 70}, both hard-coded.
+     * A machine whose own idle tick cost is 80 ms can never satisfy the first, so a run that
+     * auto-paused on it could never come back -- the reporter on #33 sat at 5.08% indefinitely.
+     * Resume must be judged against what the machine can actually do, not an absolute.
+     */
+    @Test
+    public void aSlowMachineCanStillBecomeHealthy() {
+        assertTrue("80ms on a machine with no measured target must not block resume for ever",
+                AutoPause.healthyNow(80.0D, 40.0D));
+    }
+
+    /** The heap arm tracks the CONFIGURED threshold, not a hard-coded 70. */
+    @Test
+    public void heapArmFollowsTheConfiguredThreshold() {
+        // default 85 -> the dispatch gate reopens at 85 - 15 = 70, and so does resume
+        assertTrue("69pct is under the resume point for an 85pct threshold",
+                AutoPause.healthyNow(10.0D, 69.0D));
+        assertFalse("71pct is over it", AutoPause.healthyNow(10.0D, 71.0D));
+
+        // a tighter threshold moves the resume point with it, floored at 50 as HeapPressure floors it
+        AutoPause.configure(true, GRACE, 60L);
+        assertFalse("60pct threshold floors the resume point at 50pct, so 55pct is still too high",
+                AutoPause.healthyNow(10.0D, 55.0D));
+        assertTrue(AutoPause.healthyNow(10.0D, 49.0D));
+    }
+
+    /** A heap reading the platform cannot supply is not evidence of health. */
+    @Test
+    public void unreadableHeapIsNotHealthy() {
+        assertFalse(AutoPause.healthyNow(10.0D, -1.0D));
+    }
+
+    /**
+     * The tick arm compares against the measured target plus the throttle's own dead-band --
+     * the same numbers the pause side uses, so the two can no longer disagree.
+     */
+    @Test
+    public void tickArmComparesAgainstTheMeasuredTarget() {
+        // Teach TickBudget a baseline: one idle sample with a fresh player count is taken as-is.
+        TickBudget.configure(25L, 20L, 150L);
+        TickBudget.sample(60.0D, false, 0);
+        double target = TickBudget.effectiveTarget();
+        assertTrue("a baseline should now exist", target > 0.0D);
+
+        assertTrue("at the target is healthy",
+                AutoPause.healthyNow(target, 40.0D));
+        assertTrue("inside the dead-band is healthy",
+                AutoPause.healthyNow(target + TickBudget.MSPT_BAND, 40.0D));
+        assertFalse("clear of the dead-band is not",
+                AutoPause.healthyNow(target + TickBudget.MSPT_BAND + 1.0D, 40.0D));
+    }
+
+    /** describeHealth exists to name the arm that is holding a run down; it must not carry a raw %. */
+    @Test
+    public void describeHealthIsSafeToFormat() {
+        String line = AutoPause.describeHealth(40.0D, 62.0D);
+        assertFalse(line.contains("%"));
+        assertTrue(line.contains("heap="));
+        assertTrue(line.contains("mspt="));
     }
 }

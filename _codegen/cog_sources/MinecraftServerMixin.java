@@ -350,7 +350,10 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         }
         long now = System.currentTimeMillis();
         double heap = HeapPressure.usedPercent();
-        boolean healthy = this.chunksmith$mspt <= 55.0D && heap >= 0.0D && heap < 70.0D;
+        // The thresholds belong to AutoPause, which derives them from the same config the
+        // PAUSE side uses. They used to be two hard-coded absolutes here, and that is how a
+        // paused run on a modest machine became unresumable (mod_support #33).
+        boolean healthy = AutoPause.healthyNow(this.chunksmith$mspt, heap);
         AutoPause.noteHealthy(healthy, now);
         if (!AutoPause.shouldResume(now)) {
             return;
