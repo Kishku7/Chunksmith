@@ -21,6 +21,9 @@
 
 package com.kishku7.chunksmith.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Stops a pre-gen when the server cannot sustain it, and starts it again when it can.
  *
@@ -36,6 +39,18 @@ package com.kishku7.chunksmith.util;
  * requires the condition to hold continuously for the grace period, on one shared knob.
  */
 public final class AutoPause {
+
+    /**
+     * Everything this class decides is now also SAID, in the server log.
+     *
+     * <p>mod_support #33: a reporter watched a run stop at 5.08% with "no warnings, no errors,
+     * nothing". Every notice this feature had went to the console SENDER -- a chat channel, not
+     * the log -- so on a client-hosted world the whole mechanism was invisible. A stop that
+     * leaves no trace is indistinguishable from a hang, and four rounds of the ticket were spent
+     * establishing which of the two it was. The log lines below exist so that question is never
+     * asked again: the countdown starting, the pause, the recovery and the resume each say so.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
 
     private static volatile boolean enabled = true;
     private static volatile long graceMillis = 120_000L;
@@ -73,9 +88,21 @@ public final class AutoPause {
      */
     public static void noteStruggling(boolean struggling, long now) {
         if (!struggling) {
+            // Only worth a line if a countdown was actually running: this is called every pass.
+            if (gatedSince != 0L && enabled && !autoPaused) {
+                LOGGER.info("Chunksmith: the server recovered after {}s of struggling -- the"
+                                + " auto-pause countdown is cancelled.",
+                        Math.max(0L, (now - gatedSince) / 1000L));
+            }
             gatedSince = 0L;
         } else if (gatedSince == 0L) {
             gatedSince = now;
+            if (enabled && !autoPaused) {
+                LOGGER.warn("Chunksmith: the server cannot sustain the pre-gen. If this holds for"
+                                + " {}s the run will AUTO-PAUSE and resume by itself once the"
+                                + " server recovers.",
+                        graceMillis / 1000L);
+            }
         }
     }
 
@@ -116,6 +143,18 @@ public final class AutoPause {
     /** True once the server has looked healthy continuously for the whole grace period. */
     public static boolean shouldResume(long now) {
         return enabled && autoPaused && healthySince != 0L && now - healthySince >= graceMillis;
+    }
+
+    /**
+     * Says in the LOG that an auto-paused run is being restarted.
+     *
+     * <p>It lives here rather than at the mixin call site so every loader and version cell gets
+     * the same line from one place, and so the logger dependency stays in shared_common.
+     */
+    public static void logAutoResumed(String world, long healthySeconds) {
+        LOGGER.warn("Chunksmith: AUTO-RESUMING the pre-gen for {} -- the server has looked healthy"
+                        + " for {}s.",
+                world == null ? "the paused world" : world, healthySeconds);
     }
 
     public static void clearAutoPaused() {

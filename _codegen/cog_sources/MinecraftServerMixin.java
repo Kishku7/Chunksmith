@@ -356,6 +356,11 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             return;
         }
         String world = AutoPause.pausedWorld();
+        // Say it in the LOG, not only in the console sender: on a client-hosted world the
+        // sender is not somewhere anybody is reading (mod_support #33). Logged BEFORE the
+        // provider check, because "we decided to resume and then could not" is exactly the
+        // silent path that makes a stopped run look like a hang.
+        AutoPause.logAutoResumed(world, AutoPause.graceMillis() / 1000L);
         AutoPause.clearAutoPaused();
         if (!ChunksmithProvider.isLoaded()) {
             return;

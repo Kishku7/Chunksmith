@@ -1050,6 +1050,35 @@ public class GenerationTask implements Runnable {
                     // never-wedge valve lets through about a second of work every grace period and
                     // nothing useful gets generated, while the server stays under load throughout.
                     // Stop, say why, and let the resume watcher restart it when the pressure lifts.
+                    //
+                    // The translated line below is the OPERATOR's notice and it goes to the console
+                    // SENDER -- which is not the server log, and on an integrated server is not
+                    // anywhere the player is looking either. A reporter on mod_support #33 watched a
+                    // run stop dead at 5.08% with "no warnings, no errors, nothing", and an
+                    // auto-pause that leaves no trace in the log is indistinguishable from a hang:
+                    // it cost four rounds of guessing to work out that the run had stopped rather
+                    // than wedged. So the reason ALSO goes to the log, with the numbers that chose
+                    // it, because "it paused" without a trigger value is another thing to guess at.
+                    long pausedTotal = chunkIterator.total();
+                    long pausedDone = finishedChunks.get();
+                    LOGGER.warn("Chunksmith: AUTO-PAUSED pre-gen for {} after {}s unable to sustain it"
+                                    + " -- trigger: {} (writeQueueStalled={} chunkResidencyStalled={}"
+                                    + " heapStalled={} tickFarBehind={} mspt={} effectiveTarget={}"
+                                    + " msptBand={} atCeiling={}); stopped at {}/{} chunks ({}%)."
+                                    + " It will resume by itself once the server has been healthy for"
+                                    + " {}s. Set autoPauseOnOverload=false to push on regardless.",
+                            selection.world().getName(),
+                            AutoPause.strugglingSeconds(gateNow),
+                            gated ? "a Chunksmith gate held" : "tick running far behind target",
+                            writeQueueStalled, chunkResidencyStalled, heapStalled, tickFarBehind,
+                            String.format("%.1f", mspt),
+                            String.format("%.1f", TickBudget.effectiveTarget()),
+                            MSPT_BAND, TickBudget.atCeiling(),
+                            pausedDone, pausedTotal,
+                            pausedTotal > 0L
+                                    ? String.format("%.2f", 100.0D * pausedDone / pausedTotal)
+                                    : "?",
+                            AutoPause.graceMillis() / 1000L);
                     chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_AUTO_PAUSED,
                             selection.world().getName(), AutoPause.strugglingSeconds(gateNow));
                     AutoPause.markAutoPaused(selection.world().getName());
