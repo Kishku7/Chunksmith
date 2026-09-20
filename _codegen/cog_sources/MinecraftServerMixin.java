@@ -363,7 +363,10 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
         // sender is not somewhere anybody is reading (mod_support #33). Logged BEFORE the
         // provider check, because "we decided to resume and then could not" is exactly the
         // silent path that makes a stopped run look like a hang.
-        AutoPause.logAutoResumed(world, AutoPause.graceMillis() / 1000L);
+        // The resume grace, not the pause grace: they are different numbers and the resume one
+        // now escalates on repeats, so printing the pause grace here would have been a
+        // flat lie about how long the run had actually been healthy (mod_support #36).
+        AutoPause.logAutoResumed(world, AutoPause.resumeGraceMillis() / 1000L);
         AutoPause.clearAutoPaused();
         if (!ChunksmithProvider.isLoaded()) {
             return;

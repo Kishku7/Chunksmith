@@ -70,6 +70,20 @@ public final class AutoPause {
      */
     private static final long RESUME_GRACE_CAP_MS = 5_000L;
 
+    /** However patient a repeat becomes, never longer than this -- it must still be a pause. */
+    private static final long RESUME_GRACE_MAX_MS = 60_000L;
+
+    /**
+     * How long a struggling run must have tried before its width may go below the comfort floor.
+     *
+     * <p>This used to be read off {@link #resumeGraceMillis()} doubled, which was fine while that
+     * value was a constant and became a trap the moment it started escalating: making the resume
+     * more patient would silently have made the controller slower to narrow, coupling two
+     * decisions that have nothing to do with each other. It is its own number now, and it is the
+     * same ten seconds the doubled cap used to produce.
+     */
+    private static final long BELOW_FLOOR_GRACE_MS = 10_000L;
+
     /**
      * The width the next run should START at, or 0 for "use the configured ceiling".
      *
@@ -78,6 +92,30 @@ public final class AutoPause {
      * machine can hold rather than a return to the one it could not.
      */
     private static volatile int recommendedStartWidth;
+
+    /**
+     * The width that was in flight when the last auto-pause fired, or 0 if none has.
+     *
+     * <p>Carried so a RESUMED run inherits what this machine has already been shown it cannot
+     * hold. Without it the resume threw that away: {@code GenerationTask} reset its slow-start
+     * threshold to the configured ceiling on every run, resumed ones included, so a run that came
+     * back at a width of 1 was immediately allowed to BURST all the way back toward a ceiling of
+     * 200 -- eight steps a sample -- and straight into the wall it had just been stopped by. The
+     * width was being resumed narrow while the permission to leave narrow was being reset wide,
+     * which is the sawtooth wearing a different hat (mod_support #36).
+     */
+    private static volatile int failedWidth;
+
+    /**
+     * Auto-pauses since the last time a run proved it could sustain itself.
+     *
+     * <p>The resume side had no memory at all: every cycle waited the same five seconds, so a
+     * machine that could not carry the run settled into a fixed-period oscillation -- pause,
+     * resume, fail, pause -- and a reporter watched it "pause too often" forever. Repeats now cost
+     * progressively more patience. Reset by {@link #noteSustainedHealth()}, never by a resume:
+     * coming back is not evidence, STAYING back is.
+     */
+    private static volatile int consecutivePauses;
 
     private static volatile long gatedSince;
     private static volatile long healthySince;
@@ -215,6 +253,7 @@ public final class AutoPause {
         pausedWorld = world;
         gatedSince = 0L;
         healthySince = 0L;
+        consecutivePauses++;
     }
 
     public static boolean isAutoPaused() {
@@ -237,9 +276,48 @@ public final class AutoPause {
     /**
      * How long health must hold before a paused run restarts. Short, and never the pause-side
      * grace -- see {@link #RESUME_GRACE_CAP_MS}.
+     *
+     * <p>DOUBLES ON EVERY CONSECUTIVE PAUSE (mod_support #36). The first resume is as eager as it
+     * ever was, because the common case is a passing autosave and five seconds is the right answer
+     * to it. But a machine that pauses, resumes and fails again has told us something, and
+     * answering it with the same five seconds is how the oscillation sustains itself. Bounded both
+     * ways: never longer than the pause-side grace, and never longer than
+     * {@link #RESUME_GRACE_MAX_MS}, because a pause that outlasts its own patience is a stop.
      */
     public static long resumeGraceMillis() {
-        return Math.min(graceMillis, RESUME_GRACE_CAP_MS);
+        long base = Math.min(graceMillis, RESUME_GRACE_CAP_MS);
+        int repeats = Math.max(0, consecutivePauses - 1);
+        // Shift, not pow: the cap below makes anything past a handful of doublings moot, and
+        // clamping the shift keeps it honest if consecutivePauses ever runs away.
+        long scaled = base << Math.min(repeats, 16);
+        long ceiling = Math.min(graceMillis, RESUME_GRACE_MAX_MS);
+        return Math.max(Math.min(scaled, ceiling), Math.min(base, ceiling));
+    }
+
+    /** How long a struggling run must try before its width may drop below the comfort floor. */
+    public static long belowFloorGraceMillis() {
+        return Math.min(graceMillis, BELOW_FLOOR_GRACE_MS);
+    }
+
+    /** The width the last auto-pause fired at, or 0 if none has. */
+    public static int failedWidth() {
+        return failedWidth;
+    }
+
+    /** Consecutive auto-pauses with no sustained healthy run between them. */
+    public static int consecutivePauses() {
+        return consecutivePauses;
+    }
+
+    /**
+     * Records that a run has held a width healthily for long enough to be believed.
+     *
+     * <p>This is what clears the repeat counter, and it is deliberately NOT the resume: a run that
+     * comes back and fails again has not proved anything, and treating the resume as success is
+     * what would let the escalation reset itself every cycle and never escalate at all.
+     */
+    public static void noteSustainedHealth() {
+        consecutivePauses = 0;
     }
 
     /** True once the server has looked healthy continuously for the resume grace. */
@@ -261,6 +339,7 @@ public final class AutoPause {
      */
     public static void noteWidthFailed(int width) {
         recommendedStartWidth = Math.max(DispatchControl.MIN_WORKING_WIDTH, width / 2);
+        failedWidth = Math.max(0, width);
     }
 
     /**
@@ -289,11 +368,15 @@ public final class AutoPause {
         gatedSince = 0L;
         healthySince = 0L;
         recommendedStartWidth = 0;
+        failedWidth = 0;
+        consecutivePauses = 0;
     }
 
     /** Returns one line for the debug command. No literal percent sign, because the sender formats it. */
     public static String describe() {
-        return String.format("enabled=%s grace=%ds autoPaused=%s world=%s",
-                enabled, graceMillis / 1000L, autoPaused, pausedWorld == null ? "none" : pausedWorld);
+        return String.format(
+                "enabled=%s grace=%ds resumeGrace=%ds autoPaused=%s world=%s repeats=%d failedWidth=%d",
+                enabled, graceMillis / 1000L, resumeGraceMillis() / 1000L, autoPaused,
+                pausedWorld == null ? "none" : pausedWorld, consecutivePauses, failedWidth);
     }
 }

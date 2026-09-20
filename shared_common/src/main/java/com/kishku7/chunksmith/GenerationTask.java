@@ -289,7 +289,17 @@ public class GenerationTask implements Runnable {
         int startWidth = AutoPause.recommendedStartWidth();
         int opening = startWidth > 0 ? Math.min(this.maxWorkingCount, startWidth) : this.maxWorkingCount;
         this.dispatchLimit.set(opening);
-        this.goodWidth.set(this.maxWorkingCount);
+        // ...and the permission to LEAVE that width has to come back with it (mod_support #36).
+        // This line used to be an unconditional reset to the ceiling. The width was resumed narrow
+        // and the slow-start threshold was resumed wide, so rampUp's burst -- allowed anywhere
+        // below the threshold, eight steps a sample -- carried the run from a width of 1 straight
+        // back toward a ceiling of 200 and into the wall that had just stopped it. Resuming narrow
+        // bought nothing; it took one sample to undo. A resumed run now inherits the width that
+        // failed as its threshold, so the burst stops where the evidence stops. Floored at
+        // MIN_USEFUL_WIDTH for the reason the back-off path already documents: a threshold below
+        // the floor is a memory of the collapse, not of anything that worked.
+        this.goodWidth.set(
+                DispatchControl.resumeThreshold(this.maxWorkingCount, AutoPause.failedWidth()));
         this.maxAddedChunks = chunky.getConfig().getThrottleMaxAddedChunks();
         this.maxHeapPercent = chunky.getConfig().getThrottleMaxHeapPercent();
         this.tickBudgetMillis = chunky.getConfig().getThrottleTickBudgetMillis();
@@ -666,7 +676,7 @@ public class GenerationTask implements Runnable {
         // than a pause is allowed to last, the floor has had its chance, and stopping is not
         // the answer -- a narrower run still generates.
         boolean belowFloorEarned =
-                AutoPause.strugglingSeconds(now) * 1000L >= AutoPause.resumeGraceMillis() * 2L;
+                AutoPause.strugglingSeconds(now) * 1000L >= AutoPause.belowFloorGraceMillis();
         int current;
         int reduced;
         do {
@@ -754,6 +764,10 @@ public class GenerationTask implements Runnable {
             goodWidth.set(current);
         }
         healthySince.set(now);
+        // A width this machine has now HELD for GOOD_WIDTH_PROMOTE_MS is the evidence the resume
+        // escalation was waiting for. Clearing it here rather than on the resume itself is the
+        // whole point: coming back is not success, staying back is (mod_support #36).
+        AutoPause.noteSustainedHealth();
     }
 
     private void maybeNotify(int newLimit) {
@@ -1078,7 +1092,8 @@ public class GenerationTask implements Runnable {
                                     + " heapStalled={} tickFarBehind={} mspt={} effectiveTarget={}"
                                     + " msptBand={} atCeiling={}); stopped at {}/{} chunks ({}%)."
                                     + " It will resume by itself once the server has been healthy for"
-                                    + " {}s. Set autoPauseOnOverload=false to push on regardless.",
+                                    + " {}s (auto-pause #{} for this run). Set"
+                                    + " autoPauseOnOverload=false to push on regardless.",
                             selection.world().getName(),
                             AutoPause.strugglingSeconds(gateNow),
                             gated ? "a Chunksmith gate held" : "tick running far behind target",
@@ -1090,7 +1105,8 @@ public class GenerationTask implements Runnable {
                             pausedTotal > 0L
                                     ? String.format("%.2f", 100.0D * pausedDone / pausedTotal)
                                     : "?",
-                            AutoPause.graceMillis() / 1000L);
+                            AutoPause.resumeGraceMillis() / 1000L,
+                            AutoPause.consecutivePauses() + 1);
                     chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_AUTO_PAUSED,
                             selection.world().getName(), AutoPause.strugglingSeconds(gateNow));
                     AutoPause.noteWidthFailed(dispatchLimit.get());

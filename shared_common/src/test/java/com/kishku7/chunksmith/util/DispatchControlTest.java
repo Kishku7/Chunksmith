@@ -165,6 +165,52 @@ public class DispatchControlTest {
     }
 
     /** Above the floor, permission changes nothing: the normal halving still applies. */
+    /**
+     * How far a burst is allowed to carry the width, given a slow-start threshold.
+     *
+     * <p>Mirrors {@code GenerationTask.rampUp(true)}: below the threshold it may climb freely,
+     * at or above it the burst is refused and the climb drops to one step per second.
+     */
+    private static int burstReach(int from, int threshold) {
+        int width = from;
+        while (DispatchControl.mayBurst(width, threshold)) {
+            width++;
+        }
+        return width;
+    }
+
+    /**
+     * A RESUMED run must not be allowed to burst back to the ceiling (mod_support #36).
+     *
+     * <p>This is the whole bug in one assertion. The run was auto-paused at a width of 1 and
+     * deliberately resumed at a width of 1 -- and then handed a slow-start threshold of the
+     * CONFIGURED CEILING, because the seeding was an unconditional reset. Bursting is permitted
+     * anywhere below the threshold, eight steps a sample, so the careful narrow resume survived
+     * about one sample before the width was back at 200 and in the wall that had just stopped it.
+     */
+    @Test
+    public void aResumedRunCannotBurstBackToTheCeiling() {
+        final int ceiling = 200;
+        assertEquals("the old seeding: a resumed run could burst the whole way back",
+                ceiling, burstReach(1, ceiling));
+        assertEquals("the new seeding: it stops at the floor it failed under",
+                DispatchControl.MIN_USEFUL_WIDTH,
+                burstReach(1, DispatchControl.resumeThreshold(ceiling, 1)));
+    }
+
+    /** The threshold a run opens with: the ceiling when fresh, the failed width when resumed. */
+    @Test
+    public void theResumeThresholdRemembersWhatFailed() {
+        assertEquals("a fresh run knows nothing bad about any width",
+                200, DispatchControl.resumeThreshold(200, 0));
+        assertEquals("failed at 64, so 64 is the bound on a quick climb",
+                64, DispatchControl.resumeThreshold(200, 64));
+        assertEquals("never below the floor -- that would be a memory of the collapse",
+                DispatchControl.MIN_USEFUL_WIDTH, DispatchControl.resumeThreshold(200, 1));
+        assertEquals("never above the configured ceiling",
+                50, DispatchControl.resumeThreshold(50, 400));
+    }
+
     @Test
     public void permissionDoesNotDisturbTheNormalRange() {
         assertEquals(DispatchControl.reduce(100, true), DispatchControl.reduce(100, true, true));

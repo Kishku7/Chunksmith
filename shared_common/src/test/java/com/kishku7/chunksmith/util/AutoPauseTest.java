@@ -286,6 +286,89 @@ public class AutoPauseTest {
                 AutoPause.recommendedStartWidth());
     }
 
+    /**
+     * The width that failed is carried so a resumed run cannot burst back past it.
+     *
+     * <p>mod_support #36: the run was resumed NARROW while the slow-start threshold it uses to
+     * decide how fast it may widen was reset to the configured ceiling, so the narrow start
+     * survived exactly one sample.
+     */
+    @Test
+    public void theFailedWidthIsRememberedForTheResumedRun() {
+        assertEquals("nothing has failed yet", 0, AutoPause.failedWidth());
+        AutoPause.noteWidthFailed(64);
+        assertEquals(64, AutoPause.failedWidth());
+        AutoPause.clear();
+        assertEquals("a new run inherits no failure", 0, AutoPause.failedWidth());
+    }
+
+    /**
+     * The resume grace doubles on every consecutive pause, and is bounded.
+     *
+     * <p>A fixed five seconds is the right answer to a passing autosave and the wrong answer to a
+     * machine that has already failed at this three times: it produces the fixed-period
+     * pause/resume/fail oscillation a reporter described as "it pauses too often".
+     */
+    @Test
+    public void theResumeGraceEscalatesOnRepeatedPauses() {
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
+        long first = AutoPause.resumeGraceMillis();
+        assertEquals("the first resume is as eager as it ever was", 5_000L, first);
+
+        AutoPause.markAutoPaused("world");
+        assertEquals("one pause is not yet a pattern", first, AutoPause.resumeGraceMillis());
+
+        AutoPause.markAutoPaused("world");
+        assertEquals(first * 2, AutoPause.resumeGraceMillis());
+        AutoPause.markAutoPaused("world");
+        assertEquals(first * 4, AutoPause.resumeGraceMillis());
+
+        for (int i = 0; i < 20; i++) {
+            AutoPause.markAutoPaused("world");
+        }
+        assertTrue("bounded -- a pause that outlasts its own patience is a stop",
+                AutoPause.resumeGraceMillis() <= 60_000L);
+        assertTrue("and never longer than the pause-side grace",
+                AutoPause.resumeGraceMillis() <= AutoPause.graceMillis());
+    }
+
+    /** Coming back is not success. STAYING back is, and only that clears the escalation. */
+    @Test
+    public void onlySustainedHealthClearsTheEscalation() {
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
+        AutoPause.markAutoPaused("world");
+        AutoPause.markAutoPaused("world");
+        assertEquals(2, AutoPause.consecutivePauses());
+
+        AutoPause.clearAutoPaused();
+        assertEquals("a resume on its own proves nothing", 2, AutoPause.consecutivePauses());
+        assertEquals(10_000L, AutoPause.resumeGraceMillis());
+
+        AutoPause.noteSustainedHealth();
+        assertEquals(0, AutoPause.consecutivePauses());
+        assertEquals("back to eager once the machine has held a width",
+                5_000L, AutoPause.resumeGraceMillis());
+    }
+
+    /**
+     * The below-floor clock is its own number, not the resume grace doubled.
+     *
+     * <p>It used to be read off {@code resumeGraceMillis() * 2}. Once the resume grace started
+     * escalating that would have made the controller slower to NARROW every time it got more
+     * patient about resuming -- two unrelated decisions welded together.
+     */
+    @Test
+    public void theBelowFloorClockDoesNotMoveWhenTheResumeGraceEscalates() {
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
+        long before = AutoPause.belowFloorGraceMillis();
+        assertEquals(10_000L, before);
+        for (int i = 0; i < 5; i++) {
+            AutoPause.markAutoPaused("world");
+        }
+        assertTrue("the resume grace did escalate", AutoPause.resumeGraceMillis() > 5_000L);
+        assertEquals("the below-floor clock did not move", before, AutoPause.belowFloorGraceMillis());
+    }
+
     /** A new run must not inherit the last one's recommendation. */
     @Test
     public void clearForgetsTheRecommendation() {

@@ -113,6 +113,35 @@ public final class DispatchControl {
     public static final int MIN_USEFUL_WIDTH = 8;
 
     /**
+     * The slow-start threshold a run should OPEN with.
+     *
+     * <p>The threshold decides how fast {@code rampUp} is allowed to widen: below it the recovery
+     * may burst eight steps a sample, at or above it the climb is one step at a time. A fresh run
+     * knows nothing bad about any width, so it opens at the ceiling and a healthy server behaves
+     * exactly as it always did.
+     *
+     * <p>A RESUMED run is different and this is the bug it fixes (mod_support #36). It used to
+     * open at the ceiling too. So a run auto-paused at a width of 1, and deliberately resumed at a
+     * width of 1, was immediately permitted to burst all the way back toward a ceiling of 200 --
+     * and did, in about one sample, straight into the wall that had just stopped it. Resuming
+     * narrow bought nothing at all, because the narrow width was not what governed the climb.
+     *
+     * <p>So a resumed run inherits the width that FAILED as its threshold: the climb may still be
+     * quick up to the last thing we know did not work, and is one careful step at a time past it.
+     * Floored at {@link #MIN_USEFUL_WIDTH} for the reason the back-off path already documents --
+     * a threshold below the floor is a memory of the collapse, not of anything that worked.
+     *
+     * @param maxWorkingCount the configured ceiling
+     * @param failedWidth     the width the last auto-pause fired at, or 0 if this is a fresh run
+     */
+    public static int resumeThreshold(int maxWorkingCount, int failedWidth) {
+        if (failedWidth <= 0) {
+            return maxWorkingCount;
+        }
+        return Math.max(MIN_USEFUL_WIDTH, Math.min(maxWorkingCount, failedWidth));
+    }
+
+    /**
      * Whether the fast multi-step recovery is allowed at this width.
      *
      * <p>Below the widest setting known to have run healthily, a burst is a return to a proven

@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [4.3.3] - 2026-09-20
+
+4.3.2 stopped the pre-gen latching forever. It did not stop it pausing OFTEN, and on a two-core
+client the run settled into a fixed-period pause/resume/fail cycle instead. Reported on
+mod_support #36 by the reporter of #33, who confirmed the latch is gone and that the run now
+"pauses too often. Thus slowing down pregeneration."
+
+**A resumed run kept its narrow start for about one sample.** It came back below the width that
+failed, as intended -- and then reset its slow-start threshold to the CONFIGURED CEILING, which is
+the value that decides how fast it is allowed to widen again. Below that threshold the recovery
+path may climb eight steps per sample, so a run resumed at a width of 1 was permitted to burst
+straight back toward a ceiling of 200 and into the wall that had just stopped it. Resuming narrow
+bought nothing. A resumed run now inherits the width that FAILED as its threshold, so the climb
+stops where the evidence stops.
+
+**The resume grace no longer answers the third failure the same way it answered the first.** It was
+a flat five seconds, which is the right answer to a passing autosave and the wrong answer to a
+machine that has already failed at this repeatedly -- it is what let the oscillation sustain
+itself. It now doubles on each consecutive auto-pause, bounded by the pause-side grace and by 60
+seconds. Only a width HELD healthily clears the escalation: coming back is not success, staying
+back is.
+
+**Two log lines were stating the wrong number.** The auto-pause notice and the auto-resume notice
+both printed the PAUSE grace where they meant the RESUME grace -- so a run that came back after
+five seconds announced it had waited two minutes. Both now print what they actually waited, and
+the pause notice says which repeat it is.
+
+**The below-floor clock was decoupled from the resume clock.** It had been read off the resume
+grace doubled, which was harmless while that was a constant and would have become a trap the
+moment it started escalating: being more patient about resuming would silently have made the
+controller slower to narrow.
+
 ## [4.3.2] - 2026-09-19
 
 A pre-gen that auto-paused could never start again on a modest machine, and said nothing at all
