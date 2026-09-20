@@ -371,13 +371,13 @@ public final class LodSupport {
         }
         if (found != null) {
             LOGGER.info("Chunksmith: detected {}, so LOD generation is auto-enabled. "
-                            + "Pregen will build the CSLOD store (~5.8 KB/chunk; measured cost to pregen speed: none). "
+                            + "Pregen will build the CSLOD store (~12 KB/chunk; it roughly HALVES pregen throughput -- measured 2026-09-19). "
                             + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.",
                     RendererNames.display(found));
         } else if (server != null && server.isDedicatedServer()) {
             LOGGER.info("Chunksmith: LOD generation auto-enabled (dedicated server). No renderer runs "
                     + "here, but the CSLOD store is what connecting clients download, so the store is "
-                    + "built (~5.8 KB/chunk; measured cost to pregen speed: none). "
+                    + "built (~12 KB/chunk; it roughly HALVES pregen throughput -- measured 2026-09-19). "
                     + "Set lodEnabled=false in config/chunksmith/config.json, or run /cs set lodEnabled false, to turn it off.");
         } else {
             LOGGER.info("Chunksmith: no LOD renderer detected (looked for {}); LOD generation off. "
