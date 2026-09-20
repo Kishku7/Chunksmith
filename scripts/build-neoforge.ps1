@@ -41,7 +41,7 @@ try {
 $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2"; nf = "26.1.2.109";      nfRange = "[26.1.0.0-beta,)"; mcRange = "[26.1,26.2)"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";   nf = "26.2.0.88";       nfRange = "[26.2.0-alpha,)"; mcRange = "[26.2,26.3)"; packFormat = "88" }
-  "26.3" = @{ mc = "26.3";   nf = "26.3.0.4-beta";   nfRange = "[26.3.0-alpha,)"; mcRange = "[26.3,26.4)"; packFormat = "97" }
+  "26.3" = @{ mc = "26.3";   nf = "26.3.0.7-beta";   nfRange = "[26.3.0-alpha,)"; mcRange = "[26.3,26.4)"; packFormat = "97" }
 }
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
 

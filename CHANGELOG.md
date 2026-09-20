@@ -2,6 +2,53 @@
 
 ## [Unreleased]
 
+## [4.3.2] - 2026-09-19
+
+A pre-gen that auto-paused could never start again on a modest machine, and said nothing at all
+while it sat there. Reported on mod_support #33: a run stopped at 5.08% with the CPU idle and
+"no warnings, no errors, nothing" in the log. 4.3.1 fixed a different bug in the same area -- it
+stopped a stopped run being RECORDED as finished -- and did not touch the stop itself.
+
+**Server operators: two of these change behaviour on a healthy dedicated server too, not only on a
+weak client.** An auto-pause now ends in seconds rather than minutes, and a struggling run narrows
+its dispatch width below 8 where it previously stopped instead.
+
+### Fixed
+
+- **A paused pre-gen could not resume on a machine whose tick cost exceeds 55ms.** The resume test
+  was two hard-coded numbers -- `mspt <= 55` and `heap < 70` -- while the PAUSE side is entirely
+  relative: heap from `throttleMaxHeapPercent`, and tick from the adaptive `TickBudget` target,
+  which is allowed as high as the 150ms ceiling. The two sides were answering different questions,
+  so on any machine whose own baseline tick cost is above ~55ms the resume condition was
+  unreachable by construction. Stopping even made it LOOK further away than it was: once dispatch
+  halts, the baseline re-learns what the machine costs on its own and the effective target rises to
+  meet it -- the run has become sustainable -- while the fixed 55ms test keeps asking the machine
+  to be faster than it has ever been. Both arms now use the pause side's own references.
+- **A pause could not be short even in principle.** Pausing and resuming shared one grace setting,
+  120 seconds by default. That patience is right on the way IN, where it stops an autosave killing
+  a healthy run, and wrong on the way OUT, where it costs the whole run. The resume side now has
+  its own grace, capped at 5 seconds.
+- **Auto-pause fired while there was still room to simply slow down.** It triggered on elapsed time
+  alone, with no test for whether narrowing had been tried. It now requires the dispatch width to
+  be at its minimum first, and the width can fall below the comfort floor of 8, one step at a time,
+  before stopping is considered at all. A resumed run reopens at half the width that failed rather
+  than climbing straight back into the wall it was stopped by.
+- **The whole mechanism was silent.** Every notice auto-pause had went to the console sender -- a
+  chat channel, not the log -- so on a client-hosted world nothing was written down anywhere, and a
+  stop was indistinguishable from a hang. It now logs the countdown starting, the countdown being
+  cancelled by a recovery, the pause (with the condition that tripped it, the tick and heap
+  numbers behind the decision, and the percentage it stopped at), and the resume.
+
+### Changed
+
+- **The LOD auto-enable notice was telling operators its cost was zero.** It printed "~5.8 KB/chunk;
+  measured cost to pregen speed: none". Measured on one machine, same heap, same radius, virgin
+  ground per arm: **108.5 chunks/sec with LOD off against 50.6 with it on**, and about 12 KB/chunk
+  of store rather than 5.8. LOD generation roughly halves pre-gen throughput. The notice now says
+  so. Nothing about LOD itself changed -- only the claim made about it. This also explains why a
+  dedicated server pre-gens slower than a client: LOD auto-enables on a dedicated server and stays
+  off on a client.
+
 ## [4.3.1] - 2026-09-18
 
 A world-enter pregen that stopped early was recorded as having finished, and the world was then
