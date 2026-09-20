@@ -164,7 +164,6 @@ public class DispatchControlTest {
         assertTrue(width >= 1);
     }
 
-    /** Above the floor, permission changes nothing: the normal halving still applies. */
     /**
      * How far a burst is allowed to carry the width, given a slow-start threshold.
      *
@@ -211,6 +210,7 @@ public class DispatchControlTest {
                 50, DispatchControl.resumeThreshold(50, 400));
     }
 
+    /** Above the floor, permission changes nothing: the normal halving still applies. */
     @Test
     public void permissionDoesNotDisturbTheNormalRange() {
         assertEquals(DispatchControl.reduce(100, true), DispatchControl.reduce(100, true, true));
