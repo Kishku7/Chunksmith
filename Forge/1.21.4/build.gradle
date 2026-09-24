@@ -1,4 +1,4 @@
-// ChunkSmith Forge cell -- classic Forge (LexForge) variant, MC 1.21.2 - 1.21.4.
+// ChunkSmith Forge cell -- classic Forge (LexForge) variant, MC 1.21.3 - 1.21.4. Forge never shipped 1.21.2.
 //
 // Standalone LexForge jar built with ForgeGradle 6 (FG6) on JDK 21. Forge 1.21.x runs OFFICIAL
 // MOJANG MAPPINGS at runtime, so dev names == runtime names. Mixins are compiled mojmap-native

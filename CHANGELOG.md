@@ -45,6 +45,12 @@ reporter watched that promise go unkept for twenty minutes. It now appears only 
 its narrowest and still struggling, says how many seconds are actually left, and is cancelled out loud
 only if it was announced. Holds by the heap, write and residency guards log their own lines.
 
+**Forge jars no longer claim Minecraft versions Forge cannot run.** The 1.20.6 Forge jar claimed 1.20.5
+and the 1.21.4 Forge jar claimed 1.21.2, where Forge never shipped a build; the 1.21.10 Forge jar
+claimed 1.21.9, where Forge's builds never start a server. The claims only put false versions on the
+download page. Every Forge version the jars do claim was booted for this release,
+including the short-lived 1.21, 1.21.3, 1.21.6 and 1.21.7 builds.
+
 **Built against newer loaders:** NeoForge 26.3.0.16-beta (was 26.3.0.7-beta) and Forge 1.21.5-55.1.14 (was
 55.1.13). Forge 1.21.11 stays on 61.1.0.
 
