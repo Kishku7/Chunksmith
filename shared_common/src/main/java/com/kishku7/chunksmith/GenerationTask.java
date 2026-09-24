@@ -972,14 +972,9 @@ public class GenerationTask implements Runnable {
         long now = System.currentTimeMillis();
         long last = lastHeapNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastHeapNoticeTime.compareAndSet(last, now)) {
-            // The number the gate decided on, not the raw one: since mod_support #37 they differ by
-            // whatever garbage is waiting to be collected, and printing the raw one would state a
-            // figure the gate did not act on.
-            double live = HeapPressure.liveEstimatePercent();
-            long maxMb = HeapPressure.maxMegabytes();
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HEAP_BACKPRESSURE_NOTICE,
-                    String.format("%.0f", live),
-                    Math.round(live * maxMb / 100.0D), maxMb, maxHeapPercent);
+                    String.format("%.0f", HeapPressure.usedPercent()),
+                    HeapPressure.usedMegabytes(), HeapPressure.maxMegabytes(), maxHeapPercent);
         }
     }
 

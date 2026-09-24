@@ -17,17 +17,20 @@ it deliberately lets the heap fill before collecting; G1 can do it too, since it
 is off by default. Entering the world or playing allocates, a collection runs, and the run carries on,
 which is exactly what the reporter saw.
 
-**It now reads what the last collection left behind**, per heap pool, and takes the lower of that
-and the raw reading, so garbage no longer counts as pressure. A pool that has never been collected
-counts at its current size, so a collector that reports nothing leaves the guard exactly as cautious
-as before. And while it holds, it checks each large pool for a collection since it closed. Counting
+**A hold now asks whether waiting can still change anything.** The guard closes and opens on the
+same reading as before -- closing it later would let the chunks already in flight run a small heap
+out of memory, which is the one thing it exists to prevent. What is new is how it waits. While it
+holds, it checks each large heap pool for a garbage collection since the wait began. Counting
 collections is not enough: generational ZGC runs minor cycles constantly and leaves the old
 generation, where a pre-gen's discarded chunks end up, for a major cycle that may be a long way off.
-If a large pool has gone 10 seconds without being collected, the guard stops waiting on a number
-nothing is refreshing: it says so in the log and lets generation run, which is what gets the collector
-to look, and it closes again if the memory really is in use. If every large pool has been collected
-and the heap is still full, that is real pressure and it keeps holding. Auto-resume uses the same
-reading.
+If a large pool has gone 10 seconds without being collected, the reading is not going to move by
+itself, so the guard says so in the log and lets generation run -- which is what gets the collector
+to look -- and closes again on the next samples if the heap really is full. If every large pool has
+been collected and the heap is still full, that is memory in use, and it keeps holding.
+
+**Auto-resume reads what the last collection left behind**, per heap pool, instead of the raw
+reading, so a paused run is not kept paused by garbage nobody has collected. A pool that has never
+been collected counts at its current size.
 
 **A hold is no longer silent.** The guard used to log once when it closed and never again, so a hold
 that lasted twenty minutes looked like a hang. It now logs every 30 seconds while it holds, with the

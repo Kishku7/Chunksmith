@@ -55,10 +55,12 @@ import java.util.List;
  * on the next samples if the memory really is in use. If every such pool HAS been
  * collected and the heap is still full, that is real pressure and the gate holds.
  *
- * <p>The reading itself is the LOWER of the raw number and what each pool's last
- * collection left behind ({@link #liveEstimatePercent()}). A false positive costs seconds
- * of throughput and a false negative costs the server, so {@link #CONFIRM_SAMPLES}
- * samples still close the gate and it still opens well below the threshold.
+ * <p>The gate still closes and opens on the raw number, because closing late is how a
+ * server runs out of memory: the chunks already in flight keep arriving after it closes.
+ * A false positive costs seconds of throughput and a false negative costs the server, so
+ * {@link #CONFIRM_SAMPLES} samples close it and it opens well below the threshold. The
+ * post-collection reading ({@link #liveEstimatePercent()}) is used where waiting is the
+ * only risk: deciding whether a PAUSED run may resume.
  */
 public final class HeapPressure {
 
@@ -218,9 +220,13 @@ public final class HeapPressure {
      * @return true when dispatch should be held off
      */
     public static boolean shouldHold(boolean currentlyHeld, long thresholdPercent) {
-        Pools pools = readPools();
-        double used = liveEstimate(usedPercent(), afterCollectionPercent(pools));
-        return shouldHold(currentlyHeld, thresholdPercent, used, pools, System.currentTimeMillis());
+        // The RAW reading closes and opens the gate, exactly as it always has. A lower "live" estimate
+        // was tried for both and it let a G1 client at 400-wide dispatch run out of heap: it closed
+        // the gate later, and the chunks already in flight did the rest. Closing late is the one
+        // mistake this gate cannot afford. The pools are consulted only to decide when WAITING has
+        // stopped meaning anything.
+        return shouldHold(currentlyHeld, thresholdPercent, usedPercent(), readPools(),
+                System.currentTimeMillis());
     }
 
     /**
