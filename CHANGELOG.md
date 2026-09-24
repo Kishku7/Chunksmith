@@ -45,6 +45,9 @@ reporter watched that promise go unkept for twenty minutes. It now appears only 
 its narrowest and still struggling, says how many seconds are actually left, and is cancelled out loud
 only if it was announced. Holds by the heap, write and residency guards log their own lines.
 
+**Built against newer loaders:** NeoForge 26.3.0.16-beta (was 26.3.0.7-beta) and Forge 1.21.5-55.1.14 (was
+55.1.13). Forge 1.21.11 stays on 61.1.0.
+
 **Singleplayer no longer tells you to open TCP port 0.** A world that is not open to the network has
 no game port, and the LOD backchannel port is derived from it, so it warned that there was "no room
 for a port above -1" and later that "port 0" had never been reached. Neither applied: a singleplayer

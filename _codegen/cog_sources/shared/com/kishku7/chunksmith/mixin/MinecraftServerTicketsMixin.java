@@ -79,7 +79,9 @@ public abstract class MinecraftServerTicketsMixin {
     // it must not carry generator directives. It is gated to modern_11plus, and
     // compat.housekeeping_inject_at() returns TAIL for every version in that era, so the
     // injection point is not a drift point within this file's supported range.
-    @Inject(method = "tickServer", at = @At("TAIL"))
+    // require = 0: this only feeds the diagnostics dump. If another mod reshapes tickServer, losing
+    // the sample is fine and crashing the game over it is not (audit D17).
+    @Inject(method = "tickServer", at = @At("TAIL"), require = 0)
     private void chunksmith$onTicketDiagnosticsHook(BooleanSupplier booleanSupplier, CallbackInfo ci) {
         this.chunksmith$sampleChunkLevels();
     }

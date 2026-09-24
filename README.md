@@ -37,6 +37,11 @@ Chunksmith builds on Windows using PowerShell build scripts and per-cell Gradle 
   Which JDK each target uses is in the matrix below. Install all three to build the whole tree, or
   just the one(s) for the cells you care about.
 
+  No path to a JDK is written anywhere in the tree. Each cell names the major version its Gradle
+  daemon runs on in `gradle/gradle-daemon-jvm.properties` (`toolchainVersion=21` or `25`), and the
+  code is compiled by the Java toolchain its build script declares; Gradle finds both among the JDKs
+  you have installed. A JDK update, or a JDK in a different folder, needs no edit.
+
 **Provided for you (do NOT install manually):**
 
 - **Gradle** - each cell ships a wrapper (`gradlew.bat`). Pre-26 cells use Gradle 8.14; the 26 cells
