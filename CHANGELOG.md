@@ -2,62 +2,14 @@
 
 ## [Unreleased]
 
-## [4.3.4] - UNRELEASED
+## [4.3.4] - 2026-09-24
 
-A pre-gen could stop dead and stay stopped until the player entered the world or started playing.
-Reported on mod_support #37: a world-enter pre-gen on a 16 GB client hung after 20-30 minutes, every
-time, with the last line promising an auto-pause that never came.
-
-**The heap guard was measuring garbage.** It read the heap as `total - free`, which counts memory
-nothing uses any more but the collector has not reclaimed yet. It closed at 85% and would not reopen
-until that reading fell to 70%. While it held, the pre-gen allocated nothing -- and on world-enter the
-world is frozen, so nothing else did much either. A collector that is not asked for memory does not
-run, so the reading never fell and the guard never opened. ZGC makes this close to certain, because
-it deliberately lets the heap fill before collecting; G1 can do it too, since its periodic collection
-is off by default. Entering the world or playing allocates, a collection runs, and the run carries on,
-which is exactly what the reporter saw.
-
-**A hold now asks whether waiting can still change anything.** The guard closes and opens on the
-same reading as before -- closing it later would let the chunks already in flight run a small heap
-out of memory, which is the one thing it exists to prevent. What is new is how it waits. While it
-holds, it checks each large heap pool for a garbage collection since the wait began. Counting
-collections is not enough: generational ZGC runs minor cycles constantly and leaves the old
-generation, where a pre-gen's discarded chunks end up, for a major cycle that may be a long way off.
-If a large pool has gone 10 seconds without being collected, the reading is not going to move by
-itself, so the guard says so in the log and lets generation run -- which is what gets the collector
-to look -- and closes again on the next samples if the heap really is full. If every large pool has
-been collected and the heap is still full, that is memory in use, and it keeps holding.
-
-**Auto-resume reads what the last collection left behind**, per heap pool, instead of the raw
-reading, so a paused run is not kept paused by garbage nobody has collected. A pool that has never
-been collected counts at its current size.
-
-**A hold is no longer silent.** The guard used to log once when it closed and never again, so a hold
-that lasted twenty minutes looked like a hang. It now logs every 30 seconds while it holds, with the
-raw reading, what the last collections left, and how much of the heap is still waiting on a
-collection.
-
-**The auto-pause countdown only appears when it can come true.** "If this holds for 120s the run will
-AUTO-PAUSE" used to print the moment anything struggled, and then cancel on the next good sample --
-so a busy run printed it over and over, and during a heap hold it was simply false: an auto-pause
-also needs the run already narrowed as far as it can go, and a heap hold never narrows it. The
-reporter watched that promise go unkept for twenty minutes. It now appears only when the run is at
-its narrowest and still struggling, says how many seconds are actually left, and is cancelled out loud
-only if it was announced. Holds by the heap, write and residency guards log their own lines.
-
-**Forge jars no longer claim Minecraft versions Forge cannot run.** The 1.20.6 Forge jar claimed 1.20.5
-and the 1.21.4 Forge jar claimed 1.21.2, where Forge never shipped a build; the 1.21.10 Forge jar
-claimed 1.21.9, where Forge's builds never start a server. The claims only put false versions on the
-download page. Every Forge version the jars do claim was booted for this release,
-including the short-lived 1.21, 1.21.3, 1.21.6 and 1.21.7 builds.
-
-**Built against newer loaders:** NeoForge 26.3.0.16-beta (was 26.3.0.7-beta) and Forge 1.21.5-55.1.14 (was
-55.1.13). Forge 1.21.11 stays on 61.1.0.
-
-**Singleplayer no longer tells you to open TCP port 0.** A world that is not open to the network has
-no game port, and the LOD backchannel port is derived from it, so it warned that there was "no room
-for a port above -1" and later that "port 0" had never been reached. Neither applied: a singleplayer
-world gets its LOD in-band, as it always did. Both warnings are gone there; a server still gets them.
+- Fixed a pre-gen that could stop for good while the world was frozen, until you entered the world
+  (mod_support #37).
+- The auto-pause warning now only appears when an auto-pause can actually happen.
+- Singleplayer no longer warns about opening a network port.
+- Forge jars no longer list Minecraft versions Forge cannot run (1.20.5, 1.21.2, 1.21.9).
+- Built against NeoForge 26.3.0.16-beta and Forge 1.21.5-55.1.14.
 
 ## [4.3.3] - 2026-09-20
 
