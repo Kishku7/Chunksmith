@@ -63,24 +63,24 @@ public class AutoPauseTest {
     public void tickTroubleCountsWithNoGateOfOursClosed() {
         // The 3.7.0 flaw: keyed on our gates alone, auto-pause sat idle through twelve "Can't keep
         // up" warnings because the chunk gate was off and the heap was under its threshold.
-        AutoPause.noteStruggling(true, T0);
+        AutoPause.noteStruggling(true, true, T0);
         assertTrue("struggling with no gate of ours closed", AutoPause.shouldPause(T0 + GRACE, AT_FLOOR));
     }
 
     @Test
     public void aBlipDoesNotPause() {
-        AutoPause.noteStruggling(true, T0);
+        AutoPause.noteStruggling(true, true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE - 1, AT_FLOOR));
         // Recovered before the grace expired: the clock must start over, not carry on.
-        AutoPause.noteStruggling(false, T0 + GRACE - 1);
-        AutoPause.noteStruggling(true, T0 + GRACE);
+        AutoPause.noteStruggling(false, true, T0 + GRACE - 1);
+        AutoPause.noteStruggling(true, true, T0 + GRACE);
         assertFalse("a brief stall must not pause", AutoPause.shouldPause(T0 + GRACE + 1, AT_FLOOR));
     }
 
     @Test
     public void aSustainedStallPauses() {
-        AutoPause.noteStruggling(true, T0);
-        AutoPause.noteStruggling(true, T0 + 60_000L);
+        AutoPause.noteStruggling(true, true, T0);
+        AutoPause.noteStruggling(true, true, T0 + 60_000L);
         assertTrue(AutoPause.shouldPause(T0 + GRACE, AT_FLOOR));
         assertEquals(120L, AutoPause.strugglingSeconds(T0 + GRACE));
     }
@@ -130,7 +130,7 @@ public class AutoPauseTest {
     @Test
     public void disabledMeansNothingFires() {
         AutoPause.configure(false, GRACE, HEAP_THRESHOLD);
-        AutoPause.noteStruggling(true, T0);
+        AutoPause.noteStruggling(true, true, T0);
         assertFalse(AutoPause.shouldPause(T0 + GRACE * 10, AT_FLOOR));
         AutoPause.markAutoPaused("minecraft:overworld");
         AutoPause.noteHealthy(true, T0);
@@ -139,10 +139,10 @@ public class AutoPauseTest {
 
     @Test
     public void noDoublePause() {
-        AutoPause.noteStruggling(true, T0);
+        AutoPause.noteStruggling(true, true, T0);
         assertTrue(AutoPause.shouldPause(T0 + GRACE, AT_FLOOR));
         AutoPause.markAutoPaused("minecraft:overworld");
-        AutoPause.noteStruggling(true, T0 + GRACE);
+        AutoPause.noteStruggling(true, true, T0 + GRACE);
         assertFalse("already paused",
                 AutoPause.shouldPause(T0 + GRACE * 3, AT_FLOOR));
     }
@@ -240,7 +240,7 @@ public class AutoPauseTest {
      */
     @Test
     public void aRunWithRoomLeftToNarrowMustNotPause() {
-        AutoPause.noteStruggling(true, T0);
+        AutoPause.noteStruggling(true, true, T0);
         assertFalse("there is still width to give up -- narrow, do not stop",
                 AutoPause.shouldPause(T0 + GRACE * 10, false));
         assertTrue("at the hard minimum, a pause is finally the honest answer",
@@ -375,5 +375,47 @@ public class AutoPauseTest {
         AutoPause.noteWidthFailed(32);
         AutoPause.clear();
         assertEquals(0, AutoPause.recommendedStartWidth());
+    }
+
+
+    // ---- the countdown is announced only when it can come true (mod_support #37) ----
+
+    @Test
+    public void aStruggleAboveTheMinimumAnnouncesNothing() {
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
+        AutoPause.noteStruggling(true, false, T0);
+        assertFalse("a gate hold cannot auto-pause, so no countdown is promised",
+                AutoPause.countdownAnnounced());
+        assertFalse(AutoPause.shouldPause(T0 + GRACE, false));
+    }
+
+    @Test
+    public void reachingTheMinimumAnnouncesOnceAndRecoveryCancels() {
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
+        AutoPause.noteStruggling(true, false, T0);
+        AutoPause.noteStruggling(true, true, T0 + 5_000L);
+        assertTrue("now it can pause, so say when", AutoPause.countdownAnnounced());
+        AutoPause.noteStruggling(true, true, T0 + 6_000L);
+        assertTrue(AutoPause.countdownAnnounced());
+        AutoPause.noteStruggling(false, true, T0 + 7_000L);
+        assertFalse("recovery cancels it", AutoPause.countdownAnnounced());
+        assertEquals(0L, AutoPause.strugglingSeconds(T0 + 7_000L));
+    }
+
+    @Test
+    public void noCountdownWhenThePauseIsAlreadyDue() {
+        AutoPause.configure(true, GRACE, HEAP_THRESHOLD);
+        AutoPause.noteStruggling(true, false, T0);
+        AutoPause.noteStruggling(true, true, T0 + GRACE);
+        assertFalse("the pause line is next; a zero-second countdown says nothing",
+                AutoPause.countdownAnnounced());
+        assertTrue(AutoPause.shouldPause(T0 + GRACE, true));
+    }
+
+    @Test
+    public void disabledNeverAnnounces() {
+        AutoPause.configure(false, GRACE, HEAP_THRESHOLD);
+        AutoPause.noteStruggling(true, true, T0);
+        assertFalse(AutoPause.countdownAnnounced());
     }
 }

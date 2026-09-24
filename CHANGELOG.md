@@ -37,6 +37,14 @@ that lasted twenty minutes looked like a hang. It now logs every 30 seconds whil
 raw reading, what the last collections left, and how much of the heap is still waiting on a
 collection.
 
+**The auto-pause countdown only appears when it can come true.** "If this holds for 120s the run will
+AUTO-PAUSE" used to print the moment anything struggled, and then cancel on the next good sample --
+so a busy run printed it over and over, and during a heap hold it was simply false: an auto-pause
+also needs the run already narrowed as far as it can go, and a heap hold never narrows it. The
+reporter watched that promise go unkept for twenty minutes. It now appears only when the run is at
+its narrowest and still struggling, says how many seconds are actually left, and is cancelled out loud
+only if it was announced. Holds by the heap, write and residency guards log their own lines.
+
 **Singleplayer no longer tells you to open TCP port 0.** A world that is not open to the network has
 no game port, and the LOD backchannel port is derived from it, so it warned that there was "no room
 for a port above -1" and later that "port 0" had never been reached. Neither applied: a singleplayer

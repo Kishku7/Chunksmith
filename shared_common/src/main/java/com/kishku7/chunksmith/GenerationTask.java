@@ -1101,8 +1101,8 @@ public class GenerationTask implements Runnable {
                 // keyed to the wrong reference.
                 boolean tickFarBehind = mspt >= 0.0D && TickBudget.atCeiling()
                         && mspt > TickBudget.effectiveTarget() + TickBudget.MSPT_BAND;
-                AutoPause.noteStruggling(gated || tickFarBehind, gateNow);
                 boolean atHardMinimum = dispatchLimit.get() <= DispatchControl.MIN_WORKING_WIDTH;
+                AutoPause.noteStruggling(gated || tickFarBehind, atHardMinimum, gateNow);
                 if (AutoPause.shouldPause(gateNow, atHardMinimum)) {
                     // Stuttering is worse than stopping: on a server that cannot keep up, the
                     // never-wedge valve lets through about a second of work every grace period and

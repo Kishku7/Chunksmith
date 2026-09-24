@@ -118,6 +118,8 @@ public final class AutoPause {
     private static volatile int consecutivePauses;
 
     private static volatile long gatedSince;
+    // Set once the countdown has been announced for the current struggle; see noteStruggling.
+    private static volatile boolean countdownAnnounced;
     private static volatile long healthySince;
 
     private static volatile boolean autoPaused;
@@ -196,25 +198,51 @@ public final class AutoPause {
      * under its threshold, nothing of ours ever closed while the server logged twelve "Can't keep up"
      * warnings and generation fell to 5 chunks per second. So it is either gate holding, OR the tick running
      * far past the target the throttle steers to.
+     *
+     * <p>WHAT GETS ANNOUNCED, AND WHEN (mod_support #37). This used to WARN "if this holds for 120s the
+     * run will AUTO-PAUSE" the moment any struggle began, and then cancel it on the next good sample.
+     * Two things were wrong with that. It fired on every dip, so a healthy-but-busy run printed it
+     * continuously. And it was often simply untrue: a pause also needs the width at its hard minimum
+     * ({@link #shouldPause(long, boolean)}), and a hold by one of our gates -- the heap guard above
+     * all -- never narrows the width, so the promised pause could not happen. A reporter watched that
+     * promise sit unkept for twenty minutes and reasonably read it as a hang. So the countdown is now
+     * announced only when it is REAL: struggling, at the hard minimum, with time still left on the
+     * clock. The gates announce their own holds, with their own numbers.
+     *
+     * @param struggling    whether the server cannot sustain the run right now
+     * @param atHardMinimum whether the dispatch width can go no lower, the other half of the pause test
+     * @param now           the clock, in milliseconds
      */
-    public static void noteStruggling(boolean struggling, long now) {
+    public static void noteStruggling(boolean struggling, boolean atHardMinimum, long now) {
         if (!struggling) {
-            // Only worth a line if a countdown was actually running: this is called every pass.
-            if (gatedSince != 0L && enabled && !autoPaused) {
+            // Only worth a line if a countdown was actually announced: this is called every pass.
+            if (countdownAnnounced && gatedSince != 0L && enabled && !autoPaused) {
                 LOGGER.info("Chunksmith: the server recovered after {}s of struggling -- the"
                                 + " auto-pause countdown is cancelled.",
                         Math.max(0L, (now - gatedSince) / 1000L));
             }
             gatedSince = 0L;
-        } else if (gatedSince == 0L) {
+            countdownAnnounced = false;
+            return;
+        }
+        if (gatedSince == 0L) {
             gatedSince = now;
-            if (enabled && !autoPaused) {
-                LOGGER.warn("Chunksmith: the server cannot sustain the pre-gen. If this holds for"
-                                + " {}s the run will AUTO-PAUSE and resume by itself once the"
-                                + " server recovers.",
-                        graceMillis / 1000L);
+        }
+        if (atHardMinimum && enabled && !autoPaused && !countdownAnnounced) {
+            long left = graceMillis - (now - gatedSince);
+            // Under a second left means the pause itself is next, and it logs its own line.
+            if (left >= 1_000L) {
+                LOGGER.warn("Chunksmith: the pre-gen is at its narrowest and the server still cannot"
+                                + " sustain it. It will AUTO-PAUSE in {}s unless the server recovers first.",
+                        left / 1000L);
+                countdownAnnounced = true;
             }
         }
+    }
+
+    /** Whether the current struggle has had its auto-pause countdown announced. Test seam. */
+    static boolean countdownAnnounced() {
+        return countdownAnnounced;
     }
 
     /** @deprecated use {@link #shouldPause(long, boolean)}, so no caller silently loses the floor test. */
@@ -252,6 +280,7 @@ public final class AutoPause {
         autoPaused = true;
         pausedWorld = world;
         gatedSince = 0L;
+        countdownAnnounced = false;
         healthySince = 0L;
         consecutivePauses++;
     }
@@ -359,6 +388,7 @@ public final class AutoPause {
         pausedWorld = null;
         healthySince = 0L;
         gatedSince = 0L;
+        countdownAnnounced = false;
     }
 
     /** Clears every remembered state, for a human pause, a new run, or a stopping server. */
@@ -366,6 +396,7 @@ public final class AutoPause {
         autoPaused = false;
         pausedWorld = null;
         gatedSince = 0L;
+        countdownAnnounced = false;
         healthySince = 0L;
         recommendedStartWidth = 0;
         failedWidth = 0;
