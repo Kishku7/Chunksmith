@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [4.3.4] - UNRELEASED
+
+A pre-gen could stop dead and stay stopped until the player entered the world or started playing.
+Reported on mod_support #37: a world-enter pre-gen on a 16 GB client hung after 20-30 minutes, every
+time, with the last line promising an auto-pause that never came.
+
+**The heap guard was measuring garbage.** It read the heap as `total - free`, which counts memory
+nothing uses any more but the collector has not reclaimed yet. It closed at 85% and would not reopen
+until that reading fell to 70%. While it held, the pre-gen allocated nothing -- and on world-enter the
+world is frozen, so nothing else did much either. A collector that is not asked for memory does not
+run, so the reading never fell and the guard never opened. ZGC makes this close to certain, because
+it deliberately lets the heap fill before collecting; G1 can do it too, since its periodic collection
+is off by default. Entering the world or playing allocates, a collection runs, and the run carries on,
+which is exactly what the reporter saw.
+
+**It now reads what the last collection left behind**, per heap pool, and takes the lower of that
+and the raw reading, so garbage no longer counts as pressure. A pool that has never been collected
+counts at its current size, so a collector that reports nothing leaves the guard exactly as cautious
+as before. And while it holds, it checks each large pool for a collection since it closed. Counting
+collections is not enough: generational ZGC runs minor cycles constantly and leaves the old
+generation, where a pre-gen's discarded chunks end up, for a major cycle that may be a long way off.
+If a large pool has gone 10 seconds without being collected, the guard stops waiting on a number
+nothing is refreshing: it says so in the log and lets generation run, which is what gets the collector
+to look, and it closes again if the memory really is in use. If every large pool has been collected
+and the heap is still full, that is real pressure and it keeps holding. Auto-resume uses the same
+reading.
+
+**A hold is no longer silent.** The guard used to log once when it closed and never again, so a hold
+that lasted twenty minutes looked like a hang. It now logs every 30 seconds while it holds, with the
+raw reading, what the last collections left, and how much of the heap is still waiting on a
+collection.
+
+**Singleplayer no longer tells you to open TCP port 0.** A world that is not open to the network has
+no game port, and the LOD backchannel port is derived from it, so it warned that there was "no room
+for a port above -1" and later that "port 0" had never been reached. Neither applied: a singleplayer
+world gets its LOD in-band, as it always did. Both warnings are gone there; a server still gets them.
+
 ## [4.3.3] - 2026-09-20
 
 4.3.2 stopped the pre-gen latching forever. It did not stop it pausing OFTEN, and on a two-core

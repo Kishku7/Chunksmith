@@ -146,6 +146,16 @@ public final class CsLodHttpServer {
     private int bind(String bindAddress, int gamePort, int configuredPort) {
         derived = configuredPort == 0;
         int wanted = CsLodProtocol.httpPort(gamePort, configuredPort);
+        if (wanted == 0 && derived && gamePort <= 0) {
+            // A singleplayer world that is not open to the network has no game port (-1), so there
+            // is nothing to derive from and nobody outside this machine to serve. The player's LOD
+            // goes in-band, which is the right channel here, not a fallback. This used to WARN
+            // "no room for a port above -1" and send a singleplayer player looking for a router
+            // setting (mod_support #37).
+            LOGGER.info("Chunksmith: this world is not open to the network, so there is no LOD"
+                    + " backchannel to run; LOD is sent in-band.");
+            return 0;
+        }
         if (wanted == 0) {
             if (derived) {
                 LOGGER.warn("Chunksmith: no room for a LOD backchannel port above " + gamePort

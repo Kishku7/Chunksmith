@@ -167,6 +167,9 @@ public class GenerationTask implements Runnable {
     // Heap is sampled on a slower cadence than the chunk counters: it is a whole-JVM number that moves
     // in GC-sized steps, and sampling it faster would only multiply the cost of reading it.
     private static final long HEAP_CHECK_INTERVAL_MS = 500L;
+    // A heap hold used to announce itself once and then say nothing for as long as it lasted, which on
+    // mod_support #37 was over ten minutes that looked exactly like a hang. Say it again at this cadence.
+    private static final long HEAP_HELD_LOG_INTERVAL_MS = 30_000L;
     // How long residency may stay over its cap before we give up waiting and generate anyway. A run must
     // never wedge: if the server genuinely will not unload (a foreign mod pinning chunks, a selection
     // whose legitimate frontier exceeds the cap), a Chunksmith that waits forever is a Chunksmith that
@@ -233,6 +236,7 @@ public class GenerationTask implements Runnable {
     private final long tickBudgetMillis;
     private final AtomicLong lastHeapCheckTime = new AtomicLong(0);
     private final AtomicLong lastHeapNoticeTime = new AtomicLong(0);
+    private final AtomicLong lastHeapHeldLogTime = new AtomicLong(0);
     private volatile boolean heapStalled;
     private boolean heldNotified;
     private final AtomicLong lastResidencyCheckTime = new AtomicLong(0);
@@ -929,9 +933,37 @@ public class GenerationTask implements Runnable {
         if (now - last < HEAP_CHECK_INTERVAL_MS || !lastHeapCheckTime.compareAndSet(last, now)) {
             return;
         }
+        // Read before deciding: a release clears the hold, and the release line needs to say how long it was.
+        long heldFor = HeapPressure.heldMillis(now);
+        long waitedFor = HeapPressure.waitingMillis(now);
         boolean hold = HeapPressure.shouldHold(heapStalled, maxHeapPercent);
+        if (HeapPressure.consumeReleasedBlind()) {
+            LOGGER.warn("Chunksmith: the heap guard held generation for {}s, and {} MB of what it counts went"
+                            + " {}s without a garbage collection, so its reading ({}% raw) cannot tell"
+                            + " uncollected garbage from memory in use. Generating again, which lets the"
+                            + " collector run; the guard closes again if the memory really is in use.",
+                    heldFor / 1000L, HeapPressure.staleMegabytes(), waitedFor / 1000L,
+                    String.format("%.0f", HeapPressure.usedPercent()));
+        }
         if (hold && !heapStalled) {
             maybeNotifyHeap();
+            lastHeapHeldLogTime.set(now);
+        } else if (hold) {
+            long lastLog = lastHeapHeldLogTime.get();
+            if (now - lastLog >= HEAP_HELD_LOG_INTERVAL_MS && lastHeapHeldLogTime.compareAndSet(lastLog, now)) {
+                double after = HeapPressure.afterCollectionPercent();
+                long stale = HeapPressure.staleMegabytes();
+                LOGGER.info("Chunksmith: generation still held by the heap guard after {}s -- {}% raw, {} after"
+                                + " the last collections, resumes at or under {}%; {}.",
+                        heldFor / 1000L,
+                        String.format("%.0f", HeapPressure.usedPercent()),
+                        after < 0.0D ? "not reported" : String.format("%.0f%%", after),
+                        Math.max(50L, maxHeapPercent - HeapPressure.RESUME_MARGIN_PERCENT),
+                        stale < 0L ? "no per-pool collection data"
+                                : stale == 0L ? "every large pool has been collected and it is still full, so this"
+                                        + " is memory in use"
+                                : stale + " MB has gone " + (waitedFor / 1000L) + "s without a collection");
+            }
         }
         heapStalled = hold;
     }
@@ -940,9 +972,14 @@ public class GenerationTask implements Runnable {
         long now = System.currentTimeMillis();
         long last = lastHeapNoticeTime.get();
         if (now - last >= NOTICE_INTERVAL_MS && lastHeapNoticeTime.compareAndSet(last, now)) {
+            // The number the gate decided on, not the raw one: since mod_support #37 they differ by
+            // whatever garbage is waiting to be collected, and printing the raw one would state a
+            // figure the gate did not act on.
+            double live = HeapPressure.liveEstimatePercent();
+            long maxMb = HeapPressure.maxMegabytes();
             chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HEAP_BACKPRESSURE_NOTICE,
-                    String.format("%.0f", HeapPressure.usedPercent()),
-                    HeapPressure.usedMegabytes(), HeapPressure.maxMegabytes(), maxHeapPercent);
+                    String.format("%.0f", live),
+                    Math.round(live * maxMb / 100.0D), maxMb, maxHeapPercent);
         }
     }
 

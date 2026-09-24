@@ -539,7 +539,9 @@ public final class CsLodServerNet {
         // to know to go and read. Reported three times (mod_support #24, #26, #31) with the startup
         // line already printing the port -- the line was not missing, it was at boot and at INFO.
         CsLodHttpServer server = http;
-        if (server != null
+        // Port 0 means no backchannel was bound at all (a singleplayer world, or a refused port that
+        // already said why at startup). "Open TCP 0" is not advice anybody can take (mod_support #37).
+        if (server != null && server.getPort() > 0
                 && CsLodReachNotice.unreached(true, server.servedCount(), server.rejectedCount())
                 && REACH_NOTICE.shouldWarn(player.getUUID(), System.currentTimeMillis())) {
             // true: the mod HAS an in-band fallback, so the consequence here is slowness.

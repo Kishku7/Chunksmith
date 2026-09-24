@@ -8315,6 +8315,10 @@ public class NeoForgeWorld implements World {
     }
 
     @Override
+    // NeoForge 21.1 marks Level#getSeaLevel deprecated; no other cell does. Reading the sea level
+    // from anywhere else could change the value a pregen reports, which a patch release should
+    // not do, so the call stays and only this cell carries the suppression.
+    @SuppressWarnings("deprecation")
     public int getSeaLevel() {
         return world.getSeaLevel();
     }

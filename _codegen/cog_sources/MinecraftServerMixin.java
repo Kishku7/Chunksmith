@@ -349,7 +349,10 @@ public abstract class MinecraftServerMixin implements MinecraftServerExtension {
             return;
         }
         long now = System.currentTimeMillis();
-        double heap = HeapPressure.usedPercent();
+        // What the last collection left, not total - free: a paused run allocates nothing, so on a
+        // collector that waits to be asked the raw number never falls and the run never resumes.
+        // Same reading the dispatch gate uses (mod_support #37).
+        double heap = HeapPressure.liveEstimatePercent();
         // The thresholds belong to AutoPause, which derives them from the same config the
         // PAUSE side uses. They used to be two hard-coded absolutes here, and that is how a
         // paused run on a modest machine became unresumable (mod_support #33).
