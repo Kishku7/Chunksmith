@@ -356,6 +356,7 @@ if ($hasWorldEnter -eq '1') {
         $scfDst = Join-Path $genJava (Join-Path $mixinPkg 'ServerChunkCacheFreezeMixin.java')
         Copy-Item -Force (Join-Path $cogSrc 'ServerChunkCacheFreezeMixin.java') $scfDst
         $cogTargets += $scfDst
+        Copy-Item -Force (Join-Path $cogSrc 'ChunkMapFreezeUnloadMixin.java') (Join-Path $genJava (Join-Path $mixinPkg 'ChunkMapFreezeUnloadMixin.java'))
         $dmpDst = Join-Path $genJava (Join-Path $mixinPkg 'DistanceManagerPurgeInvoker.java')
         if ($purgeShape -eq 'dm') {
             Copy-Item -Force (Join-Path $cogSrc 'DistanceManagerPurgeInvoker.java') $dmpDst
@@ -363,7 +364,7 @@ if ($hasWorldEnter -eq '1') {
         Write-Host "[cog-gen] + ServerChunkCacheFreezeMixin (ticket purge under the freeze; shape $purgeShape)"
     } else {
         if (Test-Path $tickRateMixinDst) { Remove-Item -Force $tickRateMixinDst }
-        foreach ($pg in @('ServerChunkCacheFreezeMixin.java', 'DistanceManagerPurgeInvoker.java')) {
+        foreach ($pg in @('ServerChunkCacheFreezeMixin.java', 'DistanceManagerPurgeInvoker.java', 'ChunkMapFreezeUnloadMixin.java')) {
             $pgDst = Join-Path $genJava (Join-Path $mixinPkg $pg)
             if (Test-Path $pgDst) { Remove-Item -Force $pgDst }
         }
@@ -384,7 +385,7 @@ if ($hasWorldEnter -eq '1') {
     # feature -- so it is not a stub to maintain, it is a file that must not be generated at all.
     # Same treatment as the ticket diagnostics above: drop the FILE and Step 6 drops the json entry
     # with it. Leaving it would break the build on every pre-26 cell.
-    foreach ($fzName in @('TickRateManagerMixin.java', 'ServerLevelFreezeMixin.java', 'LevelEntityFreezeMixin.java', 'ServerChunkCacheFreezeMixin.java', 'DistanceManagerPurgeInvoker.java')) {
+    foreach ($fzName in @('TickRateManagerMixin.java', 'ServerLevelFreezeMixin.java', 'LevelEntityFreezeMixin.java', 'ServerChunkCacheFreezeMixin.java', 'DistanceManagerPurgeInvoker.java', 'ChunkMapFreezeUnloadMixin.java')) {
         $fzGone = Join-Path $genJava (Join-Path $mixinPkg $fzName)
         if (Test-Path $fzGone) { Remove-Item -Force $fzGone }
     }

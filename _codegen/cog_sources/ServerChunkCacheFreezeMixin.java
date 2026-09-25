@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.mixin;
 
+import com.kishku7.chunksmith.util.FrozenTicketPurge;
 import com.kishku7.chunksmith.worldenter.WorldEnterPregen;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
@@ -59,8 +60,10 @@ import java.util.function.BooleanSupplier;
  * the reporter saw.
  *
  * <p>This does the one thing vanilla skipped, at the head of the same method, under the exact
- * complement of vanilla's guard -- so the purge runs once per tick, never twice -- and only while
- * {@link WorldEnterPregen#isFrozen()} is set. {@code /tick freeze} is untouched.
+ * complement of vanilla's guard, and only while {@link WorldEnterPregen#isFrozen()} is set --
+ * {@code /tick freeze} is untouched. It does not purge unconditionally: the resident chunks are the
+ * neighbours the next ring needs, so {@link FrozenTicketPurge} keeps them up to a heap-sized cap and
+ * purges every tick (vanilla's unfrozen behaviour) above it.
  *
  * <p>{@code @Inject}, not {@code @Redirect}: large packs carry other mods that touch this method,
  * and an inject coexists with them where a redirect would conflict.
@@ -76,6 +79,10 @@ public abstract class ServerChunkCacheFreezeMixin {
 
     @Unique
     private static volatile boolean chunksmith$disabled;
+
+    /** Per dimension (each level has its own cache), server thread only. See FrozenTicketPurge. */
+    @Unique
+    private final FrozenTicketPurge chunksmith$policy = new FrozenTicketPurge();
 
     @Shadow
     @Final
@@ -101,8 +108,15 @@ public abstract class ServerChunkCacheFreezeMixin {
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;Z)V", at = @At("HEAD"))
     private void chunksmith$purgeWhileFrozen(BooleanSupplier hasTimeLeft, boolean tickChunks, CallbackInfo ci) {
-        if (chunksmith$disabled || !tickChunks || !WorldEnterPregen.isFrozen()
-                || this.level.tickRateManager().runsNormally()) {
+        if (chunksmith$disabled || !tickChunks) {
+            return;
+        }
+        if (!WorldEnterPregen.isFrozen() || this.level.tickRateManager().runsNormally()) {
+            chunksmith$policy.reset();
+            return;
+        }
+        int resident = ((ServerChunkCache) (Object) this).getLoadedChunksCount();
+        if (!chunksmith$policy.tick(resident, Runtime.getRuntime().maxMemory())) {
             return;
         }
         try {
@@ -116,10 +130,10 @@ public abstract class ServerChunkCacheFreezeMixin {
         if (!chunksmith$announced) {
             chunksmith$announced = true;
             chunksmith$LOGGER.info("Chunksmith: expiring chunk tickets during the world-enter freeze"
-                    + " so finished chunks can unload.");
+                    + " so finished chunks can unload ({} resident, cap {}).", resident,
+                    FrozenTicketPurge.effectiveCap(Runtime.getRuntime().maxMemory()));
         }
     }
-
     //[[[cog
     // import cog, compat
     // shape = compat.ticket_purge_shape(mcver)

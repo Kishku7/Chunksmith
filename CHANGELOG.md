@@ -5,7 +5,7 @@
 ## [4.3.5] - 2026-09-25
 
 - Fixed the world-enter pre-gen slowing to a crawl after about an hour: finished chunks now unload
-  while the world is frozen instead of piling up in memory (mod_support #37).
+  while the world is frozen instead of piling up in memory, and generation is faster (mod_support #37).
 
 ## [4.3.4] - 2026-09-24
 
