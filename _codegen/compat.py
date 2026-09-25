@@ -1443,3 +1443,29 @@ def chunk_result_success_block(mcver, result_var, chunk_var, body):
     if era(mcver) == "ancient":
         return "%s.left().ifPresent(%s -> { %s });" % (result_var, chunk_var, body)
     return "%s.ifSuccess(%s -> { %s });" % (result_var, chunk_var, body)
+
+
+def ticket_purge_shape(mcver):
+    """How does ServerChunkCache.tick expire timed chunk tickets on this version? (issue #37)
+
+    Vanilla guards the purge with `runsNormally() || !tickChunks`, so under the tick freeze that the
+    world-enter pregen borrows, timed tickets NEVER expire: every chunk the task touched stays loaded
+    and residency grows ~120 KB live per chunk until the heap guard throttles the run to a crawl.
+    ServerChunkCacheFreezeMixin re-runs the purge while (and only while) our freeze is on.
+
+    Returned shape, verified against the decompiled ServerChunkCache.tick of each version:
+      "dm"  -- 1.20.5 .. 1.21.4: this.distanceManager.purgeStaleTickets()   (protected -> @Invoker)
+      "ts0" -- 1.21.5:           this.ticketStorage.purgeStaleTickets()      (public)
+      "ts1" -- 1.21.6+ and 26.x: this.ticketStorage.purgeStaleTickets(this.chunkMap) (public)
+
+    The NeoForge/1.21.8 cell spans 1.21.5..1.21.8 and is generated as "ts1"; the mixin falls back to
+    the no-arg overload by reflection there (NeoForge runs mojmap names, so the lookup resolves).
+    """
+    v = _parse(mcver)
+    if v[0] >= 26:
+        return "ts1"
+    if v < (1, 21, 5):
+        return "dm"
+    if v[:3] == (1, 21, 5):
+        return "ts0"
+    return "ts1"

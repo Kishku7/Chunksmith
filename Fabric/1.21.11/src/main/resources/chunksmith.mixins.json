@@ -13,6 +13,7 @@
     "MinecraftServerTicketsMixin",
     "PersistentEntitySectionManagerMixin",
     "RegionFileStorageAccessor",
+    "ServerChunkCacheFreezeMixin",
     "ServerChunkCacheMixin",
     "ServerLevelMixin",
     "SimpleRegionStorageAccessor",
