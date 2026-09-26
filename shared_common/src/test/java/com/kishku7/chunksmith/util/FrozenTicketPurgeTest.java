@@ -120,6 +120,16 @@ public class FrozenTicketPurgeTest {
     }
 
     @Test
+    public void anIdleDimensionLearnsNothing() {
+        FrozenTicketPurge p = new FrozenTicketPurge();
+        p.tick(0, 16 * GB, true);
+        assertEquals(Integer.MAX_VALUE, p.learnedCap());
+        p.tick(0, 16 * GB, false);
+        p.tick(FrozenTicketPurge.MIN_LEARN_RESIDENT - 1, 16 * GB, true);
+        assertEquals(Integer.MAX_VALUE, p.learnedCap());
+    }
+
+    @Test
     public void resetForgetsTheLearnedCap() {
         FrozenTicketPurge p = new FrozenTicketPurge();
         p.tick(20_000, 16 * GB, true);

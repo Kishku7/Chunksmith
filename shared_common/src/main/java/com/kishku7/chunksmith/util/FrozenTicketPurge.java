@@ -69,6 +69,12 @@ public final class FrozenTicketPurge {
      * collector has not reached yet and the cache is left alone.
      */
     public static final double FULL_AFTER_COLLECTION_PERCENT = 70.0;
+    /**
+     * Residency below which a really-full episode teaches nothing. The policy runs per dimension and
+     * the idle ones (nether, end) sit at 0 resident, so without this every heap episode taught them a
+     * cap of 0 and logged it (seen on the 4.3.6 heaplatch run).
+     */
+    public static final int MIN_LEARN_RESIDENT = 1024;
     /** On each new really-full episode, the learned cap becomes this share of the residency then. */
     public static final double LEARN_FRACTION = 0.6;
     /** Stop purging once residency is back under this share of the cap. */
@@ -112,7 +118,9 @@ public final class FrozenTicketPurge {
         if (heapFull) {
             if (!holdSeen) {
                 holdSeen = true;
-                learnedCap = Math.min(learnedCap, (int) (resident * LEARN_FRACTION));
+                if (resident >= MIN_LEARN_RESIDENT) {
+                    learnedCap = Math.min(learnedCap, (int) (resident * LEARN_FRACTION));
+                }
             }
             if (!purging) {
                 purging = true;
