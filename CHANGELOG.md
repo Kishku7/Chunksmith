@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.3.6] - 2026-09-26
+
+- Big modpacks no longer see the world-enter pre-gen speed up and slow down over and over: cached
+  chunks are released as soon as memory runs short (mod_support #37).
+- New debug setting `debugWorldEnterSkipLod` (off by default) skips LOD building during the world-enter pre-gen.
+
 ## [4.3.5] - 2026-09-25
 
 - Fixed the world-enter pre-gen slowing to a crawl after about an hour: finished chunks now unload

@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.util.WorldEnterFreeze;
 import com.kishku7.chunksmith.util.RendererNames;
 import com.kishku7.chunksmith.lod.CsLodWorldId;
 import com.kishku7.chunksmith.ChunksmithProvider;
@@ -343,8 +344,16 @@ public final class LodSupport {
      */
     public static boolean lodEnabled(MinecraftServer server) {
         // ChunksmithProvider.get() throws when unloaded, so gate on isLoaded() first.
-        return ChunksmithProvider.isLoaded()
-                && decide(ChunksmithProvider.get().getConfig(), server);
+        if (!ChunksmithProvider.isLoaded()) {
+            return false;
+        }
+        Config config = ChunksmithProvider.get().getConfig();
+        // DEBUG toggle, off by default (mod_support #37): no LOD work while the world-enter pregen
+        // holds the world frozen. Live, so it lifts the moment the world is released.
+        if (WorldEnterFreeze.isFrozen() && config.isDebugWorldEnterSkipLod()) {
+            return false;
+        }
+        return decide(config, server);
     }
 
     /**

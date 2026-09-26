@@ -790,6 +790,17 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isDebugWorldEnterSkipLod() {
+        return Optional.ofNullable(configModel.debugWorldEnterSkipLod).orElse(false);
+    }
+
+    @Override
+    public void setDebugWorldEnterSkipLod(boolean skip) {
+        configModel.debugWorldEnterSkipLod = skip;
+        saveConfig();
+    }
+
+    @Override
     public void setWorldEnterPregenRadius(long blocks) {
         configModel.worldEnterPregenRadius =
                 Math.max(WORLD_ENTER_RADIUS_MIN, Math.min(WORLD_ENTER_RADIUS_MAX, blocks));
@@ -880,6 +891,8 @@ public final class GsonConfig implements Config {
         private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_DEFAULT;
         // On by default; single-player only. See Config#isWorldEnterPregenEnabled.
         private Boolean worldEnterPregen = true;
+        // DEBUG, off by default. See Config#isDebugWorldEnterSkipLod.
+        private Boolean debugWorldEnterSkipLod = false;
         private Long worldEnterPregenRadius = WORLD_ENTER_RADIUS_DEFAULT;
         // 'origin' keeps every world that has already run this feature exactly where it was.
         // See Config#getWorldEnterPregenCenter and mod_support #34.

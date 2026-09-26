@@ -53,9 +53,9 @@ public class FrozenTicketPurgeTest {
         FrozenTicketPurge p = new FrozenTicketPurge();
         int cap = FrozenTicketPurge.capFor(16 * GB);
         for (int r = 0; r <= cap; r += 97) {
-            assertFalse(p.tick(r, 16 * GB));
+            assertFalse(p.tick(r, 16 * GB, false));
         }
-        assertFalse(p.tick(cap, 16 * GB));
+        assertFalse(p.tick(cap, 16 * GB, false));
         assertEquals(0, p.switchesOn());
     }
 
@@ -64,12 +64,12 @@ public class FrozenTicketPurgeTest {
         FrozenTicketPurge p = new FrozenTicketPurge();
         int cap = FrozenTicketPurge.capFor(16 * GB);
         int resume = (int) (cap * FrozenTicketPurge.RESUME_FRACTION);
-        assertTrue(p.tick(cap + 1, 16 * GB));
-        assertTrue(p.tick(cap - 1, 16 * GB));      // under the cap but above resume: keep purging
-        assertTrue(p.tick(resume + 1, 16 * GB));
-        assertFalse(p.tick(resume, 16 * GB));
-        assertFalse(p.tick(cap, 16 * GB));         // refilling: no purge until over the cap again
-        assertTrue(p.tick(cap + 1, 16 * GB));
+        assertTrue(p.tick(cap + 1, 16 * GB, false));
+        assertTrue(p.tick(cap - 1, 16 * GB, false));      // under the cap but above resume: keep purging
+        assertTrue(p.tick(resume + 1, 16 * GB, false));
+        assertFalse(p.tick(resume, 16 * GB, false));
+        assertFalse(p.tick(cap, 16 * GB, false));         // refilling: no purge until over the cap again
+        assertTrue(p.tick(cap + 1, 16 * GB, false));
         assertEquals(2, p.switchesOn());
     }
 
@@ -78,7 +78,7 @@ public class FrozenTicketPurgeTest {
         FrozenTicketPurge p = new FrozenTicketPurge();
         // ~13,000 resident is the floor the in-flight work keeps at 4 GB: above the cap.
         for (int i = 0; i < 1000; i++) {
-            assertTrue(p.tick(13_000, 4 * GB));
+            assertTrue(p.tick(13_000, 4 * GB, false));
         }
         assertEquals(1, p.switchesOn());
     }
@@ -86,9 +86,45 @@ public class FrozenTicketPurgeTest {
     @Test
     public void resetStartsCachingAgain() {
         FrozenTicketPurge p = new FrozenTicketPurge();
-        assertTrue(p.tick(50_000, 16 * GB));
+        assertTrue(p.tick(50_000, 16 * GB, false));
         p.reset();
         assertEquals(0, p.switchesOn());
-        assertFalse(p.tick(40_000, 16 * GB));
+        assertFalse(p.tick(40_000, 16 * GB, false));
+    }
+
+    @Test
+    public void aHeapGuardHoldPurgesBelowTheCapAndTeachesALowerCap() {
+        FrozenTicketPurge p = new FrozenTicketPurge();
+        // 20,000 resident is far under the 16 GB cap, but the guard is holding: give memory back.
+        assertTrue(p.tick(20_000, 16 * GB, true));
+        assertEquals(12_000, p.learnedCap());
+        assertTrue(p.tick(19_000, 16 * GB, true));  // same hold: purging, cap not lowered again
+        assertEquals(12_000, p.learnedCap());
+        // Hold over; purging continues until under RESUME_FRACTION of the LEARNED cap.
+        assertTrue(p.tick(10_000, 16 * GB, false));
+        assertFalse(p.tick(9_600, 16 * GB, false));
+        assertFalse(p.tick(12_000, 16 * GB, false)); // refilling up to the learned cap
+        assertTrue(p.tick(12_001, 16 * GB, false));  // past it: purge again, long before 45,875
+    }
+
+    @Test
+    public void eachNewHoldCanOnlyLowerTheLearnedCap() {
+        FrozenTicketPurge p = new FrozenTicketPurge();
+        p.tick(20_000, 16 * GB, true);
+        p.tick(5_000, 16 * GB, false);
+        p.tick(30_000, 16 * GB, true); // a new hold at a HIGHER residency must not raise the cap
+        assertEquals(12_000, p.learnedCap());
+        p.tick(5_000, 16 * GB, false);
+        p.tick(10_000, 16 * GB, true);
+        assertEquals(6_000, p.learnedCap());
+    }
+
+    @Test
+    public void resetForgetsTheLearnedCap() {
+        FrozenTicketPurge p = new FrozenTicketPurge();
+        p.tick(20_000, 16 * GB, true);
+        p.reset();
+        assertEquals(Integer.MAX_VALUE, p.learnedCap());
+        assertFalse(p.tick(20_000, 16 * GB, false));
     }
 }

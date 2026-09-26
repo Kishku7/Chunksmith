@@ -473,6 +473,20 @@ public interface Config {
     /** Turns the world-enter pregen on or off and persists it. */
     void setWorldEnterPregenEnabled(boolean enabled);
 
+    /**
+     * DEBUG, off by default: skip Chunksmith's own LOD building (the CSLOD store / renderer feed)
+     * while the world-enter pregen holds the world frozen. LOD building resumes the moment the world
+     * is released. Exists to measure what LOD building costs a frozen pregen (mod_support #37); the
+     * renderer then builds its own LODs for that area as the player moves through it.
+     */
+    default boolean isDebugWorldEnterSkipLod() {
+        return false;
+    }
+
+    /** Sets {@link #isDebugWorldEnterSkipLod()} and persists it. */
+    default void setDebugWorldEnterSkipLod(boolean skip) {
+    }
+
     /** Sets how far the world-enter pregen reaches, in blocks, and persists it. */
     void setWorldEnterPregenRadius(long blocks);
 

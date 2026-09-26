@@ -122,6 +122,8 @@ public final class ConfigSettings {
             integer("lodIndexBudgetMb", Config::getLodIndexBudgetMb, Config::setLodIndexBudgetMb),
             worldEnter(bool("worldEnterPregen",
                     Config::isWorldEnterPregenEnabled, Config::setWorldEnterPregenEnabled)),
+            worldEnter(bool("debugWorldEnterSkipLod",
+                    Config::isDebugWorldEnterSkipLod, Config::setDebugWorldEnterSkipLod)),
             worldEnter(integer("worldEnterPregenRadius",
                     Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
             worldEnter(text("worldEnterPregenCenter",

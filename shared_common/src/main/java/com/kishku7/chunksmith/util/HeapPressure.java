@@ -84,7 +84,7 @@ public final class HeapPressure {
     // The hold: when it began (reported), when its patience clock last started, and what each pool's
     // last collection had left at that moment. A pool whose figure has not changed since has not
     // been collected since.
-    private static long holdStart;
+    private static volatile long holdStart;
     private static long clockStart;
     private static long[] snapAfterUsed;
     private static long[] snapAfterCommitted;
@@ -324,6 +324,14 @@ public final class HeapPressure {
         boolean was = releasedBlind;
         releasedBlind = false;
         return was;
+    }
+
+    /**
+     * Whether the guard is holding generation right now. Read from the server thread by the
+     * world-enter chunk cache (FrozenTicketPurge), which gives memory back while this is true.
+     */
+    public static boolean isHolding() {
+        return holdStart != 0L;
     }
 
     /** How long the current hold has lasted, or 0 when not holding. */

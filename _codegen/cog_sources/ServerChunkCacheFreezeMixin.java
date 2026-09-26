@@ -22,6 +22,7 @@
 package com.kishku7.chunksmith.mixin;
 
 import com.kishku7.chunksmith.util.FrozenTicketPurge;
+import com.kishku7.chunksmith.util.HeapPressure;
 import com.kishku7.chunksmith.worldenter.WorldEnterPregen;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
@@ -116,7 +117,17 @@ public abstract class ServerChunkCacheFreezeMixin {
             return;
         }
         int resident = ((ServerChunkCache) (Object) this).getLoadedChunksCount();
-        if (!chunksmith$policy.tick(resident, Runtime.getRuntime().maxMemory())) {
+        // "Really full", not merely "the guard is holding": see FrozenTicketPurge. Only read the
+        // post-collection figure during a hold, which is rare; it walks the memory pool beans.
+        boolean heapFull = HeapPressure.isHolding()
+                && HeapPressure.afterCollectionPercent() >= FrozenTicketPurge.FULL_AFTER_COLLECTION_PERCENT;
+        int learnedBefore = chunksmith$policy.learnedCap();
+        boolean purge = chunksmith$policy.tick(resident, Runtime.getRuntime().maxMemory(), heapFull);
+        if (chunksmith$policy.learnedCap() != learnedBefore) {
+            chunksmith$LOGGER.info("Chunksmith: the heap is full with {} chunks cached during the world-enter"
+                    + " freeze; caching at most {} from now on.", resident, chunksmith$policy.learnedCap());
+        }
+        if (!purge) {
             return;
         }
         try {

@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.worldenter;
 
+import com.kishku7.chunksmith.util.WorldEnterFreeze;
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.World;
@@ -381,11 +382,13 @@ public final class WorldEnterPregen {
             mcServer.tickRateManager().setFrozen(frozen);
             //[[[end]]]
             frozenByUs = frozen;
+            WorldEnterFreeze.set(frozen);
         } catch (RuntimeException e) {
             // Never let the freeze be the reason a world will not load.
             LOGGER.warn("Chunksmith: could not set the tick freeze ({}); carrying on unfrozen.",
                     e.toString());
             frozenByUs = false;
+            WorldEnterFreeze.set(false);
         }
     }
 

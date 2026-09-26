@@ -216,6 +216,17 @@ public class GenerationTask implements Runnable {
     private final AtomicInteger goodWidth = new AtomicInteger(Integer.MAX_VALUE);
     /** Consecutive back-offs; reset by any healthy sample. See BACKOFF_STREAK_FOR_HALVING. */
     private final AtomicInteger overloadStreak = new AtomicInteger(0);
+
+    // WHICH signal narrowed the pipeline (mod_support #37). A 7-hour run sat at a width of 8 of 200
+    // for 4.5 hours and the log could not say why: tick time, one slow chunk, and the LOD queue all
+    // call the same backoff(). Counted per signal and reported every NARROW_REPORT_MS while the
+    // width is below its ceiling, so a reporter's log names the brake.
+    private static final int NARROW_TICK = 0;
+    private static final int NARROW_SLOW_CHUNK = 1;
+    private static final int NARROW_LOD_QUEUE = 2;
+    private static final long NARROW_REPORT_MS = 300_000L;
+    private final AtomicLong[] narrowSignals = {new AtomicLong(), new AtomicLong(), new AtomicLong()};
+    private volatile long narrowReportAt;
     /** When the current width last became healthy, for promoting it into goodWidth. */
     private final AtomicLong healthySince = new AtomicLong(0);
     private final AtomicLong lastMsptCheckTime = new AtomicLong(0);
@@ -481,6 +492,7 @@ public class GenerationTask implements Runnable {
         TickBudget.sample(mspt, addingLoad, chunky.getServer().getPlayers().size());
         double target = effectiveTargetMspt();
         if (mspt > target + TickBudget.MSPT_BAND) {
+            narrowSignals[NARROW_TICK].incrementAndGet();
             backoff();
         } else if (mspt < target - TickBudget.MSPT_BAND) {
             noteHealthy(now);
@@ -540,6 +552,7 @@ public class GenerationTask implements Runnable {
      */
     private void adjustFromChunkLatency(long elapsed) {
         if (elapsed > maxChunkMillis) {
+            narrowSignals[NARROW_SLOW_CHUNK].incrementAndGet();
             backoff();
         }
     }
@@ -590,6 +603,7 @@ public class GenerationTask implements Runnable {
             return;
         }
         if (lodDrainTo <= 0L) {
+            narrowSignals[NARROW_LOD_QUEUE].incrementAndGet();
             backoff();
             return;
         }
@@ -648,6 +662,32 @@ public class GenerationTask implements Runnable {
     private void publishDispatchStats() {
         DispatchStats.publish(inFlight.get(), dispatchLimit.get(), goodWidth.get(),
                 maxWorkingCount, LodSinks.get().queueDepth());
+        reportNarrowing(System.currentTimeMillis());
+    }
+
+    /** Every NARROW_REPORT_MS, name what has been narrowing the pipeline -- only while under half its ceiling. */
+    private void reportNarrowing(long now) {
+        long due = narrowReportAt;
+        if (due == 0L) {
+            narrowReportAt = now + NARROW_REPORT_MS;
+            return;
+        }
+        if (now < due) {
+            return;
+        }
+        narrowReportAt = now + NARROW_REPORT_MS;
+        long tick = narrowSignals[NARROW_TICK].getAndSet(0L);
+        long slow = narrowSignals[NARROW_SLOW_CHUNK].getAndSet(0L);
+        long lod = narrowSignals[NARROW_LOD_QUEUE].getAndSet(0L);
+        int width = dispatchLimit.get();
+        // Only when it is narrowed in earnest. The controller idles a step under the ceiling on a
+        // healthy run (99 of 100 on the rig), and a line every five minutes saying so is noise.
+        if (width * 2 > maxWorkingCount) {
+            return;
+        }
+        LOGGER.info("Chunksmith: generating {} chunks at a time (ceiling {}). What narrowed it over the"
+                + " last {} min: tick time {}, a slow chunk load {}, the LOD queue {}.",
+                width, maxWorkingCount, NARROW_REPORT_MS / 60_000L, tick, slow, lod);
     }
 
     /**
