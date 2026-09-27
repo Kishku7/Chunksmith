@@ -122,8 +122,16 @@ public final class ConfigSettings {
             integer("lodIndexBudgetMb", Config::getLodIndexBudgetMb, Config::setLodIndexBudgetMb),
             worldEnter(bool("worldEnterPregen",
                     Config::isWorldEnterPregenEnabled, Config::setWorldEnterPregenEnabled)),
-            worldEnter(bool("debugWorldEnterSkipLod",
-                    Config::isDebugWorldEnterSkipLod, Config::setDebugWorldEnterSkipLod)),
+            worldEnter(of("worldEnterLod", ConfigSetting.Kind.TRISTATE,
+                    config -> config.getWorldEnterLodMode().name().toLowerCase(Locale.ROOT),
+                    (config, raw) -> {
+                        LodMode mode = LodMode.parse(raw);
+                        if (mode == null) {
+                            return false;
+                        }
+                        config.setWorldEnterLodMode(mode);
+                        return true;
+                    })),
             worldEnter(integer("worldEnterPregenRadius",
                     Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
             worldEnter(text("worldEnterPregenCenter",

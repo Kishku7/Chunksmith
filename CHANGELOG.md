@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.3.7] - 2026-09-27
+
+- New setting `worldEnterLod` (auto, on or off; default auto) replaces `debugWorldEnterSkipLod`: on auto, the world-enter
+  pre-gen builds LOD data when Distant Horizons or Voxy is installed, and the log says which it chose.
+
 ## [4.3.6] - 2026-09-26
 
 - Big modpacks no longer see the world-enter pre-gen speed up and slow down over and over: cached

@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.util.WorldEnterLod;
 import com.kishku7.chunksmith.util.WorldEnterFreeze;
 import com.kishku7.chunksmith.util.RendererNames;
 import com.kishku7.chunksmith.lod.CsLodWorldId;
@@ -30,6 +31,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.storage.LevelResource;
 
+import java.util.Locale;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -348,9 +350,10 @@ public final class LodSupport {
             return false;
         }
         Config config = ChunksmithProvider.get().getConfig();
-        // DEBUG toggle, off by default (mod_support #37): no LOD work while the world-enter pregen
-        // holds the world frozen. Live, so it lifts the moment the world is released.
-        if (WorldEnterFreeze.isFrozen() && config.isDebugWorldEnterSkipLod()) {
+        // worldEnterLod (mod_support #37): may switch LOD work off while the world-enter pregen holds
+        // the world frozen. Live, so it lifts the moment the world is released.
+        if (WorldEnterFreeze.isFrozen()
+                && !WorldEnterLod.resolve(config.getWorldEnterLodMode(), detectRenderer() != null)) {
             return false;
         }
         return decide(config, server);
@@ -392,6 +395,37 @@ public final class LodSupport {
             LOGGER.info("Chunksmith: no LOD renderer detected (looked for {}); LOD generation off. "
                     + "Install Distant Horizons or Voxy, or set lodEnabled=true to force it on.",
                     String.join(", ", RendererNames.displayNames()));
+        }
+        announceWorldEnter(config, server, found, on);
+    }
+
+    /**
+     * One line on what worldEnterLod resolved to, and why. Single-player only: the world-enter pregen
+     * never runs on a dedicated server, so there the line would describe nothing.
+     */
+    private static void announceWorldEnter(Config config, MinecraftServer server, String found, boolean lodOn) {
+        if (server == null || server.isDedicatedServer()) {
+            return;
+        }
+        LodMode mode = config.getWorldEnterLodMode();
+        boolean build = WorldEnterLod.resolve(mode, found != null);
+        if (mode == LodMode.AUTO && found == null) {
+            // Named first, and on its own: with no renderer, lodEnabled=auto is off too, and "LOD is
+            // off, nothing to act on" would hide the reason, which is that nothing is installed.
+            LOGGER.info("Chunksmith: no LOD renderer is installed, so the world-enter pre-gen builds no LOD"
+                    + " data (worldEnterLod=auto -> off). Set worldEnterLod=on to build it anyway.");
+        } else if (!lodOn) {
+            LOGGER.info("Chunksmith: LOD generation is off, so the world-enter pre-gen builds no LOD data"
+                    + " (worldEnterLod={} has nothing to act on).", mode.name().toLowerCase(Locale.ROOT));
+        } else if (mode != LodMode.AUTO) {
+            LOGGER.info("Chunksmith: the world-enter pre-gen {} LOD data (worldEnterLod={} set explicitly;"
+                    + " auto would {}).", build ? "builds" : "does NOT build",
+                    mode.name().toLowerCase(Locale.ROOT),
+                    WorldEnterLod.resolve(LodMode.AUTO, found != null) ? "build it" : "not build it");
+        } else if (build) {
+            LOGGER.info("Chunksmith: {} is installed, so the world-enter pre-gen builds LOD data as it goes"
+                    + " (worldEnterLod=auto -> on; measured faster than leaving it to the renderer)."
+                    + " Set worldEnterLod=off to skip it.", RendererNames.display(found));
         }
     }
 

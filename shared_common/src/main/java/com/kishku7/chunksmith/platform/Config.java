@@ -474,17 +474,17 @@ public interface Config {
     void setWorldEnterPregenEnabled(boolean enabled);
 
     /**
-     * DEBUG, off by default: skip Chunksmith's own LOD building (the CSLOD store / renderer feed)
-     * while the world-enter pregen holds the world frozen. LOD building resumes the moment the world
-     * is released. Exists to measure what LOD building costs a frozen pregen (mod_support #37); the
-     * renderer then builds its own LODs for that area as the player moves through it.
+     * Whether the world-enter pregen builds Chunksmith's LOD data while the world is frozen:
+     * AUTO (default) builds it when Distant Horizons or Voxy is installed, ON and OFF are fixed.
+     * See {@code util.WorldEnterLod} for the measurement behind AUTO (mod_support #37). Only ever
+     * switches LOD building OFF for that run; it cannot turn on what {@link #getLodMode()} has off.
      */
-    default boolean isDebugWorldEnterSkipLod() {
-        return false;
+    default LodMode getWorldEnterLodMode() {
+        return LodMode.AUTO;
     }
 
-    /** Sets {@link #isDebugWorldEnterSkipLod()} and persists it. */
-    default void setDebugWorldEnterSkipLod(boolean skip) {
+    /** Sets {@link #getWorldEnterLodMode()} and persists it. */
+    default void setWorldEnterLodMode(LodMode mode) {
     }
 
     /** Sets how far the world-enter pregen reaches, in blocks, and persists it. */

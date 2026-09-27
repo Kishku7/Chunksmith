@@ -790,13 +790,19 @@ public final class GsonConfig implements Config {
     }
 
     @Override
-    public boolean isDebugWorldEnterSkipLod() {
-        return Optional.ofNullable(configModel.debugWorldEnterSkipLod).orElse(false);
+    public LodMode getWorldEnterLodMode() {
+        String raw = configModel.worldEnterLod;
+        LodMode mode = LodMode.parse(raw);
+        if (mode == null) {
+            LOGGER.warn("Chunksmith: worldEnterLod '" + raw + "' is not one of auto/on/off, using auto");
+            return LodMode.AUTO;
+        }
+        return mode;
     }
 
     @Override
-    public void setDebugWorldEnterSkipLod(boolean skip) {
-        configModel.debugWorldEnterSkipLod = skip;
+    public void setWorldEnterLodMode(LodMode mode) {
+        configModel.worldEnterLod = mode.name().toLowerCase(Locale.ROOT);
         saveConfig();
     }
 
@@ -891,8 +897,9 @@ public final class GsonConfig implements Config {
         private Long lodIndexBudgetMb = LOD_INDEX_BUDGET_MB_DEFAULT;
         // On by default; single-player only. See Config#isWorldEnterPregenEnabled.
         private Boolean worldEnterPregen = true;
-        // DEBUG, off by default. See Config#isDebugWorldEnterSkipLod.
-        private Boolean debugWorldEnterSkipLod = false;
+        // auto / on / off. See Config#getWorldEnterLodMode. Replaces 4.3.6's debugWorldEnterSkipLod,
+        // which is simply dropped from the file on the next save: auto is what it should read as.
+        private String worldEnterLod = "auto";
         private Long worldEnterPregenRadius = WORLD_ENTER_RADIUS_DEFAULT;
         // 'origin' keeps every world that has already run this feature exactly where it was.
         // See Config#getWorldEnterPregenCenter and mod_support #34.
