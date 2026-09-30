@@ -36,6 +36,7 @@ import com.kishku7.chunksmith.command.PatternCommand;
 import com.kishku7.chunksmith.command.PauseCommand;
 import com.kishku7.chunksmith.command.ProgressCommand;
 import com.kishku7.chunksmith.command.QuietCommand;
+import com.kishku7.chunksmith.command.HorizonCommand;
 import com.kishku7.chunksmith.command.RadiusCommand;
 import com.kishku7.chunksmith.command.ReloadCommand;
 import com.kishku7.chunksmith.command.SelectionCommand;
@@ -147,6 +148,7 @@ public final class Chunksmith {
         commandMap.put(CommandLiteral.DEBUG, debugCommand);
         commandMap.put(CommandLiteral.DIAG, debugCommand);
         commandMap.put(CommandLiteral.HELP, new HelpCommand(this));
+        commandMap.put(CommandLiteral.HORIZON, new HorizonCommand(this));
         commandMap.put(CommandLiteral.PATTERN, new PatternCommand(this));
         commandMap.put(CommandLiteral.PAUSE, new PauseCommand(this));
         commandMap.put(CommandLiteral.PROGRESS, new ProgressCommand(this));

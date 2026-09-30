@@ -22,6 +22,8 @@
 package com.kishku7.chunksmith.worldenter;
 
 import com.kishku7.chunksmith.util.WorldEnterFreeze;
+import com.kishku7.chunksmith.lod.LodHorizon;
+import com.kishku7.chunksmith.lod.LodPresence;
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.World;
@@ -217,8 +219,22 @@ public final class WorldEnterPregen {
         raiseThrottleForAnEmptyWorld(config);
         freeze(mcServer, true);
 
+        // The LOD horizon (mod_support #39) is best effort here: a player entering a world must never be
+        // refused a pregen over it. Where it cannot run, run without it and say why in the log. Checked after
+        // the freeze, because whether LOD is built during the world-enter run depends on it.
+        double horizon = config.getWorldEnterLodHorizon();
+        if (horizon > 0) {
+            String reason = LodHorizon.unavailableReason();
+            if (reason == null && LodPresence.indexFor(worldKey) == null) {
+                reason = "LOD is not being built for this world-enter run (worldEnterLod)";
+            }
+            if (reason != null) {
+                LOGGER.info("Chunksmith: world-enter pregen running without its LOD horizon -- {}. Every chunk will be saved.", reason);
+                horizon = 0;
+            }
+        }
         boolean started = ChunksmithProvider.get().getApi().startTask(
-                worldKey, SHAPE, centerX, centerZ, radius, radius, PATTERN);
+                worldKey, SHAPE, centerX, centerZ, radius, radius, PATTERN, horizon);
         if (!started) {
             LOGGER.warn("Chunksmith: the world-enter pregen could not start a task; releasing the"
                     + " world and restoring settings.");

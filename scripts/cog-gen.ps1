@@ -467,6 +467,22 @@ if ($hasLod -eq '1') {
     New-Item -ItemType Directory -Force -Path $legacyDir | Out-Null
     Copy-Item -Force (Join-Path $cogSrc 'lod/legacy/CsLodLegacyCommand.java') (Join-Path $legacyDir 'CsLodLegacyCommand.java')
     $cogTargets += (Join-Path $legacyDir 'CsLodLegacyCommand.java')
+
+    # --- LOD horizon (4.4.0, mod_support #39). Past the horizon a pregen generates chunks only for their LOD
+    # and these vetoes drop them unsaved: chunk (ChunkMap.save), entities, POI, and the storage write itself
+    # as the backstop for C2ME's unload path. LOD cells only -- without an LOD store there is nothing to keep.
+    # The save shape per era comes from compat.horizon_save_era.
+    Copy-Item -Force (Join-Path $lodSrc 'HorizonGuard.java') (Join-Path $lodDir 'HorizonGuard.java')
+    foreach ($hz in @('ChunkMapLevelAccessor.java', 'ChunkMapHorizonSaveMixin.java', 'EntityStorageHorizonMixin.java', 'SectionStorageHorizonMixin.java', 'StorageWriteHorizonMixin.java')) {
+        $hzSrc = Join-Path $cogSrc $hz
+        if (-not (Test-Path $hzSrc)) { throw "horizon cog_source missing: $hzSrc" }
+        $hzDst = Join-Path $genJava (Join-Path $mixinPkg $hz)
+        Copy-Item -Force $hzSrc $hzDst
+        if ($hz -in @('ChunkMapHorizonSaveMixin.java', 'SectionStorageHorizonMixin.java', 'StorageWriteHorizonMixin.java')) {
+            $cogTargets += $hzDst
+        }
+    }
+    Write-Host "[cog-gen] + LOD horizon save vetoes (era $(& python -c "import sys; sys.path.insert(0, sys.argv[1]); import compat; sys.stdout.write(compat.horizon_save_era(sys.argv[2]))" $codegen $McVer))"
     $cogTargets += (Join-Path $lodDir 'net/CsLodChannel.java')
 
     # --- Renderer adapters (the SINGLEPLAYER injection path). Each behind its own gate. ---

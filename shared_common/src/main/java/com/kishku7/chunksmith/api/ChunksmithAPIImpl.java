@@ -52,6 +52,11 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
 
     @Override
     public boolean startTask(String world, String shape, double centerX, double centerZ, double radiusX, double radiusZ, String pattern) {
+        return startTask(world, shape, centerX, centerZ, radiusX, radiusZ, pattern, 0d);
+    }
+
+    @Override
+    public boolean startTask(String world, String shape, double centerX, double centerZ, double radiusX, double radiusZ, String pattern, double lodHorizon) {
         World implWorld = Input.tryWorld(chunky, world).orElse(null);
         if (implWorld == null) {
             return false;
@@ -62,7 +67,8 @@ public class ChunksmithAPIImpl implements ChunksmithAPI {
         Selection selection = Selection.builder(chunky, implWorld)
                 .shape(shape).center(centerX, centerZ)
                 .radiusX(radiusX).radiusZ(radiusZ)
-                .pattern(Parameter.of(pattern)).build();
+                .pattern(Parameter.of(pattern))
+                .horizon(Math.max(0d, lodHorizon)).build();
         GenerationTask task = new GenerationTask(chunky, selection);
         chunky.getGenerationTasks().put(world, task);
         chunky.getScheduler().runTask(task);

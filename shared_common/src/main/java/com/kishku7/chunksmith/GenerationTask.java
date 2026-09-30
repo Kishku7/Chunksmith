@@ -22,6 +22,7 @@
 package com.kishku7.chunksmith;
 
 import com.kishku7.chunksmith.lod.CsLodPresenceIndex;
+import com.kishku7.chunksmith.lod.LodHorizon;
 import com.kishku7.chunksmith.lod.LodPresence;
 import com.kishku7.chunksmith.lod.LodSinks;
 
@@ -34,7 +35,9 @@ import com.kishku7.chunksmith.iterator.ChunkIteratorFactory;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.shape.Shape;
 import com.kishku7.chunksmith.shape.ShapeFactory;
+import com.kishku7.chunksmith.shape.ShapeType;
 import com.kishku7.chunksmith.util.ChunkCoordinate;
+import com.kishku7.chunksmith.util.Formatting;
 import com.kishku7.chunksmith.util.GeneratedChunkScan;
 import com.kishku7.chunksmith.util.AutoPause;
 import com.kishku7.chunksmith.util.ChunkResidency;
@@ -187,6 +190,7 @@ public class GenerationTask implements Runnable {
     private final AtomicLong generatedChunks = new AtomicLong();  // chunk was absent -> generated (LOD built on the way past)
     private final AtomicLong lodOnlyChunks = new AtomicLong();    // chunk existed, LOD did not -> loaded purely to build the LOD
     private final AtomicLong skippedChunks = new AtomicLong();    // chunk + LOD both present -> no load, no write
+    private final AtomicLong horizonChunks = new AtomicLong();    // past the LOD horizon -> generated for LOD, never saved
     private final Deque<ChunkCoordinate> verifySamples = new ConcurrentLinkedDeque<>();
     private final AtomicInteger verifySampleCount = new AtomicInteger(0);
     private final AtomicLong generatedSeen = new AtomicLong();
@@ -393,7 +397,13 @@ public class GenerationTask implements Runnable {
         }
     }
 
-    private synchronized void update(int chunkX, int chunkZ, boolean loaded) {
+    private void update(int chunkX, int chunkZ, boolean loaded) {
+        update(chunkX, chunkZ, loaded, loaded);
+    }
+
+    // persisted is false for a chunk generated past the LOD horizon: it counts as done, but it is never
+    // written, so the region cache must not be told it exists on disk.
+    private synchronized void update(int chunkX, int chunkZ, boolean loaded, boolean persisted) {
         if (stopped) {
             return;
         }
@@ -406,7 +416,9 @@ public class GenerationTask implements Runnable {
         long currentTime = System.currentTimeMillis();
         Pair<Long, AtomicLong> bin = updateSamples.peekLast();
         if (loaded) {
-            worldState.setGenerated(chunkX, chunkZ);
+            if (persisted) {
+                worldState.setGenerated(chunkX, chunkZ);
+            }
             if (bin != null && currentTime - bin.left() < SAMPLE_SUB_INTERVAL) {
                 bin.right().addAndGet(1);
             } else if (updateSamples.add(Pair.of(currentTime, new AtomicLong(1)))) {
@@ -1058,11 +1070,36 @@ public class GenerationTask implements Runnable {
         // to decide and we do not even build one.
         CsLodPresenceIndex lodIndex = forceLoadExistingChunks
                 ? null
-                : LodPresence.indexFor(selection.world().getName());
+                : selection.horizon() > 0
+                        ? LodPresence.horizonIndexFor(selection.world().getName())
+                        : LodPresence.indexFor(selection.world().getName());
         // The index outlives the task (it is cached per dimension for the server's lifetime), so its
         // counters are cumulative. Snapshot them here and report the delta, or the summary would bill
         // this run for every earlier run's work too.
         CsLodPresenceIndex.Cost lodCostBefore = lodIndex == null ? null : lodIndex.cost();
+        // The LOD horizon (mod_support #39). Past it, a chunk is generated only for its LOD and the save
+        // vetoes drop it. It cannot run without an LOD index: the store is then the ring's only copy, and
+        // a re-run has to see it there or it regenerates the whole ring every time.
+        final String worldName = selection.world().getName();
+        final double horizon = selection.horizon();
+        final boolean horizonRound = ShapeType.CIRCLE.equals(selection.shape()) || ShapeType.ELLIPSE.equals(selection.shape());
+        boolean horizonOn = horizon > 0;
+        if (horizonOn) {
+            String reason = LodHorizon.unavailableReason();
+            if (reason == null && lodIndex == null) {
+                reason = forceLoadExistingChunks ? "forceLoadExistingChunks is on" : "LOD generation is off";
+            }
+            if (reason != null) {
+                chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HORIZON_UNAVAILABLE, worldName, reason);
+                horizonOn = false;
+                stop(false);
+            } else {
+                LodHorizon.arm(worldName, selection.centerChunkX(), selection.centerChunkZ(), horizon, horizonRound,
+                        worldState::isGenerated);
+                chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HORIZON_START, worldName,
+                        Formatting.number(horizon), Formatting.number(horizon + LodHorizon.SEAL_CHUNKS * 16));
+            }
+        }
         // Everything already resident belongs to the server, not to this run. Capture it before the
         // first dispatch so the gate below measures our growth and nothing else's.
         ChunkResidency.noteTaskStart();
@@ -1075,6 +1112,15 @@ public class GenerationTask implements Runnable {
             int chunkCenterX = (chunk.x() << 4) + 8;
             int chunkCenterZ = (chunk.z() << 4) + 8;
             if (!shape.isBounding(chunkCenterX, chunkCenterZ)) {
+                update(chunk.x(), chunk.z(), false);
+                continue;
+            }
+            // Past the horizon, the LOD store is the only record a chunk will ever have, so it is the skip
+            // authority: the region files and the cache both say "not generated" for every ring chunk.
+            final boolean ring = horizonOn && LodHorizon.isBeyond(selection.centerChunkX(), selection.centerChunkZ(),
+                    horizon, horizonRound, chunk.x(), chunk.z());
+            if (ring && lodIndex.hasLod(chunk.x(), chunk.z())) {
+                skippedChunks.incrementAndGet();
                 update(chunk.x(), chunk.z(), false);
                 continue;
             }
@@ -1205,6 +1251,8 @@ public class GenerationTask implements Runnable {
             }
             inFlight.incrementAndGet();
             long dispatchTime = System.currentTimeMillis();
+            // Set only when this dispatch generates a ring chunk, the one kind that never reaches disk.
+            final boolean[] lodOnlyRing = {false};
             // A LOD backfill forces the load: the chunk is already generated, and saying so here would
             // send it straight back down the skip branch, which is precisely the bug (an
             // already-generated chunk was never loaded, so the LOD hook never saw it).
@@ -1241,6 +1289,10 @@ public class GenerationTask implements Runnable {
                         }
                         if (lodOnly) {
                             lodOnlyChunks.incrementAndGet();
+                        } else if (ring) {
+                            // Not sampled for verification: it is supposed to be absent from disk.
+                            lodOnlyRing[0] = true;
+                            horizonChunks.incrementAndGet();
                         } else {
                             generatedChunks.incrementAndGet();
                             noteVerifySample(chunk.x(), chunk.z());
@@ -1253,7 +1305,7 @@ public class GenerationTask implements Runnable {
                             adjustFromChunkLatency(elapsed);
                         }
                         LockSupport.unpark(dispatchThread);
-                        update(chunk.x(), chunk.z(), true);
+                        update(chunk.x(), chunk.z(), true, !lodOnlyRing[0]);
                         driveSettleSweep(chunk.x(), chunk.z());
                     });
         }
@@ -1277,6 +1329,10 @@ public class GenerationTask implements Runnable {
                     skippedChunks.get(),
                     lodIndex.describeCostSince(lodCostBefore));
         }
+        if (horizonOn) {
+            chunky.getServer().getConsole().sendMessagePrefixed(TranslationKey.TASK_HORIZON_SUMMARY, worldName,
+                    horizonChunks.get());
+        }
         if (!stopped) {
             verifyGeneratedSample();
         }
@@ -1293,6 +1349,10 @@ public class GenerationTask implements Runnable {
         ChunkResidency.noteGenerationHeld(false);
         finishSettleSweep();
         selection.world().settleDrain();
+        if (horizonOn) {
+            // The last chunks are still unloading; the horizon stays armed for a grace period to cover them.
+            LodHorizon.release(worldName);
+        }
         // Ending a task is not the same as finishing the work. The tickets come back now; the chunks do
         // not go away until the distance manager has propagated that and the unload pass has run.
         // 3.5.0 stopped driving the unload pass the moment a task ended, which orphaned the backlog

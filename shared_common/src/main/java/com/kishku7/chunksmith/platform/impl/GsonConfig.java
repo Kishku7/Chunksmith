@@ -584,6 +584,12 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public long getWorldEnterLodHorizon() {
+        long raw = Optional.ofNullable(configModel.worldEnterLodHorizon).orElse(0L);
+        return Math.max(0L, Math.min(WORLD_ENTER_RADIUS_MAX, raw));
+    }
+
+    @Override
     public String getWorldEnterPregenCenter() {
         String raw = Optional.ofNullable(configModel.worldEnterPregenCenter)
                 .orElse(WorldEnterCenter.ORIGIN);
@@ -807,6 +813,12 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setWorldEnterLodHorizon(long blocks) {
+        configModel.worldEnterLodHorizon = Math.max(0L, Math.min(WORLD_ENTER_RADIUS_MAX, blocks));
+        saveConfig();
+    }
+
+    @Override
     public void setWorldEnterPregenRadius(long blocks) {
         configModel.worldEnterPregenRadius =
                 Math.max(WORLD_ENTER_RADIUS_MIN, Math.min(WORLD_ENTER_RADIUS_MAX, blocks));
@@ -901,6 +913,8 @@ public final class GsonConfig implements Config {
         // which is simply dropped from the file on the next save: auto is what it should read as.
         private String worldEnterLod = "auto";
         private Long worldEnterPregenRadius = WORLD_ENTER_RADIUS_DEFAULT;
+        // 0 = off. See Config#getWorldEnterLodHorizon and mod_support #39.
+        private Long worldEnterLodHorizon = 0L;
         // 'origin' keeps every world that has already run this feature exactly where it was.
         // See Config#getWorldEnterPregenCenter and mod_support #34.
         private String worldEnterPregenCenter = WorldEnterCenter.ORIGIN;

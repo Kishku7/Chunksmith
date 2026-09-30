@@ -285,6 +285,12 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public long getWorldEnterLodHorizon() {
+        // No world-enter pregen on a plugin server (see isWorldEnterPregenSupported).
+        return 0L;
+    }
+
+    @Override
     public String getWorldEnterPregenCenter() {
         // Reported honestly rather than read from config.yml: the feature itself is unsupported here
         // (see isWorldEnterPregenSupported), so a centre key would be one an operator could set and
@@ -450,6 +456,11 @@ public final class BukkitConfig implements Config {
 
     @Override
     public void setWorldEnterPregenRadius(long blocks) {
+        // No-op, same reason.
+    }
+
+    @Override
+    public void setWorldEnterLodHorizon(long blocks) {
         // No-op, same reason.
     }
 

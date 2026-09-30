@@ -42,6 +42,8 @@ public final class Selection {
     private final double radiusZ;
     private final Parameter pattern;
     private final String shape;
+    // LOD horizon in blocks (mod_support #39). 0 = off: every generated chunk is saved.
+    private final double horizon;
     private final int centerChunkX;
     private final int centerChunkZ;
     private final int radiusChunksX;
@@ -55,7 +57,7 @@ public final class Selection {
     private final int diameterRegionsX;
     private final int diameterRegionsZ;
 
-    private Selection(Chunksmith chunky, World world, double centerX, double centerZ, double radiusX, double radiusZ, Parameter pattern, String shape) {
+    private Selection(Chunksmith chunky, World world, double centerX, double centerZ, double radiusX, double radiusZ, Parameter pattern, String shape, double horizon) {
         this.chunky = chunky;
         this.world = world;
         this.centerX = centerX;
@@ -64,6 +66,7 @@ public final class Selection {
         this.radiusZ = radiusZ;
         this.pattern = pattern;
         this.shape = shape;
+        this.horizon = horizon;
         this.centerChunkX = (int) centerX >> 4;
         this.centerChunkZ = (int) centerZ >> 4;
         this.radiusChunksX = (int) Math.ceil(radiusX / 16f);
@@ -112,6 +115,10 @@ public final class Selection {
 
     public String shape() {
         return this.shape;
+    }
+
+    public double horizon() {
+        return horizon;
     }
 
     public int centerChunkX() {
@@ -171,6 +178,7 @@ public final class Selection {
         private double radiusZ = DEFAULT_RADIUS;
         private Parameter pattern = Parameter.of(PatternType.REGION);
         private String shape = ShapeType.SQUARE;
+        private double horizon;
 
         private Builder(Chunksmith chunky, World world) {
             this.chunky = chunky;
@@ -224,6 +232,11 @@ public final class Selection {
             return this;
         }
 
+        public Builder horizon(double horizon) {
+            this.horizon = horizon;
+            return this;
+        }
+
         public Builder spawn() {
             Location spawn = world.getSpawn();
             this.centerX = spawn.getX();
@@ -242,7 +255,7 @@ public final class Selection {
         }
 
         public Selection build() {
-            return new Selection(chunky, world, centerX, centerZ, radiusX, radiusZ, pattern, shape);
+            return new Selection(chunky, world, centerX, centerZ, radiusX, radiusZ, pattern, shape, horizon);
         }
     }
 }

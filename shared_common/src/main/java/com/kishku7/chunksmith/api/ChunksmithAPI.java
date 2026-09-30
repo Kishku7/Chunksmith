@@ -34,6 +34,9 @@ public interface ChunksmithAPI {
 
     boolean startTask(String world, String shape, double centerX, double centerZ, double radiusX, double radiusZ, String pattern);
 
+    /** As above, with an LOD horizon in blocks (0 = off): chunks past it are generated for LOD only, never saved. */
+    boolean startTask(String world, String shape, double centerX, double centerZ, double radiusX, double radiusZ, String pattern, double lodHorizon);
+
     boolean pauseTask(String world);
 
     boolean continueTask(String world);

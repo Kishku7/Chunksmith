@@ -36,6 +36,8 @@
   "format_progress_no_tasks": "No tasks running.",
   "format_quiet": "Quiet interval set to %s seconds.",
   "format_radii": "Radius changed for x to %s, and for z to %s.",
+  "format_horizon": "LOD horizon set to %s blocks. Past it (plus a 2-chunk seal) chunks are generated for LOD only and not saved.",
+  "format_horizon_off": "LOD horizon off. Every generated chunk is saved.",
   "format_radius": "Radius changed to %s.",
   "format_reload": "Successfully reloaded configuration.",
   "format_reload_tasks_running": "The configuration cannot be reloaded while tasks are running.",
@@ -74,6 +76,7 @@
   "help_pause": "&2cs pause&r - Pause current tasks and save progress",
   "help_progress": "&2cs progress&r - Displays current task progress",
   "help_quiet": "&2cs quiet <interval>&r - Set the quiet interval",
+  "help_horizon": "&2cs horizon <radius|off>&r - Past this radius, generate LOD only and do not save chunks",
   "help_radius": "&2cs radius <radius>&r - Set the radius",
   "help_reload": "&2cs reload&r - Reload configuration",
   "help_selection": "&2cs selection&r - Display the current selection",
@@ -110,6 +113,9 @@
   "task_trim": "Deleted %s chunks from %s in %s seconds.",
   "task_trim_update": "Task running for %s. Processed: %s regions (%s%%)",
   "task_done": "Task finished for %s. Processed: %s chunks (%s%%), Total time: %s:%s:%s -- %s already generated (skipped), %s newly generated",
+  "task_horizon_start": "LOD horizon for %s: chunks within %s blocks are saved as usual; past %s blocks they are generated for LOD only and NOT saved. Out there the world exists only as LOD until someone goes there.",
+  "task_horizon_summary": "LOD horizon for %s - %s chunks were generated for LOD only and not saved.",
+  "task_horizon_unavailable": "LOD horizon can't run for %s: %s. Nothing was generated. Use /cs horizon off to pregen normally.",
   "task_lod_summary": "LOD for %s - generated: %s chunks, LOD-only (built from existing chunks): %s, skipped (chunk + LOD present): %s. %s",
   "task_verify_failed": "VERIFICATION FAILED for %s - %s of %s sampled chunks this run counted as generated are NOT on disk (e.g. %s). The run reported success but did not write terrain. Please report this with your mod list.",
   "task_stopped": "Task stopped for %s.",
@@ -124,5 +130,6 @@
   "format_status_version": "Chunksmith %s",
   "format_status_no_tasks": "Pre-generation: nothing running.",
   "format_status_lod": "LOD: %s",
+  "format_status_horizon": "LOD horizon armed for %s: %s chunks dropped instead of saved so far.",
   "error_set_refused": "Cannot set %s: %s"
 }

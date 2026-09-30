@@ -23,6 +23,7 @@ package com.kishku7.chunksmith.command;
 
 import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.GenerationTask;
+import com.kishku7.chunksmith.lod.LodHorizon;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.platform.Sender;
 import com.kishku7.chunksmith.util.TranslationKey;
@@ -63,6 +64,10 @@ public class StatusCommand implements ChunksmithCommand {
 
         sender.sendMessage(TranslationKey.FORMAT_STATUS_LOD,
                 CsLodControl.describe().orElse("not available on this platform"));
+        // The LOD horizon (mod_support #39): armed worlds and how many chunks it has kept off the disk.
+        for (String world : LodHorizon.armedWorlds()) {
+            sender.sendMessage(TranslationKey.FORMAT_STATUS_HORIZON, world, LodHorizon.discarded(world));
+        }
     }
 
     @Override

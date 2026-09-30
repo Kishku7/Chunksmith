@@ -1445,6 +1445,35 @@ def chunk_result_success_block(mcver, result_var, chunk_var, body):
     return "%s.ifSuccess(%s -> { %s });" % (result_var, chunk_var, body)
 
 
+def horizon_save_era(mcver):
+    """Which chunk-save shape does the LOD horizon veto (mod_support #39, 4.4.0) compile against?
+
+    Verified against the decompiled ChunkMap / ChunkStorage / SimpleRegionStorage / SectionStorage of
+    1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4, 1.21.10, 1.21.11, 26.1.2, 26.2 and 26.3:
+      "u0" -- 1.20 .. 1.20.4 : setUnsaved(false); ChunkStorage.write(ChunkPos, CompoundTag) returns void;
+                               POI SectionStorage.writeColumn(ChunkPos)
+      "u1" -- 1.20.5 .. 1.21.1: as u0, but ChunkStorage.write returns CompletableFuture<Void>
+      "m"  -- 1.21.2 .. 1.21.10: tryMarkSaved(); ChunkStorage.write(ChunkPos, Supplier<CompoundTag>);
+                               POI SectionStorage.writeChunk(ChunkPos)
+      "s"  -- 1.21.11 and 26.x: as m, but ChunkMap extends SimpleRegionStorage (ChunkStorage is gone),
+                               so the write is SimpleRegionStorage.write(ChunkPos, Supplier<CompoundTag>)
+    No ChunkMap version overrides write(), so a hook on the storage class sees every chunk write.
+    """
+    v = _parse(mcver)
+    if v[0] >= 26 or v[:3] >= (1, 21, 11):
+        return "s"
+    if v[:3] >= (1, 21, 2):
+        return "m"
+    if v[:3] >= (1, 20, 5):
+        return "u1"
+    return "u0"
+
+
+def horizon_flag_clear(mcver):
+    """The call that marks a chunk saved without writing it (see horizon_save_era)."""
+    return "setUnsaved(false)" if horizon_save_era(mcver) in ("u0", "u1") else "tryMarkSaved()"
+
+
 def ticket_purge_shape(mcver):
     """How does ServerChunkCache.tick expire timed chunk tickets on this version? (issue #37)
 

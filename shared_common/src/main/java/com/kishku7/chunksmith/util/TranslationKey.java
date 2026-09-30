@@ -59,6 +59,8 @@ public final class TranslationKey {
     public static final String FORMAT_PROGRESS_NO_TASKS = "format_progress_no_tasks";
     public static final String FORMAT_QUIET = "format_quiet";
     public static final String FORMAT_RADII = "format_radii";
+    public static final String FORMAT_HORIZON = "format_horizon";
+    public static final String FORMAT_HORIZON_OFF = "format_horizon_off";
     public static final String FORMAT_RADIUS = "format_radius";
     public static final String FORMAT_RELOAD = "format_reload";
     public static final String FORMAT_RELOAD_TASKS_RUNNING = "format_reload_tasks_running";
@@ -97,6 +99,7 @@ public final class TranslationKey {
     public static final String HELP_PAUSE = "help_pause";
     public static final String HELP_PROGRESS = "help_progress";
     public static final String HELP_QUIET = "help_quiet";
+    public static final String HELP_HORIZON = "help_horizon";
     public static final String HELP_RADIUS = "help_radius";
     public static final String HELP_RELOAD = "help_reload";
     public static final String HELP_SELECTION = "help_selection";
@@ -133,6 +136,9 @@ public final class TranslationKey {
     public static final String TASK_TRIM_UPDATE = "task_trim_update";
     public static final String TASK_DONE = "task_done";
     public static final String TASK_LOD_SUMMARY = "task_lod_summary";
+    public static final String TASK_HORIZON_START = "task_horizon_start";
+    public static final String TASK_HORIZON_SUMMARY = "task_horizon_summary";
+    public static final String TASK_HORIZON_UNAVAILABLE = "task_horizon_unavailable";
     public static final String TASK_VERIFY_FAILED = "task_verify_failed";
     public static final String TASK_STOPPED = "task_stopped";
     public static final String TASK_UPDATE = "task_update";
@@ -140,6 +146,7 @@ public final class TranslationKey {
     public static final String FORMAT_STATUS_VERSION = "format_status_version";
     public static final String FORMAT_STATUS_NO_TASKS = "format_status_no_tasks";
     public static final String FORMAT_STATUS_LOD = "format_status_lod";
+    public static final String FORMAT_STATUS_HORIZON = "format_status_horizon";
     public static final String WRAP_BOTH = "wrap_both";
     public static final String WRAP_DEFAULT = "wrap_default";
     public static final String WRAP_EARTH = "wrap_earth";

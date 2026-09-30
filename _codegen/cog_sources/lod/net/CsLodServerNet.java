@@ -23,6 +23,7 @@ package com.kishku7.chunksmith.lod.net;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
+import com.kishku7.chunksmith.lod.HorizonGuard;
 import com.kishku7.chunksmith.lod.LodSupport;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -551,6 +552,7 @@ public final class CsLodServerNet {
 
     /** Drip-feeds the in-band queues, and watches for the store coming to life. Wired to the server tick. */
     public static void tick(MinecraftServer current) {
+        HorizonGuard.tick(current);
         for (ServerPlayer player : current.getPlayerList().getPlayers()) {
             CsLodInBandSender.tick(player);
         }

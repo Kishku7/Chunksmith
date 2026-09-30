@@ -43,6 +43,7 @@ public class HelpCommand implements ChunksmithCommand {
             CommandLiteral.CENTER,
             CommandLiteral.SPAWN,
             CommandLiteral.RADIUS,
+            CommandLiteral.HORIZON,
             CommandLiteral.CORNERS,
             CommandLiteral.SHAPE,
             CommandLiteral.PATTERN,

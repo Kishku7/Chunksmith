@@ -29,6 +29,10 @@ public final class LodPresence {
     }
 
     private static volatile Provider provider;
+    // Asked only for a task with an LOD horizon, when the main provider has nothing. The plugin publishes
+    // one: it has an LOD store but deliberately no presence index for ordinary runs, whose skip
+    // behaviour stays exactly as it was.
+    private static volatile Provider horizonProvider;
 
     private LodPresence() {
     }
@@ -39,6 +43,20 @@ public final class LodPresence {
 
     public static CsLodPresenceIndex indexFor(String worldName) {
         Provider current = provider;
+        return current == null ? null : current.indexFor(worldName);
+    }
+
+    public static void setHorizonProvider(Provider value) {
+        horizonProvider = value;
+    }
+
+    /** The index for a horizon task: the main one if there is one, else the horizon-only one. */
+    public static CsLodPresenceIndex horizonIndexFor(String worldName) {
+        CsLodPresenceIndex index = indexFor(worldName);
+        if (index != null) {
+            return index;
+        }
+        Provider current = horizonProvider;
         return current == null ? null : current.indexFor(worldName);
     }
 }

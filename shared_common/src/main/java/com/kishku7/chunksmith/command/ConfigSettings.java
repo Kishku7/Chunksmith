@@ -134,6 +134,8 @@ public final class ConfigSettings {
                     })),
             worldEnter(integer("worldEnterPregenRadius",
                     Config::getWorldEnterPregenRadius, Config::setWorldEnterPregenRadius)),
+            worldEnter(integer("worldEnterLodHorizon",
+                    Config::getWorldEnterLodHorizon, Config::setWorldEnterLodHorizon)),
             worldEnter(text("worldEnterPregenCenter",
                     Config::getWorldEnterPregenCenter, Config::setWorldEnterPregenCenter,
                     raw -> WorldEnterCenter.parse(raw) != null,

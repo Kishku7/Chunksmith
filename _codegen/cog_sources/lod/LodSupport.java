@@ -83,6 +83,7 @@ public final class LodSupport {
      */
     public static void install(MinecraftServer server) {
         LodPresence.setProvider(worldName -> presenceIndexFor(server, worldName));
+        HorizonGuard.install(server);
     }
 
     /**
@@ -239,7 +240,7 @@ public final class LodSupport {
         return dimensionId(level).replace(':', '_').replace('/', '_');
     }
 
-    private static String dimensionId(ServerLevel level) {
+    public static String dimensionId(ServerLevel level) {
         //[[[cog
         // import cog, compat
         // cog.outl("return level.dimension().%s().toString();" % compat.dimension_identifier_call(mcver))

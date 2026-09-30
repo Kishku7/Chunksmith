@@ -42,6 +42,7 @@ public final class CommandLiteral {
      */
     public static final String DIAG = "diag";
     public static final String HELP = "help";
+    public static final String HORIZON = "horizon";
     public static final String INHABITED = "inhabited";
     public static final String INTERVAL = "interval";
     public static final String PAGE = "page";

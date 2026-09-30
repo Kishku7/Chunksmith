@@ -240,6 +240,8 @@ public class ChunksmithNeoForge {
         registerArguments(command, literal(CommandLiteral.RADIUS),
                 argument(CommandLiteral.RADIUS, word()),
                 argument(CommandLiteral.RADIUS, word()));
+        registerArguments(command, literal(CommandLiteral.HORIZON),
+                argument(CommandLiteral.HORIZON, word()));
         registerArguments(command, literal(CommandLiteral.RELOAD),
                 argument(CommandLiteral.TYPE, word()));
         registerArguments(command, literal(CommandLiteral.SET),

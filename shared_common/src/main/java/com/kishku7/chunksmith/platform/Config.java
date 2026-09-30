@@ -392,6 +392,14 @@ public interface Config {
     long getWorldEnterPregenRadius();
 
     /**
+     * The LOD horizon for the world-enter pregen, in blocks (mod_support #39). 0, the default, is off. Past
+     * it, chunks are generated only for their LOD and never saved. Where a horizon cannot run (no LOD for
+     * this world, or a chunk system that saves past our vetoes) the world-enter pregen simply runs without
+     * one and says so in the log.
+     */
+    long getWorldEnterLodHorizon();
+
+    /**
      * Where the world-enter pregen is centred: {@code origin} (default), {@code spawn}, or
      * {@code x,z}.
      *
@@ -489,6 +497,9 @@ public interface Config {
 
     /** Sets how far the world-enter pregen reaches, in blocks, and persists it. */
     void setWorldEnterPregenRadius(long blocks);
+
+    /** Sets the world-enter LOD horizon in blocks (0 = off) and persists it. */
+    void setWorldEnterLodHorizon(long blocks);
 
     /** Sets the world-enter pregen centre from a spec. See {@link #getWorldEnterPregenCenter()}. */
     void setWorldEnterPregenCenter(String spec);

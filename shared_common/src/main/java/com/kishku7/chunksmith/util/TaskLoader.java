@@ -90,13 +90,15 @@ public final class TaskLoader {
         String pattern = task.getProperty(TaskProperty.PATTERN.key(), PatternType.REGION);
         String file = task.getProperty(TaskProperty.CSV.key());
         String shape = task.getProperty(TaskProperty.SHAPE.key(), ShapeType.SQUARE);
+        double horizon = Input.tryDouble(task.getProperty(TaskProperty.LOD_HORIZON.key())).orElse(0d);
         Selection.Builder selection = Selection.builder(chunky, world)
                 .centerX(centerX)
                 .centerZ(centerZ)
                 .radiusX(radiusX)
                 .radiusZ(radiusZ)
                 .pattern(Parameter.of(pattern, file))
-                .shape(shape);
+                .shape(shape)
+                .horizon(horizon);
         long chunks = Input.tryLong(task.getProperty(TaskProperty.CHUNKS.key())).orElse(0L);
         long time = Input.tryLong(task.getProperty(TaskProperty.TIME.key())).orElse(0L);
         return Optional.of(new GenerationTask(chunky, selection.build(), chunks, time, cancelled));
@@ -129,6 +131,13 @@ public final class TaskLoader {
             pattern.getValue().ifPresent(file -> properties.setProperty(TaskProperty.CSV.key(), file));
         }
         properties.setProperty(TaskProperty.SHAPE.key(), shape);
+        // The properties object is reused across tasks for a world, so a horizon that is now off must be
+        // removed, or a resumed task would quietly bring the last one back.
+        if (selection.horizon() > 0) {
+            properties.setProperty(TaskProperty.LOD_HORIZON.key(), String.valueOf(selection.horizon()));
+        } else {
+            properties.remove(TaskProperty.LOD_HORIZON.key());
+        }
         properties.setProperty(TaskProperty.CHUNKS.key(), String.valueOf(task.getCount()));
         properties.setProperty(TaskProperty.TIME.key(), String.valueOf(task.getTotalTime()));
         tasks.put(world, properties);
@@ -178,6 +187,7 @@ public final class TaskLoader {
         RADIUS_X("radius"),
         RADIUS_Z("radius-z"),
         SHAPE("shape"),
+        LOD_HORIZON("lod-horizon"),
         PATTERN("pattern"),
         CSV("csv"),
         CHUNKS("chunks"),
