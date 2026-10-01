@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [4.4.0] - 2026-09-30
+## [4.4.0] - 2026-10-01
 
 - New: LOD horizon. `/cs horizon <radius>` pregens normally inside the radius; past it, chunks are
   generated only for their LOD and are not saved, so a huge LOD pregen no longer fills the disk
@@ -10,9 +10,10 @@
   `worldEnterLodHorizon` does the same for the world-enter pre-gen (default off).
 - Two chunks past the horizon are still saved, so trees and lakes on the edge are not cut in half.
   Chunks a player goes near are always saved.
-- Not available with Moonrise, or with C2ME's experimental `gcFreeChunkSerializer`; the command says
-  so. On Paper, entity files past the horizon are still written.
-- Built against NeoForge 26.1.2.112, 26.3.0.39-beta and 21.1.252.
+- Works wherever Chunksmith builds LOD. Not available with Moonrise, or with C2ME's experimental
+  `gcFreeChunkSerializer`; the command says so. On Paper, some partly generated chunks at the edges are
+  still written.
+- Built against NeoForge 26.1.2.112, 26.3.0.39-beta, 21.1.252 and 21.4.158.
 
 ## [4.3.7] - 2026-09-27
 
