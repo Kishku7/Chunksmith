@@ -31,6 +31,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.kishku7.chunksmith.ChunksmithBukkit;
 import com.kishku7.chunksmith.Chunksmith;
 import com.kishku7.chunksmith.lod.LodSupport;
+import com.kishku7.chunksmith.lod.LodHorizonBukkit;
 import com.kishku7.chunksmith.platform.util.Location;
 import com.kishku7.chunksmith.util.Input;
 
@@ -122,6 +123,9 @@ public class BukkitWorld implements World {
                 // pregen, and it must not fail silently either.
                 try {
                     LodSupport.offer(chunky.getConfig(), world, chunk);
+                    // Past an LOD horizon the chunk's LOD is now queued, and the chunk itself is not to be
+                    // kept: mark it no-save while it is certainly loaded (mod_support #39).
+                    LodHorizonBukkit.markNoSave(chunk);
                 } catch (Throwable t) {
                     plugin.getLogger().log(java.util.logging.Level.WARNING,
                             "Chunksmith: LOD extraction failed for chunk " + chunk.getX() + "," + chunk.getZ()

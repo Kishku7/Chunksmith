@@ -22,7 +22,6 @@
 package com.kishku7.chunksmith.lod;
 
 import com.kishku7.chunksmith.platform.Config;
-import com.kishku7.chunksmith.platform.Folia;
 import com.kishku7.chunksmith.platform.Paper;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -33,13 +32,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -48,11 +45,12 @@ import java.util.logging.Logger;
  * The LOD horizon on a plugin server (mod_support #39). There are no mixins here, so this is the best the
  * Bukkit API allows, and it is honest about the gap:
  * <ul>
- *   <li>the chunk itself: {@code ChunkUnloadEvent#setSaveChunk(false)} at unload, and on Paper the chunk's
- *       own no-save flag set the moment a new chunk loads, which Paper's chunk system also honours for
- *       autosave and the shutdown flush;</li>
- *   <li>entity files and the proto chunks around the edge are still written -- Bukkit gives no way to stop
- *       either. The chunk data, which is nearly all of the size, is not.</li>
+ *   <li>the chunk itself: on Paper its own no-save flag, set as soon as Chunksmith has taken its LOD
+ *       ({@link #markNoSave}); from 1.21 Paper's chunk system honours it on unload, autosave and the
+ *       shutdown flush, on 1.20.x on unload only. {@code ChunkUnloadEvent#setSaveChunk(false)} as well, for
+ *       anything else that unloads past the horizon;</li>
+ *   <li>entity files, and the proto chunks worldgen leaves around the edge, are still written -- Bukkit
+ *       gives no way to stop either. Fully generated chunk data, nearly all of the size, is not.</li>
  * </ul>
  */
 public final class LodHorizonBukkit implements Listener {
@@ -71,10 +69,6 @@ public final class LodHorizonBukkit implements Listener {
     public static void enable(Plugin plugin, Config config) {
         if (!LodSupport.lodEnabled(config)) {
             LodHorizon.setUnavailableReason("LOD generation is off (lod-enabled: false in config.yml)");
-            return;
-        }
-        if (Folia.isFolia()) {
-            LodHorizon.setUnavailableReason("Folia is not supported");
             return;
         }
         LodPresence.setHorizonProvider(worldName -> {
@@ -138,27 +132,31 @@ public final class LodHorizonBukkit implements Listener {
         return true;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onChunkLoad(ChunkLoadEvent event) {
-        if (!event.isNewChunk() || !Paper.isPaper() || noSaveFlagBroken || !drop(event.getChunk())) {
+    /**
+     * Marks a chunk Chunksmith just generated for LOD as must-not-save, if it lies past an armed horizon.
+     * Called from the pregen path right after the LOD offer, while the chunk is certainly loaded -- at
+     * ChunkLoadEvent time Paper does not yet report it as loaded, so the lookup there finds nothing.
+     *
+     * <p>Paper's chunk system checks this flag on every save from 1.21 (Moonrise: unload AND autosave). On
+     * 1.20.x it is checked on unload only, so an autosave that lands while the chunk is still loaded can
+     * still write it. Reflection because it is not API; names verified in Paper 1.20.1, 1.21.1 and 26.2.
+     */
+    public static void markNoSave(Chunk chunk) {
+        if (instance == null || instance.noSaveFlagBroken || !Paper.isPaper() || !drop(chunk)) {
             return;
         }
-        // Paper keeps a per-chunk "must not save" flag that its chunk system checks on every save path,
-        // including autosave. Setting it now, while the chunk is fresh, is what stops an autosave writing
-        // it before it ever unloads. Reflection because it is not API; if it is not there, say so once and
-        // fall back to the unload veto alone.
         try {
-            World world = event.getWorld();
+            World world = chunk.getWorld();
             Object level = world.getClass().getMethod("getHandle").invoke(world);
-            Method getChunk = level.getClass().getMethod("getChunkIfLoaded", int.class, int.class);
-            Object levelChunk = getChunk.invoke(level, event.getChunk().getX(), event.getChunk().getZ());
+            Object levelChunk = level.getClass().getMethod("getChunkIfLoaded", int.class, int.class)
+                    .invoke(level, chunk.getX(), chunk.getZ());
             if (levelChunk != null) {
                 findField(levelChunk.getClass(), "mustNotSave").setBoolean(levelChunk, true);
             }
         } catch (ReflectiveOperationException | RuntimeException e) {
-            noSaveFlagBroken = true;
-            LOGGER.warning("Chunksmith: LOD horizon cannot mark new chunks no-save on this server (" + e
-                    + "); an autosave may write some of them before they unload.");
+            instance.noSaveFlagBroken = true;
+            LOGGER.warning("Chunksmith: LOD horizon cannot mark chunks no-save on this server (" + e
+                    + "); chunks past the horizon may still be written.");
         }
     }
 

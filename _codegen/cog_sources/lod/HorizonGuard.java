@@ -46,7 +46,7 @@ public final class HorizonGuard {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Chunksmith");
     private static final int KEEP_EVERY_TICKS = 20;
-    private static final Pattern C2ME_RAW_SERIALIZER = Pattern.compile("(?m)^\s*gcFreeChunkSerializer\s*=\s*true\b");
+    private static final Pattern C2ME_RAW_SERIALIZER = Pattern.compile("(?m)^\\s*gcFreeChunkSerializer\\s*=\\s*true\\b");
 
     private static volatile MinecraftServer server;
     private static int tickCounter;
