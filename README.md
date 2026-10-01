@@ -36,6 +36,13 @@ data and see the whole world at distance without ever having walked it. The same
 server and client. The Paper/Spigot plugin serves it too, so a modded client against a plugin server
 works.
 
+**LOD without the disk (4.4.0).** `/cs horizon <radius>` pregenerates normally inside the radius and,
+past it, builds the LOD and throws the chunk away instead of saving it. A world that would have been
+hundreds of gigabytes keeps only the area people actually play in, and the distant terrain still shows
+-- in single-player and for every player who joins. Chunks a player goes near are always kept. Not
+available with Moonrise; on Paper, the fully generated chunks are dropped but some partly generated
+ones at the edges are still written.
+
 ### It keeps generating while people are playing
 
 Most pregenerators make you choose between speed and a playable server. Chunksmith measures what it
