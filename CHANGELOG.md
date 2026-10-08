@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [4.4.1] - 2026-10-08
+
+- Fixed: a crash a few seconds after entering a world or starting a server with Very Many Players
+  (VMP) installed (mod_support #44). A diagnostic read a chunk-level tracker that VMP replaces; it now
+  reads each chunk's own level, which works with or without VMP.
+- That diagnostic no longer runs in the background at all. Its lines in `/cs debug` are worked out
+  when you run the command.
+- Only the 1.21.11 and 26.x jars change; no other version had this diagnostic.
+
 ## [4.4.0] - 2026-10-01
 
 - New: LOD horizon. `/cs horizon <radius>` pregens normally inside the radius; past it, chunks are

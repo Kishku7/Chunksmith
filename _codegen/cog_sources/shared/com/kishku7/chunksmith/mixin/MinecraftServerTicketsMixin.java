@@ -31,7 +31,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import java.util.function.BooleanSupplier;
+import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkLevel;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.DistanceManager;
@@ -67,13 +70,9 @@ public abstract class MinecraftServerTicketsMixin {
     @Shadow
     public abstract Iterable<ServerLevel> getAllLevels();
 
-    /** When the ticket-level histogram was last walked. It is O(resident), so not every tick. */
+    /** Whether this server has handed its sampler to UnloadDiagnostics yet. Once per server. */
     @Unique
-    private long chunksmith$lastLevelSampleMillis = 0L;
-
-    /** How often to walk it. Ten seconds of a number that moves slowly is plenty. */
-    @Unique
-    private static final long CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS = 10_000L;
+    private boolean chunksmith$levelSamplerOffered = false;
 
     // No Cog here on purpose: this file lives in cog_sources/shared/ and is copied verbatim, so
     // it must not carry generator directives. It is gated to modern_11plus, and
@@ -81,9 +80,16 @@ public abstract class MinecraftServerTicketsMixin {
     // injection point is not a drift point within this file's supported range.
     // require = 0: this only feeds the diagnostics dump. If another mod reshapes tickServer, losing
     // the sample is fine and crashing the game over it is not (audit D17).
+    //
+    // Until 4.4.1 this walked every resident chunk every ten seconds, on every server, to keep three
+    // /cs debug lines warm that almost nobody reads -- and that walk is what crashed mod_support #44.
+    // Now the tick only registers the sampler; /cs debug runs it when somebody asks.
     @Inject(method = "tickServer", at = @At("TAIL"), require = 0)
     private void chunksmith$onTicketDiagnosticsHook(BooleanSupplier booleanSupplier, CallbackInfo ci) {
-        this.chunksmith$sampleChunkLevels();
+        if (!this.chunksmith$levelSamplerOffered) {
+            this.chunksmith$levelSamplerOffered = true;
+            UnloadDiagnostics.offerLevelSampler(this::chunksmith$sampleChunkLevels);
+        }
     }
 
     /**
@@ -92,20 +98,25 @@ public abstract class MinecraftServerTicketsMixin {
      * <p>The last question standing. Chunksmith's own ledger has ruled our tickets out
      * (a few hundred outstanding while eleven thousand chunks sat resident), so either
      * something ELSE holds these chunks at a live level, or nothing holds them and
-     * vanilla is simply not dropping them. The level is what decides, and {@code
-     * DistanceManager.getChunkLevel} is public on every supported version, so this
-     * needs no new plumbing beyond the resident map itself.
+     * vanilla is simply not dropping them. The level is what decides.
+     *
+     * <p>The level comes from each {@code ChunkHolder}, not from {@code
+     * DistanceManager.getChunkLevel(pos, false)}. The holder's level is the one vanilla itself
+     * schedules generation and unloading from, so it is the truth by definition. The distance
+     * manager's loading tracker is only how vanilla computes it, and it is replaceable: Very Many
+     * Players nulls {@code loadingChunkTracker} in the constructor and runs Paper's propagator
+     * instead, which is safe for vanilla because vanilla never asks that tracker directly -- its one
+     * caller, {@code ChunkMap}, asks for the SIMULATION level. We were the only caller, and that is
+     * mod_support #44.
      *
      * <p>Thresholds follow {@code ChunkLevel}: 33 is FULL, and 44 and above is past
      * the maximum a loaded chunk may have, which is precisely "nothing wants this".
+     *
+     * <p>Server thread only: it walks the live chunk map. {@code /cs debug} runs there.
      */
     @Unique
     private void chunksmith$sampleChunkLevels() {
         long now = System.currentTimeMillis();
-        if (now - this.chunksmith$lastLevelSampleMillis < CHUNKSMITH$LEVEL_SAMPLE_INTERVAL_MS) {
-            return;
-        }
-        this.chunksmith$lastLevelSampleMillis = now;
         long ticking = 0L;
         long loadedLevel = 0L;
         long droppable = 0L;
@@ -119,7 +130,9 @@ public abstract class MinecraftServerTicketsMixin {
             DistanceManager distance = map.getDistanceManager();
             TicketStorage store =
                     ((DistanceManagerMixin) distance).getTicketStorage();
-            for (long pos : ((ChunkMapMixin) map).getVisibleChunkMap().keySet()) {
+            for (Long2ObjectMap.Entry<ChunkHolder> entry
+                    : Long2ObjectMaps.fastIterable(((ChunkMapMixin) map).getVisibleChunkMap())) {
+                long pos = entry.getLongKey();
                 for (Ticket ticket : store.getTickets(pos)) {
                     byType.merge(String.valueOf(ticket.getType()), 1, Integer::sum);
                 }
@@ -128,7 +141,7 @@ public abstract class MinecraftServerTicketsMixin {
                 // 33 + RADIUS_AROUND_FULL_CHUNK, so "44" was wrong and two whole levels of droppable
                 // chunks were being counted as loaded. Reading the constant also makes the buckets
                 // correct on every MC version instead of just the one they were guessed for.
-                int chunkLevel = distance.getChunkLevel(pos, false);
+                int chunkLevel = entry.getValue().getTicketLevel();
                 if (chunkLevel <= ChunkLevel.byStatus(
                         ChunkStatus.FULL)) {
                     ticking++;

@@ -67,6 +67,14 @@ public final class UnloadDiagnostics {
     /** Every ticket on every resident chunk, counted by type. The quantitative form of the above. */
     private static volatile String ticketTally = "not sampled yet";
 
+    /**
+     * Walks the resident set and publishes the three readings above. Supplied by the server on the
+     * versions that can read ticket levels (1.21.11 and up); absent everywhere else, including the
+     * plugin. Run only on request, never on a timer: it is O(resident) and feeds nothing but
+     * {@code /cs debug}.
+     */
+    private static volatile Runnable levelSampler;
+
     private UnloadDiagnostics() {
     }
 
@@ -93,7 +101,23 @@ public final class UnloadDiagnostics {
         return unloadQueue;
     }
 
-    /** Publishes the ticket-level histogram of the resident set. Sampled on a slow cadence. */
+    /** Called once per server by the version that can sample ticket levels. */
+    public static void offerLevelSampler(Runnable sampler) {
+        levelSampler = sampler;
+    }
+
+    /**
+     * Takes a fresh ticket-level sample, if this platform can. Server thread only, because the
+     * sampler walks the live chunk map; {@code /cs debug} is executed there.
+     */
+    public static void sampleLevelsNow() {
+        Runnable sampler = levelSampler;
+        if (sampler != null) {
+            sampler.run();
+        }
+    }
+
+    /** Publishes the ticket-level histogram of the resident set. Sampled when /cs debug asks. */
     public static void reportLevels(final long ticking, final long loaded, final long droppable,
                                     final long sampledAtMillis) {
         levelTicking = ticking;
@@ -123,7 +147,7 @@ public final class UnloadDiagnostics {
     /** One line naming which of the two remaining explanations the numbers support. */
     public static String describeLevels() {
         if (levelSampledAt <= 0L) {
-            return "not sampled yet";
+            return levelSampler == null ? "unavailable on this platform" : "not sampled yet";
         }
         long total = levelTicking + levelLoaded + levelDroppable;
         String verdict;
@@ -155,6 +179,8 @@ public final class UnloadDiagnostics {
         levelSampledAt = 0L;
         ticketSample = "not sampled yet";
         ticketTally = "not sampled yet";
+        // The sampler closes over the server that offered it; do not keep a stopped one alive.
+        levelSampler = null;
     }
 
     /**

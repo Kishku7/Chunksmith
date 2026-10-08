@@ -71,6 +71,8 @@ public class DebugCommand implements ChunksmithCommand {
         sender.sendMessagePrefixed("Chunk residency: " + ChunkResidency.describe());
         sender.sendMessagePrefixed("Chunk unloading: " + UnloadDiagnostics.describe());
         sender.sendMessagePrefixed("Chunksmith tickets: " + TicketLedger.describe());
+        // Sampled here rather than on a timer: these three lines are the only thing that reads it.
+        UnloadDiagnostics.sampleLevelsNow();
         sender.sendMessagePrefixed("Chunk ticket levels: " + UnloadDiagnostics.describeLevels());
         sender.sendMessagePrefixed("Tickets by type: " + UnloadDiagnostics.describeTicketTally());
         sender.sendMessagePrefixed("Who holds them: " + UnloadDiagnostics.describeTicketSample());
