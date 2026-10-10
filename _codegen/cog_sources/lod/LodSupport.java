@@ -168,6 +168,8 @@ public final class LodSupport {
                 }
             }
         }
+        // After every store above is flushed and closed, so the region tokens it records are final.
+        LiveFeedLedger.finishAll();
         SINKS.clear();
         LodSinks.set(LodSink.NOOP);
         // Unpublish the presence provider with the sinks: a stale provider would hand a later run an
@@ -188,7 +190,7 @@ public final class LodSupport {
         // if compat.has_voxy(mcver, loader):
         //     cog.outl('if (LodPlatform.isModLoaded("voxy")) {')
         //     cog.outl('    try {')
-        //     cog.outl('        sinks.add(new VoxyLodSink());')
+        //     cog.outl('        sinks.add(new VoxyLodSink(root));')
         //     cog.outl('        LOGGER.info("Chunksmith: voxy detected -- feeding LODs to voxy as well");')
         //     cog.outl('    } catch (final LinkageError error) {')
         //     cog.outl('        LOGGER.warn("Chunksmith: voxy present but incompatible, skipping voxy sink: {}", error.toString());')

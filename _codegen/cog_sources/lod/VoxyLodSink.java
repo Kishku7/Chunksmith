@@ -25,6 +25,8 @@ import me.cortex.voxy.common.world.service.VoxelIngestService;
 import me.cortex.voxy.commonImpl.VoxyCommon;
 import net.minecraft.world.level.chunk.LevelChunk;
 
+import java.nio.file.Path;
+
 /**
  * Compiled against voxy 0.2.16-beta; feeds freshly generated
  * chunks into its ingest service. Hard-references voxy types,
@@ -60,6 +62,20 @@ public final class VoxyLodSink implements LodSink {
      */
     private volatile boolean broken;
 
+    /** This dimension's CSLOD store directory, for {@link LiveFeedLedger}. */
+    private final Path storeDir;
+
+    /**
+     * Whether voxy took the live chunk just offered. {@link LodSupport#offer} hands every sink the live
+     * chunk and then its extracted record, back to back on the main thread, so the record that follows
+     * is always this chunk's, and that is when the ledger is told.
+     */
+    private boolean lastFed;
+
+    public VoxyLodSink(Path storeDir) {
+        this.storeDir = storeDir;
+    }
+
     /**
      * Voxy's ingest gate requires the chunk's light to be
      * real (sections must report LIGHT_AND_DATA). ChunkSmith
@@ -68,6 +84,12 @@ public final class VoxyLodSink implements LodSink {
      */
     @Override
     public boolean offer(Object chunk) {
+        if (chunk instanceof final CsLodChunk record) {
+            // The store is getting this chunk. Write down whether voxy got it too.
+            LiveFeedLedger.touch(storeDir, record.getChunkX(), record.getChunkZ(), lastFed);
+            return true;
+        }
+        lastFed = false;
         if (broken) {
             // Accept and drop: the pregen must not stall on a renderer we have already ruled out.
             return true;
@@ -81,7 +103,8 @@ public final class VoxyLodSink implements LodSink {
                 // would stall pregen forever.
                 return true;
             }
-            return VoxelIngestService.tryAutoIngestChunk(levelChunk);
+            lastFed = VoxelIngestService.tryAutoIngestChunk(levelChunk);
+            return lastFed;
         } catch (LinkageError error) {
             standDown(error);
             return true;

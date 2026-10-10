@@ -36,7 +36,10 @@ import com.kishku7.chunksmith.lod.net.CsLodSummary;
 import com.kishku7.chunksmith.lod.client.ClientPlatform;
 import java.util.Comparator;
 import com.kishku7.chunksmith.lod.client.CsLodDiskBudget;
+import com.kishku7.chunksmith.lod.LiveFeedLedger;
 import com.kishku7.chunksmith.lod.LodSinks;
+import com.kishku7.chunksmith.lod.LodSupport;
+import net.minecraft.server.MinecraftServer;
 import com.kishku7.chunksmith.lod.CsLodWorldId;
 import com.kishku7.chunksmith.lod.legacy.CsLodLegacySettings;
 import net.minecraft.client.Minecraft;
@@ -756,6 +759,38 @@ public final class CsLodClientNet {
         return host.isEmpty() && capsVoxy && !capsDh && LodSinks.get().feedsRendererDirectly();
     }
 
+    /**
+     * Singleplayer only: drops the regions this world's own server already put into voxy, chunk by
+     * chunk, as it generated them ({@link LiveFeedLedger}). What is left is what the catch-up is for.
+     * Anywhere else -- a real server, or a world with no ledger -- the index passes through unchanged.
+     */
+    private static CsLodMessages.RegionIndex skipLiveFed(CsLodMessages.RegionIndex index) {
+        if (!host.isEmpty() || index.regions().isEmpty()) {
+            return index;
+        }
+        MinecraftServer own = Minecraft.getInstance().getSingleplayerServer();
+        if (own == null) {
+            return index;
+        }
+        Map<Long, Long> ledger = LiveFeedLedger.read(LodSupport.storeRootBase(own).resolve(index.dimension()));
+        if (ledger.isEmpty()) {
+            return index;
+        }
+        List<CsLodMessages.RegionEntry> keep = new ArrayList<>();
+        for (CsLodMessages.RegionEntry region : index.regions()) {
+            if (!LiveFeedLedger.vouches(ledger, region.regionX(), region.regionZ(), region.hash())) {
+                keep.add(region);
+            }
+        }
+        int skipped = index.regions().size() - keep.size();
+        if (skipped > 0) {
+            LOGGER.info("Chunksmith: single player -- {} of {} region(s) of {} were fed to voxy directly"
+                            + " as they were generated; catching up on the other {}",
+                    skipped, index.regions().size(), index.dimension(), keep.size());
+        }
+        return new CsLodMessages.RegionIndex(index.dimension(), keep);
+    }
+
     private static void tellStoodDown() {
         if (!spStoodDownTold) {
             spStoodDownTold = true;
@@ -813,10 +848,10 @@ public final class CsLodClientNet {
 
         // The client's own disk ceiling. Off by default, so for almost everyone this returns exactly
         // what came in. Final because a lambda below captures it.
-        final CsLodMessages.RegionIndex index = applyDiskBudget(advertised, root);
+        final CsLodMessages.RegionIndex index = skipLiveFed(applyDiskBudget(advertised, root));
         if (index.regions().isEmpty()) {
-            // Nothing left to fetch once the ceiling had its say. Not an error, and not silence:
-            // applyDiskBudget already logged why.
+            // Nothing left to fetch once the ceiling (or, in singleplayer, the ledger) had its say. Not
+            // an error, and not silence: both log why.
             busy.set(false);
             return;
         }
