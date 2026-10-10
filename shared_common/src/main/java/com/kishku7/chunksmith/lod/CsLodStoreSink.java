@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import com.kishku7.chunksmith.lod.net.CsLodGrowth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,6 +116,7 @@ public final class CsLodStoreSink implements LodSink {
     private void persist(CsLodChunk record) {
         try {
             int size = store.write(record);
+            CsLodGrowth.noteWrite(System.currentTimeMillis());
             written.incrementAndGet();
             bytes.addAndGet(size);
         } catch (IOException e) {

@@ -56,6 +56,16 @@ public final class CompositeLodSink implements LodSink {
     }
 
     @Override
+    public boolean feedsRendererDirectly() {
+        for (LodSink sink : sinks) {
+            if (sink.feedsRendererDirectly()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public String toString() {
         return "CompositeLodSink" + sinks;
     }

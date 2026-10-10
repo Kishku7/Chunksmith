@@ -51,6 +51,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +111,17 @@ public final class CsLodClientNet {
     private static volatile long tokenIssuedMillis;
     private static volatile int backchannelPort;
     private static volatile String host = "";
+
+    /**
+     * Singleplayer only: the dimensions the world's store already had LOD for when this session's first
+     * answer arrived. Null until then. Only these can hold anything voxy has not been fed directly.
+     */
+    private static volatile List<String> spPreexisting;
+
+    /** Singleplayer only: dimensions whose one catch-up fetch this session has already been started. */
+    private static final Set<String> SP_CAUGHT_UP = ConcurrentHashMap.newKeySet();
+
+    private static volatile boolean spStoodDownTold;
 
     /**
      * What the server told us to fetch from, or empty when it named nothing. Kept apart from {@link
@@ -252,6 +265,11 @@ public final class CsLodClientNet {
         // fire once the player has travelled half a region, and a player who joins, walks to their base and
         // stays there used to get nothing more for the whole session. So we ask for two numbers (22 bytes
         // out, 34 back), never an index: an index every few minutes from every client rebuilds the memory bug.
+        if (singleplayerLiveFeed()) {
+            // Nothing to sync and nowhere to travel to that voxy is not already being fed. See serverHello.
+            tellStoodDown();
+            return;
+        }
         syncTick();
 
         long now = System.currentTimeMillis();
@@ -381,6 +399,10 @@ public final class CsLodClientNet {
         String dimension = summary.dimension();
         if (!dimension.equals(activeDimension)) {
             // The answer to a question we asked from a dimension we have since left. Drop it.
+            return;
+        }
+        if (singleplayerLiveFeed()) {
+            // Our own server telling us its store grew (a growth push): voxy already has it.
             return;
         }
         Path root = storeRoot();
@@ -626,6 +648,11 @@ public final class CsLodClientNet {
                     + " will be fetched, but /cslod set can now reach this client");
             return;
         }
+        if (host.isEmpty() && spPreexisting == null) {
+            // What the store held when this session's first answer came back. Anything added after this is
+            // being written by the pregen running now, which feeds voxy itself (see singleplayerLiveFeed).
+            spPreexisting = hello.storeAvailable() ? List.copyOf(hello.dimensions()) : List.of();
+        }
         if (!hello.storeAvailable() || hello.dimensions().isEmpty()) {
             // Not the end of the session: the operator has almost certainly not run the pregen yet, and
             // when they do we want the player to see it without being told to relog. (In singleplayer the
@@ -701,8 +728,40 @@ public final class CsLodClientNet {
             LOGGER.info("Chunksmith: server has LOD data for {}; backchannel on port {}",
                     mine, backchannelPort);
         }
+        if (host.isEmpty()) {
+            // Singleplayer. The first fetch of a dimension that already had LOD when we joined is a
+            // catch-up: whatever voxy missed (the seconds before login, a session without voxy). Past
+            // that, while this world's own server is feeding voxy as it generates, downloading from it
+            // again would only re-send voxy what it already has.
+            boolean catchUp = spPreexisting != null && spPreexisting.contains(mine)
+                    && SP_CAUGHT_UP.add(mine);
+            if (!catchUp && singleplayerLiveFeed()) {
+                activeDimension = mine;
+                tellStoodDown();
+                return;
+            }
+        }
         activeDimension = mine;
         requestIndex(mine);
+    }
+
+    /**
+     * True in singleplayer when the world's own server is putting LOD straight into voxy as it
+     * generates (same process: the integrated server's sink). Then the download path is a second copy
+     * of the same data -- in-band, on the slow path, and re-fetched whole every time a region grows,
+     * which during a pregen is constantly (mod_support #45: 15,744 chunks re-sent into a heap at 90%).
+     * Distant Horizons is not fed that way, so a player with DH keeps the download path.
+     */
+    private static boolean singleplayerLiveFeed() {
+        return host.isEmpty() && capsVoxy && !capsDh && LodSinks.get().feedsRendererDirectly();
+    }
+
+    private static void tellStoodDown() {
+        if (!spStoodDownTold) {
+            spStoodDownTold = true;
+            LOGGER.info("Chunksmith: single player -- this world is feeding voxy directly as it generates,"
+                    + " so the LOD download stands down (it would only send voxy what it already has)");
+        }
     }
 
     /**
@@ -1238,6 +1297,9 @@ public final class CsLodClientNet {
         inBandRegions = List.of();
         inBandManifest = null;
         PARTIAL.clear();
+        spPreexisting = null;
+        SP_CAUGHT_UP.clear();
+        spStoodDownTold = false;
         // Signal first, then clear. A worker may be mid-store right now, and reset() only clears the
         // bookkeeping; it does not reach the thread (mod_support #16).
         LodInjector.stop();

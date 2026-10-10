@@ -23,6 +23,7 @@ package com.kishku7.chunksmith.lod;
 
 import com.kishku7.chunksmith.lod.net.CsLodCapNotice;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
+import com.kishku7.chunksmith.lod.net.CsLodGrowth;
 import com.kishku7.chunksmith.lod.net.CsLodHttpServer;
 import com.kishku7.chunksmith.lod.net.CsLodIndexScan;
 import com.kishku7.chunksmith.lod.net.CsLodReachNotice;
@@ -38,6 +39,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -137,6 +139,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /** One scan in flight per player. A client that asks twice gets one answer, not two walks. */
     private static final Set<UUID> SCANNING = ConcurrentHashMap.newKeySet();
 
+    /** Players who have taken an index: the ones a growth push can help. Mirrors the mod. */
+    private static final Set<UUID> ARMED = ConcurrentHashMap.newKeySet();
+
+    /** The once-a-second check that drives {@link CsLodGrowth}; null when it could not be scheduled. */
+    private static BukkitTask growthTask;
+
     private static Plugin plugin;
     private static CsLodHttpServer http;
     private static CsLodServerBukkit listener;
@@ -183,11 +191,48 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                 CsLodServerBukkit::rebind,
                 () -> owner.getServer().getPort(),
                 () -> http == null ? "backchannel: not running" : http.describe());
+
+        // The growth push needs a clock and a player's position, which means the main thread. The rest of
+        // this class stays off the scheduler; this one task is the exception. A server that refuses a
+        // main-thread task (Folia) just keeps the old behaviour: clients notice growth on their own sync.
+        try {
+            growthTask = owner.getServer().getScheduler().runTaskTimer(owner, CsLodServerBukkit::growthTick,
+                    20L, 20L);
+        } catch (UnsupportedOperationException e) {
+            growthTask = null;
+            LOGGER.info("Chunksmith: this server has no main-thread scheduler, so connected players pick up"
+                    + " new LOD on their own sync instead of being told when a pregen adds some");
+        }
+    }
+
+    /**
+     * Tells players who already have an index that the store grew. Same rule and same message as the
+     * mod's {@code CsLodServerNet.growthTick}: the summary they would otherwise wait a sync interval to
+     * ask for, after which their client fetches only the difference.
+     */
+    private static void growthTick() {
+        if (ARMED.isEmpty() || !CsLodGrowth.pushDue(System.currentTimeMillis())) {
+            return;
+        }
+        for (UUID uuid : List.copyOf(ARMED)) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null) {
+                ARMED.remove(uuid);
+                continue;
+            }
+            dispatch(player, LodSupport.dimensionKey(player.getWorld()), true);
+        }
     }
 
     /** Called from {@code onDisable}. */
     public static void disable() {
         CsLodControl.clear();
+        if (growthTask != null) {
+            growthTask.cancel();
+            growthTask = null;
+        }
+        ARMED.clear();
+        CsLodGrowth.reset();
         if (plugin != null && listener != null) {
             plugin.getServer().getMessenger().unregisterIncomingPluginChannel(plugin, CHANNEL, listener);
             plugin.getServer().getMessenger().unregisterOutgoingPluginChannel(plugin, CHANNEL);
@@ -271,6 +316,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         SPOKEN.remove(player);
         RADIUS.remove(player);
         SCANNING.remove(player);
+        ARMED.remove(player);
     }
 
     /** Move the backchannel to the configured port, live. Mirrors the mod's rebind. */
@@ -376,6 +422,9 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                     + " while standing in " + dimension + ", serving " + dimension + " instead.");
         }
         UUID uuid = player.getUniqueId();
+        if (!summaryOnly) {
+            ARMED.add(uuid);
+        }
         if (!SCANNING.add(uuid)) {
             return;
         }

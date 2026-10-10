@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-10-09
+
+- New: while a pregen is running on a server, players already connected now get the new LOD about a
+  minute after it is generated, without moving. Before, someone standing still waited for the 5-minute
+  sync (mod_support #45). Works with 4.x clients; only the server needs updating for this part.
+- Fixed: in single player with Voxy, Chunksmith fed Voxy directly as it generated AND sent the same LOD to
+  itself again over the slow in-band path, re-sending every growing region during a pregen. The second
+  copy is gone: single player now only catches up, once per session, on LOD Voxy has not had yet.
+- Only the jars that carry LOD change (Fabric 1.20.1, 1.21.1, 1.21.11 and 26.x, NeoForge 1.21.1, 1.21.11
+  and 26.x, Forge 1.20.1, and the plugin).
+
 ## [4.4.1] - 2026-10-08
 
 - Fixed: a crash a few seconds after entering a world or starting a server with Very Many Players

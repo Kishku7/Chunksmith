@@ -105,6 +105,24 @@ public final class VoxyLodSink implements LodSink {
         }
     }
 
+    /**
+     * True while chunks offered here really reach voxy: not stood down, and voxy has an engine. The
+     * engine exists from client login (voxy starts its session in {@code ClientPacketListener.handleLogin})
+     * until logout, so a world-enter pregen is fed for all but the seconds before the player logs in.
+     */
+    @Override
+    public boolean feedsRendererDirectly() {
+        if (broken) {
+            return false;
+        }
+        try {
+            return VoxyCommon.getInstance() != null;
+        } catch (LinkageError error) {
+            standDown(error);
+            return false;
+        }
+    }
+
     private void standDown(LinkageError error) {
         broken = true;
         LodWarnings.once(CAUSE_INCOMPATIBLE,

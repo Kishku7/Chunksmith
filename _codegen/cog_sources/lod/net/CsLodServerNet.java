@@ -23,6 +23,7 @@ package com.kishku7.chunksmith.lod.net;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
+import com.kishku7.chunksmith.lod.net.CsLodGrowth;
 import com.kishku7.chunksmith.lod.HorizonGuard;
 import com.kishku7.chunksmith.lod.LodSupport;
 import net.minecraft.server.MinecraftServer;
@@ -53,7 +54,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>The client pulls: it says hello (telling us which renderers it has), asks for a region index,
  * works out what it is missing, and fetches it (over the HTTP backchannel when that is available,
- * in-band when it is not). It can stop at any time; the server never pushes uninvited, and refuses a
+ * in-band when it is not). It can stop at any time; the server pushes nothing uninvited except two
+ * nudges that make the client ask again -- the store-ready hello and the growth summary
+ * ({@link CsLodGrowth}) -- and refuses a
  * client with no renderer rather than burn bandwidth on terrain nobody can draw. Loader-blind: every
  * wire call goes through {@link CsLodChannel}, the one per-loader/per-era seam (Fabric raw channel
  * &lt;1.20.2, Fabric payload registry, NeoForge PayloadRegistrar, Forge SimpleChannel), while
@@ -140,6 +143,13 @@ public final class CsLodServerNet {
     private static final Set<UUID> SCANNING = ConcurrentHashMap.newKeySet();
 
     /**
+     * Players who have taken an index from us this session: the ones a growth push can help. A player
+     * who never asked (no renderer, a mismatched protocol, still waiting for the store) is left alone;
+     * the store-ready notice is what wakes the waiting ones.
+     */
+    private static final Set<UUID> ARMED = ConcurrentHashMap.newKeySet();
+
+    /**
      * How often the store watch looks at the disk, and it looks only while somebody is waiting on
      * it. 100 ticks is five seconds; the check is one directory open per loaded dimension, stopping
      * at the first region file it sees ({@link CsLodStoreScan}). On a server whose store was already
@@ -182,6 +192,7 @@ public final class CsLodServerNet {
         ANNOUNCED.remove(player);
         GREETED.remove(player);
         SCANNING.remove(player);
+        ARMED.remove(player);
     }
 
     /**
@@ -357,6 +368,8 @@ public final class CsLodServerNet {
         ANNOUNCED.clear();
         GREETED.clear();
         SCANNING.clear();
+        ARMED.clear();
+        CsLodGrowth.reset();
         sinceStoreWatch = 0;
         server = null;
     }
@@ -557,6 +570,38 @@ public final class CsLodServerNet {
             CsLodInBandSender.tick(player);
         }
         storeWatchTick(current);
+        growthTick(current);
+    }
+
+    /**
+     * While a pregen fills the store, tell the players who already have an index that it grew, by
+     * sending the summary they would otherwise have waited up to a sync interval to ask for. Their
+     * client compares it with what it holds and fetches only the difference. {@link CsLodGrowth}
+     * decides when; a server with no pregen running pays one volatile read per tick.
+     */
+    private static void growthTick(MinecraftServer current) {
+        if (ARMED.isEmpty() || !CsLodGrowth.pushDue(System.currentTimeMillis())) {
+            return;
+        }
+        int pushed = 0;
+        for (UUID uuid : List.copyOf(ARMED)) {
+            ServerPlayer player = current.getPlayerList().getPlayer(uuid);
+            if (player == null) {
+                ARMED.remove(uuid);
+                continue;
+            }
+            String dimension = dimensionOf(player);
+            if (dimension.isEmpty()) {
+                continue;
+            }
+            try {
+                dispatch(player, dimension, true);
+                pushed++;
+            } catch (IOException e) {
+                LOGGER.debug("Chunksmith: growth push to {} failed: {}", nameOf(player), e.toString());
+            }
+        }
+        LOGGER.debug("Chunksmith: the LOD store grew; sent {} player(s) a fresh summary", pushed);
     }
 
     /**
@@ -712,6 +757,9 @@ public final class CsLodServerNet {
         }
 
         UUID uuid = player.getUUID();
+        if (!summaryOnly) {
+            ARMED.add(uuid);
+        }
         // One scan per player at a time (see SCANNING): what keeps the scan queue bounded.
         if (!SCANNING.add(uuid)) {
             LOGGER.debug("Chunksmith: {} already has a LOD scan in flight; dropping the duplicate request",

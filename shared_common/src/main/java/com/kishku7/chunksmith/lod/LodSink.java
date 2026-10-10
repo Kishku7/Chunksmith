@@ -34,6 +34,16 @@ public interface LodSink {
 
     int queueDepth();
 
+    /**
+     * Returns true when this sink is, right now, putting chunks straight into a renderer in this same
+     * process -- voxy on an integrated server. The singleplayer download client asks this: when the
+     * world's own server is already feeding the renderer as it generates, downloading the same LOD from
+     * that server again is pure duplication.
+     */
+    default boolean feedsRendererDirectly() {
+        return false;
+    }
+
     LodSink NOOP = new LodSink() {
 
         @Override
