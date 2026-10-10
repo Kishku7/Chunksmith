@@ -1300,12 +1300,21 @@ public class GenerationTask implements Runnable {
                         return selection.world().getChunkAtAsync(chunk.x(), chunk.z());
                     }).whenComplete((ignored, throwable) -> {
                         long elapsed = System.currentTimeMillis() - dispatchTime;
-                        inFlight.decrementAndGet();
                         if (ioThrottleEnabled) {
                             adjustFromChunkLatency(elapsed);
                         }
-                        LockSupport.unpark(dispatchThread);
-                        update(chunk.x(), chunk.z(), true, !lodOnlyRing[0]);
+                        // Publish this chunk's progress BEFORE it stops counting as in flight. The run
+                        // loop below waits for inFlight to reach zero and then fires GenerationCompleteEvent;
+                        // with the decrement first, the last chunk's update -- the one that carries
+                        // complete=true -- could land after that event. The world-enter pregen reads the
+                        // flag when the complete event arrives, saw false on a run that had covered every
+                        // chunk, and refused to record the world as done (found by we-done-gate, 4.5.0).
+                        try {
+                            update(chunk.x(), chunk.z(), true, !lodOnlyRing[0]);
+                        } finally {
+                            inFlight.decrementAndGet();
+                            LockSupport.unpark(dispatchThread);
+                        }
                         driveSettleSweep(chunk.x(), chunk.z());
                     });
         }

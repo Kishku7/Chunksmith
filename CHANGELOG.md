@@ -10,6 +10,9 @@
 - Fixed: in single player with Voxy, Chunksmith fed Voxy directly as it generated AND sent the same LOD to
   itself again over the slow in-band path, re-sending every growing region during a pregen. The second
   copy is gone: single player now only catches up, once per session, on LOD Voxy has not had yet.
+- Fixed: a world-enter pregen that finished could still fail to mark the world as done, so it ran
+  again the next time the world was loaded. The last chunk's progress could arrive after the
+  "finished" signal it was meant to come before.
 - Changed: the world-enter pregen now centres on where you spawn by default, not on 0,0. A mod that
   moves spawn (Village Spawn Point, for example) used to send it thousands of blocks away. The new
   default, `worldEnterPregenCenter` = `auto`, leaves any world that already finished a world-enter
