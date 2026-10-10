@@ -592,14 +592,14 @@ public final class GsonConfig implements Config {
     @Override
     public String getWorldEnterPregenCenter() {
         String raw = Optional.ofNullable(configModel.worldEnterPregenCenter)
-                .orElse(WorldEnterCenter.ORIGIN);
+                .orElse(WorldEnterCenter.DEFAULT);
         WorldEnterCenter parsed = WorldEnterCenter.parse(raw);
         if (parsed == null) {
             // Same posture as the radius above: say what was wrong and what is being used instead,
             // rather than silently substituting a value the operator never sees.
-            LOGGER.warn("Chunksmith: worldEnterPregenCenter \"" + raw + "\" is not 'origin',"
-                    + " 'spawn' or 'x,z'; using " + WorldEnterCenter.ORIGIN + " instead");
-            return WorldEnterCenter.ORIGIN;
+            LOGGER.warn("Chunksmith: worldEnterPregenCenter \"" + raw + "\" is not 'auto', 'origin',"
+                    + " 'spawn' or 'x,z'; using " + WorldEnterCenter.DEFAULT + " instead");
+            return WorldEnterCenter.DEFAULT;
         }
         return parsed.spec();
     }
@@ -832,7 +832,7 @@ public final class GsonConfig implements Config {
         // rejects them at the command, and the getter guards the file.
         WorldEnterCenter parsed = WorldEnterCenter.parse(spec);
         configModel.worldEnterPregenCenter =
-                parsed == null ? WorldEnterCenter.ORIGIN : parsed.spec();
+                parsed == null ? WorldEnterCenter.DEFAULT : parsed.spec();
         saveConfig();
     }
 
@@ -915,9 +915,9 @@ public final class GsonConfig implements Config {
         private Long worldEnterPregenRadius = WORLD_ENTER_RADIUS_DEFAULT;
         // 0 = off. See Config#getWorldEnterLodHorizon and mod_support #39.
         private Long worldEnterLodHorizon = 0L;
-        // 'origin' keeps every world that has already run this feature exactly where it was.
-        // See Config#getWorldEnterPregenCenter and mod_support #34.
-        private String worldEnterPregenCenter = WorldEnterCenter.ORIGIN;
+        // 'auto' from 4.5.0 (mod_support #45): spawn for a world that never finished a world-enter run,
+        // that run's own centre for one that did. See WorldEnterCenter.
+        private String worldEnterPregenCenter = WorldEnterCenter.DEFAULT;
         // Empty = bind wherever the game bound. See Config#getLodBackchannelBindAddress.
         private String lodBackchannelBindAddress = "";
         // Empty = let each client use the address it connected to. See Config#getLodBackchannelHost.

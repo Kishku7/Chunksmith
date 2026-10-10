@@ -10,8 +10,11 @@
 - Fixed: in single player with Voxy, Chunksmith fed Voxy directly as it generated AND sent the same LOD to
   itself again over the slow in-band path, re-sending every growing region during a pregen. The second
   copy is gone: single player now only catches up, once per session, on LOD Voxy has not had yet.
-- Only the jars that carry LOD change (Fabric 1.20.1, 1.21.1, 1.21.11 and 26.x, NeoForge 1.21.1, 1.21.11
-  and 26.x, Forge 1.20.1, and the plugin).
+- Changed: the world-enter pregen now centres on where you spawn by default, not on 0,0. A mod that
+  moves spawn (Village Spawn Point, for example) used to send it thousands of blocks away. The new
+  default, `worldEnterPregenCenter` = `auto`, leaves any world that already finished a world-enter
+  pregen centred where it was, so nothing you already generated moves. `origin`, `spawn` and `x,z`
+  still work if you set them.
 
 ## [4.4.1] - 2026-10-08
 

@@ -142,7 +142,7 @@ public final class ConfigSettings {
                     // The quotes are not optional and not a style choice: a brigadier unquoted
                     // argument cannot contain a comma, so 512,-64 is rejected by the COMMAND before
                     // this setting ever sees it. Found by typing it at a live server.
-                    "expected 'origin', 'spawn', or coordinates in quotes like \"512,-64\"")),
+                    "expected 'auto', 'origin', 'spawn', or coordinates in quotes like \"512,-64\"")),
             // Different validators on purpose. A BIND address may be a wildcard (0.0.0.0 = every
             // interface); an ADVERTISED one may not, because a client told to connect to 0.0.0.0
             // has been told nothing at all.

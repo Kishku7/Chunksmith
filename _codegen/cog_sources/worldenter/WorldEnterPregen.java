@@ -156,7 +156,7 @@ public final class WorldEnterPregen {
         // mod_support #34: this was hard-coded to (0, 0), so any mod that relocates world spawn had
         // it pregenerate terrain the player never stands on. Resolved HERE, per load, because
         // 'spawn' can move between loads -- what gets recorded as complete is the resolved place.
-        double[] center = resolveCenter(config, dimension);
+        double[] center = resolveCenter(mcServer, config, dimension);
         double centerX = center[0];
         double centerZ = center[1];
 
@@ -517,7 +517,7 @@ public final class WorldEnterPregen {
      * -- this falls back to origin and SAYS so. Silently pregenerating the wrong place is the bug
      * this whole change exists to fix.
      */
-    private static double[] resolveCenter(Config config, String dimension) {
+    private static double[] resolveCenter(MinecraftServer mcServer, Config config, String dimension) {
         WorldEnterCenter wanted = WorldEnterCenter.parse(config.getWorldEnterPregenCenter());
         if (wanted == null) {
             // The config getter already warned and canonicalised; this is belt and braces.
@@ -525,6 +525,15 @@ public final class WorldEnterPregen {
         }
         if (!wanted.followsSpawn()) {
             return new double[] {wanted.x(), wanted.z()};
+        }
+        if (wanted.isAuto()) {
+            // A world that already finished a world-enter run keeps that run's centre, so the default
+            // moving from origin to spawn at 4.5.0 cannot send a finished world back behind the freeze
+            // screen. Every other world -- new, or never finished -- is centred where the player spawns.
+            Optional<WorldEnterDone> done = WorldEnterDone.read(worldDir(mcServer));
+            if (done.isPresent() && dimension.equals(done.get().dimension())) {
+                return new double[] {done.get().centerX(), done.get().centerZ()};
+            }
         }
         Optional<World> world = ChunksmithProvider.get().getServer().getWorld(dimension);
         if (world.isEmpty()) {

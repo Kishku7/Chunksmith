@@ -45,6 +45,18 @@ public class WorldEnterCenterTest {
     }
 
     @Test
+    public void autoFollowsSpawnButSaysItIsAuto() {
+        WorldEnterCenter auto = WorldEnterCenter.parse(" Auto ");
+        assertTrue(auto.isAuto());
+        // Falls through to spawn when the world has no finished run; the caller checks the record first.
+        assertTrue(auto.followsSpawn());
+        assertEquals("auto", auto.spec());
+        assertFalse(WorldEnterCenter.parse("spawn").isAuto());
+        assertFalse(WorldEnterCenter.parse("origin").isAuto());
+        assertEquals(WorldEnterCenter.AUTO, WorldEnterCenter.DEFAULT);
+    }
+
+    @Test
     public void isCaseAndSpaceInsensitive() {
         assertTrue(WorldEnterCenter.parse("  SPAWN ").followsSpawn());
         assertEquals("512,-64", WorldEnterCenter.parse(" 512 , -64 ").spec());

@@ -400,8 +400,8 @@ public interface Config {
     long getWorldEnterLodHorizon();
 
     /**
-     * Where the world-enter pregen is centred: {@code origin} (default), {@code spawn}, or
-     * {@code x,z}.
+     * Where the world-enter pregen is centred: {@code auto} (default from 4.5.0: spawn, or the centre a
+     * finished run used), {@code origin}, {@code spawn}, or {@code x,z}.
      *
      * <p>Returned as the raw spec rather than as coordinates, because {@code spawn} cannot be
      * resolved here -- it is a property of the world, read when the pregen starts. Parse it with
