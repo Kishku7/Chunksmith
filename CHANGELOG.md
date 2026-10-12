@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- The startup message about LOD storage now says about 5 KB per chunk (measured 2026-10-12 on
+  9,409 chunks), not 12 KB. Nothing about the store changed; the old figure overstated it.
+
 ## [4.5.0] - 2026-10-09
 
 - New: while a pregen is running on a server, players already connected now get the new LOD about a
