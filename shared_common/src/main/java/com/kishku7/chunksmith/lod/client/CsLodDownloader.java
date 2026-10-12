@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -77,6 +78,14 @@ public final class CsLodDownloader {
     private final AtomicLong bytes = new AtomicLong();
     private final AtomicLong skipped = new AtomicLong();
     private final AtomicLong failed = new AtomicLong();
+
+    /**
+     * Why the first download failed. Every failure used to be counted and its cause dropped, so a client
+     * whose downloads all failed showed "failed" climbing and nothing else anywhere -- no exception, no log
+     * line, nothing to act on (mod_support #48, a Steam Deck / Flatpak client). One cause is enough to name
+     * the problem, and the same one repeated per region would bury the log.
+     */
+    private final AtomicReference<String> firstFailure = new AtomicReference<>();
 
     private volatile ExecutorService pool;
 
@@ -174,6 +183,7 @@ public final class CsLodDownloader {
                     }
                 } catch (IOException | InterruptedException e) {
                     failed.incrementAndGet();
+                    noteFailure(entry, e);
                     if (e instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
                     }
@@ -182,6 +192,7 @@ public final class CsLodDownloader {
                     // vanishes: the counters stay at zero, the "fast path is dead" check never fires,
                     // and NOTHING falls back. That silence was the whole of mod_support #26.
                     failed.incrementAndGet();
+                    noteFailure(entry, e);
                 }
             });
         }
@@ -203,6 +214,17 @@ public final class CsLodDownloader {
         }
         progress.accept("LOD: done. " + downloaded.get() + " fetched, " + skipped.get() + " cached, "
                 + failed.get() + " failed, " + (bytes.get() / 1024 / 1024) + " MB");
+        String why = firstFailure.get();
+        if (why != null) {
+            progress.accept("LOD: first download failure from " + host + ":" + port + " -- " + why);
+        }
+    }
+
+    private void noteFailure(CsLodMessages.RegionEntry entry, Exception e) {
+        // The exception's own class matters as much as its message: ConnectException, HttpTimeoutException
+        // and UnresolvedAddressException point at three different fixes, and some carry no message at all.
+        firstFailure.compareAndSet(null, "r." + entry.regionX() + "." + entry.regionZ() + ": "
+                + e.getClass().getName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
     }
 
     /**
@@ -272,8 +294,10 @@ public final class CsLodDownloader {
 
     /** requested / fetched / cached / failed. Counters exist from commit one, deliberately. */
     public String describe() {
+        String why = firstFailure.get();
         return "fetched " + downloaded.get() + ", cached " + skipped.get() + ", failed " + failed.get()
-                + ", " + (bytes.get() / 1024 / 1024) + " MB";
+                + ", " + (bytes.get() / 1024 / 1024) + " MB"
+                + (why == null ? "" : " (first failure: " + why + ")");
     }
 
     private void fetch(final String host, final int port, final String token,

@@ -4,6 +4,9 @@
 
 - The startup message about LOD storage now says about 5 KB per chunk (measured 2026-10-12 on
   9,409 chunks), not 12 KB. Nothing about the store changed; the old figure overstated it.
+- When LOD downloads over the fast path fail, the client now says why: the first failure's cause is
+  printed after the "LOD: done" line and shown in the download status. Before, only the "failed"
+  count went up, with no error anywhere (mod_support #48).
 
 ## [4.5.0] - 2026-10-09
 
