@@ -475,7 +475,7 @@ if ($hasLod -eq '1') {
     Copy-Item -Force (Join-Path $lodSrc 'HorizonGuard.java') (Join-Path $lodDir 'HorizonGuard.java')
     # LOD from explored chunks (4.6.0) rides the same ChunkMap.save hook as the horizon veto.
     Copy-Item -Force (Join-Path $lodSrc 'ExploredLodGuard.java') (Join-Path $lodDir 'ExploredLodGuard.java')
-    foreach ($hz in @('ChunkMapLevelAccessor.java', 'ChunkMapHorizonSaveMixin.java', 'EntityStorageHorizonMixin.java', 'SectionStorageHorizonMixin.java', 'StorageWriteHorizonMixin.java')) {
+    foreach ($hz in @('ChunkMapLevelAccessor.java', 'ChunkMapHorizonSaveMixin.java', 'EntityStorageHorizonMixin.java', 'SectionStorageHorizonMixin.java', 'StorageWriteHorizonMixin.java', 'ServerLevelExploredLodMixin.java')) {
         $hzSrc = Join-Path $cogSrc $hz
         if (-not (Test-Path $hzSrc)) { throw "horizon cog_source missing: $hzSrc" }
         $hzDst = Join-Path $genJava (Join-Path $mixinPkg $hz)

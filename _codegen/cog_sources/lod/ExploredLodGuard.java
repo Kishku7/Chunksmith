@@ -39,9 +39,8 @@ import org.slf4j.LoggerFactory;
  * walks away from it or stands in it until the next autosave. HEAD rather than after the write because the
  * dirty flag is the cheap "is there anything new" test and the write clears it.
  *
- * <p>Gaps, stated: C2ME's chunk system and Moonrise save without calling {@code ChunkMap.save}, so on those
- * servers explored chunks are not taken (the horizon has the same blind spot and says so). A pregen is the
- * way to cover ground there.
+ * <p>C2ME's chunk system unloads without calling {@code ChunkMap.save}; {@link #onUnload} catches those
+ * chunks as they leave. Moonrise replaces the whole chunk system and is not covered.
  */
 public final class ExploredLodGuard {
 
@@ -53,9 +52,27 @@ public final class ExploredLodGuard {
 
     /** Every chunk save. Must be cheap when there is nothing to do, and must never throw. */
     public static void onSave(ServerLevel level, ChunkAccess chunk) {
-        // Cheapest tests first: most saves are of proto chunks at the edge of worldgen, or of chunks we
-        // (or a pregen) already took.
-        if (!(chunk instanceof LevelChunk full) || !full.isUnsaved() || !ChunksmithProvider.isLoaded()) {
+        // Cheapest tests first: most saves are of proto chunks at the edge of worldgen, or of chunks with
+        // nothing new to write.
+        if (!(chunk instanceof LevelChunk full) || !full.isUnsaved()) {
+            return;
+        }
+        take(level, full, true);
+    }
+
+    /**
+     * Every chunk unload ({@code ServerLevel.unload(LevelChunk)}, {@code ServerLevelExploredLodMixin}). Vanilla
+     * saves first, so the save hook has already taken the chunk and this finds it held -- one presence lookup.
+     * It exists for C2ME, whose chunk system unloads WITHOUT {@code ChunkMap.save}: the first explore-gate run
+     * with C2ME took 0 chunks and found 1344 (autosaved, near spawn) already held. No dirty test here --
+     * C2ME's own save may already have cleared the flag -- the store alone decides.
+     */
+    public static void onUnload(ServerLevel level, LevelChunk chunk) {
+        take(level, chunk, false);
+    }
+
+    private static void take(ServerLevel level, LevelChunk full, boolean countHeld) {
+        if (!ChunksmithProvider.isLoaded()) {
             return;
         }
         try {
@@ -74,7 +91,9 @@ public final class ExploredLodGuard {
             int chunkZ = pos.getMinBlockZ() >> 4;
             boolean held = presence.hasLod(chunkX, chunkZ);
             if (!ExploredLod.shouldTake(true, true, true, true, held)) {
-                ExploredLod.noteHeld();
+                if (countHeld) {
+                    ExploredLod.noteHeld();
+                }
                 return;
             }
             LodSupport.offer(level, full);
@@ -83,8 +102,8 @@ public final class ExploredLodGuard {
             presence.markLod(chunkX, chunkZ);
             ExploredLod.noteTaken();
         } catch (RuntimeException | LinkageError e) {
-            // LinkageError too: this runs inside every chunk save, and a class or method missing on some
-            // loader build must cost the LOD, never the save.
+            // LinkageError too: this runs inside every chunk save and unload, and a class or method missing on
+            // some loader build must cost the LOD, never the save.
             ExploredLod.noteFailed();
             if (!failureLogged) {
                 failureLogged = true;

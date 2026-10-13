@@ -9,7 +9,7 @@
   single player too, and can be turned off with `/cs set lodFromExploredChunks false`
   (`lod-from-explored-chunks: false` on Bukkit/Paper). Chunks already in the LOD store are skipped, so a
   pregenerated area costs nothing extra. `/cs lod status` shows how many explored chunks were added.
-  Not covered: servers running C2ME or Moonrise save chunks without the hook this uses, so there a pregen
+  Works with C2ME (tested). Not covered: Moonrise, which replaces the whole chunk system; there a pregen
   is still the way to add LOD.
 
 ## [4.5.1] - 2026-10-12

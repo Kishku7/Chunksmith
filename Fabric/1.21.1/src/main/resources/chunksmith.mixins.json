@@ -20,6 +20,7 @@
     "SectionStorageHorizonMixin",
     "ServerChunkCacheFreezeMixin",
     "ServerChunkCacheMixin",
+    "ServerLevelExploredLodMixin",
     "ServerLevelMixin",
     "SimpleRegionStorageAccessor",
     "StorageWriteHorizonMixin",
