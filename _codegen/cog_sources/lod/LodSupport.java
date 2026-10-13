@@ -170,6 +170,7 @@ public final class LodSupport {
         }
         // After every store above is flushed and closed, so the region tokens it records are final.
         LiveFeedLedger.finishAll();
+        ExploredLod.reset();
         SINKS.clear();
         LodSinks.set(LodSink.NOOP);
         // Unpublish the presence provider with the sinks: a stale provider would hand a later run an

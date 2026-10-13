@@ -473,6 +473,8 @@ if ($hasLod -eq '1') {
     # as the backstop for C2ME's unload path. LOD cells only -- without an LOD store there is nothing to keep.
     # The save shape per era comes from compat.horizon_save_era.
     Copy-Item -Force (Join-Path $lodSrc 'HorizonGuard.java') (Join-Path $lodDir 'HorizonGuard.java')
+    # LOD from explored chunks (4.6.0) rides the same ChunkMap.save hook as the horizon veto.
+    Copy-Item -Force (Join-Path $lodSrc 'ExploredLodGuard.java') (Join-Path $lodDir 'ExploredLodGuard.java')
     foreach ($hz in @('ChunkMapLevelAccessor.java', 'ChunkMapHorizonSaveMixin.java', 'EntityStorageHorizonMixin.java', 'SectionStorageHorizonMixin.java', 'StorageWriteHorizonMixin.java')) {
         $hzSrc = Join-Path $cogSrc $hz
         if (-not (Test-Path $hzSrc)) { throw "horizon cog_source missing: $hzSrc" }

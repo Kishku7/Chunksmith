@@ -88,6 +88,8 @@ public final class ConfigSettings {
                         return true;
                     }),
             bool("lodDhOverride", Config::isLodDhOverrideEnabled, Config::setLodDhOverrideEnabled),
+            bool("lodFromExploredChunks", Config::isLodFromExploredChunksEnabled,
+                    Config::setLodFromExploredChunksEnabled),
             port("lodBackchannelPort", ConfigSetting.Kind.INTEGER,
                     config -> String.valueOf(config.getLodBackchannelPort()),
                     (config, raw) -> {

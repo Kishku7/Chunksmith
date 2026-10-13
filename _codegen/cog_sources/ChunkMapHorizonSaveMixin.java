@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.mixin;
 
+import com.kishku7.chunksmith.lod.ExploredLodGuard;
 import com.kishku7.chunksmith.lod.HorizonGuard;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -47,6 +48,9 @@ public abstract class ChunkMapHorizonSaveMixin {
 
     @Inject(method = "save(Lnet/minecraft/world/level/chunk/ChunkAccess;)Z", at = @At("HEAD"), cancellable = true)
     private void chunksmith$horizonVeto(ChunkAccess chunk, CallbackInfoReturnable<Boolean> cir) {
+        // LOD from explored chunks (4.6.0) first: a chunk the horizon is about to drop was generated for its
+        // LOD and is already in the store, so the guard's presence test makes this a no-op for it.
+        ExploredLodGuard.onSave(((ChunkMapLevelAccessor) (Object) this).chunksmith$horizonLevel(), chunk);
         if (!HorizonGuard.armed()) {
             return;
         }

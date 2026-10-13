@@ -28,6 +28,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
+import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.lod.net.CsLodServerNet;
 
 import java.nio.file.Files;
@@ -100,6 +101,8 @@ public final class CsLodCommand {
             say(source, "size:        " + (bytes / 1024) + " KB");
             say(source, "decision:    " + LodSupport.describeDecision(level.getServer()));
             say(source, "backchannel: " + CsLodServerNet.describe());
+            say(source, "explored:    " + ExploredLod.describe(ChunksmithProvider.isLoaded()
+                    && ChunksmithProvider.get().getConfig().isLodFromExploredChunksEnabled()));
             // renderers() was written to be APPENDED to a packed line, so it arrives with a
             // leading " | " separator. Strip it now that it is a line of its own. Caught by
             // eyeballing a booted server's log, which is the only thing that could have.

@@ -526,6 +526,12 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isLodFromExploredChunksEnabled() {
+        // A config written before 4.6.0 has no key, and reads the default: on.
+        return Optional.ofNullable(configModel.lodFromExploredChunks).orElse(true);
+    }
+
+    @Override
     public int getLodBackchannelPort() {
         int raw = Optional.ofNullable(configModel.lodBackchannelPort).orElse(BACKCHANNEL_PORT_DERIVE);
         if (raw == BACKCHANNEL_PORT_DERIVE) {
@@ -765,6 +771,12 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setLodFromExploredChunksEnabled(boolean enabled) {
+        configModel.lodFromExploredChunks = enabled;
+        saveConfig();
+    }
+
+    @Override
     public void setLodBackchannelPort(int port) {
         // An out-of-range port falls back to deriving one, rather than clamping to the nearest legal
         // port. Clamping would answer "set it to 80" with "it is now 1024", which is a different server
@@ -903,6 +915,8 @@ public final class GsonConfig implements Config {
         // number for this machine rather than a constant fixed at class-init time.
         private Long dispatchMaxConcurrent = dispatchMaxConcurrentDefault();
         private Boolean lodDhOverride = false;
+        // On by default. See Config#isLodFromExploredChunksEnabled.
+        private Boolean lodFromExploredChunks = true;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
         // 2048 MB by default; 0 = no ceiling. See Config#getLodIndexBudgetMb.

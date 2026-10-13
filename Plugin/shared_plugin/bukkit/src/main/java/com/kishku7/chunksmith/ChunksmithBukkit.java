@@ -69,6 +69,7 @@ import java.util.Properties;
 import static com.kishku7.chunksmith.util.Translator.translate;
 import org.bukkit.event.player.PlayerQuitEvent;
 import com.kishku7.chunksmith.lod.CsLodServerBukkit;
+import com.kishku7.chunksmith.lod.ExploredLodBukkit;
 import com.kishku7.chunksmith.lod.LodHorizonBukkit;
 import com.kishku7.chunksmith.lod.LodSupport;
 
@@ -127,6 +128,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         // 3.2.0; nothing ever started it (mod_support #18).
         CsLodServerBukkit.enable(this, chunky.getConfig());
         LodHorizonBukkit.enable(this, chunky.getConfig());
+        ExploredLodBukkit.enable(this, chunky.getConfig());
     }
 
     @Override
@@ -139,6 +141,7 @@ public final class ChunksmithBukkit extends JavaPlugin implements Listener {
         if (chunky != null) {
             CsLodServerBukkit.disable();
             LodHorizonBukkit.disable();
+            ExploredLodBukkit.disable();
         LodSupport.shutdown();
             chunky.disable();
         }

@@ -288,6 +288,16 @@ public interface Config {
     boolean isLodDhOverrideEnabled();
 
     /**
+     * Whether chunks that players explore are added to the CSLOD store, so the LOD covers where people
+     * have been and not only what a pregen made. On by default (4.6.0), single player included,
+     * so every setup behaves the same.
+     * <p>A chunk is taken once, the first time it is saved fully generated, and only if the store does not
+     * already hold it; a pregen's chunks are never taken twice. It rides the same pipeline as a pregen,
+     * so connected players get it through the growth push and joiners through the usual index.
+     */
+    boolean isLodFromExploredChunksEnabled();
+
+    /**
      * Returns the TCP port the LOD backchannel binds, or 0 to derive it from the game port.
      *
      * <p>0 means {@code gamePort + 1}, right on a machine you control and
@@ -447,6 +457,8 @@ public interface Config {
     void setLodMode(LodMode mode);
 
     void setLodDhOverrideEnabled(boolean enabled);
+
+    void setLodFromExploredChunksEnabled(boolean enabled);
 
     /**
      * Sets the backchannel port and persists it; 0 restores the derived

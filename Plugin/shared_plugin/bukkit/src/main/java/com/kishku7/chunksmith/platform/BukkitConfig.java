@@ -253,6 +253,11 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isLodFromExploredChunksEnabled() {
+        return plugin.getConfig().getBoolean("lod-from-explored-chunks", true);
+    }
+
+    @Override
     public int getLodBackchannelPort() {
         return plugin.getConfig().getInt("lod-backchannel-port", 0);
     }
@@ -431,6 +436,12 @@ public final class BukkitConfig implements Config {
     @Override
     public void setLodDhOverrideEnabled(boolean enabled) {
         plugin.getConfig().set("lod-dh-override", enabled);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodFromExploredChunksEnabled(boolean enabled) {
+        plugin.getConfig().set("lod-from-explored-chunks", enabled);
         plugin.saveConfig();
     }
 

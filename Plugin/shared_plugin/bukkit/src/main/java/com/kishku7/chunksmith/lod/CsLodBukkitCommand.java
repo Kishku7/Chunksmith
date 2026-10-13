@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.ChunksmithProvider;
 import com.kishku7.chunksmith.platform.Sender;
 
 import org.bukkit.Bukkit;
@@ -93,6 +94,8 @@ public final class CsLodBukkitCommand {
         say(sender, "world id:    " + orNone(worlds.isEmpty()
                 ? "" : CsLodWorldId.forStore(LodSupport.storeRootBase(worlds.get(0)))));
         say(sender, "backchannel: " + CsLodServerBukkit.describe());
+        say(sender, "explored:    " + ExploredLod.describe(ChunksmithProvider.isLoaded()
+                && ChunksmithProvider.get().getConfig().isLodFromExploredChunksEnabled()));
 
         for (World world : worlds) {
             Path store = LodSupport.storeRoot(world);
