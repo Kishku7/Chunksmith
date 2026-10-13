@@ -39,6 +39,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,6 +68,9 @@ public final class CsLodDownloader {
 
     /** Parallel fetches. The server caps concurrency per IP; stay comfortably under it. */
     private static final int WORKERS = 4;
+
+    /** Per-request limit. Package-private for tests, which cannot wait out a minute per case. */
+    Duration requestTimeout = Duration.ofSeconds(60);
 
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -180,37 +184,46 @@ public final class CsLodDownloader {
             return thread;
         });
         for (CsLodMessages.RegionEntry entry : wanted) {
-            pool.submit(() -> {
-                if (cancelled.get() || gaveUp.get()) {
-                    return;
-                }
-                try {
-                    fetch(effectiveHost, port, token, index.dimension(), entry);
-                    long done = downloaded.incrementAndGet();
-                    if (done % 25 == 0) {
-                        progress.accept("LOD: fetched " + done + "/" + wanted.size()
-                                + " regions (" + (bytes.get() / 1024 / 1024) + " MB)");
+            if (gaveUp.get() || cancelled.get()) {
+                // The pool is already shut down (a fast-failing server can give up while we are still
+                // queueing), and submitting to it would throw.
+                break;
+            }
+            try {
+                pool.submit(() -> {
+                    if (cancelled.get() || gaveUp.get()) {
+                        return;
                     }
-                } catch (InterruptedException e) {
-                    // Only cancel() interrupts these threads; the session is ending, so it says nothing
-                    // about the fast path.
-                    failed.incrementAndGet();
-                    Thread.currentThread().interrupt();
-                } catch (IOException e) {
-                    failed.incrementAndGet();
-                    noteFailure(entry, e);
-                    if (!(e instanceof ServerBusy)) {
+                    try {
+                        fetch(effectiveHost, port, token, index.dimension(), entry);
+                        long done = downloaded.incrementAndGet();
+                        if (done % 25 == 0) {
+                            progress.accept("LOD: fetched " + done + "/" + wanted.size()
+                                    + " regions (" + (bytes.get() / 1024 / 1024) + " MB)");
+                        }
+                    } catch (InterruptedException e) {
+                        // Only cancel() (the session is ending) or a give-up (the path is already judged
+                        // dead) interrupts these threads; either way it says nothing new about the path.
+                        failed.incrementAndGet();
+                        Thread.currentThread().interrupt();
+                    } catch (IOException e) {
+                        failed.incrementAndGet();
+                        noteFailure(entry, e);
+                        if (!(e instanceof ServerBusy)) {
+                            countDeadFailure(progress);
+                        }
+                    } catch (RuntimeException e) {
+                        // submit() parks an escaping RuntimeException in a Future nobody reads, so it
+                        // vanishes: the counters stay at zero, the "fast path is dead" check never fires,
+                        // and NOTHING falls back. That silence was the whole of mod_support #26.
+                        failed.incrementAndGet();
+                        noteFailure(entry, e);
                         countDeadFailure(progress);
                     }
-                } catch (RuntimeException e) {
-                    // submit() parks an escaping RuntimeException in a Future nobody reads, so it
-                    // vanishes: the counters stay at zero, the "fast path is dead" check never fires,
-                    // and NOTHING falls back. That silence was the whole of mod_support #26.
-                    failed.incrementAndGet();
-                    noteFailure(entry, e);
-                    countDeadFailure(progress);
-                }
-            });
+                });
+            } catch (RejectedExecutionException e) {
+                break;
+            }
         }
         pool.shutdown();
         try {
@@ -244,6 +257,14 @@ public final class CsLodDownloader {
         if (shouldGiveUp(dead, downloaded.get()) && gaveUp.compareAndSet(false, true)) {
             progress.accept("LOD: the first " + dead + " backchannel downloads all failed and none"
                     + " succeeded; skipping the rest of this pass");
+            // Stop the requests already in flight too. Each worker that failed had already picked up its
+            // next region, and on a link where requests hang those ran out their own 60 s timeouts: the
+            // first hang-gate run gave up at 60 s and fell back at 120 s. Not cancel(): that marks the run
+            // as the session ending, and the caller then rightly skips the fallback.
+            ExecutorService current = pool;
+            if (current != null) {
+                current.shutdownNow();
+            }
         }
     }
 
@@ -366,7 +387,7 @@ public final class CsLodDownloader {
 
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .header(CsLodProtocol.HEADER_TOKEN, token)
-                .timeout(Duration.ofSeconds(60))
+                .timeout(requestTimeout)
                 .GET()
                 .build();
 

@@ -99,6 +99,48 @@ public class CsLodDownloaderGiveUpTest {
     }
 
     @Test
+    public void requestsInFlightAtTheGiveUpAreStoppedNotWaitedOut() throws IOException {
+        // The first four answer 500; everything after that hangs. Without stopping the in-flight
+        // requests, download() would sit out their full timeout (30 s here) before returning.
+        java.util.concurrent.CountDownLatch never = new java.util.concurrent.CountDownLatch(1);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
+        server.createContext("/", exchange -> {
+            int n = requests.incrementAndGet();
+            if (n == 4) {
+                // The deciding failure lands late, so the other three workers have certainly moved on to
+                // regions that hang by the time the give-up happens.
+                try {
+                    Thread.sleep(1_000L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            if (n <= 4) {
+                exchange.sendResponseHeaders(500, -1);
+                exchange.close();
+                return;
+            }
+            try {
+                never.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        server.start();
+        CsLodDownloader downloader = new CsLodDownloader(root);
+        downloader.requestTimeout = java.time.Duration.ofSeconds(30);
+
+        long started = System.nanoTime();
+        downloader.download("127.0.0.1", server.getAddress().getPort(), "t", index(), line -> { });
+        long tookMillis = (System.nanoTime() - started) / 1_000_000L;
+        never.countDown();
+
+        assertTrue(downloader.gaveUp());
+        assertTrue("download() took " + tookMillis + " ms", tookMillis < 10_000L);
+    }
+
+    @Test
     public void giveUpRule() {
         assertFalse(CsLodDownloader.shouldGiveUp(3, 0));
         assertTrue(CsLodDownloader.shouldGiveUp(4, 0));
