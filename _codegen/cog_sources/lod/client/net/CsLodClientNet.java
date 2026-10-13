@@ -863,6 +863,9 @@ public final class CsLodClientNet {
         }
 
         downloader = new CsLodDownloader(root);
+        // Read once. reset() zeroes the field when the session ends, and a worker that re-read it after a
+        // long download logged "the backchannel on port 0" (mod_support #48).
+        final int port = backchannelPort;
 
         // Off the game thread: a download must never make the game stutter. Injection follows on the same thread.
         Thread worker = new Thread(() -> {
@@ -871,25 +874,33 @@ public final class CsLodClientNet {
                 // full connect timeout per region, ~30s of dead air on a 9-region store before the
                 // fallback fires, and it scales with the store. A single socket answers the same question
                 // in 2s.
-                if (!reachable(fetchHost, backchannelPort)) {
+                if (!reachable(fetchHost, port)) {
                     LOGGER.warn("Chunksmith: the backchannel on port {} is advertised but unreachable;"
-                            + " falling back to the in-band channel (slower)", backchannelPort);
+                            + " falling back to the in-band channel (slower)", port);
                     backchannelPort = 0;
                     Minecraft.getInstance().execute(() -> inBand(index, root));
                     return;
                 }
 
                 CsLodDownloader current = downloader;
-                current.download(fetchHost, backchannelPort, token, index,
+                current.download(fetchHost, port, token, index,
                         line -> LOGGER.info("Chunksmith: {}", line));
 
+                // Cancelled means the session ended (or the player stopped it). Falling back then started
+                // an in-band transfer on a connection that was closing, which is what #48's log ended on.
+                if (current.wasCancelled()) {
+                    return;
+                }
+
                 // Backstop: the port answered a socket but every fetch still failed (a proxy that accepts
-                // and drops, a server that dies mid-transfer). Drop to the in-band channel, which rides a
-                // connection we know works, and say why.
+                // and drops, a server that dies mid-transfer, requests that hang to their timeout). The
+                // downloader stops after the first dead batch rather than trying every region, so this
+                // fires within about a minute. Drop to the in-band channel, which rides a connection we
+                // know works, and say why.
                 if (current.fetched() == 0 && current.failed() > 0) {
                     LOGGER.warn("Chunksmith: the backchannel on port {} accepted a connection but"
                                     + " served nothing ({} regions failed); falling back to the in-band"
-                                    + " channel (slower)", backchannelPort, current.failed());
+                                    + " channel (slower)", port, current.failed());
                     backchannelPort = 0;
                     Minecraft.getInstance().execute(() -> inBand(index, root));
                     return;

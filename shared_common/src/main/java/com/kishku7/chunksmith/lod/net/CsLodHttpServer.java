@@ -36,6 +36,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +71,8 @@ import java.util.regex.Pattern;
  *       inside the root, so {@code ..}, absolute paths and symlinks cannot escape.</li>
  *   <li>Token required, bound to (uuid, ip, expiry), revoked on disconnect.</li>
  *   <li>Per-IP concurrency cap, request/header size caps, and idle timeouts.</li>
+ *   <li>A response that stops moving for {@link #STALL_MILLIS} is closed, so a vanished peer cannot hold
+ *       one of the four handler threads (mod_support #48).</li>
  *   <li><b>Fails closed to 404</b> rather than 403, which would confirm that a file exists.</li>
  * </ul>
  */
@@ -84,6 +88,19 @@ public final class CsLodHttpServer {
 
     private static final int MAX_CONCURRENT_PER_IP = 6;
     private static final int STOP_GRACE_SECONDS = 2;
+
+    /**
+     * A response that has not moved a single 64 KB block in this long is stalled, and its connection is
+     * closed. The JDK server has no write timeout: a peer that vanishes without a FIN or RST (power cut,
+     * dropped Wi-Fi, a NAT that forgot the mapping) leaves the handler blocked in write() until the OS
+     * gives up on retransmits, which on Linux is a quarter of an hour. This pool has four threads for
+     * EVERY client, so four such peers starve everyone: new requests connect, queue, and are never
+     * answered, which is exactly the "hangs to the 60 s timeout, every time" that mod_support #48
+     * showed. A total response-time cap (the JDK's sun.net.httpserver.maxRspTime) would be wrong here --
+     * it is JVM-wide and would also cut off a slow but healthy transfer of a large region.
+     */
+    static final long STALL_MILLIS = 30_000L;
+    private static final long WATCH_PERIOD_MILLIS = 5_000L;
 
     /**
      * Where a given dimension's region files live. A mod-loader server keeps every
@@ -104,9 +121,15 @@ public final class CsLodHttpServer {
     private final AtomicLong served = new AtomicLong();
     private final AtomicLong bytes = new AtomicLong();
     private final AtomicLong rejected = new AtomicLong();
+    private final AtomicLong stalled = new AtomicLong();
+    /** Responses being written right now, each with the time it last made progress. */
+    private final Map<HttpExchange, AtomicLong> sending = new ConcurrentHashMap<>();
 
     private HttpServer server;
     private ExecutorService pool;
+    private ScheduledExecutorService watchdog;
+    private long stallMillis = STALL_MILLIS;
+    private long watchPeriodMillis = WATCH_PERIOD_MILLIS;
     private int port;
     private boolean derived = true;
 
@@ -188,6 +211,13 @@ public final class CsLodHttpServer {
             server.setExecutor(pool);
             server.createContext(CsLodProtocol.HTTP_PREFIX, this::handle);
             server.start();
+            watchdog = Executors.newSingleThreadScheduledExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "chunksmith-lod-http-watchdog");
+                thread.setDaemon(true);
+                return thread;
+            });
+            watchdog.scheduleWithFixedDelay(this::closeStalled, watchPeriodMillis, watchPeriodMillis,
+                    TimeUnit.MILLISECONDS);
             port = wanted;
             LOGGER.info("Chunksmith: LOD backchannel listening on " + address + " (port " + port
                     + (derived ? ", derived from the game port" : ", set by lodBackchannelPort")
@@ -216,6 +246,11 @@ public final class CsLodHttpServer {
             pool.shutdownNow();
             pool = null;
         }
+        if (watchdog != null) {
+            watchdog.shutdownNow();
+            watchdog = null;
+        }
+        sending.clear();
         tokens.clear();
     }
 
@@ -250,7 +285,8 @@ public final class CsLodHttpServer {
                 ? "backchannel: not running (in-band fallback)"
                 : "backchannel: port " + port + (derived ? " (derived)" : " (configured)")
                         + ", " + served.get() + " files, " + bytes.get()
-                        + " bytes, " + rejected.get() + " rejected, " + tokens.size() + " live tokens";
+                        + " bytes, " + rejected.get() + " rejected, " + stalled.get() + " stalled, " + tokens.size()
+                        + " live tokens";
     }
 
     private void handle(HttpExchange exchange) throws IOException {
@@ -342,28 +378,76 @@ public final class CsLodHttpServer {
             status = 200;
         }
 
-        if (headOnly) {
-            exchange.getResponseHeaders().set("Content-Length", Long.toString(length));
-            exchange.sendResponseHeaders(status, -1);
-            return;
-        }
-
-        exchange.sendResponseHeaders(status, length);
-        try (InputStream in = Files.newInputStream(file); OutputStream out = exchange.getResponseBody()) {
-            in.skipNBytes(offset);
-            byte[] buffer = new byte[64 * 1024];
-            long remaining = length;
-            while (remaining > 0) {
-                int read = in.read(buffer, 0, (int) Math.min(buffer.length, remaining));
-                if (read < 0) {
-                    break;
-                }
-                out.write(buffer, 0, read);
-                remaining -= read;
+        // Watched from the first byte: the headers go out on the same socket and can block just the same.
+        AtomicLong lastProgress = new AtomicLong(System.currentTimeMillis());
+        sending.put(exchange, lastProgress);
+        try {
+            if (headOnly) {
+                exchange.getResponseHeaders().set("Content-Length", Long.toString(length));
+                exchange.sendResponseHeaders(status, -1);
+                return;
             }
+
+            exchange.sendResponseHeaders(status, length);
+            try (InputStream in = Files.newInputStream(file); OutputStream out = exchange.getResponseBody()) {
+                in.skipNBytes(offset);
+                byte[] buffer = new byte[64 * 1024];
+                long remaining = length;
+                while (remaining > 0) {
+                    int read = in.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                    if (read < 0) {
+                        break;
+                    }
+                    out.write(buffer, 0, read);
+                    lastProgress.set(System.currentTimeMillis());
+                    remaining -= read;
+                }
+            }
+        } finally {
+            sending.remove(exchange);
         }
         served.incrementAndGet();
         bytes.addAndGet(length);
+    }
+
+    /**
+     * Closes every response that has stopped moving. Closing the exchange closes its socket, which is
+     * what unblocks the handler stuck in write() -- the same thing the JDK's own response timer does --
+     * and the handler then fails with an IOException and frees its thread and its per-IP slot.
+     */
+    private void closeStalled() {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<HttpExchange, AtomicLong> entry : sending.entrySet()) {
+            if (!isStalled(entry.getValue().get(), now, stallMillis) || !sending.remove(entry.getKey(), entry.getValue())) {
+                continue;
+            }
+            stalled.incrementAndGet();
+            HttpExchange exchange = entry.getKey();
+            String peer;
+            try {
+                peer = exchange.getRemoteAddress().getAddress().getHostAddress();
+            } catch (RuntimeException e) {
+                peer = "?";
+            }
+            LOGGER.warn("Chunksmith: LOD backchannel response to " + peer + " made no progress in "
+                    + (stallMillis / 1000) + "s; closing it so it cannot hold a download thread");
+            try {
+                exchange.close();
+            } catch (RuntimeException e) {
+                // Already closing on its own; either way the thread is free.
+            }
+        }
+    }
+
+    /** The stall rule, pure so it is testable. */
+    static boolean isStalled(long lastProgressMillis, long nowMillis, long stallMillis) {
+        return nowMillis - lastProgressMillis >= stallMillis;
+    }
+
+    /** Tests only, before {@link #start}: a stall threshold a test can wait out. */
+    void stallTimingForTest(long stallMillis, long watchPeriodMillis) {
+        this.stallMillis = stallMillis;
+        this.watchPeriodMillis = watchPeriodMillis;
     }
 
     /** Parses the single byte range a request may carry. A multi-range request gets the whole file. */

@@ -87,6 +87,16 @@ public final class CsLodDownloader {
      */
     private final AtomicReference<String> firstFailure = new AtomicReference<>();
 
+    /**
+     * Failures that say the fast path itself is dead, as opposed to the server being busy (429). When the
+     * first {@link #WORKERS} of these land before a single region arrives, the rest of the run is skipped
+     * so the caller can fall back to the in-band channel now. Without it the fallback waited for EVERY
+     * region to fail: on a link where each request hangs to its 60 s timeout that was 234 regions x ~15 s,
+     * about an hour of nothing, and the player quit long before LOD arrived (mod_support #48).
+     */
+    private final AtomicLong deadFailures = new AtomicLong();
+    private final AtomicBoolean gaveUp = new AtomicBoolean();
+
     private volatile ExecutorService pool;
 
     /**
@@ -171,7 +181,7 @@ public final class CsLodDownloader {
         });
         for (CsLodMessages.RegionEntry entry : wanted) {
             pool.submit(() -> {
-                if (cancelled.get()) {
+                if (cancelled.get() || gaveUp.get()) {
                     return;
                 }
                 try {
@@ -181,11 +191,16 @@ public final class CsLodDownloader {
                         progress.accept("LOD: fetched " + done + "/" + wanted.size()
                                 + " regions (" + (bytes.get() / 1024 / 1024) + " MB)");
                     }
-                } catch (IOException | InterruptedException e) {
+                } catch (InterruptedException e) {
+                    // Only cancel() interrupts these threads; the session is ending, so it says nothing
+                    // about the fast path.
+                    failed.incrementAndGet();
+                    Thread.currentThread().interrupt();
+                } catch (IOException e) {
                     failed.incrementAndGet();
                     noteFailure(entry, e);
-                    if (e instanceof InterruptedException) {
-                        Thread.currentThread().interrupt();
+                    if (!(e instanceof ServerBusy)) {
+                        countDeadFailure(progress);
                     }
                 } catch (RuntimeException e) {
                     // submit() parks an escaping RuntimeException in a Future nobody reads, so it
@@ -193,6 +208,7 @@ public final class CsLodDownloader {
                     // and NOTHING falls back. That silence was the whole of mod_support #26.
                     failed.incrementAndGet();
                     noteFailure(entry, e);
+                    countDeadFailure(progress);
                 }
             });
         }
@@ -217,6 +233,41 @@ public final class CsLodDownloader {
         String why = firstFailure.get();
         if (why != null) {
             progress.accept("LOD: first download failure from " + host + ":" + port + " -- " + why);
+        }
+    }
+
+    private void countDeadFailure(Consumer<String> progress) {
+        if (cancelled.get()) {
+            return;
+        }
+        long dead = deadFailures.incrementAndGet();
+        if (shouldGiveUp(dead, downloaded.get()) && gaveUp.compareAndSet(false, true)) {
+            progress.accept("LOD: the first " + dead + " backchannel downloads all failed and none"
+                    + " succeeded; skipping the rest of this pass");
+        }
+    }
+
+    /** The give-up rule, pure so it is testable: a full first batch dead, nothing ever arrived. */
+    static boolean shouldGiveUp(long deadFailures, long fetched) {
+        return fetched == 0 && deadFailures >= WORKERS;
+    }
+
+    /** True when the remaining regions were skipped because the fast path looked dead. */
+    public boolean gaveUp() {
+        return gaveUp.get();
+    }
+
+    /** True when {@link #cancel()} stopped the run (session ending, or the player asked). */
+    public boolean wasCancelled() {
+        return cancelled.get();
+    }
+
+    /** The server's "too many parallel fetches from your address" answer: busy, not dead. */
+    static final class ServerBusy extends IOException {
+        private static final long serialVersionUID = 1L;
+
+        ServerBusy(String message) {
+            super(message);
         }
     }
 
@@ -321,7 +372,12 @@ public final class CsLodDownloader {
 
         HttpResponse<InputStream> response =
                 http.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() == 429) {
+            response.body().close();
+            throw new ServerBusy("HTTP 429 for " + name);
+        }
         if (response.statusCode() != 200) {
+            response.body().close();
             throw new IOException("HTTP " + response.statusCode() + " for " + name);
         }
 

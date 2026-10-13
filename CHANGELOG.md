@@ -7,6 +7,15 @@
 - When LOD downloads over the fast path fail, the client now says why: the first failure's cause is
   printed after the "LOD: done" line and shown in the download status. Before, only the "failed"
   count went up, with no error anywhere (mod_support #48).
+- Fixed: when LOD downloads over the fast path all failed, the client only switched to the slower
+  in-band channel after trying EVERY region. With requests hanging to their 60-second timeout that took
+  about an hour, so LOD never arrived. It now switches after the first four fail with nothing received,
+  within about a minute (mod_support #48). A busy server (HTTP 429) does not count.
+- Fixed: the client no longer starts an in-band transfer while leaving a server, and the "accepted a
+  connection but served nothing" warning names the real port instead of 0.
+- Fixed (server): a download whose receiver stops reading (a PC that lost power, a dropped Wi-Fi link) is
+  now closed after 30 seconds without progress. Before, each one held one of the backchannel's four
+  threads for up to a quarter of an hour, and four of them stopped downloads for every player.
 
 ## [4.5.0] - 2026-10-09
 
