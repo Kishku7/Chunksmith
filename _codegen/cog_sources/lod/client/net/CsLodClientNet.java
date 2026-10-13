@@ -113,6 +113,8 @@ public final class CsLodClientNet {
     private static volatile String token = "";
     private static volatile long tokenIssuedMillis;
     private static volatile int backchannelPort;
+    /** What the server advertised, kept so a port we stopped using can be tried again at the next sync. */
+    private static volatile int advertisedBackchannelPort;
     private static volatile String host = "";
 
     /**
@@ -227,6 +229,18 @@ public final class CsLodClientNet {
     private static volatile CsLodManifest inBandManifest;
     private static final Map<String, ByteArrayOutputStream> PARTIAL = new HashMap<>();
 
+    /**
+     * An in-band request that has had no answer in this long is given up. A Bukkit/Paper server has no
+     * in-band sender and drops the request without a word, and nothing else ever released the busy latch:
+     * the client then never synced again for the rest of the session, so it never tried the backchannel
+     * again either, even once that came back (mod_support #48). A mod server answers with its first slice
+     * within a tick or two of the request, and with S2C_DONE when there is nothing to send.
+     */
+    static final long IN_BAND_STALL_MILLIS = 60_000L;
+    private static volatile boolean inBandPending;
+    private static volatile long inBandProgressMillis;
+    private static boolean inBandStallTold;
+
     private CsLodClientNet() {
     }
 
@@ -253,6 +267,7 @@ public final class CsLodClientNet {
         if (dimensionTick()) {
             return;
         }
+        inBandStallTick();
         if (busy.get()) {
             return;
         }
@@ -320,6 +335,7 @@ public final class CsLodClientNet {
         // lands now describes somewhere they no longer are, and the injector will refuse it. Cancel the
         // in-flight fetch so we are not holding the busy latch against the dimension we are about to ask for.
         activeDimension = "";
+        inBandPending = false;
         inBandRoot = null;
         inBandDimension = "";
         inBandRegions = List.of();
@@ -596,6 +612,7 @@ public final class CsLodClientNet {
                         // A 3.x server asking us to change a client setting. Compat only -- see the class.
                         CsLodLegacySettings.handle(CsLodMessages.decodeClientSetting(in));
                 case CsLodProtocol.S2C_DONE -> {
+                    inBandPending = false;
                     LOGGER.info("Chunksmith: in-band transfer complete");
                     // One manifest write for the whole transfer, not one per region.
                     CsLodManifest manifest = inBandManifest;
@@ -673,6 +690,7 @@ public final class CsLodClientNet {
         token = hello.token();
         tokenIssuedMillis = System.currentTimeMillis();
         backchannelPort = hello.backchannelPort();
+        advertisedBackchannelPort = backchannelPort;
         // A server that names a host overrides the address we connected to. Almost no server does,
         // and the connect address is the better answer when none is named: it demonstrably reaches
         // this server from where this player is sitting. But it is wrong wherever the backchannel
@@ -868,6 +886,7 @@ public final class CsLodClientNet {
         final int port = backchannelPort;
 
         // Off the game thread: a download must never make the game stutter. Injection follows on the same thread.
+        final boolean[] handedOff = {false};
         Thread worker = new Thread(() -> {
             try {
                 // One cheap probe before we queue anything: an advertised-but-unreachable port costs a
@@ -878,6 +897,7 @@ public final class CsLodClientNet {
                     LOGGER.warn("Chunksmith: the backchannel on port {} is advertised but unreachable;"
                             + " falling back to the in-band channel (slower)", port);
                     backchannelPort = 0;
+                    handedOff[0] = true;
                     Minecraft.getInstance().execute(() -> inBand(index, root));
                     return;
                 }
@@ -900,8 +920,12 @@ public final class CsLodClientNet {
                 if (current.fetched() == 0 && current.failed() > 0) {
                     LOGGER.warn("Chunksmith: the backchannel on port {} accepted a connection but"
                                     + " served nothing ({} regions failed); falling back to the in-band"
-                                    + " channel (slower)", port, current.failed());
-                    backchannelPort = 0;
+                                    + " channel (slower) and trying the backchannel again at the next sync",
+                            port, current.failed());
+                    // The port stays as advertised. Zeroing it made one bad minute last the whole session,
+                    // and on a Bukkit/Paper server, which has no in-band channel, that meant no LOD at all
+                    // even after the backchannel recovered.
+                    handedOff[0] = true;
                     Minecraft.getInstance().execute(() -> inBand(index, root));
                     return;
                 }
@@ -915,11 +939,50 @@ public final class CsLodClientNet {
                         root, index.dimension(), index.regions(),
                         line -> LOGGER.info("Chunksmith: {}", line));
             } finally {
-                busy.set(false);
+                // Handing off to in-band hands the latch over too: inBand() and its transfer release it
+                // (S2C_DONE -> injection, a send failure, or the stall check). Releasing it here as well
+                // let the next sync start a SECOND in-band transfer of the same regions while the first
+                // was still landing; the two interleaved their slices and the injector read a corrupt
+                // region ("incorrect header check", seen on the #48 gate with 4.5.0).
+                if (!handedOff[0]) {
+                    busy.set(false);
+                }
             }
         }, "chunksmith-lod-client");
         worker.setDaemon(true);
         worker.start();
+    }
+
+    /**
+     * Gives up an in-band request the server is not answering, and puts the advertised backchannel back so
+     * the next sync tries it again. Releasing the latch is the whole fix: the sync poll already notices that
+     * we hold less than the server has, and asks again.
+     */
+    private static void inBandStallTick() {
+        if (!inBandPending || !inBandStalled(inBandProgressMillis, System.currentTimeMillis())) {
+            return;
+        }
+        inBandPending = false;
+        if (!inBandStallTold) {
+            inBandStallTold = true;
+            LOGGER.warn("Chunksmith: the server sent no in-band LOD data in {}s (a Bukkit/Paper server cannot"
+                    + " send LOD that way, only over its backchannel port); stopping, and the backchannel will be"
+                    + " tried again at the next sync", IN_BAND_STALL_MILLIS / 1000);
+        }
+        if (backchannelPort == 0) {
+            backchannelPort = advertisedBackchannelPort;
+        }
+        inBandRoot = null;
+        inBandDimension = "";
+        inBandRegions = List.of();
+        inBandManifest = null;
+        PARTIAL.clear();
+        busy.set(false);
+    }
+
+    /** The in-band stall rule, pure so it is testable. */
+    static boolean inBandStalled(long lastProgressMillis, long nowMillis) {
+        return nowMillis - lastProgressMillis >= IN_BAND_STALL_MILLIS;
     }
 
     /** Can we actually open a socket to the advertised backchannel? Two seconds, once, off the game thread. */
@@ -961,8 +1024,11 @@ public final class CsLodClientNet {
             return;
         }
         try {
+            inBandProgressMillis = System.currentTimeMillis();
+            inBandPending = true;
             send(CsLodMessages.requestRegions(index.dimension(), wanted));
         } catch (IOException e) {
+            inBandPending = false;
             busy.set(false);
             LOGGER.warn("Chunksmith: failed to request in-band regions: {}", e.toString());
         }
@@ -978,6 +1044,7 @@ public final class CsLodClientNet {
         if (root == null) {
             return;
         }
+        inBandProgressMillis = System.currentTimeMillis();
         String key = slice.regionX() + "." + slice.regionZ();
         ByteArrayOutputStream buffer =
                 PARTIAL.computeIfAbsent(key, ignored -> new ByteArrayOutputStream());
@@ -1319,6 +1386,9 @@ public final class CsLodClientNet {
         token = "";
         tokenIssuedMillis = 0L;
         backchannelPort = 0;
+        advertisedBackchannelPort = 0;
+        inBandPending = false;
+        inBandStallTold = false;
         host = "";
         advertisedHost = "";
         worldId = "";

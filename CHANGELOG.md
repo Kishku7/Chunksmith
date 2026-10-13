@@ -1,6 +1,6 @@
 # Chunksmith Changelog
 
-## [Unreleased]
+## [4.5.1] - 2026-10-12
 
 - The startup message about LOD storage now says about 5 KB per chunk (measured 2026-10-12 on
   9,409 chunks), not 12 KB. Nothing about the store changed; the old figure overstated it.
@@ -16,6 +16,13 @@
 - Fixed (server): a download whose receiver stops reading (a PC that lost power, a dropped Wi-Fi link) is
   now closed after 30 seconds without progress. Before, each one held one of the backchannel's four
   threads for up to a quarter of an hour, and four of them stopped downloads for every player.
+- Fixed: on a Bukkit/Paper server (which has no in-band channel), a client that fell back to in-band
+  waited for an answer that never came and stopped syncing for the rest of the session, so it never tried
+  the fast path again either. The client now gives up an unanswered in-band request after 60 seconds and
+  tries the backchannel again at the next sync, so LOD arrives as soon as the backchannel works.
+- Fixed: when the client fell back to in-band, the next sync could start a second in-band transfer of the
+  same regions while the first was still arriving. The two mixed their pieces and the client then failed
+  to read the region ("incorrect header check"), so that LOD never showed.
 
 ## [4.5.0] - 2026-10-09
 
