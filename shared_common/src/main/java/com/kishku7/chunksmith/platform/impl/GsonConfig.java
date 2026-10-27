@@ -28,6 +28,8 @@ import com.kishku7.chunksmith.platform.ServerEnvironment;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.worldenter.WorldEnterCenter;
+import com.kishku7.chunksmith.worldenter.WorldEnterDimensions;
+import com.kishku7.chunksmith.worldenter.WorldEnterShape;
 import com.kishku7.chunksmith.util.Translator;
 
 import java.io.IOException;
@@ -611,6 +613,32 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public String getWorldEnterPregenShape() {
+        String raw = Optional.ofNullable(configModel.worldEnterPregenShape).orElse(WorldEnterShape.DEFAULT);
+        String parsed = WorldEnterShape.parse(raw);
+        if (parsed == null) {
+            LOGGER.warn("Chunksmith: worldEnterPregenShape \"" + raw + "\" is not one of "
+                    + String.join(", ", WorldEnterShape.ALL) + "; using " + WorldEnterShape.DEFAULT + " instead");
+            return WorldEnterShape.DEFAULT;
+        }
+        return parsed;
+    }
+
+    @Override
+    public String getWorldEnterPregenDimensions() {
+        String raw = Optional.ofNullable(configModel.worldEnterPregenDimensions)
+                .orElse(WorldEnterDimensions.DEFAULT);
+        var parsed = WorldEnterDimensions.parse(raw);
+        if (parsed == null) {
+            LOGGER.warn("Chunksmith: worldEnterPregenDimensions \"" + raw + "\" is not 'overworld', 'nether',"
+                    + " 'end', a comma-separated mix of them, or 'all'; using " + WorldEnterDimensions.DEFAULT
+                    + " instead");
+            return WorldEnterDimensions.DEFAULT;
+        }
+        return WorldEnterDimensions.spec(parsed);
+    }
+
+    @Override
     public String getLodBackchannelBindAddress() {
         return Input.checkHost(configModel.lodBackchannelBindAddress);
     }
@@ -843,6 +871,21 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public void setWorldEnterPregenShape(String shape) {
+        String parsed = WorldEnterShape.parse(shape);
+        configModel.worldEnterPregenShape = parsed == null ? WorldEnterShape.DEFAULT : parsed;
+        saveConfig();
+    }
+
+    @Override
+    public void setWorldEnterPregenDimensions(String spec) {
+        var parsed = WorldEnterDimensions.parse(spec);
+        configModel.worldEnterPregenDimensions =
+                parsed == null ? WorldEnterDimensions.DEFAULT : WorldEnterDimensions.spec(parsed);
+        saveConfig();
+    }
+
+    @Override
     public void setWorldEnterPregenRadius(long blocks) {
         configModel.worldEnterPregenRadius =
                 Math.max(WORLD_ENTER_RADIUS_MIN, Math.min(WORLD_ENTER_RADIUS_MAX, blocks));
@@ -946,6 +989,10 @@ public final class GsonConfig implements Config {
         // 'auto' from 4.5.0 (mod_support #45): spawn for a world that never finished a world-enter run,
         // that run's own centre for one that did. See WorldEnterCenter.
         private String worldEnterPregenCenter = WorldEnterCenter.DEFAULT;
+        // circle by default. See Config#getWorldEnterPregenShape.
+        private String worldEnterPregenShape = WorldEnterShape.DEFAULT;
+        // overworld by default. See Config#getWorldEnterPregenDimensions.
+        private String worldEnterPregenDimensions = WorldEnterDimensions.DEFAULT;
         // Empty = bind wherever the game bound. See Config#getLodBackchannelBindAddress.
         private String lodBackchannelBindAddress = "";
         // Empty = let each client use the address it connected to. See Config#getLodBackchannelHost.

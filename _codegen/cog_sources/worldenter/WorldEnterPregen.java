@@ -53,6 +53,8 @@ import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.LevelResource;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -93,7 +95,6 @@ public final class WorldEnterPregen {
 
     /** Pattern for the generated selection. Concentric finishes near the player first. */
     private static final String PATTERN = "concentric";
-    private static final String SHAPE = "circle";
 
     private static final AtomicBoolean ACTIVE = new AtomicBoolean(false);
     private static final PregenEta ETA = new PregenEta();
@@ -120,6 +121,13 @@ public final class WorldEnterPregen {
      */
     private static volatile boolean selectionCovered;
     private static volatile long radiusBlocks;
+    /** The shape of the run in progress (#51). */
+    private static volatile String shape = WorldEnterShape.DEFAULT;
+    /** Dimensions still to run after the current one (#52), in order. */
+    private static volatile List<String> pending = List.of();
+    /** How many dimensions this load set out to run, and how many have finished (#52). */
+    private static volatile int dimensionsTotal = 1;
+    private static volatile int dimensionsDone;
     private static volatile double centerBlocksX;
     private static volatile double centerBlocksZ;
 
@@ -151,29 +159,44 @@ public final class WorldEnterPregen {
             return;
         }
         ServerLevel level = mcServer.overworld();
-        String dimension = dimensionId(level);
         long radius = config.getWorldEnterPregenRadius();
+        String wantedShape = config.getWorldEnterPregenShape();
+        List<String> wantedDimensions = WorldEnterDimensions.parse(config.getWorldEnterPregenDimensions());
+        if (wantedDimensions == null) {
+            wantedDimensions = List.of(WorldEnterDimensions.OVERWORLD_ID);
+        }
         // mod_support #34: this was hard-coded to (0, 0), so any mod that relocates world spawn had
         // it pregenerate terrain the player never stands on. Resolved HERE, per load, because
         // 'spawn' can move between loads -- what gets recorded as complete is the resolved place.
+        //
+        // ONCE IT IS DONE, IT IS DONE (decided 2026-09-02), now per dimension (#52): a dimension whose
+        // record already covers what is wanted -- same shape or a covering one, same or larger radius,
+        // containing the wanted centre -- is left out of this run. Only the rest run.
+        List<String> todo = new ArrayList<>();
+        for (String wanted : wantedDimensions) {
+            double[] wantedCenter = resolveCenter(mcServer, config, wanted);
+            Optional<WorldEnterDone> finished = WorldEnterDone.read(worldDir(mcServer), wanted);
+            if (finished.isPresent() && finished.get().satisfies(
+                    wanted, radius, wantedCenter[0], wantedCenter[1], wantedShape)) {
+                LOGGER.info("Chunksmith: {} has already been pre-generated to {} blocks, so its world-enter"
+                        + " pregen is being skipped. Raise worldEnterPregenRadius if you want more, or delete"
+                        + " {} in the world folder to run it again.",
+                        WorldEnterDimensions.displayName(wanted), finished.get().radiusBlocks(),
+                        WorldEnterDimensions.recordFileName(wanted));
+                continue;
+            }
+            todo.add(wanted);
+        }
+        if (todo.isEmpty()) {
+            return;
+        }
+        String dimension = todo.get(0);
         double[] center = resolveCenter(mcServer, config, dimension);
         double centerX = center[0];
         double centerZ = center[1];
 
-        // ONCE IT IS DONE, IT IS DONE (decided 2026-09-02). Without this the pregen fired on EVERY
-        // single-player load: the task skips chunks that already exist, so nothing was destroyed,
-        // but the player was put back behind the progress screen on a world they had already
-        // waited out. Continuing a PARTIAL run is still wanted -- pressing "Enter World Now" leaves
-        // no record, so the next load picks up where it stopped. Only a real completion writes one.
-        Optional<WorldEnterDone> alreadyDone = WorldEnterDone.read(worldDir(mcServer));
-        if (alreadyDone.isPresent()
-                && alreadyDone.get().satisfies(dimension, radius, centerX, centerZ)) {
-            LOGGER.info("Chunksmith: this world has already been pre-generated to {} blocks, so the"
-                    + " world-enter pregen is being skipped. Raise worldEnterPregenRadius if you"
-                    + " want more, or delete {} in the world folder to run it again.",
-                    alreadyDone.get().radiusBlocks(), WorldEnterDone.FILE_NAME);
-            return;
-        }
+        // Continuing a PARTIAL run is still wanted -- pressing "Enter World Now" leaves no record, so
+        // the next load picks up where it stopped. Only a real completion writes one.
 
         if (!ACTIVE.compareAndSet(false, true)) {
             return;
@@ -182,9 +205,13 @@ public final class WorldEnterPregen {
         server = mcServer;
         worldKey = dimension;
         radiusBlocks = radius;
+        shape = wantedShape;
+        pending = List.copyOf(todo.subList(1, todo.size()));
+        dimensionsTotal = todo.size();
+        dimensionsDone = 0;
         centerBlocksX = centerX;
         centerBlocksZ = centerZ;
-        chunksTotal = estimateChunks(radius);
+        chunksTotal = WorldEnterShape.estimateChunks(wantedShape, radius);
         ETA.reset();
         chunksDone = 0L;
         percentComplete = 0.0f;
@@ -219,6 +246,18 @@ public final class WorldEnterPregen {
         raiseThrottleForAnEmptyWorld(config);
         freeze(mcServer, true);
 
+        if (!startCurrentTask(config)) {
+            LOGGER.warn("Chunksmith: the world-enter pregen could not start a task; releasing the"
+                    + " world and restoring settings.");
+            release();
+        }
+    }
+
+    /**
+     * Starts the task for {@link #worldKey} with the current shape, radius and centre, and says so.
+     * Called for the first dimension of a load and again for each one after it (#52).
+     */
+    private static boolean startCurrentTask(Config config) {
         // The LOD horizon (mod_support #39) is best effort here: a player entering a world must never be
         // refused a pregen over it. Where it cannot run, run without it and say why in the log. Checked after
         // the freeze, because whether LOD is built during the world-enter run depends on it.
@@ -234,18 +273,17 @@ public final class WorldEnterPregen {
             }
         }
         boolean started = ChunksmithProvider.get().getApi().startTask(
-                worldKey, SHAPE, centerX, centerZ, radius, radius, PATTERN, horizon);
+                worldKey, shape, centerBlocksX, centerBlocksZ, radiusBlocks, radiusBlocks, PATTERN, horizon);
         if (!started) {
-            LOGGER.warn("Chunksmith: the world-enter pregen could not start a task; releasing the"
-                    + " world and restoring settings.");
-            release();
-            return;
+            return false;
         }
-        LOGGER.info("Chunksmith: world-enter pregen started -- radius {} blocks (~{} chunks)"
+        LOGGER.info("Chunksmith: world-enter pregen started in {} -- {} of radius {} blocks (~{} chunks)"
                 + " centred on {}, {}."
                 + " The world is frozen until it finishes or you choose to enter."
                 + " Freezing does NOT make this faster; it stops the world moving while it runs.",
-                radius, chunksTotal, (long) centerX, (long) centerZ);
+                WorldEnterDimensions.displayName(worldKey), shape, radiusBlocks, chunksTotal,
+                (long) centerBlocksX, (long) centerBlocksZ);
+        return true;
     }
 
     /**
@@ -297,6 +335,11 @@ public final class WorldEnterPregen {
             // Only the permanent record is conditional.
             if (selectionCovered) {
                 recordCompletion();
+                if (!pending.isEmpty()) {
+                    // The player stays behind the screen: there is another dimension to do (#52).
+                    advanceToNextDimension();
+                    return;
+                }
                 LOGGER.info("Chunksmith: world-enter pregen finished; releasing the world."
                         + " It will not run again on this world.");
             } else {
@@ -320,6 +363,37 @@ public final class WorldEnterPregen {
     }
 
     /**
+     * The current dimension is finished and recorded; start the next one, behind the same freeze and the
+     * same screen. If it cannot start, release the player rather than leave them waiting on nothing.
+     */
+    private static void advanceToNextDimension() {
+        MinecraftServer mcServer = server;
+        if (mcServer == null || !ChunksmithProvider.isLoaded()) {
+            release();
+            return;
+        }
+        Config config = ChunksmithProvider.get().getConfig();
+        String next = pending.get(0);
+        pending = List.copyOf(pending.subList(1, pending.size()));
+        dimensionsDone++;
+        double[] center = resolveCenter(mcServer, config, next);
+        worldKey = next;
+        centerBlocksX = center[0];
+        centerBlocksZ = center[1];
+        chunksTotal = WorldEnterShape.estimateChunks(shape, radiusBlocks);
+        ETA.reset();
+        chunksDone = 0L;
+        percentComplete = 0.0f;
+        selectionCovered = false;
+        if (!startCurrentTask(config)) {
+            LOGGER.warn("Chunksmith: could not start the world-enter pregen for {}; releasing the world."
+                    + " It will be tried again next time you load this world.",
+                    WorldEnterDimensions.displayName(next));
+            release();
+        }
+    }
+
+    /**
      * Marks this world as pre-generated so it is never pre-generated again.
      *
      * <p>A failure here is logged but NOT fatal: not recording a completion costs one redundant
@@ -332,7 +406,7 @@ public final class WorldEnterPregen {
             return;
         }
         boolean recorded = new WorldEnterDone(worldKey, radiusBlocks,
-                centerBlocksX, centerBlocksZ, System.currentTimeMillis())
+                centerBlocksX, centerBlocksZ, shape, System.currentTimeMillis())
                 .write(worldDir(mcServer));
         if (!recorded) {
             LOGGER.warn("Chunksmith: the world-enter pregen finished but its completion could not be"
@@ -466,6 +540,18 @@ public final class WorldEnterPregen {
         return chunksTotal;
     }
 
+    /**
+     * The line under the screen's title. The same sentence as ever for a one-dimension run; with several,
+     * it names the one in progress and how far through the list the run is (#52).
+     */
+    public static String headline() {
+        if (dimensionsTotal <= 1) {
+            return "Pre-generating terrain so it is ready before you arrive.";
+        }
+        return "Pre-generating " + WorldEnterDimensions.displayName(worldKey) + " (" + (dimensionsDone + 1)
+                + " of " + dimensionsTotal + ") so it is ready before you arrive.";
+    }
+
     /** Records progress and returns chunks done, for the bar and the estimate. */
     public static long chunksDone() {
         return chunksDone;
@@ -494,18 +580,6 @@ public final class WorldEnterPregen {
     // ---------------------------------------------------------------- helpers
 
     /**
-     * Chunks inside a circle of this radius, which is what the bar is a fraction of.
-     *
-     * <p>An estimate on purpose: the real total depends on how much is already
-     * generated, and the task only learns that as it scans. Close enough for a
-     * progress bar, and the ETA is driven by observed rate rather than by this.
-     */
-    static long estimateChunks(long radiusBlocks) {
-        double radiusChunks = radiusBlocks / 16.0;
-        return (long) Math.ceil(Math.PI * radiusChunks * radiusChunks);
-    }
-
-    /**
      * The configured centre as {@code [x, z]} blocks.
      *
      * <p>{@code spawn} goes through the platform {@code World} rather than touching
@@ -518,6 +592,12 @@ public final class WorldEnterPregen {
      * this whole change exists to fix.
      */
     private static double[] resolveCenter(MinecraftServer mcServer, Config config, String dimension) {
+        // The configured centre is an overworld position. The Nether and the End are centred on their own
+        // origin: the overworld spawn means nothing there, and a Nether coordinate is one eighth of the
+        // overworld one, so reusing the number would pregenerate somewhere the player never goes (#52).
+        if (!WorldEnterDimensions.OVERWORLD_ID.equals(dimension)) {
+            return new double[] {0.0, 0.0};
+        }
         WorldEnterCenter wanted = WorldEnterCenter.parse(config.getWorldEnterPregenCenter());
         if (wanted == null) {
             // The config getter already warned and canonicalised; this is belt and braces.
@@ -530,7 +610,7 @@ public final class WorldEnterPregen {
             // A world that already finished a world-enter run keeps that run's centre, so the default
             // moving from origin to spawn at 4.5.0 cannot send a finished world back behind the freeze
             // screen. Every other world -- new, or never finished -- is centred where the player spawns.
-            Optional<WorldEnterDone> done = WorldEnterDone.read(worldDir(mcServer));
+            Optional<WorldEnterDone> done = WorldEnterDone.read(worldDir(mcServer), dimension);
             if (done.isPresent() && dimension.equals(done.get().dimension())) {
                 return new double[] {done.get().centerX(), done.get().centerZ()};
             }

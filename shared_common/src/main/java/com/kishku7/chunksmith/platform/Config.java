@@ -429,6 +429,21 @@ public interface Config {
      */
     String getWorldEnterPregenCenter();
 
+    /**
+     * The shape the world-enter pregen covers (4.8.0, mod_support #51): one of {@code circle} (the default),
+     * {@code square}, {@code diamond}, {@code hexagon}, {@code pentagon}, {@code triangle} or {@code star}.
+     * The radius is the distance from the centre to the farthest point. An implementation that cannot offer
+     * the feature returns {@code circle}.
+     */
+    String getWorldEnterPregenShape();
+
+    /**
+     * Which dimensions the world-enter pregen covers (4.8.0, mod_support #52), as a spec for
+     * {@code WorldEnterDimensions.parse}: {@code overworld} (the default), or a comma-separated mix of
+     * {@code overworld}, {@code nether} and {@code end}, or {@code all}. They run one after another.
+     */
+    String getWorldEnterPregenDimensions();
+
     void setLanguage(String language);
 
     void setContinueOnRestart(boolean continueOnRestart);
@@ -526,6 +541,12 @@ public interface Config {
 
     /** Sets the world-enter pregen centre from a spec. See {@link #getWorldEnterPregenCenter()}. */
     void setWorldEnterPregenCenter(String spec);
+
+    /** Sets the world-enter pregen shape. See {@link #getWorldEnterPregenShape()}. */
+    void setWorldEnterPregenShape(String shape);
+
+    /** Sets the world-enter pregen dimensions. See {@link #getWorldEnterPregenDimensions()}. */
+    void setWorldEnterPregenDimensions(String spec);
 
     void reload();
 }

@@ -53,10 +53,14 @@ import java.util.Optional;
  */
 public final class WorldEnterDone {
 
-    /** Written inside the world directory: {@code <world>/chunksmith/worldenter-done.json}. */
+    /**
+     * Written inside the world directory: {@code <world>/chunksmith/worldenter-done.json} for the overworld.
+     * The Nether and the End each have their own file, see {@link WorldEnterDimensions#recordFileName}.
+     */
     public static final String FILE_NAME = "worldenter-done.json";
 
     private final String dimension;
+    private final String shape;
     private final long radiusBlocks;
     private final double centerX;
     private final double centerZ;
@@ -75,7 +79,17 @@ public final class WorldEnterDone {
 
     public WorldEnterDone(String dimension, long radiusBlocks,
                           double centerX, double centerZ, long completedAtMillis) {
+        this(dimension, radiusBlocks, centerX, centerZ, WorldEnterShape.DEFAULT, completedAtMillis);
+    }
+
+    /**
+     * A record that knows its shape. One written before 4.8.0 has no shape, and reads as a circle,
+     * which is the only thing the feature drew until then.
+     */
+    public WorldEnterDone(String dimension, long radiusBlocks,
+                          double centerX, double centerZ, String shape, long completedAtMillis) {
         this.dimension = dimension;
+        this.shape = shape == null || shape.isEmpty() ? WorldEnterShape.DEFAULT : shape;
         this.radiusBlocks = radiusBlocks;
         this.centerX = centerX;
         this.centerZ = centerZ;
@@ -92,6 +106,10 @@ public final class WorldEnterDone {
 
     public String dimension() {
         return dimension;
+    }
+
+    public String shape() {
+        return shape;
     }
 
     public long radiusBlocks() {
@@ -128,7 +146,20 @@ public final class WorldEnterDone {
      */
     public boolean satisfies(String wantedDimension, long wantedRadius,
                              double wantedX, double wantedZ) {
+        return satisfies(wantedDimension, wantedRadius, wantedX, wantedZ, WorldEnterShape.DEFAULT);
+    }
+
+    /**
+     * As above, for a wanted run of a given shape (mod_support #51). A finished circle does not cover a
+     * square of the same radius, so the shape has to be compatible before the containment test counts.
+     * See {@link WorldEnterShape#covers}.
+     */
+    public boolean satisfies(String wantedDimension, long wantedRadius,
+                             double wantedX, double wantedZ, String wantedShape) {
         if (dimension == null || !dimension.equals(wantedDimension)) {
+            return false;
+        }
+        if (!WorldEnterShape.covers(shape, wantedShape)) {
             return false;
         }
         double dx = centerX - wantedX;
@@ -147,10 +178,12 @@ public final class WorldEnterDone {
      */
     public boolean write(Path worldDir) {
         Path dir = worldDir.resolve("chunksmith");
-        Path target = dir.resolve(FILE_NAME);
-        Path temp = dir.resolve(FILE_NAME + ".tmp");
+        String fileName = WorldEnterDimensions.recordFileName(dimension);
+        Path target = dir.resolve(fileName);
+        Path temp = dir.resolve(fileName + ".tmp");
         String json = "{\n"
                 + "  \"dimension\": \"" + dimension + "\",\n"
+                + "  \"shape\": \"" + shape + "\",\n"
                 + "  \"radiusBlocks\": " + radiusBlocks + ",\n"
                 + "  \"centerX\": " + centerX + ",\n"
                 + "  \"centerZ\": " + centerZ + ",\n"
@@ -180,7 +213,12 @@ public final class WorldEnterDone {
      * looks like a bug with no evidence.
      */
     public static Optional<WorldEnterDone> read(Path worldDir) {
-        Path target = worldDir.resolve("chunksmith").resolve(FILE_NAME);
+        return read(worldDir, WorldEnterDimensions.OVERWORLD_ID);
+    }
+
+    /** The record for one dimension, if the world has one. See {@link #read(Path)}. */
+    public static Optional<WorldEnterDone> read(Path worldDir, String dimensionId) {
+        Path target = worldDir.resolve("chunksmith").resolve(WorldEnterDimensions.recordFileName(dimensionId));
         if (!Files.isRegularFile(target)) {
             return Optional.empty();
         }
@@ -195,6 +233,7 @@ public final class WorldEnterDone {
             return Optional.of(new WorldEnterDone(dim, radius,
                     Double.parseDouble(field(json, "centerX", "0")),
                     Double.parseDouble(field(json, "centerZ", "0")),
+                    field(json, "shape", WorldEnterShape.DEFAULT),
                     Long.parseLong(field(json, "completedAtMillis", "0"))));
         } catch (IOException | NumberFormatException e) {
             return Optional.empty();
@@ -203,10 +242,13 @@ public final class WorldEnterDone {
 
     /** Removes the record, so the world is eligible again. Used by {@code /cs} tooling and tests. */
     public static void clear(Path worldDir) {
-        try {
-            Files.deleteIfExists(worldDir.resolve("chunksmith").resolve(FILE_NAME));
-        } catch (IOException ignored) {
-            // Nothing useful to do: the world simply stays marked as done.
+        for (String id : new String[] {WorldEnterDimensions.OVERWORLD_ID, WorldEnterDimensions.NETHER_ID,
+                WorldEnterDimensions.END_ID}) {
+            try {
+                Files.deleteIfExists(worldDir.resolve("chunksmith").resolve(WorldEnterDimensions.recordFileName(id)));
+            } catch (IOException ignored) {
+                // Nothing useful to do: the world simply stays marked as done.
+            }
         }
     }
 

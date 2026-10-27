@@ -26,6 +26,8 @@ import com.kishku7.chunksmith.platform.Config;
 import com.kishku7.chunksmith.platform.LodMode;
 import com.kishku7.chunksmith.util.Input;
 import com.kishku7.chunksmith.worldenter.WorldEnterCenter;
+import com.kishku7.chunksmith.worldenter.WorldEnterDimensions;
+import com.kishku7.chunksmith.worldenter.WorldEnterShape;
 
 import java.util.List;
 import java.util.Locale;
@@ -147,6 +149,15 @@ public final class ConfigSettings {
                     // argument cannot contain a comma, so 512,-64 is rejected by the COMMAND before
                     // this setting ever sees it. Found by typing it at a live server.
                     "expected 'auto', 'origin', 'spawn', or coordinates in quotes like \"512,-64\"")),
+            worldEnter(text("worldEnterPregenShape",
+                    Config::getWorldEnterPregenShape, Config::setWorldEnterPregenShape,
+                    raw -> WorldEnterShape.parse(raw) != null,
+                    "expected one of " + String.join(", ", WorldEnterShape.ALL))),
+            worldEnter(text("worldEnterPregenDimensions",
+                    Config::getWorldEnterPregenDimensions, Config::setWorldEnterPregenDimensions,
+                    raw -> WorldEnterDimensions.parse(raw) != null,
+                    "expected 'overworld', 'nether', 'end', a comma-separated mix like \"overworld,nether\","
+                            + " or 'all'")),
             // Different validators on purpose. A BIND address may be a wildcard (0.0.0.0 = every
             // interface); an ADVERTISED one may not, because a client told to connect to 0.0.0.0
             // has been told nothing at all.

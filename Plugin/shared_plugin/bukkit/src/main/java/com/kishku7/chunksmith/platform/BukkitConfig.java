@@ -309,6 +309,17 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public String getWorldEnterPregenShape() {
+        // Same reason as the centre above: the feature is unsupported here.
+        return "circle";
+    }
+
+    @Override
+    public String getWorldEnterPregenDimensions() {
+        return "overworld";
+    }
+
+    @Override
     public String getLodBackchannelBindAddress() {
         return Input.checkHost(plugin.getConfig().getString("lod-backchannel-bind-address", ""));
     }
@@ -488,6 +499,16 @@ public final class BukkitConfig implements Config {
 
     @Override
     public void setWorldEnterPregenCenter(String spec) {
+        // No-op, same reason.
+    }
+
+    @Override
+    public void setWorldEnterPregenShape(String shape) {
+        // No-op, same reason.
+    }
+
+    @Override
+    public void setWorldEnterPregenDimensions(String spec) {
         // No-op, same reason.
     }
 

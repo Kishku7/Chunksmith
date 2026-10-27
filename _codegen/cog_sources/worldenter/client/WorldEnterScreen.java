@@ -130,7 +130,7 @@ public final class WorldEnterScreen extends Screen {
 
         centered(graphics, this.title, centerX, top - 46, COLOR_TEXT);
         centered(graphics,
-                Component.literal("Pre-generating terrain so it is ready before you arrive."),
+                Component.literal(WorldEnterPregen.headline()),
                 centerX, top - 32, COLOR_DIM);
 
         int left = centerX - BAR_WIDTH / 2;

@@ -1,5 +1,21 @@
 # Chunksmith Changelog
 
+## [4.8.0] - 2026-10-27
+
+- New: the world-enter pregen can cover a shape other than a circle (mod_support #51). Set
+  `worldEnterPregenShape` to `circle` (the default), `square`, `diamond`, `hexagon`, `pentagon`, `triangle` or
+  `star`; in the config file or with `/cs set worldEnterPregenShape square`. The radius is the distance from the
+  centre to the farthest point, so a square of radius 4096 reaches 4096 to each side and is larger than the circle.
+  A world that already finished a circle is not treated as done for a square: its corners were never generated.
+- New: the world-enter pregen can cover the Nether and the End as well (mod_support #52). Set
+  `worldEnterPregenDimensions` to `overworld` (the default), `nether`, `end`, a comma-separated mix such as
+  `"overworld,nether"` (the quotes are needed at the command), or `all`. They run one after another behind the same
+  screen, which names the one in progress, always in the order overworld, Nether, End. Each dimension remembers on
+  its own that it is finished, so adding the Nether to a world that already finished the overworld runs only the
+  Nether. The Nether and the End are centred on their own origin: the configured centre is an overworld position.
+  If you press "Enter World Now" the dimension in progress keeps running in the background and the ones after it
+  start the next time you load the world.
+
 ## [4.7.0] - 2026-10-27
 
 - Fixed: LOD downloads over the fast path (the backchannel) failed with HTTP 404 for every region when the
