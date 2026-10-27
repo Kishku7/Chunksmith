@@ -28,9 +28,15 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A UUID, a name and an IP are each necessary and none of them authenticates. UUIDs and names are
- * PUBLIC -- anyone can look one up and send it, so they identify but do not prove. An IP false-accepts
- * two players behind one NAT and false-rejects a player roaming onto mobile data. Hence a token.
+ * A UUID and a name identify a player and neither authenticates one: both are PUBLIC, anyone can look one
+ * up and send it. The proof is the token, 256 random bits the server hands the player over their own
+ * authenticated game connection and nobody else, so knowing a player's name gets an attacker nothing.
+ *
+ * <p>A token is bound to the PLAYER and to nothing else. It used to be bound to the IP the player joined
+ * from too, which rejected every legitimate download behind a reverse proxy or Docker port mapping (the
+ * backchannel request arrives from the proxy's address, not the player's; mod_support #50), and it also
+ * false-accepted two players behind one NAT. It lives for as long as the player is connected: it is
+ * revoked when they quit, and the online check refuses it the instant they are not on the server.
  */
 public final class CsLodTokens {
 
@@ -40,30 +46,22 @@ public final class CsLodTokens {
     private final Map<String, Entry> byToken = new ConcurrentHashMap<>();
     private final Map<UUID, String> byPlayer = new ConcurrentHashMap<>();
 
-    public String issue(UUID player, String ip) {
+    public String issue(UUID player) {
         revoke(player);
         final byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         final String token = ENCODER.encodeToString(bytes);
-        byToken.put(token, new Entry(player, ip, System.currentTimeMillis() + CsLodProtocol.TOKEN_TTL_MILLIS));
+        byToken.put(token, new Entry(player));
         byPlayer.put(player, token);
         return token;
     }
 
-    public UUID validate(String token, String ip, OnlineCheck online) {
+    public UUID validate(String token, OnlineCheck online) {
         if (token == null || token.isEmpty()) {
             return null;
         }
         final Entry entry = byToken.get(token);
         if (entry == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() > entry.expiresAt) {
-            byToken.remove(token);
-            byPlayer.remove(entry.player, token);
-            return null;
-        }
-        if (!entry.ip.equals(ip)) {
             return null;
         }
         if (!online.isOnline(entry.player)) {
@@ -95,13 +93,9 @@ public final class CsLodTokens {
 
     private static final class Entry {
         private final UUID player;
-        private final String ip;
-        private final long expiresAt;
 
-        private Entry(UUID player, String ip, long expiresAt) {
+        private Entry(UUID player) {
             this.player = player;
-            this.ip = ip;
-            this.expiresAt = expiresAt;
         }
     }
 }

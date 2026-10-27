@@ -77,7 +77,7 @@ public final class CsLodProtocol {
     /** Header carrying the handshake token on every backchannel request. */
     public static final String HEADER_TOKEN = "X-Chunksmith-Token";
 
-    /** How long a handshake token stays valid. Refreshed by the in-band channel while the player is on. */
+    /** How often a client re-asks for a token (3/4 of this). The server no longer expires tokens; they last until the player quits. */
     public static final long TOKEN_TTL_MILLIS = 10 * 60 * 1000L;
 
     /** Default LOD radius, in blocks, when the client cannot tell us what its renderer is set to. */

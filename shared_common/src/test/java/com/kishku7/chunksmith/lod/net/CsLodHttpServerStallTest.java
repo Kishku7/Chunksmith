@@ -100,7 +100,7 @@ public class CsLodHttpServerStallTest {
         server = new CsLodHttpServer(root, tokens, player -> true);
         server.stallTimingForTest(1_000L, 250L);
         assertEquals(port, server.start("127.0.0.1", 25565, port, ""));
-        String token = tokens.issue(UUID.randomUUID(), "127.0.0.1");
+        String token = tokens.issue(UUID.randomUUID());
 
         for (int i = 0; i < 4; i++) {
             Socket socket = new Socket();

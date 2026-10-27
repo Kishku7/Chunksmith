@@ -258,6 +258,11 @@ public final class BukkitConfig implements Config {
     }
 
     @Override
+    public boolean isLodBackgroundSendEnabled() {
+        return plugin.getConfig().getBoolean("lod-background-send", true);
+    }
+
+    @Override
     public int getLodBackchannelPort() {
         return plugin.getConfig().getInt("lod-backchannel-port", 0);
     }
@@ -442,6 +447,12 @@ public final class BukkitConfig implements Config {
     @Override
     public void setLodFromExploredChunksEnabled(boolean enabled) {
         plugin.getConfig().set("lod-from-explored-chunks", enabled);
+        plugin.saveConfig();
+    }
+
+    @Override
+    public void setLodBackgroundSendEnabled(boolean enabled) {
+        plugin.getConfig().set("lod-background-send", enabled);
         plugin.saveConfig();
     }
 

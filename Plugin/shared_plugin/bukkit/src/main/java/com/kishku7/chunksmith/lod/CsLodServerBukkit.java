@@ -21,6 +21,7 @@
 
 package com.kishku7.chunksmith.lod;
 
+import com.kishku7.chunksmith.lod.net.CsLodBackfill;
 import com.kishku7.chunksmith.lod.net.CsLodCapNotice;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.lod.net.CsLodGrowth;
@@ -44,7 +45,6 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -136,6 +136,9 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     /** The draw distance each client told us about, so the index is filtered to what it can show. */
     private static final Map<UUID, Integer> RADIUS = new ConcurrentHashMap<>();
 
+    /** How far past that radius each client has been served, once it has everything inside it (#45). */
+    private static final CsLodBackfill BACKFILL = new CsLodBackfill();
+
     /** One scan in flight per player. A client that asks twice gets one answer, not two walks. */
     private static final Set<UUID> SCANNING = ConcurrentHashMap.newKeySet();
 
@@ -220,7 +223,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                 ARMED.remove(uuid);
                 continue;
             }
-            dispatch(player, LodSupport.dimensionKey(player.getWorld()), true);
+            dispatch(player, LodSupport.dimensionKey(player.getWorld()), true, false);
         }
     }
 
@@ -255,6 +258,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         TOKENS.clear();
         SPOKEN.clear();
         RADIUS.clear();
+        BACKFILL.clear();
         SCANNING.clear();
     }
 
@@ -305,7 +309,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         if (http == null) {
             return null;
         }
-        return TOKENS.issue(player.getUniqueId(), addressOf(player));
+        return TOKENS.issue(player.getUniqueId());
     }
 
     /** A token must never outlive the session that earned it. Wired to PlayerQuitEvent. */
@@ -315,6 +319,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         REACH_NOTICE.forget(player);
         SPOKEN.remove(player);
         RADIUS.remove(player);
+        BACKFILL.forget(player);
         SCANNING.remove(player);
         ARMED.remove(player);
     }
@@ -360,8 +365,8 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                     SPOKEN.add(player.getUniqueId());
                     hello(player);
                 }
-                case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false);
-                case CsLodProtocol.C2S_REQUEST_SUMMARY -> dispatch(player, in.readUTF(), true);
+                case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false, false);
+                case CsLodProtocol.C2S_REQUEST_SUMMARY -> dispatch(player, in.readUTF(), true, true);
                 default -> {
                     // C2S_REQUEST_REGIONS and C2S_CANCEL drive the IN-BAND transfer, which this
                     // platform does not serve. Dropping them silently is correct: a client only asks
@@ -385,7 +390,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         // No data or no port means no credential. A token that can fetch nothing is how an operator
         // ends up reading "1 live token, 0 files" and rightly wondering what it means.
         String token = (available && port != 0)
-                ? TOKENS.issue(player.getUniqueId(), addressOf(player))
+                ? TOKENS.issue(player.getUniqueId())
                 : "";
         try {
             player.sendPluginMessage(plugin, CHANNEL, withLengthPrefix(CsLodMessages.encode(
@@ -411,7 +416,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      * the client will then draw. A 3.1.0-beta-2 client asks exactly that way, and no patch to
      * this server can change what is already in a player's mods folder.
      */
-    private static void dispatch(Player player, String requested, boolean summaryOnly) {
+    private static void dispatch(Player player, String requested, boolean summaryOnly, boolean clientPoll) {
         String dimension = LodSupport.dimensionKey(player.getWorld());
         Path dir = rootFor(dimension);
         if (dir == null) {
@@ -431,6 +436,16 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         int px = player.getLocation().getBlockX();
         int pz = player.getLocation().getBlockZ();
         int radius = RADIUS.getOrDefault(uuid, CsLodProtocol.DEFAULT_RADIUS_BLOCKS);
+        // Background send (#45): what the player draws is served first and unchanged; each idle poll after
+        // that widens the radius a step. Only a client's own poll widens it -- a growth push is not one.
+        int served = radius;
+        if (ChunksmithProvider.get().getConfig().isLodBackgroundSendEnabled()) {
+            served = (clientPoll && ARMED.contains(uuid))
+                    ? BACKFILL.advance(uuid, radius, MAX_RADIUS_BLOCKS)
+                    : BACKFILL.radius(uuid, radius);
+        }
+        final boolean grown = served > radius;
+        final int scanRadius = served;
         String name = player.getName();
 
         ExecutorService pool = scanPool;
@@ -439,7 +454,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             return;
         }
         try {
-            pool.execute(() -> scan(uuid, name, dimension, dir, px, pz, radius, summaryOnly));
+            pool.execute(() -> scan(uuid, name, dimension, dir, px, pz, scanRadius, summaryOnly, grown));
         } catch (RejectedExecutionException e) {
             SCANNING.remove(uuid);   // the server is stopping; nothing to answer and nothing to say
         }
@@ -457,7 +472,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
      */
     private static void scan(final UUID uuid, final String name, final String dimension,
                              final Path dir, final int px, final int pz, final int radius,
-                             final boolean summaryOnly) {
+                             final boolean summaryOnly, final boolean grown) {
         try {
             long budgetMb = ChunksmithProvider.get().getConfig().getLodIndexBudgetMb();
             CsLodIndexScan.Result scanned = CsLodIndexScan.scan(dir,
@@ -465,7 +480,9 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                     System.currentTimeMillis());
             // Throttled the same way the mod throttles it, from the same class, so the two platforms
             // cannot drift into saying different things about the same cap. See CsLodCapNotice.
-            if (scanned.capped() && CAP_NOTICE.shouldWarn(uuid, System.currentTimeMillis())) {
+            // Not for the background ring past what the player asked for: hitting the cap out there is the
+            // ring being large, not the player's own view being cut short.
+            if (scanned.capped() && !grown && CAP_NOTICE.shouldWarn(uuid, System.currentTimeMillis())) {
                 LOGGER.warning("Chunksmith: LOD index for " + name + " capped at "
                         + scanned.regions().size() + " of " + scanned.found() + " regions ("
                         + (scanned.bytes() / (1024 * 1024)) + " MB, radius " + radius + "): "
@@ -684,13 +701,6 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     private static boolean isOnline(UUID player) {
         Player found = Bukkit.getPlayer(player);
         return found != null && found.isOnline();
-    }
-
-    private static String addressOf(Player player) {
-        InetSocketAddress address = player.getAddress();
-        return (address != null && address.getAddress() != null)
-                ? address.getAddress().getHostAddress()
-                : "";
     }
 
     /**

@@ -298,6 +298,15 @@ public interface Config {
     boolean isLodFromExploredChunksEnabled();
 
     /**
+     * Whether, once a client has everything within its own render radius, the server keeps sending it the
+     * LOD beyond that radius, a ring at a time, until it holds what the server has (4.7.0, mod_support
+     * #45). On by default. What the player needs now is always served first, exactly as before; this only
+     * adds the rest, one step per sync poll, and only while the client is idle. Off restores the old
+     * behaviour: a client receives only the area its renderer is set to draw around where it stands.
+     */
+    boolean isLodBackgroundSendEnabled();
+
+    /**
      * Returns the TCP port the LOD backchannel binds, or 0 to derive it from the game port.
      *
      * <p>0 means {@code gamePort + 1}, right on a machine you control and
@@ -459,6 +468,8 @@ public interface Config {
     void setLodDhOverrideEnabled(boolean enabled);
 
     void setLodFromExploredChunksEnabled(boolean enabled);
+
+    void setLodBackgroundSendEnabled(boolean enabled);
 
     /**
      * Sets the backchannel port and persists it; 0 restores the derived

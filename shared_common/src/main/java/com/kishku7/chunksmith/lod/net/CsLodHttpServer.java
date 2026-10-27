@@ -69,7 +69,7 @@ import java.util.regex.Pattern;
  *   <li>GET/HEAD only. No writes, no directory listing.</li>
  *   <li>Serves only from the store root: a strict regex on the path, then canonicalize and re-check it is
  *       inside the root, so {@code ..}, absolute paths and symlinks cannot escape.</li>
- *   <li>Token required, bound to (uuid, ip, expiry), revoked on disconnect.</li>
+ *   <li>Token required, bound to the player (not their IP), revoked on disconnect.</li>
  *   <li>Per-IP concurrency cap, request/header size caps, and idle timeouts.</li>
  *   <li>A response that stops moving for {@link #STALL_MILLIS} is closed, so a vanished peer cannot hold
  *       one of the four handler threads (mod_support #48).</li>
@@ -299,7 +299,7 @@ public final class CsLodHttpServer {
             }
 
             UUID player = tokens.validate(
-                    exchange.getRequestHeaders().getFirst(CsLodProtocol.HEADER_TOKEN), ip, onlineCheck);
+                    exchange.getRequestHeaders().getFirst(CsLodProtocol.HEADER_TOKEN), onlineCheck);
             if (player == null) {
                 fail(exchange);
                 return;

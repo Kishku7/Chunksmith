@@ -777,6 +777,18 @@ public final class GsonConfig implements Config {
     }
 
     @Override
+    public boolean isLodBackgroundSendEnabled() {
+        // A config written before 4.7.0 has no key, and reads the default: on.
+        return Optional.ofNullable(configModel.lodBackgroundSend).orElse(true);
+    }
+
+    @Override
+    public void setLodBackgroundSendEnabled(boolean enabled) {
+        configModel.lodBackgroundSend = enabled;
+        saveConfig();
+    }
+
+    @Override
     public void setLodBackchannelPort(int port) {
         // An out-of-range port falls back to deriving one, rather than clamping to the nearest legal
         // port. Clamping would answer "set it to 80" with "it is now 1024", which is a different server
@@ -917,6 +929,8 @@ public final class GsonConfig implements Config {
         private Boolean lodDhOverride = false;
         // On by default. See Config#isLodFromExploredChunksEnabled.
         private Boolean lodFromExploredChunks = true;
+        // On by default. See Config#isLodBackgroundSendEnabled.
+        private Boolean lodBackgroundSend = true;
         // 0 = derive from the game port. See Config#getLodBackchannelPort.
         private Integer lodBackchannelPort = BACKCHANNEL_PORT_DERIVE;
         // 2048 MB by default; 0 = no ceiling. See Config#getLodIndexBudgetMb.

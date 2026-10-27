@@ -32,7 +32,6 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -106,6 +105,9 @@ public final class CsLodServerNet {
 
     /** The radius each client's renderer is actually configured to draw, in blocks. */
     private static final Map<UUID, Integer> RADIUS = new ConcurrentHashMap<>();
+
+    /** How far past that radius each client has been served, once it has everything inside it (#45). */
+    private static final CsLodBackfill BACKFILL = new CsLodBackfill();
 
     /**
      * Players who asked, can draw, and were told we had nothing -- yet. A player who joins before
@@ -188,6 +190,7 @@ public final class CsLodServerNet {
         REACH_NOTICE.forget(player);
         CAP_NOTICE.forget(player);
         RADIUS.remove(player);
+        BACKFILL.forget(player);
         WAITING.remove(player);
         ANNOUNCED.remove(player);
         GREETED.remove(player);
@@ -325,7 +328,7 @@ public final class CsLodServerNet {
                 continue;
             }
             String token = (available && port != 0)
-                    ? TOKENS.issue(player.getUUID(), addressOf(player))
+                    ? TOKENS.issue(player.getUUID())
                     : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
@@ -364,6 +367,7 @@ public final class CsLodServerNet {
             scanPool = null;
         }
         TOKENS.clear();
+        BACKFILL.clear();
         WAITING.clear();
         ANNOUNCED.clear();
         GREETED.clear();
@@ -392,7 +396,7 @@ public final class CsLodServerNet {
         if (http == null || http.getPort() == 0) {
             return null;
         }
-        return TOKENS.issue(player.getUUID(), addressOf(player));
+        return TOKENS.issue(player.getUUID());
     }
 
     private static boolean isOnline(UUID player) {
@@ -411,8 +415,8 @@ public final class CsLodServerNet {
             byte id = in.readByte();
             switch (id) {
                 case CsLodProtocol.C2S_HELLO -> hello(player, CsLodMessages.decodeClientHello(in));
-                case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false);
-                case CsLodProtocol.C2S_REQUEST_SUMMARY -> dispatch(player, in.readUTF(), true);
+                case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false, false);
+                case CsLodProtocol.C2S_REQUEST_SUMMARY -> dispatch(player, in.readUTF(), true, true);
                 case CsLodProtocol.C2S_REQUEST_REGIONS -> inBand(player, in);
                 case CsLodProtocol.C2S_CANCEL -> {
                     CsLodInBandSender.cancel(player);
@@ -477,7 +481,7 @@ public final class CsLodServerNet {
         // minted a token the instant a pregen created the folder and before it wrote a single region: a
         // credential to download nothing, and an operator reading "1 live token, 0 files".
         String token = (available && port != 0)
-                ? TOKENS.issue(player.getUUID(), addressOf(player))
+                ? TOKENS.issue(player.getUUID())
                 : "";
 
         send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
@@ -595,7 +599,7 @@ public final class CsLodServerNet {
                 continue;
             }
             try {
-                dispatch(player, dimension, true);
+                dispatch(player, dimension, true, false);
                 pushed++;
             } catch (IOException e) {
                 LOGGER.debug("Chunksmith: growth push to {} failed: {}", nameOf(player), e.toString());
@@ -644,7 +648,7 @@ public final class CsLodServerNet {
             }
             WAITING.remove(uuid);
 
-            String token = port != 0 ? TOKENS.issue(uuid, addressOf(player)) : "";
+            String token = port != 0 ? TOKENS.issue(uuid) : "";
             try {
                 send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                         CsLodProtocol.VERSION, true, port, token, dims, advertisedHost(),
@@ -721,7 +725,7 @@ public final class CsLodServerNet {
      * @param summaryOnly true for a sync poll (fold the answer to two numbers), false for a full index
      */
     private record Request(UUID uuid, String name, String dimension, int px, int pz, int radius,
-                           boolean summaryOnly) {
+                           boolean summaryOnly, boolean grown) {
     }
 
     /**
@@ -729,7 +733,8 @@ public final class CsLodServerNet {
      * server main thread; it is the last thing on the main thread this feature does, and everything
      * here is O(1).
      */
-    private static void dispatch(ServerPlayer player, String requested, boolean summaryOnly)
+    private static void dispatch(ServerPlayer player, String requested, boolean summaryOnly,
+                                 boolean clientPoll)
             throws IOException {
         Path root = storeBase();
         if (root == null) {
@@ -767,10 +772,18 @@ public final class CsLodServerNet {
             return;
         }
 
+        int radius = RADIUS.getOrDefault(uuid, CsLodProtocol.DEFAULT_RADIUS_BLOCKS);
+        // Background send (#45): what the player draws is served first and unchanged; each idle poll after
+        // that widens the radius a step. Only a client's own poll widens it -- a growth push is not one.
+        int served = radius;
+        if (ChunksmithProvider.get().getConfig().isLodBackgroundSendEnabled()) {
+            served = (clientPoll && ARMED.contains(uuid))
+                    ? BACKFILL.advance(uuid, radius, MAX_RADIUS_BLOCKS)
+                    : BACKFILL.radius(uuid, radius);
+        }
         Request request = new Request(uuid, nameOf(player), dimension,
-                (int) player.getX(), (int) player.getZ(),
-                RADIUS.getOrDefault(uuid, CsLodProtocol.DEFAULT_RADIUS_BLOCKS),
-                summaryOnly);
+                (int) player.getX(), (int) player.getZ(), served,
+                summaryOnly, served > radius);
 
         ExecutorService pool = scanPool;
         if (pool == null) {
@@ -803,7 +816,10 @@ public final class CsLodServerNet {
             // Throttled, because the client asks again every time the player has travelled half a
             // region and warning per answer said "capped" six times in seventy-three seconds without
             // anything being wrong. See CsLodCapNotice.
-            if (scanned.capped() && CAP_NOTICE.shouldWarn(request.uuid(), System.currentTimeMillis())) {
+            // Not for the background ring past what the player asked for: hitting the cap out there is the
+            // ring being large, not the player's own view being cut short.
+            if (scanned.capped() && !request.grown()
+                    && CAP_NOTICE.shouldWarn(request.uuid(), System.currentTimeMillis())) {
                 LOGGER.warn("Chunksmith: LOD index for {} capped at {} of {} regions ({} MB, radius"
                                 + " {}): {}",
                         request.name(), scanned.regions().size(), scanned.found(),
@@ -912,14 +928,6 @@ public final class CsLodServerNet {
         // cog.outl("return player.getGameProfile().%s();" % compat.profile_name_call(mcver))
         //]]]
         //[[[end]]]
-    }
-
-    private static String addressOf(ServerPlayer player) {
-        var address = player.connection.getRemoteAddress();
-        if (address instanceof final InetSocketAddress inet && inet.getAddress() != null) {
-            return inet.getAddress().getHostAddress();
-        }
-        return "";
     }
 
     private static void send(ServerPlayer player, byte[] data) {

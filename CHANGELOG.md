@@ -1,5 +1,21 @@
 # Chunksmith Changelog
 
+## [4.7.0] - 2026-10-27
+
+- Fixed: LOD downloads over the fast path (the backchannel) failed with HTTP 404 for every region when the
+  server sits behind a reverse proxy, Velocity or a Docker port mapping, and the client fell back to the
+  slow in-band channel (mod_support #50). The download token was tied to the IP the player joined from, and
+  behind a proxy the download request arrives from the proxy's address instead. A token now belongs to the
+  player alone and lasts for as long as they are connected. Knowing someone's name or UUID still gets you
+  nothing: the token is 256 random bits the server hands that player over their own game connection, and it
+  stops working the moment they leave.
+- New: once a client has everything within its own render radius, the server keeps sending it the LOD
+  beyond that radius, nearest first, doubling the distance on each sync poll until it holds what the server
+  has, up to 16384 blocks (mod_support #45). What the player needs now is served first, exactly as before,
+  and the next ring is only sent when the client is idle, so it never competes with the first download.
+  It is on by default. Turn it off with `/cs set lodBackgroundSend false` (`lod-background-send: false` on
+  Bukkit/Paper) to serve only the area a client's renderer draws around where it stands.
+
 ## [4.6.0] - 2026-10-13
 
 - New: LOD for the ground players explore. Until now only a pregen added LOD, so anywhere a player went
