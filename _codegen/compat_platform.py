@@ -4919,7 +4919,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType CHUNKY = new TicketType(0L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -5238,7 +5238,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType<Unit> CHUNKY = TicketType.create("chunky", (unit, unit2) -> 0);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -5566,7 +5566,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType<Unit> CHUNKY = TicketType.create("chunky", (unit, unit2) -> 0);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -5882,7 +5882,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType CHUNKY = new TicketType(0L, false, TicketType.TicketUse.LOADING_AND_SIMULATION);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -6202,7 +6202,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType CHUNKY = new TicketType(0L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -6529,7 +6529,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType<Unit> CHUNKY = TicketType.create("chunky", (unit, unit2) -> 0);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -6846,7 +6846,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType<Unit> CHUNKY = TicketType.create("chunky", (unit, unit2) -> 0);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -7494,7 +7494,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType CHUNKY = new TicketType(0L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -7811,7 +7811,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType<Unit> CHUNKY = TicketType.create("chunky", (unit, unit2) -> 0);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;
@@ -8130,7 +8130,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-public class NeoForgeWorld implements World {
+public class NeoForgeWorld implements World, ServerLevelHolder {
     private static final TicketType<Unit> CHUNKY = TicketType.create("chunky", (unit, unit2) -> 0);
     private static final boolean UPDATE_CHUNK_NBT = Boolean.getBoolean("chunky.updateChunkNbt");
     private final ServerLevel world;

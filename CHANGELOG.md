@@ -1,5 +1,12 @@
 # Chunksmith Changelog
 
+## [4.8.1] - 2026-11-09
+
+- Fixed: the progress boss bar never appeared on NeoForge before 26 or on any Forge version (mod_support #53).
+  The bar was wired up and listening, but the class that stands for a world on those builds was missing one
+  marker the boss bar checks for, so it quietly skipped every update. Fabric and NeoForge 26 were not affected.
+  Rebuilt for NeoForge 1.20.6 to 1.21.11 and Forge 1.20.1 to 1.21.11 only.
+
 ## [4.8.0] - 2026-10-27
 
 - New: the world-enter pregen can cover a shape other than a circle (mod_support #51). Set
