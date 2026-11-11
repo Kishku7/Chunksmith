@@ -29,6 +29,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
+import com.kishku7.chunksmith.lod.net.CsLodClientStats;
 import com.kishku7.chunksmith.lod.net.CsLodServerNet;
 
 import java.nio.file.Files;
@@ -42,6 +43,8 @@ import java.io.IOException;
  * <ul>
  *   <li>{@code status}: where the store is, what is in it, and whether the backchannel is up.</li>
  *   <li>{@code token <player>}: mint a backchannel token by hand.</li>
+ *   <li>{@code clients}: every online player, whether their client speaks the LOD protocol, how they are
+ *       being served, what has been sent to them, and what they report having injected.</li>
  * </ul>
  *
  * <p><b>Everything else moved to {@code /csclient} at 4.0.0.</b> The old {@code /cslod} root mixed
@@ -113,6 +116,23 @@ public final class CsLodCommand {
             return 1;
         }));
 
+        lod.then(Commands.literal("clients").executes(context -> {
+            CommandSourceStack source = context.getSource();
+            java.util.List<ServerPlayer> players = source.getServer().getPlayerList().getPlayers();
+            if (players.isEmpty()) {
+                say(source, "no players online");
+                return 1;
+            }
+            long now = System.currentTimeMillis();
+            for (ServerPlayer online : players) {
+                for (String line : CsLodClientStats.describe(
+                        nameOfPlayer(online), CsLodClientStats.snapshot(online.getUUID()), now)) {
+                    say(source, line);
+                }
+            }
+            return 1;
+        }));
+
         lod.then(Commands.literal("token")
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
@@ -135,6 +155,15 @@ public final class CsLodCommand {
                         })));
 
         return lod;
+    }
+
+    /** A connected player's name; the accessor moved between versions, so Cog picks it. */
+    private static String nameOfPlayer(final ServerPlayer player) {
+        //[[[cog
+        // import cog, compat
+        // cog.outl("return player.getGameProfile().%s();" % compat.profile_name_call(mcver))
+        //]]]
+        //[[[end]]]
     }
 
     /** One status line. Not broadcast: a readout is for whoever asked, not the room. */

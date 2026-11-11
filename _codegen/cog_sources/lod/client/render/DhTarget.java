@@ -77,6 +77,11 @@ public final class DhTarget {
     private static final Map<Object, IDhApiLevelWrapper> WRAPPERS = new ConcurrentHashMap<>();
     private static final AtomicLong pushed = new AtomicLong();
     private static final AtomicLong failed = new AtomicLong();
+
+    /** Chunks Distant Horizons refused since the game started; the injector reports the change per batch. */
+    static long failedCount() {
+        return failed.get();
+    }
     private static volatile boolean bound;
 
     /** Set when DH is link-incompatible at runtime; see {@link #disable(Throwable)}. */

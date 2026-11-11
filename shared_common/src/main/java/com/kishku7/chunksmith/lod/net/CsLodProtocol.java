@@ -154,6 +154,26 @@ public final class CsLodProtocol {
     public static final byte C2S_REQUEST_SUMMARY = 5;
 
     /**
+     * C2S: "I finished putting a batch of your LOD into my renderer" (4.9.0). The server cannot see this
+     * for itself -- injection happens on the player's machine -- so it is the only way the server console
+     * and {@code /cs lod clients} can say what a named player has actually received and used.
+     *
+     * <p>Additive and capability-gated, so {@link #VERSION} does not move (it must match EXACTLY, so a bump
+     * would break every older client against a newer server and the reverse): a client sends it only to a
+     * server whose hello advertised {@link #CAP_INJECTION_REPORT}, and an older server never advertises it.
+     */
+    public static final byte C2S_INJECTED = 6;
+
+    /** Server capability bit, appended to the hello: this server understands {@link #C2S_INJECTED}. */
+    public static final int CAP_INJECTION_REPORT = 1;
+
+    /** Every capability this build has, advertised in every hello it sends. */
+    public static final int SERVER_CAPABILITIES = CAP_INJECTION_REPORT;
+
+    /** Longest renderer name accepted in an injection report; the names in use are under 20. */
+    public static final int MAX_RENDERER_NAME = 32;
+
+    /**
      * S2C: the region index folded to (count, aggregate), the answer to {@link
      * #C2S_REQUEST_SUMMARY} (v2). 34 bytes. See {@link CsLodSummary} for why the aggregate
      * is an order-independent XOR.

@@ -196,6 +196,8 @@ public final class CsLodServerNet {
         GREETED.remove(player);
         SCANNING.remove(player);
         ARMED.remove(player);
+        CsLodClientStats.clear(player);
+        INJECTION_LOGGED.remove(player);
     }
 
     /**
@@ -224,6 +226,7 @@ public final class CsLodServerNet {
             return thread;
         });
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
+        http.setNameResolver(CsLodServerNet::nameOfId);
         // Same interface the game is bound to; the port is gamePort + 1 unless the operator named one
         // (lodBackchannelPort); mod_support #19. A bind failure is not fatal: the client falls back in-band.
         http.start(current.getLocalIp(), current.getPort(), configuredPort(), configuredBind());
@@ -308,6 +311,7 @@ public final class CsLodServerNet {
             return 0;
         }
         http = new CsLodHttpServer(root, TOKENS, CsLodServerNet::isOnline);
+        http.setNameResolver(CsLodServerNet::nameOfId);
         int bound = http.start(current.getLocalIp(), current.getPort(), configuredPort(), configuredBind());
         readvertise(current, bound);
         return bound;
@@ -373,6 +377,8 @@ public final class CsLodServerNet {
         GREETED.clear();
         SCANNING.clear();
         ARMED.clear();
+        CsLodClientStats.clearAll();
+        INJECTION_LOGGED.clear();
         CsLodGrowth.reset();
         sinceStoreWatch = 0;
         server = null;
@@ -404,6 +410,13 @@ public final class CsLodServerNet {
         return current != null && current.getPlayerList().getPlayer(player) != null;
     }
 
+    /** A connected player's name from their id, or null when they are not connected (the caller falls back). */
+    private static String nameOfId(UUID id) {
+        MinecraftServer current = server;
+        ServerPlayer found = current == null ? null : current.getPlayerList().getPlayer(id);
+        return found == null ? null : nameOf(found);
+    }
+
     /**
      * Handles one inbound protocol message. Always called on the server main thread by {@link CsLodChannel}.
      */
@@ -418,6 +431,7 @@ public final class CsLodServerNet {
                 case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false, false);
                 case CsLodProtocol.C2S_REQUEST_SUMMARY -> dispatch(player, in.readUTF(), true, true);
                 case CsLodProtocol.C2S_REQUEST_REGIONS -> inBand(player, in);
+                case CsLodProtocol.C2S_INJECTED -> injected(player, CsLodMessages.decodeInjectionReport(in));
                 case CsLodProtocol.C2S_CANCEL -> {
                     CsLodInBandSender.cancel(player);
                     LOGGER.debug("Chunksmith: LOD transfer cancelled by client");
@@ -427,6 +441,26 @@ public final class CsLodServerNet {
         } catch (IOException e) {
             LOGGER.warn("Chunksmith: malformed LOD message from " + nameOf(player) + ": " + e);
         }
+    }
+
+    /** When each player's last injection report was written to the console, so a flood cannot flood the log. */
+    private static final Map<UUID, Long> INJECTION_LOGGED = new ConcurrentHashMap<>();
+    private static final long INJECTION_LOG_MIN_GAP_MILLIS = 1_000L;
+
+    /**
+     * A client says it finished putting a batch of our LOD into its renderer. The only place the server can
+     * learn this; the console line is what an operator reads to answer "did it actually arrive".
+     */
+    private static void injected(ServerPlayer player, CsLodMessages.InjectionReport report) {
+        CsLodClientStats.addInjected(player.getUUID(), report.renderer(), report.chunks(), report.failed());
+        long now = System.currentTimeMillis();
+        Long last = INJECTION_LOGGED.get(player.getUUID());
+        if (last != null && now - last < INJECTION_LOG_MIN_GAP_MILLIS) {
+            return;
+        }
+        INJECTION_LOGGED.put(player.getUUID(), now);
+        LOGGER.info("Chunksmith: {} injected {} LOD chunk(s) into {}{}", nameOf(player), report.chunks(),
+                report.renderer(), report.failed() > 0 ? " (" + report.failed() + " failed)" : "");
     }
 
     private static void hello(ServerPlayer player, CsLodMessages.ClientHello hello) throws IOException {
@@ -439,6 +473,8 @@ public final class CsLodServerNet {
             // old client's own version check names the problem in their log. No token, no scan, no data.
             send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                     CsLodProtocol.VERSION, false, 0, "", List.of())));
+            CsLodClientStats.onHello(player.getUUID(), hello.protocolVersion(), hello.hasVoxy(), hello.hasDh(),
+                    hello.radiusBlocks(), 0);
             // RECORD THE GREETING EVEN THOUGH WE REFUSED TO SERVE. This is what tells the legacy
             // /cslod stub that an OLD client is present, and it was missing: the stub could never
             // fire for the only clients it exists for, so it was dead code. Found by running a
@@ -460,6 +496,8 @@ public final class CsLodServerNet {
             // WAITING, so storeWatchTick never wakes them with an offer they cannot accept.
             send(player, CsLodMessages.encode(new CsLodMessages.ServerHello(
                     CsLodProtocol.VERSION, false, 0, "", List.of())));
+            CsLodClientStats.onHello(player.getUUID(), hello.protocolVersion(), hello.hasVoxy(), hello.hasDh(),
+                    hello.radiusBlocks(), 0);
             // But do record the greeting (3.4.0): GREETED is what hasLodClient() answers, which decides
             // whether /cslod set relays to them. Leaving it out was why a player with Chunksmith and no
             // renderer could not reach their own client settings at all. Guarded by add(): one line/session.
@@ -474,6 +512,8 @@ public final class CsLodServerNet {
         List<String> dims = dimensions();
         boolean available = !dims.isEmpty();
         int port = http == null ? 0 : http.getPort();
+        CsLodClientStats.onHello(player.getUUID(), hello.protocolVersion(), hello.hasVoxy(), hello.hasDh(),
+                hello.radiusBlocks(), port);
 
         // The token is issued on this connection, which Mojang has already authenticated: a UUID or a name
         // proves nothing (both are public), but only a genuinely joined player can receive this, and only
@@ -550,6 +590,7 @@ public final class CsLodServerNet {
                     nameOf(player), requested, dimension, dimension);
         }
         CsLodInBandSender.queue(player, root, dimension, wanted);
+        CsLodClientStats.addInBand(player.getUUID(), wanted.size());
         LOGGER.info("Chunksmith: in-band LOD fetch for {}. {} regions of {} (no backchannel; this is the"
                 + " slow path)", nameOf(player), wanted.size(), dimension);
         // An in-band fetch is the SYMPTOM. If the backchannel is bound and has never been reached at
@@ -709,7 +750,7 @@ public final class CsLodServerNet {
             send(player, CsLodMessages.encode(new CsLodMessages.ClientSetting(action, name, value)));
             return true;
         } catch (IOException e) {
-            LOGGER.warn("Chunksmith: could not encode a client-setting message: {}", e.toString());
+            LOGGER.warn("Chunksmith: could not encode a client-setting message for {}: {}", nameOf(player), e.toString());
             return false;
         }
     }

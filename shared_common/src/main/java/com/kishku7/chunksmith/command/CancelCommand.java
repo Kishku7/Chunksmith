@@ -58,6 +58,7 @@ public class CancelCommand implements ChunksmithCommand {
                 return;
             }
             cancelAction = () -> {
+                CommandAudit.note(chunky, sender, "cancelled", "the task for " + world.get().getName());
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_CANCEL, world.get().getName());
                 chunky.getTaskLoader().cancelTask(world.get());
                 if (chunky.getGenerationTasks().containsKey(world.get().getName())) {
@@ -69,6 +70,7 @@ public class CancelCommand implements ChunksmithCommand {
             };
         } else {
             cancelAction = () -> {
+                CommandAudit.note(chunky, sender, "cancelled", "every running and saved task");
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_CANCEL_ALL);
                 chunky.getTaskLoader().cancelTasks();
                 chunky.getGenerationTasks().values().forEach(generationTask -> generationTask.stop(true));

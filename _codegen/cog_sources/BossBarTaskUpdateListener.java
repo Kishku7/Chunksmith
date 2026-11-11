@@ -112,6 +112,13 @@ public class BossBarTaskUpdateListener implements Consumer<GenerationTaskUpdateE
             }
         }
         GenerationTask.Progress progress = task.getProgress();
+        if (progress.isScanning()) {
+            // The region-file pre-scan, before any chunk is counted. It can run for minutes on a large,
+            // mostly-generated selection, and a bar reading 0.00% with nothing moving looks hung.
+            bossBar.setName(Component.nullToEmpty(worldIdentifier + " | scanning existing chunks..."));
+            bossBar.setProgress(0f);
+            return;
+        }
         bossBar.setName(Component.nullToEmpty(String.format("%s | %s%% | %s:%s:%s",
                 worldIdentifier,
                 String.format("%.2f", progress.getPercentComplete()),

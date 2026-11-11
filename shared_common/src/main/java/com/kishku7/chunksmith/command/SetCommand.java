@@ -78,6 +78,7 @@ public class SetCommand implements ChunksmithCommand {
             return;
         }
 
+        CommandAudit.note(chunky, sender, "changed the setting", setting.name() + " to " + setting.read(config));
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SET, setting.name(), setting.read(config));
     }
 

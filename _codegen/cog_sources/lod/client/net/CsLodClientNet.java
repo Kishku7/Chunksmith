@@ -639,6 +639,10 @@ public final class CsLodClientNet {
 
     private static void serverHello(CsLodMessages.ServerHello hello) {
         helloAnswered = true;
+        // Report finished injections to this server only if it said it wants them (4.9.0). An older server
+        // has no handler and would log every report as an unknown message id.
+        LodInjector.setReportSink(hello.protocolVersion() == CsLodProtocol.VERSION && hello.acceptsInjectionReports()
+                ? CsLodClientNet::sendInjectionReport : null);
         if (hello.protocolVersion() != CsLodProtocol.VERSION) {
             // The protocols cannot interoperate, so LOD is simply off in BOTH directions: we will not
             // fetch, and the server will not serve. Say it where the player will actually see it.
@@ -1400,6 +1404,7 @@ public final class CsLodClientNet {
         capsVoxy = false;
         capsDh = false;
         capsRadius = 0;
+        LodInjector.setReportSink(null);
         busy.set(false);
         lastIndexMillis = 0L;
         lastSyncMillis = 0L;
@@ -1476,5 +1481,18 @@ public final class CsLodClientNet {
 
     private static void send(byte[] data) {
         ClientPlatform.sendToServer(data);
+    }
+
+    /**
+     * Sends the server a finished-injection report. Injection runs on a worker thread, so the send goes
+     * through the game thread like every other outbound message here.
+     */
+    private static void sendInjectionReport(CsLodMessages.InjectionReport report) {
+        try {
+            byte[] data = CsLodMessages.encode(report);
+            net.minecraft.client.Minecraft.getInstance().execute(() -> send(data));
+        } catch (IOException | RuntimeException e) {
+            LOGGER.debug("Chunksmith: could not send an injection report: " + e);
+        }
     }
 }

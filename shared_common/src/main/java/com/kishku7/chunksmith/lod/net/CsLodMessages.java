@@ -69,6 +69,53 @@ public final class CsLodMessages {
         return new ClientHello(in.readInt(), in.readBoolean(), in.readBoolean(), in.readInt());
     }
 
+    // injection report (4.9.0)
+
+    /**
+     * A client's report that it finished putting a batch of LOD into a renderer.
+     *
+     * @param renderer which renderer took it, e.g. {@code distant-horizons} or {@code voxy}
+     * @param chunks   chunks handed to the renderer in this batch
+     * @param failed   chunks the renderer refused in this batch
+     */
+    public record InjectionReport(String renderer, int chunks, int failed) {
+    }
+
+    public static byte[] encode(InjectionReport report) throws IOException {
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(raw)) {
+            out.writeByte(CsLodProtocol.C2S_INJECTED);
+            out.writeUTF(report.renderer());
+            out.writeInt(report.chunks());
+            out.writeInt(report.failed());
+        }
+        return raw.toByteArray();
+    }
+
+    /**
+     * Reads a report off the wire. The sender is a client we do not trust, so the name is length-bounded
+     * and the counts must be non-negative: a hostile client could otherwise put an arbitrary string, or a
+     * negative total, on the operator's console.
+     */
+    public static InjectionReport decodeInjectionReport(DataInputStream in) throws IOException {
+        String renderer = in.readUTF();
+        if (renderer.length() > CsLodProtocol.MAX_RENDERER_NAME) {
+            throw new IOException("CSLOD injection report: renderer name too long (" + renderer.length() + ")");
+        }
+        for (int i = 0; i < renderer.length(); i++) {
+            char c = renderer.charAt(i);
+            if (!(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '-' && c != '_') {
+                throw new IOException("CSLOD injection report: renderer name has an unexpected character");
+            }
+        }
+        int chunks = in.readInt();
+        int failed = in.readInt();
+        if (chunks < 0 || failed < 0) {
+            throw new IOException("CSLOD injection report: negative count");
+        }
+        return new InjectionReport(renderer, chunks, failed);
+    }
+
     // server hello
 
     /**
@@ -84,12 +131,29 @@ public final class CsLodMessages {
      */
     public record ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
                               String token, List<String> dimensions, String advertisedHost,
-                              String worldId) {
+                              String worldId, int capabilities) {
+
+        /**
+         * A hello built by this server: it advertises everything this build can do. The decoder uses the
+         * canonical constructor with whatever the wire carried, which is 0 from a server that predates
+         * capabilities.
+         */
+        public ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
+                           String token, List<String> dimensions, String advertisedHost,
+                           String worldId) {
+            this(protocolVersion, storeAvailable, backchannelPort, token, dimensions, advertisedHost, worldId,
+                    CsLodProtocol.SERVER_CAPABILITIES);
+        }
 
         /** A hello that names no host, so the client uses the address it connected to. */
         public ServerHello(int protocolVersion, boolean storeAvailable, int backchannelPort,
                            String token, List<String> dimensions) {
             this(protocolVersion, storeAvailable, backchannelPort, token, dimensions, "", "");
+        }
+
+        /** True when this server will accept a {@link CsLodProtocol#C2S_INJECTED} report. */
+        public boolean acceptsInjectionReports() {
+            return (capabilities & CsLodProtocol.CAP_INJECTION_REPORT) != 0;
         }
     }
 
@@ -114,6 +178,9 @@ public final class CsLodMessages {
             // appending buys nothing against a v2 client -- it buys the v4 client talking to a 3.x
             // server, which stops reading one field earlier and must not see a framing error.
             out.writeUTF(hello.worldId() == null ? "" : hello.worldId());
+            // 4.9.0: what this server can do beyond the version, appended for the same reason as the two
+            // above. An older client stops reading at the world id and never sees it.
+            out.writeInt(hello.capabilities());
         }
         return raw.toByteArray();
     }
@@ -142,7 +209,9 @@ public final class CsLodMessages {
         // Empty means a 3.x server that has no world id to give. The client falls back to keying its
         // store on the address, which is what every 3.x client did for every server.
         String worldId = in.available() > 0 ? in.readUTF() : "";
-        return new ServerHello(version, available, port, token, dimensions, advertisedHost, worldId);
+        // 0 from a server older than 4.9.0, which then gets no injection reports.
+        int capabilities = in.available() >= 4 ? in.readInt() : 0;
+        return new ServerHello(version, available, port, token, dimensions, advertisedHost, worldId, capabilities);
     }
 
     // region index

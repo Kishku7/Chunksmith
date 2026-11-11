@@ -23,6 +23,7 @@ package com.kishku7.chunksmith.lod;
 
 import com.kishku7.chunksmith.lod.net.CsLodBackfill;
 import com.kishku7.chunksmith.lod.net.CsLodCapNotice;
+import com.kishku7.chunksmith.lod.net.CsLodClientStats;
 import com.kishku7.chunksmith.lod.net.CsLodControl;
 import com.kishku7.chunksmith.lod.net.CsLodGrowth;
 import com.kishku7.chunksmith.lod.net.CsLodHttpServer;
@@ -179,6 +180,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         });
 
         http = new CsLodHttpServer(CsLodServerBukkit::rootFor, TOKENS, CsLodServerBukkit::isOnline);
+        http.setNameResolver(CsLodServerBukkit::nameOfId);
         int bound = http.start(bindAddress(owner), owner.getServer().getPort(),
                 config.getLodBackchannelPort(), config.getLodBackchannelBindAddress());
 
@@ -259,6 +261,8 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         SPOKEN.clear();
         RADIUS.clear();
         BACKFILL.clear();
+        CsLodClientStats.clearAll();
+        INJECTION_LOGGED.clear();
         SCANNING.clear();
     }
 
@@ -319,6 +323,8 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         REACH_NOTICE.forget(player);
         SPOKEN.remove(player);
         RADIUS.remove(player);
+        CsLodClientStats.clear(player);
+        INJECTION_LOGGED.remove(player);
         BACKFILL.forget(player);
         SCANNING.remove(player);
         ARMED.remove(player);
@@ -338,6 +344,7 @@ public final class CsLodServerBukkit implements PluginMessageListener {
             return 0;
         }
         http = new CsLodHttpServer(CsLodServerBukkit::rootFor, TOKENS, CsLodServerBukkit::isOnline);
+        http.setNameResolver(CsLodServerBukkit::nameOfId);
         int bound = http.start(bindAddress(plugin), plugin.getServer().getPort(),
                 config.getLodBackchannelPort(), config.getLodBackchannelBindAddress());
         readvertise(bound);
@@ -363,8 +370,11 @@ public final class CsLodServerBukkit implements PluginMessageListener {
                     CsLodMessages.ClientHello greeting = CsLodMessages.decodeClientHello(in);
                     RADIUS.put(player.getUniqueId(), clampRadius(greeting.radiusBlocks()));
                     SPOKEN.add(player.getUniqueId());
+                    CsLodClientStats.onHello(player.getUniqueId(), greeting.protocolVersion(), greeting.hasVoxy(),
+                            greeting.hasDh(), greeting.radiusBlocks(), http == null ? 0 : http.getPort());
                     hello(player);
                 }
+                case CsLodProtocol.C2S_INJECTED -> injected(player, CsLodMessages.decodeInjectionReport(in));
                 case CsLodProtocol.C2S_REQUEST_INDEX -> dispatch(player, in.readUTF(), false, false);
                 case CsLodProtocol.C2S_REQUEST_SUMMARY -> dispatch(player, in.readUTF(), true, true);
                 default -> {
@@ -377,6 +387,26 @@ public final class CsLodServerBukkit implements PluginMessageListener {
         } catch (IOException e) {
             LOGGER.warning("Chunksmith: malformed LOD message from " + player.getName() + ": " + e);
         }
+    }
+
+    /** When each player's last injection report was written to the console, so a flood cannot flood the log. */
+    private static final java.util.Map<UUID, Long> INJECTION_LOGGED = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long INJECTION_LOG_MIN_GAP_MILLIS = 1_000L;
+
+    /**
+     * A client says it finished putting a batch of our LOD into its renderer. Injection happens on the
+     * player's machine, so this is the only way the server can learn it.
+     */
+    private static void injected(Player player, CsLodMessages.InjectionReport report) {
+        CsLodClientStats.addInjected(player.getUniqueId(), report.renderer(), report.chunks(), report.failed());
+        long now = System.currentTimeMillis();
+        Long last = INJECTION_LOGGED.get(player.getUniqueId());
+        if (last != null && now - last < INJECTION_LOG_MIN_GAP_MILLIS) {
+            return;
+        }
+        INJECTION_LOGGED.put(player.getUniqueId(), now);
+        LOGGER.info("Chunksmith: " + player.getName() + " injected " + report.chunks() + " LOD chunk(s) into "
+                + report.renderer() + (report.failed() > 0 ? " (" + report.failed() + " failed)" : ""));
     }
 
     // TODO: no in-band path here yet; a blocked port just means no LOD
@@ -701,6 +731,12 @@ public final class CsLodServerBukkit implements PluginMessageListener {
     private static boolean isOnline(UUID player) {
         Player found = Bukkit.getPlayer(player);
         return found != null && found.isOnline();
+    }
+
+    /** A connected player's name from their id, or null when they are not connected (the caller falls back). */
+    private static String nameOfId(UUID id) {
+        Player found = Bukkit.getPlayer(id);
+        return found == null ? null : found.getName();
     }
 
     /**

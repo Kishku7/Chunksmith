@@ -63,6 +63,7 @@ public class ContinueCommand implements ChunksmithCommand {
             if (!generationTasks.containsKey(world.getName())) {
                 generationTasks.put(world.getName(), generationTask);
                 chunky.getScheduler().runTask(generationTask);
+                CommandAudit.note(chunky, sender, "continued", "the task for " + world.getName());
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_CONTINUE, world.getName());
             } else if (generationTasks.get(world.getName()).isStopping()) {
                 // A pause/stop drains before it lets go of the map entry, and that takes seconds. Saying

@@ -1,5 +1,34 @@
 # Chunksmith Changelog
 
+## [4.9.0] - 2026-11-11
+
+- New: a pregen now says so while it is still scanning. Before the first chunk is counted, Chunksmith reads the
+  region files to find chunks that already exist. On a large area that is mostly generated this can take minutes,
+  and until now the task showed "0 chunks, 0.0 cps" and no boss bar, which looked like a hung task. The boss bar
+  now reads "<world> | scanning existing chunks...", and `/cs progress` and the console say the same, until the
+  scan finishes and the normal progress takes over. Applies to every loader and the Bukkit/Paper/Folia plugin
+  (the plugin has no boss bar; it gets the console and `/cs progress` message).
+- New: the server console now names the player on every line about a player's LOD transfer. The backchannel used
+  to log only an IP address, and only when a response stalled; it now says which player, and prints one summary line
+  per player when a transfer run finishes ("sent Kishku7 79 LOD files (89.8 MB) over the backchannel in 12s"), instead
+  of nothing. A backchannel error while serving a player names them too, as does the failure to send a player a
+  client-setting message. One line per run, not per file, so a large download does not flood the log. Applies to
+  every loader and the Bukkit/Paper/Folia plugin. Injection into Distant Horizons or Voxy happens on the player's own
+  machine, so it appears in their client log, not the server's.
+- New: the server console now names the player who started, paused, continued or cancelled a pregen, started a
+  trim, or changed a setting with `/cs set` ("Kishku7 started the task for minecraft:overworld (square, centered at
+  0, 0, radius 2500)."). A command typed at the console itself needs no line, so none is added.
+- New: injection reports. After a client finishes putting a batch of the server's LOD into Distant Horizons or Voxy,
+  it tells the server how many chunks went in, and the server console says so by name ("Kishku7 injected 4,200 LOD
+  chunk(s) into distant-horizons"). Injection happens on the player's own machine, so this is the only way the server
+  can see it. A client sends it only to a server that says it wants it, so a 4.9.0 client against an older server, and
+  an older client against a 4.9.0 server, both work exactly as before and simply report nothing. The LOD protocol
+  version is unchanged, because it must match exactly and a bump would have broken every mixed pair.
+- New: `/cs lod clients` lists every online player with whether their client speaks the LOD protocol, which renderer
+  they have, how they are being served (backchannel or in-band), how much has been sent to them, and what they report
+  having injected. Works on every loader and on the Bukkit/Paper/Folia plugin.
+- Includes the 4.8.1 boss bar fix for NeoForge before 26 and Forge (mod_support #53) on every cell.
+
 ## [4.8.1] - 2026-11-09
 
 - Fixed: the progress boss bar never appeared on NeoForge before 26 or on any Forge version (mod_support #53).

@@ -22,6 +22,7 @@
 package com.kishku7.chunksmith.lod;
 
 import com.kishku7.chunksmith.ChunksmithProvider;
+import com.kishku7.chunksmith.lod.net.CsLodClientStats;
 import com.kishku7.chunksmith.platform.Sender;
 
 import org.bukkit.Bukkit;
@@ -70,12 +71,16 @@ public final class CsLodBukkitCommand {
             token(sender, rest);
             return;
         }
+        if (rest.length > 0 && "clients".equalsIgnoreCase(rest[0])) {
+            clients(sender);
+            return;
+        }
         status(sender);
     }
 
     public static List<String> suggestions(final String[] rest) {
         if (rest.length <= 1) {
-            return List.of("status", "token");
+            return List.of("status", "token", "clients");
         }
         if ("token".equalsIgnoreCase(rest[0])) {
             List<String> names = new ArrayList<>();
@@ -103,6 +108,22 @@ public final class CsLodBukkitCommand {
             say(sender, LodSupport.dimensionKey(world) + ": "
                     + (Files.isDirectory(store) ? (bytes / 1024L) + " KB" : "no store")
                     + "  " + store);
+        }
+    }
+
+    /** Every online player: whether their client speaks the LOD protocol, how they are served, what they report. */
+    private static void clients(final Sender sender) {
+        java.util.Collection<? extends Player> online = Bukkit.getOnlinePlayers();
+        if (online.isEmpty()) {
+            say(sender, "no players online");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (Player player : online) {
+            for (String line : CsLodClientStats.describe(player.getName(),
+                    CsLodClientStats.snapshot(player.getUniqueId()), now)) {
+                say(sender, line);
+            }
         }
     }
 

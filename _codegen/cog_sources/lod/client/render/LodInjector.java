@@ -271,6 +271,54 @@ public final class LodInjector {
                 + (dh ? ", " + dhChunks.get() + " to distant-horizons (" + DhTarget.describe() + ")" : ""));
 
         reportDhGate(dh);
+        reportInjection(voxy, dh);
+    }
+
+    /**
+     * Where an injection report goes, or null when the server did not say it wants them. Set by the network
+     * layer from the server's hello (see {@code CsLodProtocol.CAP_INJECTION_REPORT}); an older server never
+     * advertises it, so it never gets a message it would log as an unknown id.
+     */
+    private static volatile java.util.function.Consumer<CsLodMessages.InjectionReport> reportSink;
+
+    /** The counters above are totals since the game started; a report is the change since the last one. */
+    private static long reportedDhChunks;
+    private static long reportedChunks;
+    private static long reportedDhFailed;
+
+    public static void setReportSink(java.util.function.Consumer<CsLodMessages.InjectionReport> sink) {
+        reportSink = sink;
+    }
+
+    /**
+     * Tells the server what this batch put into each renderer, so its console can say which player received
+     * and used it. The baseline moves even with no sink, so the first report after a server is connected is
+     * one batch and not everything injected since the game started.
+     */
+    private static synchronized void reportInjection(boolean voxy, boolean dh) {
+        long dhNow = dhChunks.get();
+        long chunksNow = chunks.get();
+        long failedNow = DhTarget.failedCount();
+        long dhDelta = dhNow - reportedDhChunks;
+        long chunksDelta = chunksNow - reportedChunks;
+        long failedDelta = failedNow - reportedDhFailed;
+        reportedDhChunks = dhNow;
+        reportedChunks = chunksNow;
+        reportedDhFailed = failedNow;
+        java.util.function.Consumer<CsLodMessages.InjectionReport> sink = reportSink;
+        if (sink == null) {
+            return;
+        }
+        if (dh && (dhDelta > 0 || failedDelta > 0)) {
+            sink.accept(new CsLodMessages.InjectionReport("distant-horizons", clampInt(dhDelta), clampInt(failedDelta)));
+        }
+        if (voxy && chunksDelta > 0) {
+            sink.accept(new CsLodMessages.InjectionReport("voxy", clampInt(chunksDelta), 0));
+        }
+    }
+
+    private static int clampInt(long value) {
+        return (int) Math.max(0L, Math.min(Integer.MAX_VALUE, value));
     }
 
     /**

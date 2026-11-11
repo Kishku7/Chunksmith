@@ -376,6 +376,13 @@ public class GenerationTask implements Runnable {
         if (regionDirectory.isEmpty()) {
             return;
         }
+        // Say so while it runs: on a large, mostly-generated selection this is minutes of nothing, and the
+        // boss bar and /cs progress are otherwise driven only by chunk completions.
+        progress.scanning = true;
+        chunky.getEventBus().call(new GenerationTaskUpdateEvent(this));
+        if (!chunky.getConfig().isSilent()) {
+            progress.sendUpdate(chunky.getServer().getConsole());
+        }
         try {
             int centerChunkX = selection.centerChunkX();
             int centerChunkZ = selection.centerChunkZ();
@@ -394,6 +401,8 @@ public class GenerationTask implements Runnable {
         } catch (Throwable t) {
             LOGGER.info("Chunksmith: could not pre-scan the region files (" + t
                     + "); existing chunks will be detected individually as before");
+        } finally {
+            progress.scanning = false;
         }
     }
 
@@ -1588,6 +1597,10 @@ public class GenerationTask implements Runnable {
         private double rate;
         private long skipped;
         private long generated;
+        // True only while the pre-scan of the region files runs, before the first chunk is counted. The
+        // scan can take minutes on a large, mostly-generated selection and nothing else reports during
+        // it, so a task in this state otherwise looks hung: 0 chunks, 0.0 cps, no boss bar.
+        private volatile boolean scanning;
         private int chunkX, chunkZ;
         private int dispatchCurrent;
         private int dispatchMax;
@@ -1607,6 +1620,11 @@ public class GenerationTask implements Runnable {
 
         public boolean isComplete() {
             return complete;
+        }
+
+        /** True while the region-file pre-scan runs, before any chunk has been counted. */
+        public boolean isScanning() {
+            return scanning;
         }
 
         public float getPercentComplete() {
@@ -1655,7 +1673,9 @@ public class GenerationTask implements Runnable {
         }
 
         public void sendUpdate(Sender sender) {
-            if (complete) {
+            if (scanning) {
+                sender.sendMessagePrefixed(TranslationKey.TASK_SCANNING, world);
+            } else if (complete) {
                 sender.sendMessagePrefixed(TranslationKey.TASK_DONE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), skipped, generated);
             } else {
                 sender.sendMessagePrefixed(TranslationKey.TASK_UPDATE, world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), String.format("%.1f", rate), chunkX, chunkZ, skipped, generated);

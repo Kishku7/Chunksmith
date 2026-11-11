@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -124,6 +125,18 @@ public final class CsLodHttpServer {
     private final AtomicLong stalled = new AtomicLong();
     /** Responses being written right now, each with the time it last made progress. */
     private final Map<HttpExchange, AtomicLong> sending = new ConcurrentHashMap<>();
+    /**
+     * Who each response in {@link #sending} is for, by name, resolved when the request arrived (the token
+     * check has just proved the player is online). A stalled response is, by definition, to a peer that has
+     * gone, so the name cannot be looked up later.
+     */
+    private final Map<HttpExchange, String> sendingTo = new ConcurrentHashMap<>();
+    /** What each player has been sent lately, flushed to the console as one line when they go quiet. */
+    private final Map<UUID, Tally> tallies = new ConcurrentHashMap<>();
+    /** A player is "done" for now when nothing has been sent to them for this long. */
+    static final long TALLY_IDLE_MILLIS = 5_000L;
+    /** Platform lookup of a player's name from their id; null result or an exception falls back to the id. */
+    private volatile Function<UUID, String> nameResolver = null;
 
     private HttpServer server;
     private ExecutorService pool;
@@ -145,6 +158,30 @@ public final class CsLodHttpServer {
         this.roots = roots;
         this.tokens = tokens;
         this.onlineCheck = onlineCheck;
+    }
+
+    /**
+     * Teaches the server to turn a player's id into their name for the console. Without it every
+     * line names the id instead, which is correct but not something an operator can act on.
+     */
+    public void setNameResolver(Function<UUID, String> resolver) {
+        this.nameResolver = resolver;
+    }
+
+    /** The player's name, or their id when the platform cannot say. Never throws and never returns null. */
+    private String nameOf(UUID player) {
+        Function<UUID, String> resolver = nameResolver;
+        if (resolver != null) {
+            try {
+                String name = resolver.apply(player);
+                if (name != null && !name.isBlank()) {
+                    return name;
+                }
+            } catch (RuntimeException e) {
+                // A lookup that fails costs the name, never the transfer.
+            }
+        }
+        return player.toString();
     }
 
     /**
@@ -216,7 +253,7 @@ public final class CsLodHttpServer {
                 thread.setDaemon(true);
                 return thread;
             });
-            watchdog.scheduleWithFixedDelay(this::closeStalled, watchPeriodMillis, watchPeriodMillis,
+            watchdog.scheduleWithFixedDelay(this::watch, watchPeriodMillis, watchPeriodMillis,
                     TimeUnit.MILLISECONDS);
             port = wanted;
             LOGGER.info("Chunksmith: LOD backchannel listening on " + address + " (port " + port
@@ -242,6 +279,8 @@ public final class CsLodHttpServer {
             server.stop(STOP_GRACE_SECONDS);
             server = null;
         }
+        // Whatever was sent and not yet reported goes out now, rather than being lost with the server.
+        flushTallies(true);
         if (pool != null) {
             pool.shutdownNow();
             pool = null;
@@ -251,6 +290,7 @@ public final class CsLodHttpServer {
             watchdog = null;
         }
         sending.clear();
+        sendingTo.clear();
         tokens.clear();
     }
 
@@ -291,6 +331,8 @@ public final class CsLodHttpServer {
 
     private void handle(HttpExchange exchange) throws IOException {
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
+        // Known once the token checks out; the error path below names them when it can.
+        String playerName = null;
         try {
             String method = exchange.getRequestMethod();
             if (!"GET".equals(method) && !"HEAD".equals(method)) {
@@ -304,6 +346,8 @@ public final class CsLodHttpServer {
                 fail(exchange);
                 return;
             }
+            // Resolved now, while the token has just proved the player is online.
+            playerName = nameOf(player);
 
             Path file = resolve(exchange.getRequestURI().getPath());
             if (file == null || !Files.isRegularFile(file)) {
@@ -318,13 +362,17 @@ public final class CsLodHttpServer {
                 return;
             }
             try {
-                sendFile(exchange, file, "HEAD".equals(method));
+                long sent = sendFile(exchange, file, "HEAD".equals(method), playerName);
+                if (sent > 0) {
+                    record(player, playerName, sent);
+                }
             } finally {
                 release(ip);
             }
         } catch (RuntimeException e) {
             // Never let a handler bug take the game server with it.
-            LOGGER.warn("Chunksmith: LOD backchannel error: " + e);
+            LOGGER.warn("Chunksmith: LOD backchannel error" + (playerName == null ? "" : " serving " + playerName)
+                    + ": " + e);
             fail(exchange);
         } finally {
             exchange.close();
@@ -360,7 +408,8 @@ public final class CsLodHttpServer {
         return candidate.startsWith(base) ? candidate : null;
     }
 
-    private void sendFile(HttpExchange exchange, Path file, boolean headOnly) throws IOException {
+    /** @return the bytes of body sent, or 0 for a HEAD request (nothing was transferred) */
+    private long sendFile(HttpExchange exchange, Path file, boolean headOnly, String playerName) throws IOException {
         long size = Files.size(file);
         long[] range = parseRange(exchange.getRequestHeaders().getFirst("Range"), size);
 
@@ -381,11 +430,12 @@ public final class CsLodHttpServer {
         // Watched from the first byte: the headers go out on the same socket and can block just the same.
         AtomicLong lastProgress = new AtomicLong(System.currentTimeMillis());
         sending.put(exchange, lastProgress);
+        sendingTo.put(exchange, playerName);
         try {
             if (headOnly) {
                 exchange.getResponseHeaders().set("Content-Length", Long.toString(length));
                 exchange.sendResponseHeaders(status, -1);
-                return;
+                return 0L;
             }
 
             exchange.sendResponseHeaders(status, length);
@@ -405,9 +455,96 @@ public final class CsLodHttpServer {
             }
         } finally {
             sending.remove(exchange);
+            sendingTo.remove(exchange);
         }
         served.incrementAndGet();
         bytes.addAndGet(length);
+        return length;
+    }
+
+    /** What one player has been sent since the last time it was reported. */
+    private static final class Tally {
+        final String name;
+        final long firstMillis;
+        long files;
+        long bytes;
+        long lastMillis;
+        /** Set once reported; a file that lands afterwards goes into a new tally, never this one. */
+        boolean closed;
+
+        Tally(String name, long now) {
+            this.name = name;
+            this.firstMillis = now;
+            this.lastMillis = now;
+        }
+    }
+
+    /**
+     * Counts one finished file against the player it went to. Deliberately not one console line per
+     * file: a client pulling a big store asks for hundreds of regions, and a line each would bury the
+     * log. {@link #flushTallies} turns the count into one line when they go quiet.
+     */
+    private void record(UUID player, String name, long length) {
+        long now = System.currentTimeMillis();
+        CsLodClientStats.addBackchannel(player, length);
+        while (true) {
+            Tally tally = tallies.computeIfAbsent(player, id -> new Tally(name, now));
+            synchronized (tally) {
+                if (tally.closed) {
+                    // Reported a moment ago and not yet swept out of the map: start the next one.
+                    tallies.remove(player, tally);
+                    continue;
+                }
+                tally.files++;
+                tally.bytes += length;
+                tally.lastMillis = now;
+                return;
+            }
+        }
+    }
+
+    /**
+     * Reports, one line per player, what they were sent, for every player who has been quiet for
+     * {@link #TALLY_IDLE_MILLIS} (or every player at all, on shutdown).
+     */
+    private void flushTallies(boolean everyone) {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<UUID, Tally> entry : tallies.entrySet()) {
+            Tally tally = entry.getValue();
+            String line = null;
+            synchronized (tally) {
+                if (!tally.closed && (everyone || now - tally.lastMillis >= TALLY_IDLE_MILLIS)) {
+                    // Closed under the lock, so a file that lands a moment later starts a fresh tally
+                    // instead of being counted into a line that has already been printed.
+                    tally.closed = true;
+                    tallies.remove(entry.getKey(), tally);
+                    line = describeSent(tally);
+                }
+            }
+            if (line != null) {
+                LOGGER.info(line);
+            }
+        }
+    }
+
+    /** The console line for a finished run of transfers. Pure, so it is testable. */
+    static String describeSent(String name, long files, long bytes, long seconds) {
+        String size = bytes >= 1024L * 1024L
+                ? String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+                : String.format("%.1f KB", bytes / 1024.0);
+        return "Chunksmith: sent " + name + " " + files + " LOD file" + (files == 1 ? "" : "s") + " (" + size
+                + ") over the backchannel in " + seconds + "s";
+    }
+
+    private static String describeSent(Tally tally) {
+        long seconds = Math.max(1L, (tally.lastMillis - tally.firstMillis + 999L) / 1000L);
+        return describeSent(tally.name, tally.files, tally.bytes, seconds);
+    }
+
+    /** One tick of the watchdog: close what has stalled, then report what has finished. */
+    private void watch() {
+        closeStalled();
+        flushTallies(false);
     }
 
     /**
@@ -428,6 +565,10 @@ public final class CsLodHttpServer {
                 peer = exchange.getRemoteAddress().getAddress().getHostAddress();
             } catch (RuntimeException e) {
                 peer = "?";
+            }
+            String who = sendingTo.remove(exchange);
+            if (who != null) {
+                peer = who + " (" + peer + ")";
             }
             LOGGER.warn("Chunksmith: LOD backchannel response to " + peer + " made no progress in "
                     + (stallMillis / 1000) + "s; closing it so it cannot hold a download thread");

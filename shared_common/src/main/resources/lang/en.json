@@ -119,6 +119,8 @@
   "task_lod_summary": "LOD for %s - generated: %s chunks, LOD-only (built from existing chunks): %s, skipped (chunk + LOD present): %s. %s",
   "task_verify_failed": "VERIFICATION FAILED for %s - %s of %s sampled chunks this run counted as generated are NOT on disk (e.g. %s). The run reported success but did not write terrain. Please report this with your mod list.",
   "task_stopped": "Task stopped for %s.",
+  "command_by_player": "%s %s %s.",
+  "task_scanning": "Task running for %s. Scanning the region files for chunks that already exist before generating anything. On a large area that is mostly generated this can take several minutes, and no chunks are counted until it finishes.",
   "task_update": "Task running for %s. Processed: %s chunks (%s%%), ETA: %s:%s:%s, Rate: %s cps, Current: %s, %s -- %s already generated (skipped), %s newly generated",
   "wrap_both": "both",
   "wrap_default": "default",

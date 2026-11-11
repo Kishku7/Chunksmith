@@ -105,6 +105,9 @@ public class StartCommand implements ChunksmithCommand {
             GenerationTask generationTask = new GenerationTask(chunky, current);
             chunky.getGenerationTasks().put(current.world().getName(), generationTask);
             chunky.getScheduler().runTask(generationTask);
+            CommandAudit.note(chunky, sender, "started", "the task for " + current.world().getName() + " ("
+                    + current.shape() + ", centered at " + Formatting.number(current.centerX()) + ", "
+                    + Formatting.number(current.centerZ()) + ", radius " + Formatting.radius(current) + ")");
             sender.sendMessagePrefixed(TranslationKey.FORMAT_START, current.world().getName(), translate("shape_" + current.shape()), Formatting.number(current.centerX()), Formatting.number(current.centerZ()), Formatting.radius(current));
         };
         if (chunky.getTaskLoader().loadTask(current.world()).filter(task -> !task.isCancelled()).isPresent()) {

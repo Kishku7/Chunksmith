@@ -58,12 +58,14 @@ public class PauseCommand implements ChunksmithCommand {
                 sender.sendMessage(TranslationKey.HELP_PAUSE);
             } else {
                 generationTasks.get(world.get().getName()).stop(false);
+                CommandAudit.note(chunky, sender, "paused", "the task for " + world.get().getName());
                 sender.sendMessagePrefixed(TranslationKey.FORMAT_PAUSE, world.get().getName());
             }
             return;
         }
         for (GenerationTask generationTask : chunky.getGenerationTasks().values()) {
             generationTask.stop(false);
+            CommandAudit.note(chunky, sender, "paused", "the task for " + generationTask.getSelection().world().getName());
             sender.sendMessagePrefixed(TranslationKey.FORMAT_PAUSE, generationTask.getSelection().world().getName());
         }
     }

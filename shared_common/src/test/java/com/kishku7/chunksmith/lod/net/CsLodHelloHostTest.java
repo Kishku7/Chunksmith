@@ -136,6 +136,10 @@ public class CsLodHelloHostTest {
             // Where a 3.16.0 client stops, for the same reason.
             assertTrue(in.available() > 0);
             assertEquals("0123456789abcdef0123456789abcdef", in.readUTF());
+            // 4.9.0 appended the capability bits behind the world id, the same way the world id was
+            // appended behind the host: an older client never reads them, and they are the last thing.
+            assertEquals(4, in.available());
+            assertEquals(CsLodProtocol.SERVER_CAPABILITIES, in.readInt());
             assertEquals(0, in.available());
         }
     }

@@ -122,6 +122,9 @@ public class TrimCommand implements ChunksmithCommand {
         Selection selection = chunky.getSelection().build();
         Shape shape = ShapeFactory.getShape(selection);
         Runnable deletionAction = () -> chunky.getScheduler().runTask(() -> {
+            CommandAudit.note(chunky, sender, "started a trim of", selection.world().getName() + " (" + selection.shape()
+                    + ", centered at " + Formatting.number(selection.centerX()) + ", " + Formatting.number(selection.centerZ())
+                    + ", radius " + Formatting.radius(selection) + "), which permanently deletes the chunks outside or inside it");
             sender.sendMessagePrefixed(TranslationKey.FORMAT_START, selection.world().getName(), translate("shape_" + selection.shape()), Formatting.number(selection.centerX()), Formatting.number(selection.centerZ()), Formatting.radius(selection));
             TrimCommand.Task trimTask = new TrimCommand.Task();
             chunky.getTrimTasks().put(selection.world().getName(), trimTask);
