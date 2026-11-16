@@ -12,8 +12,10 @@
   - `/cs` now shows in tab-completion for everyone, but running it still needs the same permission and says so
     when refused. Minecraft 26.4 no longer lets a mod hide a command per player.
   - The legacy `/cslod` stub that told 3.x clients to update is not registered, since no 3.x client exists for 26.4.
-- Verified on a dedicated server only (boot, `/cs` commands with arguments, and a 96-block pregen). The 26.4 client
-  was checked to reach the title screen; it has not been driven into a world.
+- Verified on a 26.4-snapshot-8 dedicated server (boot, `/cs` commands with arguments, and a 96-block pregen) and on
+  a 26.4-snapshot-8 client driven into a singleplayer world: the world-enter progress screen showed and its
+  button released the world, `/cs` and `/csclient` commands ran, and the world rendered. Not verified: the
+  auto-pause gate, multiplayer, and Distant Horizons / Voxy (neither was installed).
 
 ## [4.9.0] - 2026-11-11
 
