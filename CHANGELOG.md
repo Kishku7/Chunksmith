@@ -1,5 +1,20 @@
 # Chunksmith Changelog
 
+## [4.10.0] - 2026-11-16
+
+- New: Fabric support for Minecraft 26.4-snapshot-8. This is a pre-release Minecraft build, so the jar is built
+  for that exact snapshot and published as a beta; it will not load on any other 26.4 build. NeoForge has not
+  released a 26.4 build yet, so there is no NeoForge jar for it. Other cells are unchanged.
+- Minecraft 26.4 rebuilt how commands are registered, and three things follow for the 26.4 jar only:
+  - `/cs` permission checks no longer use fabric-permissions-api (LuckPerms nodes), because that library cannot
+    work with the new command source and has no 26.4 release yet. `/cs` is allowed for operators (game master),
+    and always on a singleplayer world, exactly as before. Per-player permission nodes return when the library does.
+  - `/cs` now shows in tab-completion for everyone, but running it still needs the same permission and says so
+    when refused. Minecraft 26.4 no longer lets a mod hide a command per player.
+  - The legacy `/cslod` stub that told 3.x clients to update is not registered, since no 3.x client exists for 26.4.
+- Verified on a dedicated server only (boot, `/cs` commands with arguments, and a 96-block pregen). The 26.4 client
+  was checked to reach the title screen; it has not been driven into a world.
+
 ## [4.9.0] - 2026-11-11
 
 - New: a pregen now says so while it is still scanning. Before the first chunk is counted, Chunksmith reads the

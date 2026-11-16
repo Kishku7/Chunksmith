@@ -31,11 +31,33 @@ public final class SuggestionProviders {
     public static final SuggestionProvider<CommandSourceStack> SETTINGS;
 
     static {
-        PATTERNS = new PatternSuggestionProvider();
-        SHAPES = new ShapeSuggestionProvider();
-        TRIM_MODES = new TrimModeSuggestionProvider();
-        SETTINGS = new SettingSuggestionProvider();
+        PATTERNS = wrap(new PatternSuggestionProvider());
+        SHAPES = wrap(new ShapeSuggestionProvider());
+        TRIM_MODES = wrap(new TrimModeSuggestionProvider());
+        SETTINGS = wrap(new SettingSuggestionProvider());
     }
+
+    // 26.4 only accepts suggestion providers its command tree can serialise: anything else makes
+    // Commands.<init> throw "Invalid suggestion type". These providers read only the named
+    // arguments, never the source, so handing them the context the server supplies is safe.
+    //[[[cog
+    // import cog, compat
+    // if compat.command_args_wrapped(mcver):
+    //     cog.outl("    @SuppressWarnings(\"unchecked\")")
+    //     cog.outl("    private static SuggestionProvider<CommandSourceStack> wrap(SuggestionProvider<CommandSourceStack> provider) {")
+    //     cog.outl("        return net.minecraft.commands.suggestions.SuggestionProviders.serverOnly(")
+    //     cog.outl("                (server, context, builder) -> provider.getSuggestions(")
+    //     cog.outl("                        (com.mojang.brigadier.context.CommandContext<CommandSourceStack>) (com.mojang.brigadier.context.CommandContext<?>) context, builder));")
+    //     cog.outl("    }")
+    // else:
+    //     cog.outl("    private static SuggestionProvider<CommandSourceStack> wrap(SuggestionProvider<CommandSourceStack> provider) {")
+    //     cog.outl("        return provider;")
+    //     cog.outl("    }")
+    //]]]
+    private static SuggestionProvider<CommandSourceStack> wrap(SuggestionProvider<CommandSourceStack> provider) {
+        return provider;
+    }
+    //[[[end]]]
 
     private SuggestionProviders() {
     }

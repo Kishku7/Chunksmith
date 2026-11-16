@@ -858,6 +858,53 @@ def screen_extract(mcver):
     return _parse(mcver)[0] >= 26
 
 
+def screen_extract_graphics_only(mcver):
+    """26.4 dropped the mouse position and partial tick from Screen.extractRenderState.
+
+    <= 26.3 : extractRenderState(GuiGraphicsExtractor, int, int, float)
+    >= 26.4 : extractRenderState(GuiGraphicsExtractor)
+
+    Read off 26.3 vs 26.4-snapshot-8 (struct diff: every Screen subclass shows the
+    4-argument form removed and the 1-argument form added). Verified at snapshot-8 only;
+    the exact snapshot that introduced it was not bisected.
+    """
+    return _parse(mcver)[:2] >= (26, 4)
+
+
+def command_args_wrapped(mcver):
+    """26.4 requires every command argument to be a SerializableArgument wrapper.
+
+    <= 26.3 : raw Brigadier types (StringArgumentType.word()/string(), IntegerArgumentType.integer())
+    >= 26.4 : net.minecraft.commands.arguments.StringArgument / IntegerArgument, same factory
+              names. A raw Brigadier type left in the tree makes Commands.<init> throw
+              "Invalid argument type: string()" in SuggestionBox$SuggestionNodeConverter, so
+              the server never finishes loading its datapacks. Reproduced on a Raider boot
+              of 26.4-snapshot-8 with Chunksmith 4.10.0 and not without it.
+    """
+    return _parse(mcver)[:2] >= (26, 4)
+
+
+def command_argument_package(mcver):
+    """Package that owns the command-argument factories for this version."""
+    if command_args_wrapped(mcver):
+        return "net.minecraft.commands.arguments"
+    return "com.mojang.brigadier.arguments"
+
+
+def command_argument_suffix(mcver):
+    """'' for the 26.4 wrapper classes (StringArgument), 'Type' for Brigadier's (StringArgumentType)."""
+    return "" if command_args_wrapped(mcver) else "Type"
+
+
+def chunk_section_biome_getter(mcver):
+    """LevelChunkSection.getNoiseBiome(int,int,int) was renamed getBiome at 26.4.
+
+    Same signature and return type (Holder<Biome>); fillBiomesFromNoise became fillBiome in
+    the same change. Read off the 26.3 vs 26.4-snapshot-8 struct diff.
+    """
+    return "getBiome" if _parse(mcver)[:2] >= (26, 4) else "getNoiseBiome"
+
+
 def has_world_clock(mcver):
     """26 replaced the day-time API with a clock manager.
 

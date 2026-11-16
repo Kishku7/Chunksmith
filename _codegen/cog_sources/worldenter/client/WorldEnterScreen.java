@@ -88,7 +88,9 @@ public final class WorldEnterScreen extends Screen {
     @Override
     //[[[cog
     // import cog, compat
-    // if compat.screen_extract(mcver):
+    // if compat.screen_extract_graphics_only(mcver):
+    //     cog.outl("    public void extractRenderState(GuiGraphicsExtractor graphics) {")
+    // elif compat.screen_extract(mcver):
     //     cog.outl("    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partial) {")
     // else:
     //     cog.outl("    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {")
@@ -120,7 +122,9 @@ public final class WorldEnterScreen extends Screen {
         // widgets, then our own text on top.
         //[[[cog
         // import cog, compat
-        // if compat.screen_extract(mcver):
+        // if compat.screen_extract_graphics_only(mcver):
+        //     cog.outl("        super.extractRenderState(graphics);")
+        // elif compat.screen_extract(mcver):
         //     cog.outl("        super.extractRenderState(graphics, mouseX, mouseY, partial);")
         // else:
         //     cog.outl("        super.render(graphics, mouseX, mouseY, partial);")

@@ -146,7 +146,12 @@ public final class CsLodExtractor {
         for (int y = 0; y < 4; y++) {
             for (int z = 0; z < 4; z++) {
                 for (int x = 0; x < 4; x++) {
+                    //[[[cog
+                    // import cog, compat
+                    // cog.outl("Holder<Biome> holder = section.%s(x, y, z);" % compat.chunk_section_biome_getter(mcver))
+                    //]]]
                     Holder<Biome> holder = section.getNoiseBiome(x, y, z);
+                    //[[[end]]]
                     //[[[cog
                     // import cog, compat
                     // cog.outl("final int id = biomes.id(holder.unwrapKey()")

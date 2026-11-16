@@ -138,7 +138,7 @@ try {
     if ($platformList) {
         foreach ($cls in $platformList.Split(',')) {
             $dst = Join-Path $platformDir "$cls.java"
-            & python -c "import compat_platform,io,sys; io.open(sys.argv[1],'w',encoding='utf-8',newline='\n').write(compat_platform.platform_source(sys.argv[2],sys.argv[3],sys.argv[4]))" $dst $cls $Loader $cellName
+            & python -c "import compat_platform,io,sys; io.open(sys.argv[1],'w',encoding='utf-8',newline='\n').write(compat_platform.platform_source(sys.argv[2],sys.argv[3],sys.argv[4],sys.argv[5]))" $dst $cls $Loader $cellName $McVer
             if ($LASTEXITCODE -ne 0) { throw "platform emit failed: $cls" }
         }
         Write-Host "[cog-gen] + platform adapters: $platformList"
@@ -245,6 +245,11 @@ foreach ($name in $driftMap.Keys) {
     $cogTargets += (Join-Path $genJava $driftMap[$name])
 }
 $cogTargets += $entrypointDst
+# SuggestionProviders is copied verbatim from cog_sources/shared like every other invariant class, but
+# carries one version gate (26.4 only accepts serialisable suggestion providers), so it must be cogged.
+# Without this line the gate sat in the source as a comment and every cell kept the pass-through.
+$spDst = Join-Path $genJava 'com/kishku7/chunksmith/command/suggestion/SuggestionProviders.java'
+if (Test-Path $spDst) { $cogTargets += $spDst }
 
 # --- Step 4b: the LOD feature (3.0.0-beta-1). Server-side LOD is carried ONLY by the cells that have a
 # real client-side renderer to serve (compat.has_lod). The whole cell-side surface -- LodSupport,

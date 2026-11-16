@@ -62,9 +62,17 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+//[[[cog
+// import cog, compat
+// pkg = compat.command_argument_package(mcver)
+// cog.outl("import static %s.IntegerArgument%s.integer;" % (pkg, compat.command_argument_suffix(mcver)))
+// cog.outl("import static %s.StringArgument%s.string;" % (pkg, compat.command_argument_suffix(mcver)))
+// cog.outl("import static %s.StringArgument%s.word;" % (pkg, compat.command_argument_suffix(mcver)))
+//]]]
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static com.mojang.brigadier.arguments.StringArgumentType.string;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
+//[[[end]]]
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
@@ -153,7 +161,10 @@ public class ChunksmithFabric implements ModInitializer {
             dispatcher.register(buildCommand(CommandLiteral.CY));
             //[[[cog
             // import cog, compat
-            // if compat.has_lod(mcver, loader):
+            // if compat.has_lod(mcver, loader) and compat.command_args_wrapped(mcver):
+            //     cog.outl('// No legacy /cslod stub on 26.4+: no 3.x client exists for these versions, and the stub')
+            //     cog.outl('// hides itself per player with a requires() predicate that 26.4 cannot serialise.')
+            // elif compat.has_lod(mcver, loader):
             //     cog.outl('// Legacy compat: /cslod exists on a 4.x server ONLY to tell a 3.x client why its LOD')
             //     cog.outl('// commands are gone. requires() hides it from everyone else, so on a 4.x client the')
             //     cog.outl('// name is genuinely absent rather than present-and-scolding.')
@@ -165,16 +176,56 @@ public class ChunksmithFabric implements ModInitializer {
         });
     }
 
+    /** The /cs permission rule: always allowed on a singleplayer world, otherwise chunksmith.command (op by default). */
+    private static boolean canUseRoot(CommandSourceStack source) {
+        MinecraftServer minecraftServer = source.getServer();
+        if (minecraftServer != null && minecraftServer.isSingleplayer()) {
+            return true;
+        }
+        return new FabricSender(source).hasPermission("chunksmith.command", true);
+    }
+
+    // 26.4 only accepts a PermissionProviderCheck in requires(): the tree is sent to the client, so an
+    // arbitrary predicate cannot be serialised and Commands.<init> throws. On those versions requires() is
+    // pass-through, the singleplayer-or-permission rule moves into the executor (rootDenied), and the
+    // /cs border node is shown even when the border integration is absent (its executor already says so).
+    //[[[cog
+    // import cog, compat
+    // if compat.command_args_wrapped(mcver):
+    //     cog.outl("    private static java.util.function.Predicate<CommandSourceStack> rootGate() {")
+    //     cog.outl("        return net.minecraft.server.permissions.PermissionProviderCheck.ALWAYS_PASS.<CommandSourceStack>cast();")
+    //     cog.outl("    }")
+    //     cog.outl("")
+    //     cog.outl("    private java.util.function.Predicate<CommandSourceStack> borderGate() {")
+    //     cog.outl("        return net.minecraft.server.permissions.PermissionProviderCheck.ALWAYS_PASS.<CommandSourceStack>cast();")
+    //     cog.outl("    }")
+    //     cog.outl("")
+    //     cog.outl("    private static boolean rootDenied(CommandSourceStack source) {")
+    //     cog.outl("        return !canUseRoot(source);")
+    //     cog.outl("    }")
+    // else:
+    //     cog.outl("    private static java.util.function.Predicate<CommandSourceStack> rootGate() {")
+    //     cog.outl("        return ChunksmithFabric::canUseRoot;")
+    //     cog.outl("    }")
+    //     cog.outl("")
+    //     cog.outl("    private java.util.function.Predicate<CommandSourceStack> borderGate() {")
+    //     cog.outl("        return serverCommandSource -> chunky != null && chunky.getCommands().containsKey(CommandLiteral.BORDER);")
+    //     cog.outl("    }")
+    //     cog.outl("")
+    //     cog.outl("    private static boolean rootDenied(CommandSourceStack source) {")
+    //     cog.outl("        return false;")
+    //     cog.outl("    }")
+    //]]]
+    //[[[end]]]
+
     private LiteralArgumentBuilder<CommandSourceStack> buildCommand(String root) {
         LiteralArgumentBuilder<CommandSourceStack> command = literal(root)
-                .requires(serverCommandSource -> {
-                    MinecraftServer minecraftServer = serverCommandSource.getServer();
-                    if (minecraftServer != null && minecraftServer.isSingleplayer()) {
-                        return true;
-                    }
-                    return new FabricSender(serverCommandSource).hasPermission("chunksmith.command", true);
-                })
+                .requires(rootGate())
                 .executes(context -> {
+                    if (rootDenied(context.getSource())) {
+                        context.getSource().sendFailure(net.minecraft.network.chat.Component.literal("You do not have permission to use this command."));
+                        return 0;
+                    }
                     Sender sender;
                     if (context.getSource().getEntity() instanceof final ServerPlayer player) {
                         sender = new FabricPlayer(player);
@@ -253,7 +304,7 @@ public class ChunksmithFabric implements ModInitializer {
         registerArguments(command, literal(CommandLiteral.WORLD),
                 argument(CommandLiteral.WORLD, dimension()));
         LiteralArgumentBuilder<CommandSourceStack> borderCommand = literal(CommandLiteral.BORDER)
-                .requires(serverCommandSource -> chunky != null && chunky.getCommands().containsKey(CommandLiteral.BORDER))
+                .requires(borderGate())
                 .executes(command.getCommand());
         registerArguments(borderCommand, literal(CommandLiteral.ADD),
                 argument(CommandLiteral.WORLD, dimension()),

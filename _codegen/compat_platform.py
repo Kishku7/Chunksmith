@@ -8553,6 +8553,44 @@ def platform_classes(loader, cell):
     return out
 
 
-def platform_source(cls, loader, cell):
-    """Source text for ONE adapter class in this cell, or None if the cell has none."""
-    return platform_classes(loader, cell).get(cls)
+def _no_permissions_api(text):
+    """FabricSender without fabric-permissions-api (MC 26.4+).
+
+    26.4-snapshot-8 removed net.minecraft.commands.SharedSuggestionProvider, which
+    CommandSourceStack no longer implements. fabric-permissions-api 0.7.0 (newest published)
+    takes a SharedSuggestionProvider in every Permissions.check overload, so it cannot be
+    called with a CommandSourceStack at all and the class fails to load. Until the library
+    publishes a 26.4 build, this cell falls back to the vanilla game-master permission.
+    Every anchor is asserted: a silent no-match would ship the broken call.
+    """
+    imp = "import me.lucko.fabric.api.permissions.v0.Permissions;\n"
+    static_start = "    private static final boolean HAS_PERMISSIONS;\n"
+    static_end = "        HAS_PERMISSIONS = hasPermissions;\n    }\n\n"
+    body_start = "        if (HAS_PERMISSIONS) {\n"
+    body_end = "            return source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);\n        }\n"
+    for anchor in (imp, static_start, static_end, body_start, body_end):
+        if text.count(anchor) != 1:
+            raise AssertionError("FabricSender 26.4 transform: anchor not found exactly once: %r" % anchor)
+    text = text.replace(imp, "")
+    a = text.index(static_start)
+    b = text.index(static_end) + len(static_end)
+    text = text[:a] + text[b:]
+    a = text.index(body_start)
+    b = text.index(body_end, a) + len(body_end)
+    text = (text[:a]
+            + "        return source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);\n"
+            + text[b:])
+    return text
+
+
+def platform_source(cls, loader, cell, mcver=None):
+    """Source text for ONE adapter class in this cell, or None if the cell has none.
+
+    mcver is optional so the hash oracle (verify-platform.py) still sees the stored variants.
+    """
+    txt = platform_classes(loader, cell).get(cls)
+    if txt is not None and mcver is not None and cls == "FabricSender" and loader == "Fabric" and cell == "26":
+        parts = str(mcver).split("-", 1)[0].split(".")
+        if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit() and (int(parts[0]), int(parts[1])) >= (26, 4):
+            txt = _no_permissions_api(txt)
+    return txt
