@@ -1,5 +1,11 @@
 # Chunksmith Changelog
 
+## [4.10.1] - 2026-11-17
+
+- Fabric 26.4 jar re-pinned from Minecraft 26.4-snapshot-8 to 26.4-snapshot-10. Snapshot jars load only on the exact
+  build they were made for, so the 4.10.0 jar does not run on snapshot-9 or snapshot-10. Everything else is unchanged
+  from 4.10.0, including the 26.4 permission and command behavior listed there. Other cells are unchanged.
+
 ## [4.10.0] - 2026-11-16
 
 - New: Fabric support for Minecraft 26.4-snapshot-8. This is a pre-release Minecraft build, so the jar is built
