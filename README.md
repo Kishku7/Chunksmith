@@ -1,8 +1,8 @@
 # Chunksmith - Build Guide
 
-`CSv3-Current` is the Chunksmith source tree for the 3.x and 4.x lines, and the branch all current
+`CSv4_current` is the Chunksmith source tree for the 4.x line, and the branch all current
 work
-happens on. One codebase builds every supported target - the Fabric, Forge and NeoForge mods plus
+happens on. The 3.x line is frozen on `CSv3_archive`. One codebase builds every supported target - the Fabric, Forge and NeoForge mods plus
 the Bukkit/Paper plugin - across Minecraft 1.20.1 through 26.3.
 
 **This branch is the build guide.** For what Chunksmith is and how to run it, see the
