@@ -139,8 +139,9 @@ including the voxy forks, and which mods Chunksmith refuses to load beside.
 
 ## Source
 
-[`CSv3-Current`](https://github.com/Kishku7/Chunksmith/tree/CSv3-Current) -- the 3.x and 4.x lines,
-where current development happens. The 2.x line is frozen on
+[`CSv4_current`](https://github.com/Kishku7/Chunksmith/tree/CSv4_current) -- the 4.x line,
+where current development happens. The 3.x line is frozen on
+[`CSv3_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv3_archive), and the 2.x line on
 [`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
 
 ## License
