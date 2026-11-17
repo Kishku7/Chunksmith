@@ -155,8 +155,9 @@ to update. If your client is current, it simply does not exist any more.
 
 ## Source
 
-[`CSv4_current`](https://github.com/Kishku7/Chunksmith/tree/CSv4_current) -- the 4.x line, where
-current development happens. The 3.x line is frozen on
+[`CSv5_current`](https://github.com/Kishku7/Chunksmith/tree/CSv5_current) -- the 5.x line, where
+current development happens. The 4.x line is frozen on
+[`CSv4_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv4_archive), the 3.x line on
 [`CSv3_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv3_archive), and the 2.x line on
 [`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
 
