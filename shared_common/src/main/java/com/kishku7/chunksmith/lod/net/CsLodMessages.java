@@ -49,7 +49,17 @@ public final class CsLodMessages {
     // client hello
 
     /** What the client tells us on join: its protocol version, and which renderers it actually has. */
-    public record ClientHello(int protocolVersion, boolean hasVoxy, boolean hasDh, int radiusBlocks) {
+    /**
+     * @param hasMap true when the client has a map mod (Xaero's World Map) that wants the same LOD data to
+     *               draw the far map from. Added in 5.0 as one trailing byte so the frame stays readable by a
+     *               4.x peer, which stops after the radius and never sees it: a 5.x client is served by a 4.x
+     *               server exactly as before, and a 4.x client reads as {@code hasMap = false}.
+     */
+    public record ClientHello(int protocolVersion, boolean hasVoxy, boolean hasDh, int radiusBlocks, boolean hasMap) {
+
+        public ClientHello(int protocolVersion, boolean hasVoxy, boolean hasDh, int radiusBlocks) {
+            this(protocolVersion, hasVoxy, hasDh, radiusBlocks, false);
+        }
     }
 
     public static byte[] encode(ClientHello hello) throws IOException {
@@ -61,12 +71,19 @@ public final class CsLodMessages {
             out.writeBoolean(hello.hasDh());
             // The radius the client's renderer is configured for; the server follows it, lower or higher.
             out.writeInt(hello.radiusBlocks());
+            out.writeBoolean(hello.hasMap());
         }
         return raw.toByteArray();
     }
 
     public static ClientHello decodeClientHello(DataInputStream in) throws IOException {
-        return new ClientHello(in.readInt(), in.readBoolean(), in.readBoolean(), in.readInt());
+        int version = in.readInt();
+        boolean voxy = in.readBoolean();
+        boolean dh = in.readBoolean();
+        int radius = in.readInt();
+        // 4.x clients end the frame here; the map flag is optional so they still parse.
+        boolean map = in.available() > 0 && in.readBoolean();
+        return new ClientHello(version, voxy, dh, radius, map);
     }
 
     // injection report (4.9.0)

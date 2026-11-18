@@ -191,6 +191,8 @@ public final class CsLodClientNet {
      */
     private static volatile boolean capsVoxy;
     private static volatile boolean capsDh;
+    /** Xaero's World Map is installed and we are on a server: the far map is filled from the LOD store (5.0). */
+    private static volatile boolean capsMap;
     private static volatile int capsRadius;
 
     /** One fetch at a time. A travel refresh must never race the join fetch, or itself. */
@@ -358,7 +360,7 @@ public final class CsLodClientNet {
         busy.set(false);
         lastIndexMillis = 0L;
 
-        if (!capsVoxy && !capsDh) {
+        if (!capsVoxy && !capsDh && !capsMap) {
             // No renderer. hello() already said so; do not narrate a dimension change we will do nothing about.
             return true;
         }
@@ -485,7 +487,7 @@ public final class CsLodClientNet {
         // Every word below is about the LOD terrain the player expected to see. With no renderer our hello
         // went out to reach /cslod set rather than to ask for data (see hello()), so silence is not that
         // failure.
-        if (!capsVoxy && !capsDh) {
+        if (!capsVoxy && !capsDh && !capsMap) {
             return;
         }
         if (System.currentTimeMillis() - helloSentMillis < HELLO_TIMEOUT_MILLIS) {
@@ -559,16 +561,23 @@ public final class CsLodClientNet {
         // Cache it; every later hello re-uses these numbers rather than going back to voxy's config.
         capsVoxy = voxy;
         capsDh = dh;
+        // A map mod draws from a server's LOD store only on a server: in singleplayer World Map builds its
+        // map from the world's own chunk storage and never reads the region files we would write.
+        boolean map = Renderers.hasMap() && client.getCurrentServer() != null;
+        capsMap = map;
         capsRadius = Renderers.configuredRadiusBlocks();
         // The sync interval, with its floor applied in code (see CsLodClientConfig: "sync-interval-
         // seconds=1" must not become a poll storm against a server trying to run a pregen).
         LOGGER.info("Chunksmith: {}", CsLodClientConfig.load(ClientPlatform.gameDir().resolve("config")));
-        if (!voxy && !dh) {
+        if (map) {
+            capsRadius = Math.max(capsRadius, CsLodClientConfig.mapRadiusBlocks());
+        }
+        if (!voxy && !dh && !map) {
             LOGGER.info("Chunksmith: hello, no LOD renderer installed (voxy / Distant Horizons), so no"
                     + " LOD data will be requested or drawn. Saying hello anyway so that /cslod set can"
                     + " reach this client's settings.");
         } else {
-            LOGGER.info("Chunksmith: saying hello with voxy={} dh={} radius={} blocks", voxy, dh, capsRadius);
+            LOGGER.info("Chunksmith: saying hello with voxy={} dh={} map={} radius={} blocks", voxy, dh, map, capsRadius);
         }
         // Name the DH the player actually has, at join: we compile against the standalone
         // distanthorizonsapi artifact and support a wide range of DH releases. DhTarget hard-references DH
@@ -587,7 +596,7 @@ public final class CsLodClientNet {
     private static void sendHello(boolean first) {
         try {
             send(CsLodMessages.encode(new CsLodMessages.ClientHello(
-                    CsLodProtocol.VERSION, capsVoxy, capsDh, capsRadius)));
+                    CsLodProtocol.VERSION, capsVoxy, capsDh, capsRadius, capsMap)));
             if (first) {
                 RETRY.started(System.currentTimeMillis());
                 helloSentMillis = System.currentTimeMillis();
@@ -664,7 +673,7 @@ public final class CsLodClientNet {
             }
             return;
         }
-        if (!capsVoxy && !capsDh) {
+        if (!capsVoxy && !capsDh && !capsMap) {
             // No renderer. Our hello was an introduction so /cslod set can reach us, and it has been
             // answered. Do not arm a dimension, request an index, or enter the empty-store retry loop
             // against a server that is quite right not to send us anything.
@@ -1262,7 +1271,7 @@ public final class CsLodClientNet {
                     : "backchannel " + backchannelPort));
             out.add("token:        " + (token.isEmpty() ? "none" : "held"));
         }
-        out.add("renderers:    voxy=" + (capsVoxy ? "yes" : "no") + " dh=" + (capsDh ? "yes" : "no"));
+        out.add("renderers:    voxy=" + (capsVoxy ? "yes" : "no") + " dh=" + (capsDh ? "yes" : "no") + " map=" + (capsMap ? "yes" : "no"));
         // The depth throttleLodDrainTo is measured against. Shown because a user tuning that
         // knob otherwise has no way to tell whether the barrier can engage on their machine at
         // all -- it only fires once this passes throttleMaxLodQueue.
@@ -1403,6 +1412,7 @@ public final class CsLodClientNet {
         RETRY.reset();
         capsVoxy = false;
         capsDh = false;
+        capsMap = false;
         capsRadius = 0;
         LodInjector.setReportSink(null);
         busy.set(false);

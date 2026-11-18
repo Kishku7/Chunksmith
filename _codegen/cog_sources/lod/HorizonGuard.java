@@ -58,7 +58,12 @@ public final class HorizonGuard {
     public static void install(MinecraftServer current) {
         server = current;
         String reason = null;
-        if (PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS) {
+        if (current.isSingleplayer() && LodPlatform.isModLoaded("xaeroworldmap")) {
+            // In singleplayer World Map builds its map from the world's own saved chunks and never reads the region
+            // files Chunksmith writes for a server's clients, so a ring that is generated and not saved would be a
+            // hole in the map. (On a server the far map is fed from the LOD store, which holds the ring.)
+            reason = "you are in singleplayer with Xaero's World Map, which maps only chunks that are saved, so the ring would stay blank on your map; pregen without the horizon (/cs horizon 0)";
+        } else if (PlatformCompat.ENABLE_MOONRISE_WORKAROUNDS) {
             // Moonrise replaces the whole chunk save path, so none of our vetoes would ever run and the
             // ring would be written to disk anyway. Refuse rather than promise something we cannot keep.
             reason = "Moonrise is installed, and it saves chunks its own way; your pregen can still run with the horizon off";

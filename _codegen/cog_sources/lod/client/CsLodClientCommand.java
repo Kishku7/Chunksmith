@@ -26,6 +26,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 
 import com.kishku7.chunksmith.lod.client.net.CsLodClientNet;
+import com.kishku7.chunksmith.lod.xaero.XaeroTarget;
 import com.kishku7.chunksmith.lod.client.render.LodInjector;
 
 
@@ -87,6 +88,28 @@ public final class CsLodClientCommand {
             reply.line(source, "[chunksmith]       or Voxy separately.");
             return 1;
         }));
+
+        // Xaero's World Map (5.0): where the far map stands, and a way to open it without a keybind.
+        LiteralArgumentBuilder<S> xaero = LiteralArgumentBuilder.literal("xaero");
+        xaero.then(LiteralArgumentBuilder.<S>literal("status").executes(context -> {
+            reply.line(context.getSource(), "[chunksmith] " + XaeroTarget.describe());
+            return 1;
+        }));
+        xaero.then(LiteralArgumentBuilder.<S>literal("map").executes(context -> {
+            reply.line(context.getSource(), "[chunksmith] " + XaeroTarget.openMap(0.0));
+            return 1;
+        }).then(RequiredArgumentBuilder.<S, String>argument("zoom", StringArgumentType.word()).executes(context -> {
+            double zoom;
+            try {
+                zoom = Double.parseDouble(StringArgumentType.getString(context, "zoom"));
+            } catch (NumberFormatException e) {
+                reply.line(context.getSource(), "[chunksmith] zoom must be a number, e.g. 0.1 to see thousands of blocks");
+                return 0;
+            }
+            reply.line(context.getSource(), "[chunksmith] " + XaeroTarget.openMap(zoom));
+            return 1;
+        })));
+        root.then(xaero);
 
         root.then(settings(reply));
 

@@ -490,7 +490,7 @@ public final class CsLodServerNet {
             }
             return;
         }
-        if (!hello.hasVoxy() && !hello.hasDh()) {
+        if (!hello.hasVoxy() && !hello.hasDh() && !hello.hasMap()) {
             // No renderer, no DATA. Answer with an empty hello and stop before the store is even looked at:
             // no token minted, no dimension list built, no radius recorded, and deliberately not added to
             // WAITING, so storeWatchTick never wakes them with an offer they cannot accept.
@@ -503,7 +503,7 @@ public final class CsLodServerNet {
             // renderer could not reach their own client settings at all. Guarded by add(): one line/session.
             if (GREETED.put(player.getUUID(), hello.protocolVersion()) == null) {
                 LOGGER.info("Chunksmith: LOD hello from " + nameOf(player)
-                        + " (voxy=false dh=false, no LOD renderer) -> serving no data;"
+                        + " (voxy=false dh=false map=false, no LOD renderer) -> serving no data;"
                         + " /cslod set can reach them");
             }
             return;
@@ -543,7 +543,7 @@ public final class CsLodServerNet {
         // The client re-asks on a backed-off clock and again to renew its token. Narrate only the first
         // hello of a session: a line every fifteen seconds per waiting player is how a feature gets disabled.
         String line = "Chunksmith: LOD hello from " + nameOf(player)
-                + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " radius=" + hello.radiusBlocks()
+                + " (voxy=" + hello.hasVoxy() + " dh=" + hello.hasDh() + " map=" + hello.hasMap() + " radius=" + hello.radiusBlocks()
                 + ") -> store=" + available + " backchannel=" + (port == 0 ? "none (in-band)" : port);
         if (GREETED.put(player.getUUID(), hello.protocolVersion()) == null) {
             LOGGER.info(line);

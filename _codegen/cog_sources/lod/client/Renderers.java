@@ -70,8 +70,13 @@ public final class Renderers {
         return ClientPlatform.isModLoaded("distanthorizons");
     }
 
+    /** Xaero's World Map (Fabric id {@code xaeroworldmap}) is installed. Chunksmith 5.0 fills its far map. */
+    public static boolean hasMap() {
+        return ClientPlatform.isModLoaded("xaeroworldmap");
+    }
+
     public static boolean any() {
-        return hasVoxy() || hasDh();
+        return hasVoxy() || hasDh() || hasMap();
     }
 
     /**
@@ -131,6 +136,6 @@ public final class Renderers {
         if (!any()) {
             return "no LOD renderer installed";
         }
-        return (hasVoxy() ? "voxy " : "") + (hasDh() ? "distant-horizons " : "") + "detected";
+        return (hasVoxy() ? "voxy " : "") + (hasDh() ? "distant-horizons " : "") + (hasMap() ? "xaero-world-map " : "") + "detected";
     }
 }

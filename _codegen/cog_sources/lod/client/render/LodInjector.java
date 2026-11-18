@@ -28,7 +28,9 @@ import com.kishku7.chunksmith.lod.client.InjectedIndex;
 import com.kishku7.chunksmith.lod.client.InjectedRegions;
 import com.kishku7.chunksmith.lod.client.Renderers;
 import com.kishku7.chunksmith.lod.CsLodCodec;
+import com.kishku7.chunksmith.lod.CsLodChunk;
 import com.kishku7.chunksmith.lod.CsLodRegionStore;
+import com.kishku7.chunksmith.lod.xaero.XaeroTarget;
 import com.kishku7.chunksmith.lod.net.CsLodMessages;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
@@ -61,6 +63,7 @@ public final class LodInjector {
     private static final AtomicLong chunks = new AtomicLong();
     private static final AtomicLong voxySections = new AtomicLong();
     private static final AtomicLong dhChunks = new AtomicLong();
+    private static final AtomicLong mapRegions = new AtomicLong();
 
     /**
      * Which injection session is current. Bumped when the session a running injection belongs to has gone
@@ -150,9 +153,12 @@ public final class LodInjector {
         // whole in-range store is "new" at every join. Null means a malformed dimension id; do not persist.
         boolean voxyInstalled = Renderers.hasVoxy();
         boolean dhInstalled = Renderers.hasDh();
+        // Xaero's World Map reads these regions as map files, but only on a server: in singleplayer it builds
+        // its map from the world's own chunk storage (see CsLodClientNet.hello).
+        boolean mapInstalled = Renderers.hasMap() && client.getCurrentServer() != null;
         InjectedIndex index = PERSISTED.computeIfAbsent(dimension, dim -> {
             InjectedIndex opened = InjectedIndex.open(storeRoot, dim,
-                    InjectedIndex.epochFor(voxyInstalled, dhInstalled, CsLodCodec.VERSION),
+                    InjectedIndex.epochFor(voxyInstalled, dhInstalled, mapInstalled, CsLodCodec.VERSION),
                     CsLodClientConfig.reinjectOnJoin());
             if (opened != null && opened.size() > 0) {
                 for (long[] entry : opened.entries()) {
@@ -190,22 +196,24 @@ public final class LodInjector {
             LOGGER.info("Chunksmith: no renderer became ready within {}s (voxy={} dh={}); "
                             + "downloaded LODs are cached and will be injected on the next join",
                     READY_TIMEOUT_MILLIS / 1000, Renderers.hasVoxy(), Renderers.hasDh());
+
             return;
         }
 
         boolean voxy = voxyInstalled && VoxyTarget.available();
         boolean dh = dhInstalled && DhTarget.available(level);
+        boolean map = mapInstalled && XaeroTarget.available();
 
         // Only write a claim down when we are injecting into every renderer the player has. If one is
         // installed but not ready, this pass feeds the other and the session-only claim still suppresses a
         // re-push during this session, but nothing goes on disk, because a persisted claim would tell
         // the next join that the renderer which never received the data already has it.
-        boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled;
+        boolean persist = index != null && voxy == voxyInstalled && dh == dhInstalled && map == mapInstalled;
 
         // Name the dimension. It is the one fact that made the difference between "it works" and "there is
         // an ocean in the Nether", and it costs nothing to print.
         progress.accept("injecting " + fresh.size() + " new region(s) of " + dimension + " into "
-                + (voxy ? "voxy " : "") + (dh ? "distant-horizons" : ""));
+                + (voxy ? "voxy " : "") + (dh ? "distant-horizons " : "") + (map ? "xaero-world-map" : ""));
 
         Path dir = CsLodStore.dimensionDir(storeRoot, dimension);
         if (dir == null) {
@@ -236,9 +244,14 @@ public final class LodInjector {
                 return;
             }
 
+            // Xaero takes a whole region at once: its file holds one palette across all 1024 tiles.
+            List<CsLodChunk> forMap = map ? new ArrayList<>() : null;
             try {
                 CsLodRegionStore.forEachChunkInRegion(dir, region.regionX(), region.regionZ(),
                         record -> {
+                    if (map) {
+                        forMap.add(record);
+                    }
                     if (voxy) {
                         voxySections.addAndGet(VoxyTarget.inject(level, record));
                     }
@@ -250,6 +263,27 @@ public final class LodInjector {
                         progress.accept("injected " + done + " chunks");
                     }
                 });
+                if (map) {
+                    XaeroTarget.Outcome outcome = XaeroTarget.inject(dimension, region.regionX(), region.regionZ(), forMap);
+                    // World Map follows a level change a moment after the game does, so give it up to 20 s to catch up
+                    // before handing the region back for the next sync.
+                    for (int wait = 0; outcome == XaeroTarget.Outcome.NOT_READY && wait < 40 && SESSION.get() == session; wait++) {
+                        try {
+                            Thread.sleep(500L);
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        outcome = XaeroTarget.inject(dimension, region.regionX(), region.regionZ(), forMap);
+                    }
+                    if (outcome == XaeroTarget.Outcome.NOT_READY || outcome == XaeroTarget.Outcome.FAILED) {
+                        // World Map was not in a state to take it: give the region back so a later refresh retries.
+                        INJECTED.release(dimension, region.regionX(), region.regionZ());
+                        forget(index, region);
+                        continue;
+                    }
+                    mapRegions.incrementAndGet();
+                }
                 // Recorded per region as it completes, not in one write at the end: a session killed
                 // half way through must not lose the regions it did inject, or claim ones it did not.
                 if (persist) {
@@ -268,7 +302,8 @@ public final class LodInjector {
 
         progress.accept("done, " + chunks.get() + " chunks"
                 + (voxy ? ", " + voxySections.get() + " voxy sections" : "")
-                + (dh ? ", " + dhChunks.get() + " to distant-horizons (" + DhTarget.describe() + ")" : ""));
+                + (dh ? ", " + dhChunks.get() + " to distant-horizons (" + DhTarget.describe() + ")" : "")
+                + (map ? ", " + XaeroTarget.describe() : ""));
 
         reportDhGate(dh);
         reportInjection(voxy, dh);
@@ -298,7 +333,8 @@ public final class LodInjector {
     private static synchronized void reportInjection(boolean voxy, boolean dh) {
         long dhNow = dhChunks.get();
         long chunksNow = chunks.get();
-        long failedNow = DhTarget.failedCount();
+        // Only ask DH when DH took part: DhTarget references DH classes, which a voxy-only or map-only client lacks.
+        long failedNow = dh ? DhTarget.failedCount() : reportedDhFailed;
         long dhDelta = dhNow - reportedDhChunks;
         long chunksDelta = chunksNow - reportedChunks;
         long failedDelta = failedNow - reportedDhFailed;
@@ -387,7 +423,8 @@ public final class LodInjector {
         long deadline = System.currentTimeMillis() + READY_TIMEOUT_MILLIS;
         while (System.currentTimeMillis() < deadline) {
             if ((Renderers.hasVoxy() && VoxyTarget.available())
-                    || (Renderers.hasDh() && DhTarget.available(level))) {
+                    || (Renderers.hasDh() && DhTarget.available(level))
+                    || (Renderers.hasMap() && XaeroTarget.available())) {
                 return true;
             }
             try {
@@ -403,6 +440,6 @@ public final class LodInjector {
     /** Counters: present from the first commit, because every silent failure here looks like success. */
     public static String describe() {
         return chunks.get() + " chunks injected (" + voxySections.get() + " voxy sections, "
-                + dhChunks.get() + " dh chunks)";
+                + dhChunks.get() + " dh chunks, " + mapRegions.get() + " xaero regions)";
     }
 }

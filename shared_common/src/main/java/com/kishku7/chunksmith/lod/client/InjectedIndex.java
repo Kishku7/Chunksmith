@@ -102,7 +102,16 @@ public final class InjectedIndex {
      * been given.
      */
     public static String epochFor(boolean voxy, boolean dh, int storeVersion) {
-        return (voxy ? "voxy" : "-") + "+" + (dh ? "dh" : "-") + "|v" + storeVersion;
+        return epochFor(voxy, dh, false, storeVersion);
+    }
+
+    /**
+     * The epoch with a map mod counted among the consumers (5.0). A map-less epoch is unchanged, so an existing
+     * record stays valid; adding or removing World Map changes it, because a region voxy already has is not on
+     * the map until the map has been given it.
+     */
+    public static String epochFor(boolean voxy, boolean dh, boolean map, int storeVersion) {
+        return (voxy ? "voxy" : "-") + "+" + (dh ? "dh" : "-") + (map ? "+map" : "") + "|v" + storeVersion;
     }
 
     /** Records that this version of this region has been injected. Call after the region is really in. */

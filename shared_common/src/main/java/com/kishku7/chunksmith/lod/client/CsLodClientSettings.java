@@ -139,7 +139,20 @@ public final class CsLodClientSettings {
                         return true;
                     },
                     "ceiling in MEGABYTES on stored LOD per dimension per server; 0 means no ceiling"
-                            + " (the default, and how every version before 4.0.0 behaved)"));
+                            + " (the default, and how every version before 4.0.0 behaved)"),
+            new Setting(CsLodClientConfig.KEY_MAP_RADIUS,
+                    Kind.INTEGER,
+                    () -> Integer.toString(CsLodClientConfig.mapRadiusBlocks()),
+                    raw -> {
+                        Optional<Long> value = Input.tryLong(raw);
+                        if (value.isEmpty() || value.get() > Integer.MAX_VALUE || value.get() < Integer.MIN_VALUE) {
+                            return false;
+                        }
+                        CsLodClientConfig.setMapRadiusBlocks(value.get().intValue());
+                        return true;
+                    },
+                    "how far from you, in blocks, the Xaero World Map is filled from the server's LOD store"
+                            + " (default " + CsLodClientConfig.DEFAULT_MAP_RADIUS_BLOCKS + ", 256 to 32768; applies from the next join)"));
 
     public static List<Setting> all() {
         return ALL;

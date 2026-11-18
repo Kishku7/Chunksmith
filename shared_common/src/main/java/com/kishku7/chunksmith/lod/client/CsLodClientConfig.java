@@ -89,6 +89,17 @@ public final class CsLodClientConfig {
     public static final String KEY_MAX_DISK_MB = "max-disk-mb";
 
     /**
+     * How far from the player, in BLOCKS, the far map is filled from the server's LOD store when Xaero's World
+     * Map is installed (Chunksmith 5.0). Voxy and Distant Horizons say how far they draw; Xaero has no such
+     * setting, so this is the equivalent. A store region is about 5 MB for 512x512 blocks, so a radius of 2048
+     * is up to 64 regions, roughly 300 MB, and the disk ceiling above still applies.
+     */
+    public static final String KEY_MAP_RADIUS = "map-radius-blocks";
+
+    /** The default for {@link #KEY_MAP_RADIUS}. */
+    public static final int DEFAULT_MAP_RADIUS_BLOCKS = 2048;
+
+    /**
      * How often the client asks "has anything changed?" by default. Five minutes.
      *
      * <p>The poll costs 22 bytes out and 34 bytes back and opens no file on either side,
@@ -137,6 +148,7 @@ public final class CsLodClientConfig {
     private static volatile int syncSeconds = DEFAULT_SYNC_SECONDS;
     private static volatile boolean reinject;
     private static volatile long maxDiskMb;
+    private static volatile int mapRadiusBlocks = DEFAULT_MAP_RADIUS_BLOCKS;
     private static volatile boolean loaded;
 
     /**
@@ -171,6 +183,7 @@ public final class CsLodClientConfig {
                 syncSeconds = DEFAULT_SYNC_SECONDS;
                 reinject = false;
                 maxDiskMb = 0L;
+                mapRadiusBlocks = DEFAULT_MAP_RADIUS_BLOCKS;
                 return "could not read " + FILE_NAME + " (" + e + "); using the defaults";
             }
         }
@@ -179,6 +192,17 @@ public final class CsLodClientConfig {
         // recovery switch into permanent behaviour.
         reinject = Boolean.parseBoolean(
                 properties.getProperty(KEY_REINJECT, "false").trim());
+
+        int mapRadius = DEFAULT_MAP_RADIUS_BLOCKS;
+        String rawMap = properties.getProperty(KEY_MAP_RADIUS);
+        if (rawMap != null && !rawMap.isBlank()) {
+            try {
+                mapRadius = Math.max(256, Math.min(32768, Integer.parseInt(rawMap.trim())));
+            } catch (NumberFormatException ignored) {
+                mapRadius = DEFAULT_MAP_RADIUS_BLOCKS;
+            }
+        }
+        mapRadiusBlocks = mapRadius;
 
         // Unparseable or negative is "no ceiling", matching the default rather than refusing to start.
         long disk = 0L;
@@ -234,6 +258,17 @@ public final class CsLodClientConfig {
 
     public static int syncIntervalSeconds() {
         return syncSeconds;
+    }
+
+    /** How far the Xaero far map is filled, in blocks. See {@link #KEY_MAP_RADIUS}. */
+    public static int mapRadiusBlocks() {
+        return mapRadiusBlocks;
+    }
+
+    /** Sets the far-map radius, clamped to 256..32768 blocks, and saves it. Takes effect from the next join. */
+    public static synchronized void setMapRadiusBlocks(int blocks) {
+        mapRadiusBlocks = Math.max(256, Math.min(32768, blocks));
+        save();
     }
 
     public static boolean reinjectOnJoin() {
@@ -309,6 +344,7 @@ public final class CsLodClientConfig {
         out.setProperty(KEY_SYNC_SECONDS, Integer.toString(syncSeconds));
         out.setProperty(KEY_REINJECT, Boolean.toString(reinject));
         out.setProperty(KEY_MAX_DISK_MB, Long.toString(maxDiskMb));
+        out.setProperty(KEY_MAP_RADIUS, Integer.toString(mapRadiusBlocks));
         try {
             Files.createDirectories(path.getParent());
             try (OutputStream stream = Files.newOutputStream(path)) {

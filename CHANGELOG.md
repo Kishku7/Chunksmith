@@ -1,5 +1,26 @@
 # Chunksmith Changelog
 
+## [5.0.0-alpha.1] - 2026-11-17
+
+First build of the 5.x line (branch `CSv5_current`). Test build, Fabric 26.3 only; not published.
+
+- New: Xaero's World Map shows the far terrain a server's LOD store holds. A client with World Map and Chunksmith,
+  joined to a Chunksmith 5 server, now downloads the same LOD data voxy and Distant Horizons use (no renderer needed)
+  and writes it into World Map's own region files, so the full-screen map fills in far beyond what the client has
+  loaded, and keeps filling in as the server's pregen grows. World Map's own tiles, made from chunks you really
+  loaded, are never replaced. It works the same for a server that keeps its chunks and one running the LOD horizon
+  (where the far ring is never saved), because the map is built from the LOD records and not from region files.
+- New: `map-radius-blocks` (default 2048) in `config/chunksmith-lod.properties`, also `/csclient set map-radius-blocks <n>`:
+  how far from you the map is filled. A region is about 5 MB, so 2048 is up to roughly 300 MB.
+- New: `/csclient xaero status` and `/csclient xaero map [zoom]` (zoom 0.1 shows a few thousand blocks).
+- Singleplayer: World Map maps only chunks that are saved there, so the LOD horizon now refuses to run in singleplayer
+  when World Map is installed, and says to pregen without it (`/cs horizon 0`). Nothing else changes in singleplayer.
+- Protocol: the client hello gains one trailing byte (`hasMap`). A 4.x client and a 5.x server, or the reverse, still talk;
+  a map-only client needs a 5.x server.
+- Not yet: the Nether (World Map shows it through height-chosen cave layers, which this build does not write; the Nether is
+  skipped rather than mapped wrongly) and cave layers underground in any dimension. Singleplayer is unchanged.
+- Fixed: a client with neither Distant Horizons nor voxy no longer fails with a missing-class error after an injection.
+
 ## [4.10.1] - 2026-11-17
 
 - Fabric 26.4 jar re-pinned from Minecraft 26.4-snapshot-8 to 26.4-snapshot-10. Snapshot jars load only on the exact
