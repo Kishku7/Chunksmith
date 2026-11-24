@@ -54,10 +54,10 @@ $m26 = [ordered]@{
   "26.1" = @{ mc = "26.1.2";          api = "0.155.3+26.1.2"; dep = ">=26.1- <26.2"; packFormat = "84" }
   "26.2" = @{ mc = "26.2";            api = "0.161.0+26.2";   dep = ">=26.2- <26.3"; packFormat = "88" }
   "26.3" = @{ mc = "26.3";            api = "0.162.0+26.3";   dep = ">=26.3- <26.4"; packFormat = "97" }
-  # 26.4 is still in snapshots: exclusive single-build pin. pack_format read from 26.4-snapshot-10's own
+  # 26.4 is still in pre-release: exclusive single-build pin. pack_format read from 26.4-pre-1's own
   # resources/version.json (resource_major 104, data_major 128). dep is the Fabric-normalized form
   # (last hyphen -> dot); confirm on a boot.
-  "26.4" = @{ mc = "26.4-snapshot-10"; api = "0.166.2+26.4";   dep = "26.4-alpha.10"; packFormat = "104" }
+  "26.4" = @{ mc = "26.4-pre-1"; api = "0.167.1+26.4";   dep = "26.4-pre.1"; packFormat = "104" }
 }
 # pre-26 cells = Fabric/<v> dirs except the unified "26".
 $preCells = Get-ChildItem $root -Directory | Where-Object { $_.Name -ne "26" } | Select-Object -ExpandProperty Name | Sort-Object
