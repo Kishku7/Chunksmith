@@ -2,7 +2,7 @@
 
 ## [5.0.0-alpha.1] - 2026-11-17
 
-First build of the 5.x line (branch `CSv5_current`). Test build, Fabric 26.3 only; not published.
+First build of the 5.x line (branch `main`). Test build, Fabric 26.3 only; not published.
 
 - New: Xaero's World Map shows the far terrain a server's LOD store holds. A client with World Map and Chunksmith,
   joined to a Chunksmith 5 server, now downloads the same LOD data voxy and Distant Horizons use (no renderer needed)

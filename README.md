@@ -139,11 +139,11 @@ including the voxy forks, and which mods Chunksmith refuses to load beside.
 
 ## Source
 
-[Kishku7/Chunksmith](https://github.com/Kishku7/Chunksmith) (build guide: `BUILDING.md`) -- the 5.x line,
-where current development happens. The 4.x line is frozen on
-[`CSv4_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv4_archive), the 3.x line on
-[`CSv3_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv3_archive), and the 2.x line on
-[`CSv2_archive`](https://github.com/Kishku7/Chunksmith/tree/CSv2_archive).
+[Kishku7/Chunksmith](https://github.com/Kishku7/Chunksmith) is the current source tree (the 5.x line); the build guide is
+`BUILDING.md`. Older lines are frozen on branches: the 4.x line on
+[`archive_v4`](https://github.com/Kishku7/Chunksmith/tree/archive_v4), the 3.x line on
+[`archive_v3`](https://github.com/Kishku7/Chunksmith/tree/archive_v3), and the 2.x line on
+[`archive_v2`](https://github.com/Kishku7/Chunksmith/tree/archive_v2).
 
 ## License
 

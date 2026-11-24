@@ -1,12 +1,11 @@
 # Chunksmith - Build Guide
 
-`CSv5_current` is the Chunksmith source tree for the 5.x line, and the branch all current
-work
-happens on. The 4.x line is frozen on `CSv4_archive` and the 3.x line on `CSv3_archive`. One codebase builds every supported target - the Fabric, Forge and NeoForge mods plus
+`main` is the Chunksmith source tree for the 5.x line, and the branch all current
+work happens on. The 4.x line is frozen on `archive_v4` and the 3.x line on `archive_v3`. One codebase builds every supported target - the Fabric, Forge and NeoForge mods plus
 the Bukkit/Paper plugin - across Minecraft 1.20.1 through 26.3.
 
-**This branch is the build guide.** For what Chunksmith is and how to run it, see the
-[landing page](https://github.com/Kishku7/Chunksmith); for every setting, command and how-to, see the
+**This file is the build guide.** For what Chunksmith is and how to run it, see the
+[README](README.md); for every setting, command and how-to, see the
 **[wiki](https://github.com/Kishku7/Chunksmith/wiki)**. Bug reports and questions go to
 [mod_support](https://github.com/Kishku7/mod_support/issues).
 
