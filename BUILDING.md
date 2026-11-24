@@ -9,9 +9,9 @@ the Bukkit/Paper plugin - across Minecraft 1.20.1 through 26.3.
 **[wiki](https://github.com/Kishku7/Chunksmith/wiki)**. Bug reports and questions go to
 [mod_support](https://github.com/Kishku7/mod_support/issues).
 
-Other branches: `main` is the landing README only (it is also the source of the Modrinth
-description). `CSv3_old` is the superseded 3.x line, kept for reference. `CSv2_archive` is the
-frozen 2.x line.
+Other branches: `README.md` on `main` is the overview and is also the source of the Modrinth
+description. `archive_landing` is the old README-only `main`, `archive_v3-old` is the superseded 3.x line,
+kept for reference, and `archive_v2` is the frozen 2.x line.
 
 ## What you need installed
 
